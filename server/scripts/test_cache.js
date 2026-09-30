@@ -1,0 +1,1 @@
+const { cacheSet, cacheGet } = require('./server/utils/redis.js'); async function test() { await cacheSet('test_key', { ok: true }, 60); const val = await cacheGet('test_key'); console.log('Cached Value:', val); process.exit(0); } test();

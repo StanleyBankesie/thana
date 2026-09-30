@@ -1,0 +1,8 @@
+DESCRIBE fin_voucher_reversals:
+- id (bigint unsigned)
+- company_id (bigint unsigned)
+- original_voucher_id (bigint unsigned)
+- reversal_voucher_id (bigint unsigned)
+- reason (varchar(255))
+- created_by (bigint unsigned)
+- created_at (datetime)

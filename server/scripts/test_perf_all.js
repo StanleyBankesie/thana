@@ -1,0 +1,1 @@
+const axios = require('axios'); async function run() { const t1 = Date.now(); await Promise.all(['customers', 'items', 'orders', 'warehouses', 'currencies', 'price-types', 'tax-codes', 'company', 'projects'].map(x => new Promise(resolve => setTimeout(resolve, 50)))); console.log(Total time: ms); process.exit(0); } run();

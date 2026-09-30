@@ -1,0 +1,1 @@
+import('./db/pool.js').then(m => m.query('SHOW TABLES').then(r => { console.log(r.map(x => Object.values(x)[0]).filter(t => t.includes('trans'))); process.exit(0); }).catch(e => { console.error(e.message); process.exit(1); }))

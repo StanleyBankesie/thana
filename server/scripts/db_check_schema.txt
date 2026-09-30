@@ -1,0 +1,440 @@
+DESCRIBE hr_payslips:
+[
+  {
+    "Field": "id",
+    "Type": "bigint unsigned",
+    "Null": "NO",
+    "Key": "PRI",
+    "Default": null,
+    "Extra": "auto_increment"
+  },
+  {
+    "Field": "employee_id",
+    "Type": "bigint unsigned",
+    "Null": "NO",
+    "Key": "MUL",
+    "Default": null,
+    "Extra": ""
+  },
+  {
+    "Field": "period_id",
+    "Type": "bigint unsigned",
+    "Null": "NO",
+    "Key": "",
+    "Default": null,
+    "Extra": ""
+  },
+  {
+    "Field": "basic_salary",
+    "Type": "decimal(18,4)",
+    "Null": "NO",
+    "Key": "",
+    "Default": null,
+    "Extra": ""
+  },
+  {
+    "Field": "net_salary",
+    "Type": "decimal(18,4)",
+    "Null": "NO",
+    "Key": "",
+    "Default": null,
+    "Extra": ""
+  },
+  {
+    "Field": "status",
+    "Type": "enum('DRAFT','PAID')",
+    "Null": "NO",
+    "Key": "",
+    "Default": "DRAFT",
+    "Extra": ""
+  },
+  {
+    "Field": "paid_at",
+    "Type": "timestamp",
+    "Null": "YES",
+    "Key": "",
+    "Default": "CURRENT_TIMESTAMP",
+    "Extra": "DEFAULT_GENERATED"
+  },
+  {
+    "Field": "allowance_5",
+    "Type": "decimal(18,4)",
+    "Null": "NO",
+    "Key": "",
+    "Default": "0.0000",
+    "Extra": ""
+  },
+  {
+    "Field": "allowance_1",
+    "Type": "decimal(18,4)",
+    "Null": "NO",
+    "Key": "",
+    "Default": "0.0000",
+    "Extra": ""
+  },
+  {
+    "Field": "allowance_4",
+    "Type": "decimal(18,4)",
+    "Null": "NO",
+    "Key": "",
+    "Default": "0.0000",
+    "Extra": ""
+  },
+  {
+    "Field": "tier3_employee",
+    "Type": "decimal(18,4)",
+    "Null": "NO",
+    "Key": "",
+    "Default": "0.0000",
+    "Extra": ""
+  },
+  {
+    "Field": "subtotal_a",
+    "Type": "decimal(18,4)",
+    "Null": "NO",
+    "Key": "",
+    "Default": "0.0000",
+    "Extra": ""
+  },
+  {
+    "Field": "subtotal_b",
+    "Type": "decimal(18,4)",
+    "Null": "NO",
+    "Key": "",
+    "Default": "0.0000",
+    "Extra": ""
+  },
+  {
+    "Field": "paye_bracket_id",
+    "Type": "bigint",
+    "Null": "YES",
+    "Key": "",
+    "Default": null,
+    "Extra": ""
+  },
+  {
+    "Field": "paye_rate",
+    "Type": "decimal(9,4)",
+    "Null": "YES",
+    "Key": "",
+    "Default": null,
+    "Extra": ""
+  },
+  {
+    "Field": "ssf_10",
+    "Type": "decimal(18,4)",
+    "Null": "NO",
+    "Key": "",
+    "Default": "0.0000",
+    "Extra": ""
+  },
+  {
+    "Field": "tier3_17",
+    "Type": "decimal(18,4)",
+    "Null": "NO",
+    "Key": "",
+    "Default": "0.0000",
+    "Extra": ""
+  },
+  {
+    "Field": "income_tax_14",
+    "Type": "decimal(18,4)",
+    "Null": "NO",
+    "Key": "",
+    "Default": "0.0000",
+    "Extra": ""
+  },
+  {
+    "Field": "income_tax_bracket_paye",
+    "Type": "decimal(18,4)",
+    "Null": "NO",
+    "Key": "",
+    "Default": "0.0000",
+    "Extra": ""
+  },
+  {
+    "Field": "income_tax_9",
+    "Type": "decimal(18,4)",
+    "Null": "NO",
+    "Key": "",
+    "Default": "0.0000",
+    "Extra": ""
+  },
+  {
+    "Field": "income_tax_13",
+    "Type": "decimal(18,4)",
+    "Null": "NO",
+    "Key": "",
+    "Default": "0.0000",
+    "Extra": ""
+  },
+  {
+    "Field": "allowances",
+    "Type": "decimal(18,4)",
+    "Null": "NO",
+    "Key": "",
+    "Default": "0.0000",
+    "Extra": ""
+  },
+  {
+    "Field": "deductions",
+    "Type": "decimal(18,4)",
+    "Null": "NO",
+    "Key": "",
+    "Default": "0.0000",
+    "Extra": ""
+  },
+  {
+    "Field": "income_tax",
+    "Type": "decimal(18,4)",
+    "Null": "NO",
+    "Key": "",
+    "Default": "0.0000",
+    "Extra": ""
+  },
+  {
+    "Field": "loan_deductions_total",
+    "Type": "decimal(18,4)",
+    "Null": "NO",
+    "Key": "",
+    "Default": "0.0000",
+    "Extra": ""
+  },
+  {
+    "Field": "loan_1",
+    "Type": "decimal(18,4)",
+    "Null": "NO",
+    "Key": "",
+    "Default": "0.0000",
+    "Extra": ""
+  },
+  {
+    "Field": "loan_2",
+    "Type": "decimal(18,4)",
+    "Null": "NO",
+    "Key": "",
+    "Default": "0.0000",
+    "Extra": ""
+  }
+]
+
+DESCRIBE hr_payroll_items:
+[
+  {
+    "Field": "id",
+    "Type": "bigint unsigned",
+    "Null": "NO",
+    "Key": "PRI",
+    "Default": null,
+    "Extra": "auto_increment"
+  },
+  {
+    "Field": "payroll_id",
+    "Type": "bigint unsigned",
+    "Null": "NO",
+    "Key": "MUL",
+    "Default": null,
+    "Extra": ""
+  },
+  {
+    "Field": "employee_id",
+    "Type": "bigint unsigned",
+    "Null": "NO",
+    "Key": "MUL",
+    "Default": null,
+    "Extra": ""
+  },
+  {
+    "Field": "basic_salary",
+    "Type": "decimal(18,4)",
+    "Null": "NO",
+    "Key": "",
+    "Default": "0.0000",
+    "Extra": ""
+  },
+  {
+    "Field": "allowances",
+    "Type": "decimal(18,4)",
+    "Null": "NO",
+    "Key": "",
+    "Default": "0.0000",
+    "Extra": ""
+  },
+  {
+    "Field": "deductions",
+    "Type": "decimal(18,4)",
+    "Null": "NO",
+    "Key": "",
+    "Default": "0.0000",
+    "Extra": ""
+  },
+  {
+    "Field": "income_tax",
+    "Type": "decimal(18,4)",
+    "Null": "NO",
+    "Key": "",
+    "Default": "0.0000",
+    "Extra": ""
+  },
+  {
+    "Field": "ssf_employee",
+    "Type": "decimal(18,4)",
+    "Null": "NO",
+    "Key": "",
+    "Default": "0.0000",
+    "Extra": ""
+  },
+  {
+    "Field": "net_salary",
+    "Type": "decimal(18,4)",
+    "Null": "NO",
+    "Key": "",
+    "Default": "0.0000",
+    "Extra": ""
+  },
+  {
+    "Field": "created_at",
+    "Type": "timestamp",
+    "Null": "NO",
+    "Key": "",
+    "Default": "CURRENT_TIMESTAMP",
+    "Extra": "DEFAULT_GENERATED"
+  },
+  {
+    "Field": "allowance_5",
+    "Type": "decimal(18,4)",
+    "Null": "NO",
+    "Key": "",
+    "Default": "0.0000",
+    "Extra": ""
+  },
+  {
+    "Field": "allowance_1",
+    "Type": "decimal(18,4)",
+    "Null": "NO",
+    "Key": "",
+    "Default": "0.0000",
+    "Extra": ""
+  },
+  {
+    "Field": "allowance_4",
+    "Type": "decimal(18,4)",
+    "Null": "NO",
+    "Key": "",
+    "Default": "0.0000",
+    "Extra": ""
+  },
+  {
+    "Field": "tier3_employee",
+    "Type": "decimal(18,4)",
+    "Null": "NO",
+    "Key": "",
+    "Default": "0.0000",
+    "Extra": ""
+  },
+  {
+    "Field": "subtotal_a",
+    "Type": "decimal(18,4)",
+    "Null": "NO",
+    "Key": "",
+    "Default": "0.0000",
+    "Extra": ""
+  },
+  {
+    "Field": "subtotal_b",
+    "Type": "decimal(18,4)",
+    "Null": "NO",
+    "Key": "",
+    "Default": "0.0000",
+    "Extra": ""
+  },
+  {
+    "Field": "paye_bracket_id",
+    "Type": "bigint",
+    "Null": "YES",
+    "Key": "",
+    "Default": null,
+    "Extra": ""
+  },
+  {
+    "Field": "paye_rate",
+    "Type": "decimal(9,4)",
+    "Null": "YES",
+    "Key": "",
+    "Default": null,
+    "Extra": ""
+  },
+  {
+    "Field": "ssf_10",
+    "Type": "decimal(18,4)",
+    "Null": "NO",
+    "Key": "",
+    "Default": "0.0000",
+    "Extra": ""
+  },
+  {
+    "Field": "tier3_17",
+    "Type": "decimal(18,4)",
+    "Null": "NO",
+    "Key": "",
+    "Default": "0.0000",
+    "Extra": ""
+  },
+  {
+    "Field": "income_tax_14",
+    "Type": "decimal(18,4)",
+    "Null": "NO",
+    "Key": "",
+    "Default": "0.0000",
+    "Extra": ""
+  },
+  {
+    "Field": "income_tax_bracket_paye",
+    "Type": "decimal(18,4)",
+    "Null": "NO",
+    "Key": "",
+    "Default": "0.0000",
+    "Extra": ""
+  },
+  {
+    "Field": "income_tax_9",
+    "Type": "decimal(18,4)",
+    "Null": "NO",
+    "Key": "",
+    "Default": "0.0000",
+    "Extra": ""
+  },
+  {
+    "Field": "income_tax_13",
+    "Type": "decimal(18,4)",
+    "Null": "NO",
+    "Key": "",
+    "Default": "0.0000",
+    "Extra": ""
+  },
+  {
+    "Field": "loan_deductions_total",
+    "Type": "decimal(18,4)",
+    "Null": "NO",
+    "Key": "",
+    "Default": "0.0000",
+    "Extra": ""
+  },
+  {
+    "Field": "loan_1",
+    "Type": "decimal(18,4)",
+    "Null": "NO",
+    "Key": "",
+    "Default": "0.0000",
+    "Extra": ""
+  },
+  {
+    "Field": "loan_2",
+    "Type": "decimal(18,4)",
+    "Null": "NO",
+    "Key": "",
+    "Default": "0.0000",
+    "Extra": ""
+  }
+]
+

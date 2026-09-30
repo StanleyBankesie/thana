@@ -1,0 +1,58 @@
+{
+  "name": "omnisuite-server",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "dev": "set NODE_OPTIONS=--max-http-header-size=2097152 && nodemon bootstrap.js",
+    "build": "node scripts/build.js",
+    "start": "node bootstrap.js",
+    "db:init": "node scripts/init_db.js",
+    "db:export": "node scripts/export_dump.js",
+    "db:dump": "node scripts/dump_db_mysqldump.js",
+    "db:drop-logo-columns": "node scripts/drop_company_logo_columns.js",
+    "db:doctor": "node scripts/db_doctor.js",
+    "backup": "node scripts/backup.js"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.1079.0",
+    "@socket.io/redis-adapter": "^8.3.0",
+    "adm-zip": "^0.6.0",
+    "archiver": "^8.0.0",
+    "bcryptjs": "^2.4.3",
+    "bullmq": "^5.79.2",
+    "cors": "^2.8.5",
+    "dotenv": "^16.6.1",
+    "express": "^4.19.2",
+    "express-rate-limit": "^8.5.2",
+    "googleapis": "^173.0.0",
+    "handlebars": "^4.7.8",
+    "helmet": "^8.2.0",
+    "ioredis": "^5.11.1",
+    "joi": "^17.13.3",
+    "jsonwebtoken": "^9.0.2",
+    "morgan": "^1.11.0",
+    "multer": "^2.0.2",
+    "mysql2": "^3.23.1",
+    "mysqldump": "^3.2.0",
+    "node-cron": "^4.5.0",
+    "nodemailer": "^9.0.3",
+    "puppeteer": "^24.40.0",
+    "rate-limit-redis": "^5.0.0",
+    "sanitize-html": "^2.17.0",
+    "semver": "^7.8.5",
+    "socket.io": "^4.8.3",
+    "web-push": "^3.6.7",
+    "xlsx": "^0.18.5",
+    "xss": "^1.0.15"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.9"
+  },
+  "overrides": {
+    "mysqldump": {
+      "mysql2": "$mysql2"
+    }
+  }
+}

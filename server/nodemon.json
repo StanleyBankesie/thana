@@ -1,0 +1,19 @@
+{
+  "watch": [
+    "bootstrap.js",
+    "index.js",
+    "routes",
+    "controllers",
+    "utils",
+    "db",
+    "middleware"
+  ],
+  "ignore": [
+    "../client/**",
+    "uploads/**",
+    "*.log",
+    ".env*"
+  ],
+  "ext": "js,json",
+  "delay": "2500"
+}

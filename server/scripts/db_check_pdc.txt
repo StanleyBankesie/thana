@@ -1,0 +1,11 @@
+fin_pdc_postings keys:
+- id
+- company_id
+- branch_id
+- voucher_id
+- instrument_no
+- instrument_date
+- bank_account_id
+- status
+- created_at
+- created_by

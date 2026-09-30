@@ -1,0 +1,1 @@
+import pool from './db/pool.js'; pool.execute('UPDATE pur_service_orders SET status = "DONE" WHERE order_no = "SVO-000006"').then(() => {console.log("Updated SVO-000006"); process.exit(0)}).catch(console.error);

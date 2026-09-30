@@ -1,0 +1,23 @@
+SHOW CREATE TABLE fin_pdc_postings:
+CREATE TABLE `fin_pdc_postings` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `company_id` bigint unsigned NOT NULL,
+  `branch_id` bigint unsigned NOT NULL,
+  `voucher_id` bigint unsigned NOT NULL,
+  `instrument_no` varchar(60) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `instrument_date` date NOT NULL,
+  `bank_account_id` bigint unsigned DEFAULT NULL,
+  `status` enum('HELD','POSTED','CANCELLED') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'HELD',
+  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `created_by` int DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_pdc_unique` (`company_id`,`instrument_no`),
+  KEY `idx_pdc_company` (`company_id`),
+  KEY `idx_pdc_branch` (`branch_id`),
+  KEY `idx_pdc_voucher` (`voucher_id`),
+  KEY `idx_pdc_bank` (`bank_account_id`),
+  CONSTRAINT `fk_pdc_bank` FOREIGN KEY (`bank_account_id`) REFERENCES `fin_bank_accounts` (`id`),
+  CONSTRAINT `fk_pdc_branch` FOREIGN KEY (`branch_id`) REFERENCES `adm_branches` (`id`),
+  CONSTRAINT `fk_pdc_company` FOREIGN KEY (`company_id`) REFERENCES `adm_companies` (`id`),
+  CONSTRAINT `fk_pdc_voucher` FOREIGN KEY (`voucher_id`) REFERENCES `fin_vouchers` (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci

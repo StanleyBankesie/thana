@@ -1,0 +1,1026 @@
+/**
+ * @fileoverview BalanceSheetReportPage component.
+ * Provides functionality for BalanceSheetReportPage.
+ */
+
+import React, { useEffect, useState } from "react";
+import { toast } from "react-toastify";
+import { api } from "api/client";
+import { Link } from "react-router-dom";
+import * as XLSX from "xlsx";
+import jsPDF from "jspdf";
+import stannessLogo from "../../../../assets/logo_stanness.png";
+
+const fmt = (n) =>
+  Number(n || 0).toLocaleString(undefined, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+
+/**
+ * BalanceSheetReportPage component
+ *
+ * @returns {JSX.Element} The rendered component
+ */
+export default function BalanceSheetReportPage() {
+  const [pollingCounter, setPollingCounter] = React.useState(0);
+  React.useEffect(() => {
+    const __pollId = setInterval(() => setPollingCounter((c) => c + 1), 15000);
+    return () => clearInterval(__pollId);
+  }, [pollingCounter]);
+
+  const [to, setTo] = useState("");
+  const [userBranches, setUserBranches] = useState([]);
+  const [selectedBranchId, setSelectedBranchId] = useState("");
+  const [assets, setAssets] = useState({ items: [], total: 0 });
+  const [liabilities, setLiabilities] = useState({ items: [], total: 0 });
+  const [equity, setEquity] = useState({ items: [], total: 0 });
+  const [balance, setBalance] = useState(0);
+  const [asOfDate, setAsOfDate] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [level, setLevel] = useState(5);
+  const [company, setCompany] = useState(null);
+  const [reportTemplate, setReportTemplate] = useState(null);
+  const [logoDataUrl, setLogoDataUrl] = useState(null);
+  const [currencies, setCurrencies] = useState([]);
+  const [selectedCurrency, setSelectedCurrency] = useState({ code: "GHS", symbol: "₵" });
+
+  useEffect(() => {
+    async function loadCompanyAndCurrencies() {
+      try {
+        const [cRes, curRes, tplRes] = await Promise.allSettled([
+          api.get("/admin/companies/current"),
+          api.get("/finance/currencies"),
+          api.get("/templates/general-template"),
+        ]);
+
+        if (cRes.status === "fulfilled" && cRes.value.data?.item) {
+          const co = cRes.value.data.item;
+          setCompany(co);
+
+          try {
+            const logoRes = await api.get(`/admin/companies/${co.id}/logo`, {
+              responseType: "blob",
+            });
+            const reader = new FileReader();
+            reader.onloadend = () => {
+              setLogoDataUrl(reader.result);
+            };
+            reader.readAsDataURL(logoRes.data);
+          } catch {
+            // No custom logo uploaded
+          }
+        }
+
+        if (tplRes.status === "fulfilled") {
+          const list = Array.isArray(tplRes.value.data?.items)
+            ? tplRes.value.data.items
+            : Array.isArray(tplRes.value.data)
+            ? tplRes.value.data
+            : [];
+          const defaultTpl = list.find((t) => t.is_default) || list[0] || null;
+          if (defaultTpl) setReportTemplate(defaultTpl);
+        }
+
+        if (curRes.status === "fulfilled") {
+          const list = Array.isArray(curRes.value.data?.items)
+            ? curRes.value.data.items
+            : Array.isArray(curRes.value.data)
+            ? curRes.value.data
+            : [];
+          setCurrencies(list);
+          const base =
+            list.find((c) => c.is_base || c.is_default || c.code === "GHS") ||
+            list[0];
+          if (base) {
+            setSelectedCurrency({
+              code: base.code || "GHS",
+              symbol: base.symbol || "₵",
+            });
+          }
+        }
+      } catch {
+        // Fallback defaults
+      }
+    }
+    loadCompanyAndCurrencies();
+  }, []);
+
+  async function getHeaderInfo() {
+    let tpl = reportTemplate;
+    if (!tpl) {
+      try {
+        const res = await api.get("/templates/general-template");
+        const list = Array.isArray(res.data?.items)
+          ? res.data.items
+          : Array.isArray(res.data)
+          ? res.data
+          : [];
+        tpl = list.find((t) => t.is_default) || list[0] || null;
+      } catch {}
+    }
+
+    let co = company;
+    if (!co) {
+      try {
+        const res = await api.get("/admin/companies/current");
+        co = res.data?.item || null;
+      } catch {}
+    }
+
+    const companyName = tpl?.header_name?.trim() || co?.name || "Seriana Mart";
+    const companyAddress =
+      tpl?.header_address?.trim() ||
+      [co?.address, co?.city, co?.country].filter(Boolean).join(", ");
+    const companyPhone =
+      tpl?.header_phone?.trim() || co?.telephone || co?.phone || "";
+    const companyEmail = tpl?.header_email?.trim() || co?.email || "";
+    const logoUrl = tpl?.header_logo_url?.trim() || logoDataUrl || stannessLogo;
+
+    return { companyName, companyAddress, companyPhone, companyEmail, logoUrl };
+  }
+
+  useEffect(() => {
+    async function fetchBranches() {
+      try {
+        const res = await api.get("/auth/user-branches");
+        const list = Array.isArray(res.data?.items) ? res.data.items : [];
+        setUserBranches(list);
+        if (list.length === 1) {
+          setSelectedBranchId(String(list[0].id));
+        }
+      } catch {
+        try {
+          const fallbackRes = await api.get("/admin/branches");
+          const fList = Array.isArray(fallbackRes.data?.items)
+            ? fallbackRes.data.items
+            : Array.isArray(fallbackRes.data)
+            ? fallbackRes.data
+            : [];
+          setUserBranches(fList);
+          if (fList.length === 1) {
+            setSelectedBranchId(String(fList[0].id));
+          }
+        } catch {
+          setUserBranches([]);
+        }
+      }
+    }
+    fetchBranches();
+  }, []);
+
+  async function run() {
+    try {
+      setLoading(true);
+      const res = await api.get("/finance/reports/balance-sheet", {
+        params: {
+          to: to || null,
+          branchId: selectedBranchId || null,
+        },
+      });
+      setAssets(res.data?.assets || { items: [], total: 0 });
+      setLiabilities(res.data?.liabilities || { items: [], total: 0 });
+      setEquity(res.data?.equity || { items: [], total: 0 });
+      setBalance(Number(res.data?.balance || 0));
+      setAsOfDate(
+        res.data?.as_of_date || to || new Date().toISOString().slice(0, 10)
+      );
+    } catch (e) {
+      toast.error(e?.response?.data?.message || "Failed to load balance sheet");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    const today = new Date();
+    setTo(today.toISOString().slice(0, 10));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    run();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [to, selectedBranchId, pollingCounter]);
+
+  // Flatten tree for export
+  function flattenTree(nodes, section, rows = []) {
+    if (!nodes || !Array.isArray(nodes)) return rows;
+    for (const node of nodes) {
+      if (node.level > 99) continue;
+      if (node.type === "group") {
+        rows.push({
+          Section: section,
+          Type: "Group",
+          Level: node.level,
+          Code: node.code || "",
+          Name: node.name,
+          Amount: Number(node.amount || 0),
+        });
+        flattenTree(node.children, section, rows);
+        flattenTree(node.accounts, section, rows);
+      } else {
+        rows.push({
+          Section: section,
+          Type: "Account",
+          Level: node.level,
+          Code: node.account_code || "",
+          Name: node.account_name || "",
+          Amount: Number(node.amount || 0),
+        });
+      }
+    }
+    return rows;
+  }
+
+  async function exportExcel() {
+    const header = await getHeaderInfo();
+    const currCode = selectedCurrency.code || "GHS";
+    const currSymbol = selectedCurrency.symbol || "₵";
+
+    const branchName = selectedBranchId
+      ? userBranches.find((b) => String(b.id) === String(selectedBranchId))
+          ?.name || "Selected Branch"
+      : userBranches.length === 1
+      ? userBranches[0].name
+      : "All Assigned Branches";
+
+    const contactParts = [];
+    if (header.companyPhone) contactParts.push(`Contact No: ${header.companyPhone}`);
+    if (header.companyEmail) contactParts.push(`Email: ${header.companyEmail}`);
+
+    const headerRows = [
+      { Section: header.companyName, Type: "", Level: "", Code: "", Name: "", Amount: "" },
+    ];
+    if (header.companyAddress) {
+      headerRows.push({
+        Section: header.companyAddress,
+        Type: "",
+        Level: "",
+        Code: "",
+        Name: "",
+        Amount: "",
+      });
+    }
+    if (contactParts.length) {
+      headerRows.push({
+        Section: contactParts.join("  |  "),
+        Type: "",
+        Level: "",
+        Code: "",
+        Name: "",
+        Amount: "",
+      });
+    }
+    headerRows.push(
+      {
+        Section: "STATEMENT OF FINANCIAL POSITION (BALANCE SHEET)",
+        Type: "",
+        Level: "",
+        Code: "",
+        Name: "",
+        Amount: "",
+      },
+      {
+        Section: `Currency: ${currCode} (${currSymbol}) | As at: ${asOfDate || to || "Today"} | Branch: ${branchName} | Generated: ${new Date().toLocaleString()}`,
+        Type: "",
+        Level: "",
+        Code: "",
+        Name: "",
+        Amount: "",
+      },
+      { Section: "", Type: "", Level: "", Code: "", Name: "", Amount: "" }
+    );
+
+    const assetRows = flattenTree(assets.items, "Assets");
+    const liabRows = flattenTree(liabilities.items, "Liabilities");
+    const eqRows = flattenTree(equity.items, "Equity");
+    const blank = { Section: "", Type: "", Level: "", Code: "", Name: "", Amount: "" };
+
+    const all = [
+      ...headerRows,
+      { Section: "=== ASSETS ===", Type: "", Level: "", Code: "", Name: "", Amount: "" },
+      ...assetRows,
+      { ...blank, Type: "SUBTOTAL", Name: "Total Assets", Amount: assets.total },
+      blank,
+      { Section: "=== LIABILITIES ===", Type: "", Level: "", Code: "", Name: "", Amount: "" },
+      ...liabRows,
+      { ...blank, Type: "SUBTOTAL", Name: "Total Liabilities", Amount: liabilities.total },
+      blank,
+      { Section: "=== EQUITY ===", Type: "", Level: "", Code: "", Name: "", Amount: "" },
+      ...eqRows,
+      { ...blank, Type: "SUBTOTAL", Name: "Total Equity", Amount: equity.total },
+      blank,
+      {
+        Section: "=== BALANCE STATUS ===",
+        Type: "NET",
+        Name: Math.abs(balance) < 0.01 ? "BALANCED (Assets = Liab + Equity)" : "OUT OF BALANCE",
+        Amount: balance,
+      },
+    ];
+
+    const ws = XLSX.utils.json_to_sheet(all);
+    ws["!cols"] = [
+      { wch: 25 },
+      { wch: 12 },
+      { wch: 8 },
+      { wch: 15 },
+      { wch: 45 },
+      { wch: 18 },
+    ];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "BalanceSheet");
+    XLSX.writeFile(
+      wb,
+      `balance-sheet-${currCode}-as-of-${asOfDate || to || "today"}.xlsx`
+    );
+  }
+
+  async function exportPDF() {
+    const header = await getHeaderInfo();
+
+    const doc = new jsPDF("p", "mm", "a4");
+    const pageW = 210;
+    const pageH = 297;
+    const margin = 14;
+    let y = 14;
+
+    const currCode = selectedCurrency.code || "GHS";
+    // Avoid jsPDF font encoding issues where unicode ₵ renders as µ
+    const currPrefix = currCode === "GHS" ? "GH " : `${currCode} `;
+
+    const branchName = selectedBranchId
+      ? userBranches.find((b) => String(b.id) === String(selectedBranchId))
+          ?.name || "Selected Branch"
+      : userBranches.length === 1
+      ? userBranches[0].name
+      : "All Assigned Branches";
+
+    // 1. Report Header Template: Left = Stanness Logo Image, Right = Company Info
+    if (header.logoUrl) {
+      try {
+        doc.addImage(header.logoUrl, "PNG", margin, y - 2, 44, 16, undefined, "FAST");
+      } catch (err) {
+        console.error("Error drawing logo", err);
+      }
+    }
+
+    // Right-aligned Company Details
+    let rightY = y + 2;
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(13);
+    doc.setTextColor(15, 23, 42);
+    doc.text(header.companyName, pageW - margin, rightY, { align: "right" });
+    rightY += 5;
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8.5);
+    doc.setTextColor(71, 85, 105);
+
+    if (header.companyAddress) {
+      doc.text(header.companyAddress, pageW - margin, rightY, { align: "right" });
+      rightY += 4.5;
+    }
+    if (header.companyPhone) {
+      doc.text(`Contact No: ${header.companyPhone}`, pageW - margin, rightY, { align: "right" });
+      rightY += 4.5;
+    }
+    if (header.companyEmail) {
+      doc.text(`Email: ${header.companyEmail}`, pageW - margin, rightY, { align: "right" });
+      rightY += 4.5;
+    }
+
+    y = Math.max(y + 18, rightY + 1);
+
+    // Solid Black Divider Line
+    doc.setDrawColor(0, 0, 0);
+    doc.setLineWidth(0.8);
+    doc.line(margin, y, pageW - margin, y);
+    y += 5;
+
+    // 2. Document Title & Metadata Banner
+    doc.setFillColor(15, 23, 42); // slate-900
+    doc.rect(margin, y, pageW - margin * 2, 14, "F");
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(11);
+    doc.setTextColor(255, 255, 255);
+    doc.text("STATEMENT OF FINANCIAL POSITION (BALANCE SHEET)", margin + 4, y + 5.5);
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8);
+    doc.setTextColor(203, 213, 225);
+    doc.text(
+      `As at: ${asOfDate || to || "Today"}   |   Branch: ${branchName}`,
+      margin + 4,
+      y + 10.5
+    );
+
+    const genDate = new Date().toLocaleDateString();
+    doc.text(
+      `Currency: ${currCode}   |   Generated: ${genDate}`,
+      pageW - margin - 4,
+      y + 10.5,
+      { align: "right" }
+    );
+    y += 18;
+
+    // 3. Summary KPI Cards
+    const balanced = Math.abs(balance) < 0.01;
+    const kpis = [
+      {
+        label: "TOTAL ASSETS",
+        value: `${currPrefix}${fmt(assets.total)}`,
+        color: [29, 78, 216],
+      },
+      {
+        label: "TOTAL LIABILITIES",
+        value: `${currPrefix}${fmt(liabilities.total)}`,
+        color: [234, 88, 12],
+      },
+      {
+        label: "TOTAL EQUITY",
+        value: `${currPrefix}${fmt(equity.total)}`,
+        color: [16, 185, 129],
+      },
+    ];
+    const kpiW = (pageW - margin * 2 - 8) / 3;
+    kpis.forEach((k, idx) => {
+      const kX = margin + idx * (kpiW + 4);
+      doc.setFillColor(248, 250, 252);
+      doc.rect(kX, y, kpiW, 12, "F");
+      doc.setDrawColor(226, 232, 240);
+      doc.rect(kX, y, kpiW, 12, "S");
+
+      // Left Accent bar
+      doc.setFillColor(...k.color);
+      doc.rect(kX, y, 1.5, 12, "F");
+
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(7);
+      doc.setTextColor(100, 116, 139);
+      doc.text(k.label, kX + 4, y + 4.5);
+
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(10);
+      doc.setTextColor(15, 23, 42);
+      doc.text(k.value, kX + 4, y + 9.5);
+    });
+    y += 17;
+
+    // Helper for table sections
+    function renderSection(title, nodes, sectionTotal, color) {
+      if (y > 255) {
+        doc.addPage();
+        y = margin;
+      }
+
+      // Section header banner
+      doc.setFillColor(...color);
+      doc.rect(margin, y, pageW - margin * 2, 6.5, "F");
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(9.5);
+      doc.setFont("helvetica", "bold");
+      doc.text(title.toUpperCase(), margin + 3, y + 4.5);
+      doc.text(`AMOUNT (${currCode})`, pageW - margin - 3, y + 4.5, {
+        align: "right",
+      });
+      y += 8.5;
+      doc.setTextColor(30, 41, 59);
+
+      function renderTreeNodes(nodeList) {
+        if (!nodeList || !Array.isArray(nodeList)) return;
+        for (const node of nodeList) {
+          if (y > 270) {
+            doc.addPage();
+            y = margin;
+          }
+          const indent = margin + (node.level - 1) * 4;
+          if (node.type === "group") {
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(8.5);
+            doc.setTextColor(51, 65, 85);
+            doc.text(`${node.name}`, indent, y);
+            doc.text(`${currPrefix}${fmt(node.amount)}`, pageW - margin - 2, y, {
+              align: "right",
+            });
+            y += 5;
+            renderTreeNodes(node.children);
+            renderTreeNodes(node.accounts);
+          } else {
+            doc.setFont("helvetica", "normal");
+            doc.setFontSize(8);
+            doc.setTextColor(71, 85, 105);
+            const label = node.account_code
+              ? `${node.account_code}  ${node.account_name || ""}`
+              : node.account_name || "";
+            doc.text(label.slice(0, 70), indent + 2, y);
+            doc.text(`${currPrefix}${fmt(node.amount)}`, pageW - margin - 2, y, {
+              align: "right",
+            });
+            y += 4.5;
+          }
+        }
+      }
+      renderTreeNodes(nodes);
+
+      // Subtotal bar
+      if (y > 268) {
+        doc.addPage();
+        y = margin;
+      }
+      doc.setFillColor(241, 245, 249);
+      doc.rect(margin, y, pageW - margin * 2, 6, "F");
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(8.5);
+      doc.setTextColor(...color);
+      doc.text(`Total ${title}`, margin + 3, y + 4.5);
+      doc.text(
+        `${currPrefix}${fmt(sectionTotal)}`,
+        pageW - margin - 2,
+        y + 4.5,
+        { align: "right" }
+      );
+      y += 9.5;
+    }
+
+    renderSection("Assets", assets.items, assets.total, [29, 78, 216]);
+    y += 3;
+    renderSection("Liabilities", liabilities.items, liabilities.total, [234, 88, 12]);
+    y += 3;
+    renderSection("Equity", equity.items, equity.total, [16, 185, 129]);
+
+    // Balance check banner
+    if (y > 260) {
+      doc.addPage();
+      y = margin;
+    }
+    y += 2;
+    doc.setFillColor(balanced ? 5 : 225, balanced ? 150 : 29, balanced ? 105 : 72);
+    doc.rect(margin, y, pageW - margin * 2, 8.5, "F");
+    doc.setTextColor(255, 255, 255);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(10);
+    doc.text(
+      balanced ? "✓ BALANCE SHEET IS BALANCED" : "⚠ OUT OF BALANCE",
+      margin + 4,
+      y + 6
+    );
+    doc.text(
+      balanced
+        ? "Assets = Liabilities + Equity"
+        : `Off by: ${currPrefix}${fmt(Math.abs(balance))}`,
+      pageW - margin - 4,
+      y + 6,
+      { align: "right" }
+    );
+
+    // Page Numbering Footer on all pages
+    const totalPages = doc.internal.getNumberOfPages();
+    for (let i = 1; i <= totalPages; i++) {
+      doc.setPage(i);
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(7.5);
+      doc.setTextColor(148, 163, 184); // slate-400
+      doc.text(
+        `Generated from Seriana Mart ERP  |  Page ${i} of ${totalPages}`,
+        pageW / 2,
+        pageH - 6,
+        { align: "center" }
+      );
+    }
+
+    doc.save(
+      `balance-sheet-${currCode}-as-of-${asOfDate || to || "today"}.pdf`
+    );
+  }
+
+  // Recursive renderer using flexbox to avoid table CSS clashes
+  const renderNodes = (nodes, maxLevel) => {
+    if (!nodes || !Array.isArray(nodes)) return null;
+    return nodes.map((node) => {
+      if (node.level > maxLevel) return null;
+      const isGroup = node.type === "group";
+      const key = isGroup ? `g-${node.id}` : `a-${node.account_id || node.id}`;
+      const pl = Math.max(0, node.level - 1) * 16;
+      const amountVal = Number(node.amount || 0);
+
+      return (
+        <React.Fragment key={key}>
+          <div
+            className={`flex items-center justify-between py-2.5 px-3 border-b border-slate-100 dark:border-slate-700/50 transition-colors ${
+              isGroup
+                ? "bg-slate-100/90 dark:bg-slate-800/90 font-bold border-t border-slate-200 dark:border-slate-700"
+                : "hover:bg-blue-50/50 dark:hover:bg-blue-900/30 bg-white dark:bg-slate-800"
+            }`}
+          >
+            {/* Left side: Group / Account Name */}
+            <div
+              className="flex items-center gap-2 min-w-0 flex-1 pr-3"
+              style={{ paddingLeft: `${pl}px` }}
+            >
+              {isGroup ? (
+                <div className="flex items-center gap-1.5 min-w-0">
+                  <span className="text-slate-400 text-xs flex-shrink-0">📁</span>
+                  <span
+                    className="font-bold text-slate-900 dark:text-slate-100 text-xs uppercase tracking-wider truncate"
+                    title={node.name}
+                  >
+                    {node.name}
+                  </span>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2 min-w-0">
+                  {(node.account_code || node.code) && (
+                    <span className="font-mono text-xs font-bold text-brand dark:text-brand-300 flex-shrink-0">
+                      {node.account_code || node.code}
+                    </span>
+                  )}
+                  <span
+                    className="text-sm font-semibold text-slate-800 dark:text-slate-200 truncate"
+                    title={node.account_name || node.name}
+                  >
+                    {node.account_name || node.name}
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {/* Right side: Amount */}
+            <div
+              className={`font-mono text-sm whitespace-nowrap tabular-nums flex-shrink-0 pl-2 text-right ${
+                isGroup
+                  ? "font-black text-slate-900 dark:text-slate-50"
+                  : "font-bold text-slate-900 dark:text-slate-100"
+              }`}
+            >
+              {selectedCurrency.symbol}
+              {fmt(amountVal)}
+            </div>
+          </div>
+
+          {isGroup && node.children && renderNodes(node.children, maxLevel)}
+          {isGroup && node.accounts && renderNodes(node.accounts, maxLevel)}
+        </React.Fragment>
+      );
+    });
+  };
+
+  const balanced = Math.abs(balance) < 0.01;
+  const totalLiabEquity = liabilities.total + equity.total;
+
+  return (
+    <div className="space-y-6 p-4">
+      {/* Header */}
+      <div className="flex justify-between items-center bg-white dark:bg-slate-800 p-6 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700">
+        <div>
+          <button
+            onClick={() => window.history.back()}
+            className="font-sans text-xs font-bold text-brand uppercase tracking-wider hover:text-brand-600 transition-colors"
+          >
+            ← Back to Finance
+          </button>
+          <h1 className="text-3xl font-extrabold text-slate-900 dark:text-slate-100 mt-2 tracking-tight">
+            Balance Sheet
+          </h1>
+          <p className="text-slate-500 dark:text-slate-400 text-sm mt-1 font-medium">
+            Financial position statement as at {asOfDate || to}
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            className="btn btn-ghost btn-sm"
+            onClick={() => window.print()}
+          >
+            🖨️ Print
+          </button>
+          <button
+            type="button"
+            className="btn btn-outline btn-sm"
+            onClick={exportExcel}
+            disabled={
+              !assets.items.length &&
+              !liabilities.items.length &&
+              !equity.items.length
+            }
+          >
+            📊 Excel ({selectedCurrency.code})
+          </button>
+          <button
+            type="button"
+            className="btn btn-primary btn-sm shadow-sm"
+            onClick={exportPDF}
+            disabled={
+              !assets.items.length &&
+              !liabilities.items.length &&
+              !equity.items.length
+            }
+          >
+            📄 PDF ({selectedCurrency.code})
+          </button>
+        </div>
+      </div>
+
+      {/* Summary Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="bg-white dark:bg-slate-800 p-5 rounded-xl shadow-sm border-l-4 border-blue-500 border-y border-r border-slate-200 dark:border-slate-700">
+          <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+            Total Assets
+          </p>
+          <h3 className="text-xl font-black text-slate-900 dark:text-slate-100 mt-1">
+            {selectedCurrency.symbol}
+            {fmt(assets.total)}
+          </h3>
+        </div>
+        <div className="bg-white dark:bg-slate-800 p-5 rounded-xl shadow-sm border-l-4 border-orange-500 border-y border-r border-slate-200 dark:border-slate-700">
+          <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+            Total Liabilities
+          </p>
+          <h3 className="text-xl font-black text-slate-900 dark:text-slate-100 mt-1">
+            {selectedCurrency.symbol}
+            {fmt(liabilities.total)}
+          </h3>
+        </div>
+        <div className="bg-white dark:bg-slate-800 p-5 rounded-xl shadow-sm border-l-4 border-emerald-500 border-y border-r border-slate-200 dark:border-slate-700">
+          <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+            Total Equity
+          </p>
+          <h3 className="text-xl font-black text-slate-900 dark:text-slate-100 mt-1">
+            {selectedCurrency.symbol}
+            {fmt(equity.total)}
+          </h3>
+        </div>
+        <div
+          className={`bg-white dark:bg-slate-800 p-5 rounded-xl shadow-sm border-l-4 border-y border-r border-slate-200 dark:border-slate-700 ${
+            balanced ? "border-emerald-500" : "border-rose-500"
+          }`}
+        >
+          <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+            Balance Status
+          </p>
+          <h3
+            className={`text-xl font-black mt-1 ${
+              balanced ? "text-emerald-600" : "text-rose-600"
+            }`}
+          >
+            {balanced
+              ? "✓ Balanced"
+              : `Off by ${selectedCurrency.symbol}${fmt(Math.abs(balance))}`}
+          </h3>
+        </div>
+      </div>
+
+      {/* Filters */}
+      <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
+        <div className="p-4 border-b border-slate-100 dark:border-slate-700 flex flex-wrap items-center gap-4 bg-slate-50 dark:bg-slate-800/50">
+          {userBranches.length > 1 && (
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-bold text-slate-600 dark:text-slate-400 whitespace-nowrap">
+                Branch:
+              </span>
+              <select
+                className="select select-bordered select-sm text-xs font-semibold bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100"
+                value={selectedBranchId}
+                onChange={(e) => setSelectedBranchId(e.target.value)}
+              >
+                <option value="">All Assigned Branches</option>
+                {userBranches.map((b) => (
+                  <option key={b.id} value={b.id}>
+                    {b.name} {b.code ? `(${b.code})` : ""}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {userBranches.length === 1 && (
+            <div className="flex items-center gap-1.5 px-2.5 py-1 bg-brand/10 border border-brand/20 rounded-md">
+              <span className="text-xs font-bold text-slate-500 dark:text-slate-400">
+                Branch:
+              </span>
+              <span className="text-xs font-bold text-brand dark:text-brand-300">
+                {userBranches[0].name}{" "}
+                {userBranches[0].code ? `(${userBranches[0].code})` : ""}
+              </span>
+            </div>
+          )}
+
+          {/* Currency Selector */}
+          {currencies.length > 1 ? (
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-bold text-slate-600 dark:text-slate-400 whitespace-nowrap">
+                Currency:
+              </span>
+              <select
+                className="select select-bordered select-sm text-xs font-semibold bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100"
+                value={selectedCurrency.code}
+                onChange={(e) => {
+                  const cur = currencies.find((c) => c.code === e.target.value);
+                  if (cur)
+                    setSelectedCurrency({
+                      code: cur.code,
+                      symbol: cur.symbol || cur.code,
+                    });
+                }}
+              >
+                {currencies.map((c) => (
+                  <option key={c.id || c.code} value={c.code}>
+                    {c.code} ({c.symbol || c.code})
+                  </option>
+                ))}
+              </select>
+            </div>
+          ) : (
+            <div className="flex items-center gap-1.5 px-2.5 py-1 bg-slate-200/60 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-md">
+              <span className="text-xs font-bold text-slate-500 dark:text-slate-400">
+                Currency:
+              </span>
+              <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                {selectedCurrency.code} ({selectedCurrency.symbol})
+              </span>
+            </div>
+          )}
+
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-bold text-slate-600 dark:text-slate-400">
+              As of Date:
+            </span>
+            <input
+              className="input input-bordered input-sm"
+              type="date"
+              value={to}
+              onChange={(e) => setTo(e.target.value)}
+            />
+          </div>
+          <div className="flex items-center gap-4 border-l pl-4 border-slate-200 dark:border-slate-700">
+            <span className="text-sm font-bold text-slate-600 dark:text-slate-400 whitespace-nowrap">
+              Level:
+            </span>
+            <div className="flex items-center gap-3">
+              <input
+                type="range"
+                min="1"
+                max="5"
+                step="1"
+                value={level}
+                onChange={(e) => setLevel(parseInt(e.target.value))}
+                className="range range-xs range-primary w-32"
+              />
+              <span className="bg-brand text-white text-xs font-black px-2 py-1 rounded shadow-sm min-w-[1.75rem] text-center">
+                {level}
+              </span>
+            </div>
+          </div>
+          <button
+            type="button"
+            className="btn btn-ghost btn-sm text-brand font-bold"
+            onClick={() => {
+              const today = new Date();
+              setTo(today.toISOString().slice(0, 10));
+              if (userBranches.length > 1) setSelectedBranchId("");
+            }}
+            disabled={loading}
+          >
+            Reset
+          </button>
+          {loading && (
+            <span className="loading loading-spinner loading-sm text-brand"></span>
+          )}
+        </div>
+
+        <div className="p-4">
+          {/* Two-column layout: Assets | Liabilities + Equity */}
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+            {/* ASSETS */}
+            <div className="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm overflow-hidden flex flex-col">
+              <div className="flex items-center justify-between bg-blue-700 text-white py-3 px-4 font-bold text-xs uppercase tracking-wider">
+                <span>Asset Accounts</span>
+                <span className="font-mono">
+                  Amount ({selectedCurrency.symbol})
+                </span>
+              </div>
+              <div className="flex-1 divide-y divide-slate-100 dark:divide-slate-700/50">
+                {assets.items.length === 0 && !loading && (
+                  <div className="text-center py-8 text-slate-400 text-sm">
+                    No asset records
+                  </div>
+                )}
+                {renderNodes(assets.items, level)}
+              </div>
+              <div className="flex items-center justify-between bg-blue-50 dark:bg-blue-900/30 border-t-2 border-blue-300 dark:border-blue-700 py-3 px-4 font-black text-blue-800 dark:text-blue-300">
+                <span className="text-sm">Total Assets</span>
+                <span className="text-base font-mono">
+                  {selectedCurrency.symbol}
+                  {fmt(assets.total)}
+                </span>
+              </div>
+            </div>
+
+            {/* LIABILITIES + EQUITY */}
+            <div className="space-y-6 flex flex-col">
+              {/* Liabilities */}
+              <div className="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm overflow-hidden flex flex-col">
+                <div className="flex items-center justify-between bg-orange-600 text-white py-3 px-4 font-bold text-xs uppercase tracking-wider">
+                  <span>Liability Accounts</span>
+                  <span className="font-mono">
+                    Amount ({selectedCurrency.symbol})
+                  </span>
+                </div>
+                <div className="flex-1 divide-y divide-slate-100 dark:divide-slate-700/50">
+                  {liabilities.items.length === 0 && !loading && (
+                    <div className="text-center py-6 text-slate-400 text-sm">
+                      No liability records
+                    </div>
+                  )}
+                  {renderNodes(liabilities.items, level)}
+                </div>
+                <div className="flex items-center justify-between bg-orange-50 dark:bg-orange-900/30 border-t-2 border-orange-300 dark:border-orange-700 py-3 px-4 font-black text-orange-800 dark:text-orange-300">
+                  <span className="text-sm">Total Liabilities</span>
+                  <span className="text-base font-mono">
+                    {selectedCurrency.symbol}
+                    {fmt(liabilities.total)}
+                  </span>
+                </div>
+              </div>
+
+              {/* Equity */}
+              <div className="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm overflow-hidden flex flex-col">
+                <div className="flex items-center justify-between bg-emerald-700 text-white py-3 px-4 font-bold text-xs uppercase tracking-wider">
+                  <span>Equity Accounts</span>
+                  <span className="font-mono">
+                    Amount ({selectedCurrency.symbol})
+                  </span>
+                </div>
+                <div className="flex-1 divide-y divide-slate-100 dark:divide-slate-700/50">
+                  {equity.items.length === 0 && !loading && (
+                    <div className="text-center py-6 text-slate-400 text-sm">
+                      No equity records
+                    </div>
+                  )}
+                  {renderNodes(equity.items, level)}
+                </div>
+                <div className="flex items-center justify-between bg-emerald-50 dark:bg-emerald-900/30 border-t-2 border-emerald-300 dark:border-emerald-700 py-3 px-4 font-black text-emerald-800 dark:text-emerald-300">
+                  <span className="text-sm">Total Equity</span>
+                  <span className="text-base font-mono">
+                    {selectedCurrency.symbol}
+                    {fmt(equity.total)}
+                  </span>
+                </div>
+              </div>
+
+              {/* Liabilities + Equity Subtotal */}
+              <div className="bg-slate-100 dark:bg-slate-700/70 rounded-xl p-4 flex justify-between items-center border border-slate-200 dark:border-slate-600">
+                <span className="font-bold text-slate-700 dark:text-slate-200 text-sm">
+                  Total Liabilities + Equity
+                </span>
+                <span className="font-black text-slate-900 dark:text-slate-50 font-mono text-base">
+                  {selectedCurrency.symbol}
+                  {fmt(totalLiabEquity)}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Balance Check Banner */}
+          <div
+            className={`mt-6 p-4 rounded-xl text-center border-2 ${
+              balanced
+                ? "bg-emerald-50 dark:bg-emerald-900/20 border-emerald-300 dark:border-emerald-700"
+                : "bg-rose-50 dark:bg-rose-900/20 border-rose-300 dark:border-rose-700"
+            }`}
+          >
+            <p
+              className={`text-sm font-bold ${
+                balanced ? "text-emerald-700" : "text-rose-700"
+              }`}
+            >
+              {balanced
+                ? "✓ Balance Sheet is Balanced — Assets equal Liabilities + Equity"
+                : `⚠ Out of Balance by ${selectedCurrency.symbol}${fmt(
+                    Math.abs(balance)
+                  )} — Please review your accounts`}
+            </p>
+            <div className="mt-2 flex justify-center gap-8 text-xs text-slate-600 dark:text-slate-400">
+              <span>
+                Assets:{" "}
+                <strong>
+                  {selectedCurrency.symbol}
+                  {fmt(assets.total)}
+                </strong>
+              </span>
+              <span>=</span>
+              <span>
+                Liabilities + Equity:{" "}
+                <strong>
+                  {selectedCurrency.symbol}
+                  {fmt(totalLiabEquity)}
+                </strong>
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

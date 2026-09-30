@@ -1,0 +1,71 @@
+================================================================================
+           BEGINNER'S GUIDE TO BOM PROCESS COSTS & OUTPUT COST CALCULATIONS
+================================================================================
+
+Welcome! This simplified text guide explains how process costs and output costs 
+are calculated in the Bill of Materials (BOM) Production Module.
+
+--------------------------------------------------------------------------------
+1. TOTAL PROCESS COST (NET PROCESS COST PER OPERATION STEP)
+--------------------------------------------------------------------------------
+In each manufacturing operation step (such as Cutting, Molding, Assembly, or Packing),
+the system calculates the Net Process Cost using this simple formula:
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│  Net Process Cost = (Material Input Cost + Operational Overhead Cost)        │
+│                     - By-Product Scrap Recovery Value                        │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+Where:
+  1. Material Input Cost = Sum of (Required Qty × Material Unit Cost)
+  2. Operational Overhead Cost = Sum of (Overhead Qty × Cost Rate)
+  3. By-Product Recovery Value = Sum of (Expected Scrap Qty × Scrap Value)
+
+• WHY SUBTRACT BY-PRODUCTS?
+  If you sell metal scrap or plastic trimmings to recyclers, that extra money 
+  helps DISCOUNT (lower) your total manufacturing expenses!
+
+--------------------------------------------------------------------------------
+2. AUTOMATIC OUTPUT COST CALCULATION BY CLASSIFICATION
+--------------------------------------------------------------------------------
+The Output Cost per unit is automatically calculated in the Output Modal based 
+on the Output Classification you select:
+
+1️⃣ MAIN OUTPUT / SUB-ASSEMBLY / INTERMEDIATE WIP (Standard Production)
+   • Allocation: 100% of the net process cost belongs to this main product.
+   • Formula:
+     ------------------------------------------------------------------------
+     Output Cost Per Unit = Net Process Cost ÷ Output Quantity
+     ------------------------------------------------------------------------
+   • Example:
+     If Net Process Cost = $1,000 and Output Qty = 100 Pcs,
+     Output Cost = $1,000 ÷ 100 = $10.00 / Pc.
+
+2️⃣ CO-PRODUCT (Joint Production)
+   • Allocation: Multiple main products produced together share the total cost 
+     using their "Input Cost Sharing Ratio %".
+   • Formula:
+     ------------------------------------------------------------------------
+     Allocated Product Cost = Net Process Cost × (Input Cost Sharing Ratio %)
+     Output Cost Per Unit = Allocated Product Cost ÷ Output Quantity
+     ------------------------------------------------------------------------
+   • Example:
+     - Net Process Cost = $1,000.
+     - Co-Product A (Ratio 60%, Qty 100): Cost = ($1,000 × 60%) ÷ 100 = $6.00 / Pc.
+     - Co-Product B (Ratio 40%, Qty 100): Cost = ($1,000 × 40%) ÷ 100 = $4.00 / Pc.
+
+================================================================================
+3. SUMMARY CHEAT SHEET
+================================================================================
+
+┌─────────────────────┬───────────────────┬──────────────────────────────────┐
+│ Flow Component      │ Math Operation    │ Impact on Output Cost            │
+├─────────────────────┼───────────────────┼──────────────────────────────────┤
+│ Material Inputs     │ ADD (+)           │ Increases total process cost     │
+│ Operational Overheads│ ADD (+)          │ Increases total process cost     │
+│ By-Products (Scrap) │ SUBTRACT (-)      │ Decreases total process cost     │
+│ Main Output Qty     │ DIVIDE (÷)        │ Gives final Cost Per Unit        │
+└─────────────────────┴───────────────────┴──────────────────────────────────┘
+
+Created for OmniSuite Manufacturing ERP setup & training.
+================================================================================

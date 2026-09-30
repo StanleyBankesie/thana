@@ -1,0 +1,1 @@
+import pool from './db/pool.js'; async function main() { try { const res = await pool.query('SELECT i.id, i.invoice_no, i.due_date, i.exchange_rate, i.payment_date FROM sal_invoices i LIMIT 1'); console.log(res[0]); } catch(e) { console.error(e); } process.exit(0); } main();

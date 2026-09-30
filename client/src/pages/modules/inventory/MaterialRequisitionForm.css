@@ -1,0 +1,129 @@
+/* Item Card Styles for Modal */
+.item-card {
+  padding: 12px;
+  border: 1px solid #dee2e6;
+  margin-bottom: 8px;
+  border-radius: 4px;
+  transition: all 0.3s ease;
+  background-color: white;
+}
+
+.item-card:hover {
+  background-color: rgba(14, 54, 70, 0.1);
+  border-color: #0e3646;
+  cursor: pointer;
+}
+
+.item-card:active {
+  background-color: rgba(14, 54, 70, 0.2);
+}
+
+/* Loading Spinner */
+.spinner-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(255, 255, 255, 0.8);
+  z-index: 9999;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Modal Scroll Fix */
+.item-list-container {
+  max-height: 300px;
+  overflow-y: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  margin-top: 15px;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+  padding: 5px;
+}
+
+.item-list-container::-webkit-scrollbar {
+  display: none;
+}
+
+/* Custom Modal Styles */
+.custom-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  animation: fadeIn 0.3s;
+}
+
+.custom-modal-content {
+  background-color: white;
+  border-radius: 8px;
+  width: 90%;
+  max-width: 600px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  animation: slideDown 0.3s;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideDown {
+  from {
+    transform: translateY(-50px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.loader {
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid #0e3646;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  animation: spin 1s linear infinite;
+  margin: 20px auto;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 639px) {
+  .item-card {
+    padding: 10px;
+    font-size: 13px;
+  }
+  .item-list-container {
+    max-height: 250px;
+  }
+  .custom-modal-content {
+    width: 95%;
+    border-radius: 6px;
+  }
+}

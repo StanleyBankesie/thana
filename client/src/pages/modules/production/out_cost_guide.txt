@@ -1,0 +1,138 @@
+================================================================================
+          BEGINNER'S GUIDE TO MANUFACTURING COST ALLOCATION & OUTPUT COST
+================================================================================
+
+Welcome! This simple guide explains how Output Cost is calculated in a 
+Manufacturing ERP system for all different types of output classifications.
+
+--------------------------------------------------------------------------------
+1. WHAT IS OUTPUT COST?
+--------------------------------------------------------------------------------
+Output Cost is simply: "How much money does it cost to produce ONE single unit 
+of a product or material from a factory operation?"
+
+When a factory runs a production process, it spends money on:
+  • Raw Materials (Ingredients / Raw Stock)
+  • Machine Electricity & Fuel
+  • Factory Worker Wages (Direct Labor)
+  • Equipment Depreciation & Tooling (Overheads)
+
+Output Cost takes all those combined expenses and divides them by what the factory 
+actually produces.
+
+================================================================================
+2. OUTPUT CLASSIFICATIONS & HOW COST IS CALCULATED
+================================================================================
+
+--------------------------------------------------------------------------------
+1️⃣ MAIN OUTPUT (Standard Finished Good)
+--------------------------------------------------------------------------------
+• WHAT IS IT?
+  This is the primary product your factory is making to sell to customers 
+  (for example: a Box of Shoes, a Plastic Bottle, or a Wooden Chair).
+
+• HOW IS COST CALCULATED?
+  Since this is a standard single product, 100% of all material and overhead 
+  expenses belong to this main item.
+
+  Formula:
+  --------------------------------------------------------------------------
+  Total Process Cost = (Material Costs + Worker Wages + Overheads) - By-Product Scrap Money
+  Output Cost Per Unit = Total Process Cost ÷ Total Units Produced
+  --------------------------------------------------------------------------
+
+• EASY EXAMPLE:
+  - You spent $800 on steel, $150 on labor, and $50 on electricity (Total = $1,000).
+  - You made 100 Chair Frames.
+  - Output Cost = $1,000 ÷ 100 = $10.00 per Chair Frame.
+
+--------------------------------------------------------------------------------
+2️⃣ SUB-ASSEMBLY
+--------------------------------------------------------------------------------
+• WHAT IS IT?
+  A semi-finished component made in one process step, which is then sent to 
+  another department to become part of the final product 
+  (for example: an Assembled Bike Wheel before it is attached to the Bike Frame).
+
+• HOW IS COST CALCULATED?
+  Calculated exactly like a Main Output (100% absorption). It absorbs all 
+  materials and labor spent up to that point so the next process knows the 
+  exact starting value of the component.
+
+  Formula:
+  --------------------------------------------------------------------------
+  Output Cost = (Sub-Assembly Component Expenses + Process Overheads) ÷ Units Made
+  --------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+3️⃣ INTERMEDIATE WIP (Work In Progress)
+--------------------------------------------------------------------------------
+• WHAT IS IT?
+  Materials that are currently mid-way through production and stored temporarily 
+  in a WIP staging warehouse (for example: Cut Fabric Rolls waiting to be sewn).
+
+• HOW IS COST CALCULATED?
+  Contains only the cumulative costs spent up to that current stage in the 
+  factory flow.
+
+  Formula:
+  --------------------------------------------------------------------------
+  Output Cost = (Materials Consumed + Labor/Machine Time Spent So Far) ÷ WIP Batch Qty
+  --------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+4️⃣ CO-PRODUCT (Joint Production)
+--------------------------------------------------------------------------------
+• WHAT IS IT?
+  When one single manufacturing process automatically produces TWO OR MORE main 
+  valuable products at the exact same time 
+  (for example: Processing Crude Oil yields both Gasoline and Diesel; or a plastic 
+  injection mould produces both a Left Door Handle and a Right Door Handle).
+
+• HOW IS COST CALCULATED?
+  Because the products are made together, the shared expenses are divided up 
+  using an "Input Cost Sharing Ratio %".
+
+  Formula:
+  --------------------------------------------------------------------------
+  Allocated Product Cost = Total Shared Process Cost × (Input Cost Sharing Ratio %)
+  Output Cost Per Unit = Allocated Product Cost ÷ Quantity Produced of That Product
+  --------------------------------------------------------------------------
+
+• EASY EXAMPLE:
+  - Total factory running cost = $1,000.
+  - Co-Product A (Left Handle): Cost Sharing Ratio = 60%, Quantity = 100 units.
+    -> Allocated Cost = $1,000 × 60% = $600.
+    -> Output Cost A = $600 ÷ 100 = $6.00 per unit.
+  - Co-Product B (Right Handle): Cost Sharing Ratio = 40%, Quantity = 100 units.
+    -> Allocated Cost = $1,000 × 40% = $400.
+    -> Output Cost B = $400 ÷ 100 = $4.00 per unit.
+
+--------------------------------------------------------------------------------
+5️⃣ BY-PRODUCT / SCRAP
+--------------------------------------------------------------------------------
+• WHAT IS IT?
+  Incidental waste or secondary residue created during production 
+  (for example: Metal Sawdust, Plastic Scrap, or Wood Chipping).
+
+• HOW IS COST CALCULATED?
+  By-products do not receive main production cost allocations. Instead, if they 
+  can be sold to scrap recyclers, their "Scrap Recovery Value" acts as a DISCOUNT 
+  that lowers the cost of the Main Output!
+
+================================================================================
+3. SUMMARY CHEAT SHEET
+================================================================================
+
+┌──────────────────┬───────────────────────────┬──────────────────────────────────────┐
+│ Classification   │ Cost Absorption Ratio     │ Simple Rule                          │
+├──────────────────┼───────────────────────────┼──────────────────────────────────────┤
+│ Main Output      │ 100% Cost Absorption      │ Absorbs all input & overhead costs   │
+│ Sub-Assembly     │ 100% Cost Absorption      │ Component value for next process     │
+│ Intermediate WIP │ 100% Cost Absorption      │ Value spent up to current stage      │
+│ Co-Product       │ Shared Ratio % (e.g. 60%) │ Splits shared cost by agreed % ratio │
+│ By-Product       │ $0 Allocation (Scrap)     │ Reduces cost of Main Output (Discount)│
+└──────────────────┴───────────────────────────┴──────────────────────────────────────┘
+
+Created for OmniSuite Manufacturing ERP setup & training.
+================================================================================

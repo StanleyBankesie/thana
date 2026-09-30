@@ -1,0 +1,36 @@
+{
+  "name": "OmniSuite ERP",
+  "short_name": "OmniSuite",
+  "description": "OmniSuite ERP Progressive Web App",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#0E3646",
+  "theme_color": "#0E3646",
+  "icons": [
+    {
+      "src": "/assets/resources/OMNISUITE_ICON_BLUE.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/assets/resources/OMNISUITE_ICON_BLUE.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/OMNISUITE_ICON_CLEAR.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/OMNISUITE_ICON_CLEAR.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

@@ -1,0 +1,1 @@
+const Redis = require('ioredis'); const r = new Redis('redis://default:gQAAAAAAAnsPAAIgcDE2ZDcwZTAxM2VhMjE0YTBmYmQxNmY1NzQ4NTExYzljYg@sought-imp-162575.upstash.io:6379', { tls: {} }); r.on('ready', async () => { console.time('ping'); await r.ping(); console.timeEnd('ping'); process.exit(0); });

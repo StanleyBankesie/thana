@@ -1,0 +1,11 @@
+DESCRIBE fin_pdc_postings:
+- id (bigint unsigned)
+- company_id (bigint unsigned)
+- branch_id (bigint unsigned)
+- voucher_id (bigint unsigned)
+- instrument_no (varchar(60))
+- instrument_date (date)
+- bank_account_id (bigint unsigned)
+- status (enum('HELD','POSTED','CANCELLED'))
+- created_at (datetime)
+- created_by (int)

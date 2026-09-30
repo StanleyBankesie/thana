@@ -1,0 +1,52 @@
+import { query } from './server/db/pool.js';
+
+async function main() {
+  try {
+    const items = await query(
+      `
+      SELECT
+        i.id,
+        i.invoice_no,
+        i.invoice_date,
+        i.due_date,
+        i.customer_id,
+        COALESCE(c.customer_name, '') AS customer_name,
+        c.address AS customer_address,
+        i.status,
+        i.payment_status,
+        i.total_amount,
+        i.net_amount,
+        i.balance_amount,
+        i.price_type,
+        i.payment_type,
+        i.currency_id,
+        i.exchange_rate,
+        i.warehouse_id,
+        i.sales_order_id,
+        i.service_execution_id,
+        i.remarks,
+        i.tax_amount,
+        i.tax_components,
+        i.created_at,
+        i.payment_date,
+        u.username AS created_by_name
+       FROM sal_invoices i
+      LEFT JOIN sal_customers c
+        ON c.id = i.customer_id AND c.company_id = i.company_id
+      LEFT JOIN adm_users u ON u.id = i.created_by
+       WHERE i.id = :id AND i.company_id = :companyId AND (:branchIdsStr = '' OR FIND_IN_SET(i.branch_id, :branchIdsStr))
+      LIMIT 1
+      `,
+      { id: 72, companyId: 1, branchId: 1, branchIdsStr: '' },
+    ).catch((e) => {
+      console.error("QUERY ERROR:", e);
+      return [];
+    });
+    console.log("ITEMS:", items);
+  } catch(e) {
+    console.error(e);
+  }
+  process.exit(0);
+}
+
+main();

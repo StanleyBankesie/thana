@@ -1,0 +1,1142 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb {
+  background: #94a3b8;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #64748b;
+}
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #94a3b8 #f1f5f9;
+}
+
+@layer base {
+  /* ERP Theme Base Styles */
+  body {
+    @apply antialiased font-sans;
+    font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
+  }
+  :root {
+    --success-color: #28a745;
+    --success-color-hover: #218838;
+    --success-color-active: #1e7e34;
+  }
+}
+
+@layer components {
+  /* ── ERP Button Styles ─────────────────────────────── */
+  .btn-primary {
+    @apply inline-flex items-center justify-center px-4 py-2 rounded-lg font-medium text-white bg-brand-900 hover:bg-brand-800 active:bg-brand-950 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed;
+    min-height: 38px;
+  }
+  .btn-primary:focus-visible {
+    @apply outline-none ring-2 ring-brand-900/40 ring-offset-2 ring-offset-white dark:ring-offset-slate-800;
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center px-4 py-2 rounded-lg font-medium text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 border border-slate-300 dark:border-slate-600 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed;
+    min-height: 38px;
+  }
+  .btn-secondary:focus-visible {
+    @apply outline-none ring-2 ring-brand-900/30 ring-offset-2 ring-offset-white dark:ring-offset-slate-800;
+  }
+
+  .btn-outline {
+    @apply inline-flex items-center justify-center px-4 py-2 rounded-lg font-medium text-brand-900 dark:text-brand-400 border border-brand-900 dark:border-brand-400 hover:bg-brand-50 dark:hover:bg-brand-900/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
+    min-height: 38px;
+  }
+  .btn-outline:focus-visible {
+    @apply outline-none ring-2 ring-brand-500/40 ring-offset-2 ring-offset-white dark:ring-offset-slate-800;
+  }
+
+  .btn-success {
+    @apply inline-flex items-center justify-center font-medium text-white rounded-lg shadow-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
+    padding: 0.5rem 1rem;
+    min-height: 38px;
+    background-color: var(--success-color);
+  }
+  .btn-success:hover:not(:disabled) {
+    background-color: var(--success-color-hover);
+  }
+  .btn-success:active:not(:disabled) {
+    background-color: var(--success-color-active);
+  }
+  .btn-success:focus-visible {
+    @apply outline-none ring-2 ring-brand-500/30 ring-offset-2 ring-offset-white dark:ring-offset-slate-800;
+  }
+
+  /* ── Button size variants ──────────────────────────── */
+  .btn-sm {
+    padding: 0.375rem 0.75rem;
+    min-height: 32px;
+    font-size: 0.8125rem;
+    border-radius: 0.5rem;
+  }
+  .btn-xs {
+    padding: 0.25rem 0.5rem;
+    min-height: 26px;
+    font-size: 0.75rem;
+    border-radius: 0.375rem;
+  }
+
+  /* ── ERP Card Styles ───────────────────────────────── */
+  .card {
+    @apply rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm;
+  }
+
+  .card-header {
+    @apply border-b border-slate-200 dark:border-slate-700 px-6 py-4 bg-white dark:bg-slate-800 rounded-t-xl;
+  }
+
+  .card-body {
+    @apply px-6 py-4;
+  }
+
+  /* ── ERP Input Styles ──────────────────────────────── */
+  .input {
+    @apply  px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all shadow-sm;
+    min-height: 38px;
+  }
+  .input::placeholder,
+  input::placeholder,
+  textarea::placeholder {
+    @apply text-slate-400 dark:text-slate-500 text-sm font-normal;
+  }
+  select.input {
+    min-height: 38px;
+  }
+
+  /* Login page input variant */
+  .login-input {
+    @apply w-full h-10 px-4 rounded-[10px] border border-slate-300 bg-white text-slate-900 outline-none transition-all;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.85), 0 1px 2px rgba(15, 23, 42, 0.08);
+  }
+  .login-input::placeholder {
+    @apply text-slate-400;
+  }
+  .login-input:focus {
+    @apply border-brand-500 ring-2 ring-brand-500/20;
+  }
+
+  .label {
+    @apply block text-sm font-medium mb-1.5 text-slate-700 dark:text-slate-300;
+  }
+
+  /* ── Focus ring for all interactive elements ────────── */
+  button:focus-visible,
+  a:focus-visible,
+  input:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible {
+    @apply outline-none ring-2 ring-brand-500/40 ring-offset-2;
+  }
+
+  /* ── ERP Table Styles ──────────────────────────────── */
+  .table {
+    @apply w-full border-collapse;
+  }
+
+  .table thead {
+    @apply bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-700;
+  }
+
+  .table th {
+    @apply px-4 py-3 text-left text-xs font-bold text-slate-900 dark:text-slate-100 uppercase tracking-wider;
+  }
+
+  .table td {
+    @apply px-4 py-3 border-b border-slate-200 dark:border-slate-700 text-sm text-slate-900 dark:text-slate-100;
+  }
+
+  /* Global override to ensure all table headings in the application match the invoice list in dark mode */
+  .dark thead {
+    background-color: rgba(30, 41, 59, 0.5) !important;
+    border-bottom: 1px solid #334155 !important;
+  }
+
+  .dark thead th, .dark thead th * {
+    color: #f1f5f9 !important;
+    background-color: transparent !important;
+  }
+
+  /* Voucher Posting Lines shared widths */
+  .pl-col-account {
+    width: 220px;
+    min-width: 100px;
+  }
+  .pl-col-debit,
+  .pl-col-credit {
+    width: 90px;
+    min-width: 90px;
+  }
+  .pl-account-input {
+    width: 160px;
+    min-width: 100px;
+  }
+  .pl-amount-input {
+    width: 160px;
+    min-width: 100px;
+  }
+
+  .table tbody tr:hover {
+    @apply bg-slate-50 dark:bg-slate-800/50;
+  }
+
+  /* Keep actions columns visually stable across list pages */
+  .table th:last-child,
+  .table td:last-child,
+  .table th:has(+ th:last-child),
+  .table td:has(+ td:last-child) {
+    white-space: nowrap;
+  }
+  .table td:last-child,
+  .table td:has(> .user-action-buttons),
+  .table td:has(> .ds-action-buttons),
+  .table td:has(> .flex > .btn),
+  .table td:has(> .flex > a),
+  .table td:has(> .btn),
+  .table td:has(> a.btn) {
+    min-width: 13.5rem;
+  }
+  /* Keep actions columns visually stable across list pages */
+  .table th:last-child,
+  .table td:last-child,
+  .table th:has(+ th:last-child),
+  .table td:has(+ td:last-child) {
+    white-space: nowrap;
+  }
+  .table td:last-child,
+  .table td:has(> .user-action-buttons),
+  .table td:has(> .ds-action-buttons),
+  .table td:has(> .flex > .btn),
+  .table td:has(> .flex > a),
+  .table td:has(> .btn),
+  .table td:has(> a.btn) {
+    min-width: 28rem;
+  }
+  /* Use grid layout to maintain button positions */
+  .table td:last-child > .flex,
+  .table td:last-child > div.flex,
+  .table td > .user-action-buttons,
+  .table td > .ds-action-buttons,
+  .table td:has(> .flex > .btn) > .flex,
+  .table td:has(> .flex > a) > .flex {
+    display: inline-grid;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(4.5rem, max-content);
+    align-items: center;
+    gap: 0.5rem;
+    justify-content: start;
+  }
+  /* Fixed min-width for all direct children to prevent shifting */
+  .table td:last-child > .flex > *,
+  .table td > .user-action-buttons > *,
+  .table td > .ds-action-buttons > *,
+  .table td > .flex > a,
+  .table td > .flex > button {
+    min-width: 4.5rem;
+    text-align: center;
+  }
+  .table td:last-child > a,
+  .table td:last-child > button,
+  .table td > .user-action-buttons > a,
+  .table td > .user-action-buttons > button,
+  .table td > .ds-action-buttons > a,
+  .table td > .ds-action-buttons > button,
+  .table td > .flex > a,
+  .table td > .flex > button {
+    display: inline-flex;
+    justify-content: center;
+    min-width: 4.25rem;
+  }
+  .table td .hidden {
+    display: inline-flex !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+  }
+  /* Print / PDF / attachments — icon buttons share the same shell as the legacy PDF pill */
+  .list-doc-action-btn {
+    @apply w-full inline-flex items-center justify-center px-4 py-1.5 text-sm font-medium rounded-lg border border-slate-200 bg-white text-slate-700 transition-colors h-9 disabled:opacity-50 disabled:pointer-events-none gap-1;
+  }
+  .list-doc-action-btn:hover:not(:disabled) {
+    @apply bg-slate-50;
+  }
+
+  /* Approval column — same height/padding as "Forward for approval" */
+  .list-approval-forward-btn {
+    @apply w-full inline-flex items-center justify-center px-4 py-1.5 text-sm font-medium rounded-lg text-white transition-colors whitespace-nowrap h-9 disabled:opacity-50 disabled:cursor-not-allowed;
+    background-color: #0E3646;
+  }
+  .list-approval-forward-btn:hover:not(:disabled) {
+    background-color: #215876;
+  }
+  .list-approval-forwarded-pill {
+    @apply w-full inline-flex items-center justify-center px-4 py-1.5 text-sm font-medium rounded-lg bg-amber-500 text-white whitespace-nowrap overflow-hidden text-ellipsis h-9 cursor-default select-none;
+  }
+  .list-approval-approved-pill {
+    @apply w-full inline-flex items-center justify-center px-4 py-1.5 text-sm font-medium rounded-lg text-white cursor-default h-9;
+    background-color: var(--success-color-hover);
+  }
+  .list-approval-approved-pill:hover {
+    background-color: var(--success-color);
+  }
+  .list-approval-reverse-btn {
+    @apply inline-flex items-center justify-center px-4 py-1.5 text-sm font-medium rounded-lg transition-colors h-9 shrink-0 disabled:opacity-50;
+    @apply text-red-700 bg-white border border-red-600 hover:bg-red-50;
+    position: static !important;
+    float: none !important;
+    margin: 0 !important;
+    transform: none !important;
+  }
+
+  /* Attachments button style (list pages, legacy) */
+  .list-attachment-btn {
+    @apply inline-flex items-center justify-center rounded-xl border border-brand bg-white px-3 py-1 text-xs font-medium text-brand hover:bg-brand-50;
+  }
+  /* Keep reverse-approval neatly aligned without floating or negative margins */
+  .list-action-reverse {
+    position: static !important;
+    float: none !important;
+    margin: 0 !important;
+    transform: none !important;
+  }
+
+  /* ERP Status Badges */
+  .badge {
+    @apply inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium;
+  }
+
+  .badge-success {
+    @apply bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200;
+  }
+
+  .badge-warning {
+    @apply bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-200;
+  }
+
+  .badge-error {
+    @apply bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-200;
+  }
+
+  .badge-info {
+    @apply bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200;
+  }
+
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Chat default background */
+  .chat-bg {
+    background-color: #faf7f2;
+    background-image: url("/omnisuite-chat-bg.png");
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: contain;
+  }
+
+  .pos-input-select .ant-select-selector {
+    border-radius: 0.5rem !important;
+    padding: 0.5rem 0.75rem !important;
+    height: auto !important;
+    min-height: 46px !important;
+    display: flex !important;
+    align-items: center !important;
+    background-color: #ffffff !important;
+    color: rgb(15 23 42) !important;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05) !important;
+    border-color: rgb(203 213 225) !important;
+  }
+
+  .pos-input-select.ant-select-focused .ant-select-selector {
+    border-color: rgb(59 130 246) !important;
+    box-shadow: 0 0 0 2px rgb(59 130 246 / 0.2) !important;
+  }
+
+  .pos-input-select .ant-select-selection-placeholder,
+  .pos-input-select .ant-select-selection-item {
+    line-height: 1.5 !important;
+  }
+
+  .dark .pos-input-select .ant-select-selector {
+    background-color: rgb(30 41 59) !important;
+    border-color: rgb(71 85 105) !important;
+    color: rgb(241 245 249) !important;
+  }
+  .pos-sales-entry .input {
+    padding-top: 0.5rem !important;
+    padding-bottom: 0.5rem !important;
+    min-height: 46px !important;
+  }
+
+  .disabled-light-blue input,
+  .disabled-light-blue select,
+  .disabled-light-blue textarea,
+  .disabled-light-blue .input {
+    background-color: #e3f2fd !important;
+    cursor: not-allowed !important;
+  }
+
+  /* Global discount guard (fallback) */
+  body.discount-guard-disabled input[name="discount_percent"],
+  body.discount-guard-disabled input[name="discount"],
+  body.discount-guard-disabled input[placeholder="Disc %"],
+  body.discount-guard-disabled input[placeholder*="Discount"],
+  body.discount-guard-disabled .discount-guard .input,
+  body.discount-guard-disabled .discount-guard input,
+  body.discount-guard-disabled .discount-guard select,
+  body.discount-guard-disabled .discount-guard textarea {
+    background-color: #e3f2fd !important;
+    cursor: not-allowed !important;
+    pointer-events: none !important;
+  }
+  body.discount-guard-disabled [data-discount-guard],
+  body.discount-guard-disabled [data-discount-guard].input {
+    background-color: #e3f2fd !important;
+    cursor: not-allowed !important;
+    pointer-events: none !important;
+  }
+}
+
+@layer utilities {
+  /* ═══════════════════════════════════════════════════════════════
+     MOBILE-FIRST RESPONSIVE OVERRIDES
+     ═══════════════════════════════════════════════════════════════ */
+
+  /* ── Responsive Table Container ─────────────────────────────── */
+  .table-responsive {
+    display: block;
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .table-responsive .table {
+    min-width: 600px;
+  }
+
+  /* ── Responsive Form Groups ─────────────────────────────────── */
+  .form-group-responsive {
+    display: grid;
+    gap: 1rem;
+  }
+
+  /* ── Stack action button groups vertically on mobile ────────── */
+  .action-group-responsive {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: center;
+  }
+  .action-group-responsive > * {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  /* ── Full-width block button for mobile ─────────────────────── */
+  .btn-block-mobile {
+    width: 100%;
+  }
+
+  /* ═══════════════════════════════════════════════════════════════
+     SMALL SCREENS  (max-width: 639px)
+     ═══════════════════════════════════════════════════════════════ */
+  @media (max-width: 639px) {
+    /* -- All tables auto-scroll on mobile -- */
+    table:not(.no-mobile-scroll) {
+      display: block;
+      width: 100%;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    /* -- Ant Design: full-screen modals on mobile -- */
+    .ant-modal-wrap {
+      padding: 0 !important;
+    }
+    .ant-select-dropdown {
+      max-width: calc(100vw - 16px) !important;
+    }
+    .ant-picker-panel-container {
+      max-width: calc(100vw - 16px) !important;
+    }
+
+    /* -- Buttons: full-width stack -- */
+    .btn-primary,
+    .btn-secondary,
+    .btn-outline,
+    .btn-success {
+      width: 100%;
+      justify-content: center;
+    }
+    button.btn-primary,
+    button.btn-secondary,
+    button.btn-outline,
+    button.btn-success,
+    a.btn-primary,
+    a.btn-secondary,
+    a.btn-outline,
+    a.btn-success {
+      width: 100%;
+    }
+
+    /* -- Button groups: stack vertically -- */
+    .flex.gap-2,
+    .flex.gap-3,
+    .flex.gap-4 {
+      flex-wrap: wrap;
+    }
+    .flex.gap-2 > .btn-primary,
+    .flex.gap-2 > .btn-secondary,
+    .flex.gap-2 > .btn-outline,
+    .flex.gap-2 > .btn-success,
+    .flex.gap-3 > .btn-primary,
+    .flex.gap-3 > .btn-secondary,
+    .flex.gap-3 > .btn-outline,
+    .flex.gap-3 > .btn-success,
+    .flex.gap-4 > .btn-primary,
+    .flex.gap-4 > .btn-secondary,
+    .flex.gap-4 > .btn-outline,
+    .flex.gap-4 > .btn-success {
+      flex: 1 1 100%;
+    }
+
+    /* -- Keep icon-only buttons compact (exclude floating chat) -- */
+    button.p-2,
+    button.\!p-2,
+    button:has(> svg:only-child):not([data-rbac-exempt]) {
+      width: auto !important;
+      flex: 0 0 auto !important;
+    }
+
+    /* -- Tables: compact -- */
+    .table th {
+      padding: 0.5rem 0.5rem;
+      font-size: 0.65rem;
+    }
+    .table td {
+      padding: 0.5rem 0.5rem;
+      font-size: 0.75rem;
+    }
+    .table td:last-child,
+    .table td:has(> .user-action-buttons),
+    .table td:has(> .ds-action-buttons),
+    .table td:has(> .flex > .btn),
+    .table td:has(> .flex > a),
+    .table td:has(> .btn),
+    .table td:has(> a.btn) {
+      min-width: auto;
+    }
+    .table td:last-child > .flex,
+    .table td:last-child > div.flex,
+    .table td > .user-action-buttons,
+    .table td > .ds-action-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.25rem;
+    }
+    .table td:last-child > .flex > *,
+    .table td > .user-action-buttons > *,
+    .table td > .ds-action-buttons > * {
+      flex: 1 1 auto;
+      min-width: 3.5rem;
+      font-size: 0.7rem;
+      padding: 0.25rem 0.5rem;
+    }
+
+    /* -- Cards: reduced padding -- */
+    .card {
+      width: 100%;
+      margin-left: 0;
+      margin-right: 0;
+      border-radius: 0.75rem;
+    }
+    .card-header {
+      padding: 0.75rem 1rem;
+    }
+    .card-body {
+      padding: 0.75rem 1rem;
+    }
+
+    /* -- Form elements: larger touch targets -- */
+    .input {
+      min-height: 44px;
+      font-size: 16px;
+    }
+    select.input {
+      min-height: 44px;
+      font-size: 16px;
+    }
+    .label {
+      font-size: 0.8125rem;
+    }
+
+    /* -- Badges: compact -- */
+    .badge {
+      font-size: 0.65rem;
+      padding: 0.2rem 0.5rem;
+    }
+
+    /* -- Modal/dialog responsive -- */
+    .ant-modal {
+      max-width: 100vw !important;
+      margin: 0 !important;
+      top: 0 !important;
+    }
+    .ant-modal-content {
+      border-radius: 0 !important;
+      min-height: 100vh;
+    }
+    .ant-modal-header {
+      padding: 1rem;
+    }
+    .ant-modal-body {
+      padding: 1rem;
+    }
+
+    /* -- Typography scale-down -- */
+    h1 { font-size: 1.375rem !important; }
+    h2 { font-size: 1.125rem !important; }
+    h3 { font-size: 1rem !important; }
+    h4 { font-size: 0.9375rem !important; }
+    .text-2xl { font-size: 1.375rem !important; }
+    .text-xl { font-size: 1.125rem !important; }
+    .text-lg { font-size: 1rem !important; }
+    .text-base { font-size: 0.9375rem !important; }
+    .text-sm { font-size: 0.8125rem !important; }
+    .text-xs { font-size: 0.7rem !important; }
+
+    /* -- Sidebar/spacing adjustments -- */
+    .p-6 { padding: 1rem !important; }
+    .p-4 { padding: 0.75rem !important; }
+    .gap-6 { gap: 1rem !important; }
+    .gap-4 { gap: 0.75rem !important; }
+
+    /* -- Header: more compact on mobile -- */
+    header.sticky.top-0 {
+      padding-left: 0.75rem !important;
+      padding-right: 0.75rem !important;
+    }
+    header .w-10.h-10 {
+      width: 2.25rem;
+      height: 2.25rem;
+    }
+
+    /* -- Grid: force single column -- */
+    .grid.grid-cols-3,
+    .grid.grid-cols-4,
+    .grid.grid-cols-5,
+    .grid.grid-cols-6,
+    div.grid.grid-cols-3,
+    div.grid.grid-cols-4,
+    div.grid.grid-cols-5,
+    div.grid.grid-cols-6 {
+      grid-template-columns: repeat(1, minmax(0, 1fr));
+    }
+
+    /* -- Filters/header bars: stack (only list-page action bars, NOT main app header) -- */
+    .flex.items-center.gap-2,
+    .flex.items-center.gap-3,
+    .flex.items-center.gap-4 {
+      flex-wrap: wrap;
+    }
+    .flex.justify-between.items-center.mb-4,
+    .flex.justify-between.items-center.mb-6,
+    .flex.justify-between.items-center.mb-3,
+    .flex.justify-between.items-center.mb-2 {
+      flex-direction: column;
+      align-items: stretch;
+    }
+    .flex.justify-between.items-center.mb-4 > *,
+    .flex.justify-between.items-center.mb-6 > *,
+    .flex.justify-between.items-center.mb-3 > *,
+    .flex.justify-between.items-center.mb-2 > * {
+      width: 100%;
+    }
+
+    /* -- Nav tabs / inline filters: scroll horizontally -- */
+    .flex.space-x-2,
+    .flex.space-x-3,
+    .flex.space-x-4,
+    div:has(> .btn-primary + .btn-secondary):not(.table *) {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      flex-wrap: nowrap;
+      white-space: nowrap;
+      padding-bottom: 0.25rem;
+    }
+
+    /* -- Ensure content never overflows viewport -- */
+    body, #root, .app-content {
+      overflow-x: hidden;
+    }
+
+    /* -- List page action bars: stack -- */
+    .flex.justify-between.items-center.mb-4,
+    .flex.justify-between.items-center.mb-6,
+    .flex.justify-between.items-center.mb-3 {
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+    .flex.justify-between.items-center.mb-4 > div,
+    .flex.justify-between.items-center.mb-6 > div,
+    .flex.justify-between.items-center.mb-3 > div {
+      width: 100%;
+    }
+
+    /* -- Search/filter inputs in list pages: full width -- */
+    input[type="text"],
+    input[type="search"],
+    input[type="date"],
+    input[type="number"],
+    select,
+    textarea {
+      max-width: 100%;
+    }
+
+    /* -- Tab panels: compact -- */
+    .ant-tabs-nav {
+      margin-bottom: 0.5rem !important;
+    }
+    .ant-tabs-tab {
+      padding: 0.5rem 0.75rem !important;
+      font-size: 0.8125rem !important;
+    }
+
+    /* -- Page title area: compact -- */
+    .page-header {
+      padding: 0.75rem 1rem;
+    }
+    .page-header h1 {
+      font-size: 1.25rem;
+    }
+
+    /* -- Sidebar menu items: larger touch targets -- */
+    nav a, nav button, .sidebar-link {
+      min-height: 44px;
+      padding: 0.625rem 0.75rem;
+    }
+
+    /* -- Homepage hero: edge-to-edge on mobile -- */
+    .min-h-screen.p-2.font-sans {
+      padding: 0.5rem 0 !important;
+    }
+    .max-w-7xl.mx-auto.space-y-4 {
+      max-width: none !important;
+      margin-left: 0 !important;
+      margin-right: 0 !important;
+    }
+    .rounded-2xl.bg-gradient-to-r.from-brand-900 {
+      border-radius: 0 !important;
+      padding: 1.25rem 1rem !important;
+    }
+    .rounded-2xl.bg-gradient-to-r.from-brand-900 .w-24.h-24 {
+      width: 3.5rem;
+      height: 3.5rem;
+    }
+    .rounded-2xl.bg-gradient-to-r.from-brand-900 .text-3xl {
+      font-size: 1.25rem !important;
+    }
+    .rounded-2xl.bg-gradient-to-r.from-brand-900 .text-lg {
+      font-size: 0.9rem !important;
+    }
+  }
+
+  /* ═══════════════════════════════════════════════════════════════
+     MEDIUM SCREENS  (640px – 1023px)
+     ═══════════════════════════════════════════════════════════════ */
+  @media (min-width: 640px) and (max-width: 1023px) {
+    /* -- Keep buttons inline but ensure min touch target -- */
+    .btn-primary,
+    .btn-secondary,
+    .btn-outline,
+    .btn-success {
+      min-height: 40px;
+    }
+
+    /* -- Tables: compact -- */
+    .table th {
+      padding: 0.5rem 0.75rem;
+    }
+    .table td {
+      padding: 0.5rem 0.75rem;
+    }
+
+    /* -- Cards: moderate padding -- */
+    .card-header {
+      padding: 0.75rem 1.25rem;
+    }
+    .card-body {
+      padding: 0.75rem 1.25rem;
+    }
+
+    /* -- Grid: 2 columns for 4+ col grids -- */
+    .grid.grid-cols-4,
+    .grid.grid-cols-5,
+    .grid.grid-cols-6 {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .grid.grid-cols-3 {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    /* -- Typography: slight scale-down -- */
+    .text-2xl { font-size: 1.5rem !important; }
+    .text-xl { font-size: 1.25rem !important; }
+    h1 { font-size: 1.5rem !important; }
+    h2 { font-size: 1.25rem !important; }
+  }
+
+  /* ═══════════════════════════════════════════════════════════════
+     LARGE SCREENS  (1024px+)
+     ═══════════════════════════════════════════════════════════════ */
+  @media (min-width: 1024px) {
+    /* -- Button groups: prevent stretching -- */
+    .flex.gap-2 > .btn-primary,
+    .flex.gap-2 > .btn-secondary,
+    .flex.gap-2 > .btn-outline,
+    .flex.gap-2 > .btn-success {
+      width: auto;
+    }
+  }
+}
+
+.swal2-actions-row { flex-direction: row !important; justify-content: flex-start !important; gap: 8px !important; margin-top: 10px !important; width: 100% !important; } .swal2-actions-row button { width: auto !important; margin: 0 !important; }
+
+.colored-toast .swal2-icon { transform: scale(0.5); margin: 0 auto; }
+
+.colored-toast { padding: 0.5em !important; min-height: auto !important; } .colored-toast .swal2-title { font-size: 1rem !important; margin: 0.25em 0 !important; } .colored-toast .swal2-html-container { font-size: 0.8rem !important; margin: 0.25em 0 !important; } .colored-toast .swal2-actions { margin-top: 0.5em !important; }
+
+.colored-toast .swal2-icon { margin-bottom: 0 !important; } .colored-toast .swal2-title { color: #1e293b !important; } .colored-toast .swal2-html-container { color: #334155 !important; margin-top: 0.1em !important; } .colored-toast .swal2-actions { flex-direction: row !important; flex-wrap: nowrap !important; gap: 4px !important; } .colored-toast .swal2-actions button { font-size: 0.75rem !important; padding: 0.4em 0.8em !important; width: auto !important; flex: 1; }
+
+.colored-toast { z-index: 999999 !important; }
+
+.colored-toast .swal2-actions button { white-space: nowrap !important; }
+
+
+.btn-brand-solid {
+  @apply inline-flex items-center justify-center px-4 py-1.5 text-sm font-medium rounded-lg text-white transition-colors whitespace-nowrap h-9 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm;
+  background-color: #0E3646;
+}
+.btn-brand-solid:hover:not(:disabled) {
+  background-color: #215876;
+}
+
+/* Table Grid Mode Engine */
+/* ========================================================================
+   Universal, responsive grid layout engine for all List pages.
+   Grid Columns:
+   - Large & XL devices (>=1024px): 4 Columns
+   - Medium devices (768px - 1023px): 3 Columns
+   - Small & Mobile devices (<768px): 2 Columns
+   ======================================================================== */
+
+/* ── Core Grid Breakpoints ── */
+.table-grid-mode {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  grid-auto-rows: 1fr !important; /* Force all cards in every row to have identical height */
+  align-items: stretch !important;
+  gap: 1rem !important;
+  border: none !important;
+  background: transparent !important;
+  padding: 0.5rem 0 !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+@media (min-width: 768px) {
+  .table-grid-mode {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    grid-auto-rows: 1fr !important;
+    gap: 1.25rem !important;
+  }
+}
+
+@media (min-width: 1024px) {
+  .table-grid-mode {
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+    grid-auto-rows: 1fr !important;
+    gap: 1.25rem !important;
+  }
+}
+
+/* ── Hide Table Structure ── */
+.table-grid-mode thead { display: none !important; }
+.table-grid-mode tbody { display: contents !important; }
+.table-grid-mode tfoot { display: none !important; }
+
+/* ── Card (each <tr>) ── */
+.table-grid-mode tr {
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: space-between !important;
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 0.875rem !important;
+  padding: 1rem 1.125rem !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.03), 0 1px 2px rgba(0, 0, 0, 0.02) !important;
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.2s ease !important;
+  aspect-ratio: 1 / 1 !important; /* Card height takes the exact same length as width */
+  overflow: hidden !important; /* Prevents any child button from bleeding out */
+  position: relative !important;
+  box-sizing: border-box !important;
+  max-width: 100% !important;
+}
+.dark .table-grid-mode tr {
+  background: #0f172a !important;
+  border-color: #1e293b !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3) !important;
+}
+.table-grid-mode tr:hover {
+  transform: translateY(-3px) !important;
+  box-shadow: 0 12px 20px -5px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.04) !important;
+  border-color: #3b82f6 !important;
+}
+.dark .table-grid-mode tr:hover {
+  border-color: #3b82f6 !important;
+  box-shadow: 0 12px 20px -5px rgba(0, 0, 0, 0.5) !important;
+}
+
+/* ── Data Cells ── */
+.table-grid-mode td {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  padding: 0.35rem 0 !important;
+  border: none !important;
+  font-size: 0.85rem !important;
+  width: 100% !important;
+  color: #334155 !important;
+  line-height: 1.5 !important;
+  box-sizing: border-box !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+.dark .table-grid-mode td {
+  color: #cbd5e1 !important;
+}
+
+/* First cell = card title header */
+.table-grid-mode td:first-child {
+  font-size: 1rem !important;
+  font-weight: 700 !important;
+  color: #0f172a !important;
+  padding-bottom: 0.5rem !important;
+  margin-bottom: 0.4rem !important;
+  border-bottom: 1.5px solid #f1f5f9 !important;
+}
+.dark .table-grid-mode td:first-child {
+  color: #f8fafc !important;
+  border-bottom-color: #1e293b !important;
+}
+
+/* ── Completely Hide Secondary Cells in grid mode (matching Sales Order grid card layout) ── */
+.table-grid-mode td.grid-created-by-cell,
+.table-grid-mode td.grid-created-date-cell,
+.table-grid-mode td.grid-price-type-cell,
+.table-grid-mode td.grid-payment-status-cell,
+.table-grid-mode td.grid-payment-type-cell,
+.table-grid-mode td.grid-warehouse-cell,
+.table-grid-mode td.grid-balance-cell,
+.table-grid-mode td.grid-remarks-cell,
+.table-grid-mode tr > td:nth-last-child(2),
+.table-grid-mode tr > td:last-child:not(:has(button)):not(:has(a)) {
+  display: none !important;
+}
+
+/* ── Actions Cell (Card Bottom Action Container) ── */
+.table-grid-mode td:has(button),
+.table-grid-mode td:has(a),
+.table-grid-mode td:nth-last-child(3),
+.table-grid-mode td.actions-cell,
+.table-grid-mode td:last-child {
+  display: flex !important;
+  flex-direction: column !important;
+  order: 99 !important;
+  margin-top: auto !important;
+  padding-top: 0.625rem !important;
+  border-top: 1px solid #f1f5f9 !important;
+  gap: 0.375rem !important;
+  align-items: stretch !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+  overflow: visible !important;
+  white-space: normal !important;
+  clear: both !important;
+}
+.dark .table-grid-mode td:has(button),
+.dark .table-grid-mode td:has(a),
+.dark .table-grid-mode td:nth-last-child(3),
+.dark .table-grid-mode td.actions-cell,
+.dark .table-grid-mode td:last-child {
+  border-top-color: #1e293b !important;
+}
+
+/* Row Wrapper inside Actions Cell: Organizes actions into Row 1 (Doc actions) and Row 2 (Workflow & Cancel) */
+.table-grid-mode td > div,
+.table-grid-mode td > div[class*="flex"] {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 0.25rem !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  justify-content: flex-start !important;
+  align-items: center !important;
+  box-sizing: border-box !important;
+}
+
+/* Hide empty placeholder divs and reset fixed min-widths */
+.table-grid-mode td div[class*="min-w-"] {
+  min-width: 0 !important;
+  width: auto !important;
+  flex: 0 0 auto !important;
+}
+
+.table-grid-mode td div[aria-hidden="true"],
+.table-grid-mode td div:empty,
+.table-grid-mode td div:has(> div:only-child:empty) {
+  display: none !important;
+}
+
+/* ── ROW 1: Document Action Buttons (View, Edit, Print, PDF, Attachments) ALWAYS STAY ON ROW 1 ── */
+.table-grid-mode td .list-doc-action-btn,
+.table-grid-mode td .list-attachment-btn,
+.table-grid-mode td button[title="Attachments"],
+.table-grid-mode td button[title="Print"],
+.table-grid-mode td button[title="Download PDF"],
+.table-grid-mode td div:has(> .list-doc-action-btn),
+.table-grid-mode td div:has(> .list-attachment-btn),
+.table-grid-mode td div:has(> button[title="Attachments"]),
+.table-grid-mode td a:not(.list-approval-forward-btn):not(.list-approval-reverse-btn),
+.table-grid-mode td button:not(.list-approval-forward-btn):not(.list-approval-reverse-btn):not(.bg-\[\#990000\]):not([class*="bg-[#990000]"]) {
+  order: 1 !important;
+  margin-top: 0 !important;
+  padding-top: 0 !important;
+  border-top: none !important;
+  flex-basis: auto !important;
+}
+
+/* ── ROW 2: ALL Workflow, Status & Cancel Buttons (ORDER 50: ALL TOGETHER ON ROW 2 BELOW ROW 1) ── */
+.table-grid-mode td .list-approval-slot,
+.table-grid-mode td .list-approval-forward-btn,
+.table-grid-mode td .list-approval-forwarded-pill,
+.table-grid-mode td .list-approval-approved-pill,
+.table-grid-mode td .list-approval-reverse-btn,
+.table-grid-mode td .list-action-reverse,
+.table-grid-mode td button.bg-\[\#990000\],
+.table-grid-mode td button[class*="bg-[#990000]"],
+.table-grid-mode td div:has(> button.bg-\[\#990000\]),
+.table-grid-mode td div:has(> .list-approval-reverse-btn),
+.table-grid-mode td div:has(> .list-approval-slot),
+.table-grid-mode td div:has(> .list-approval-forward-btn),
+.table-grid-mode td div:has(> .list-approval-forwarded-pill),
+.table-grid-mode td div:has(> .list-approval-approved-pill) {
+  flex-basis: auto !important; /* DO NOT force 100% width on workflow elements */
+  width: auto !important;
+  max-width: max-content !important;
+  order: 50 !important;
+  display: inline-flex !important;
+  flex-wrap: nowrap !important;
+  gap: 0.15rem !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  white-space: nowrap !important;
+  flex-shrink: 0 !important;
+  box-sizing: border-box !important;
+}
+
+/* Row 2 Line-Break & Spacing (Dashed border line completely removed) */
+.table-grid-mode td div:has(> .list-approval-slot),
+.table-grid-mode td div:has(> .list-approval-forward-btn),
+.table-grid-mode td div:has(> .list-approval-forwarded-pill),
+.table-grid-mode td div:has(> .list-approval-approved-pill),
+.table-grid-mode td > .list-approval-slot,
+.table-grid-mode td > .list-approval-forward-btn,
+.table-grid-mode td > .list-approval-forwarded-pill,
+.table-grid-mode td > .list-approval-approved-pill {
+  margin-top: 0.35rem !important;
+  padding-top: 0.15rem !important;
+  border-top: none !important;
+}
+.dark .table-grid-mode td div:has(> .list-approval-slot),
+.dark .table-grid-mode td div:has(> .list-approval-forward-btn),
+.dark .table-grid-mode td div:has(> .list-approval-forwarded-pill),
+.dark .table-grid-mode td div:has(> .list-approval-approved-pill),
+.dark .table-grid-mode td > .list-approval-slot,
+.dark .table-grid-mode td > .list-approval-forward-btn,
+.dark .table-grid-mode td > .list-approval-forwarded-pill,
+.dark .table-grid-mode td > .list-approval-approved-pill {
+  border-top: none !important;
+}
+
+/* ── Cancel Button Vertical Alignment (Dashed border line completely removed) ── */
+.table-grid-mode td button.bg-\[\#990000\],
+.table-grid-mode td button[class*="bg-[#990000]"],
+.table-grid-mode td div:has(> button.bg-\[\#990000\]),
+.table-grid-mode td div:has(> .list-approval-reverse-btn) {
+  margin-top: 0.35rem !important;
+  padding-top: 0.15rem !important;
+  border-top: none !important;
+  align-self: flex-end !important;
+}
+
+/* ── Ultra-Compact Sizing for Row 2 Workflow & Cancel Buttons ── */
+.table-grid-mode td .list-approval-forward-btn,
+.table-grid-mode td .list-approval-forwarded-pill,
+.table-grid-mode td .list-approval-approved-pill,
+.table-grid-mode td .list-approval-reverse-btn,
+.table-grid-mode td button.bg-\[\#990000\],
+.table-grid-mode td button[class*="bg-[#990000]"],
+.table-grid-mode td button,
+.table-grid-mode td a,
+.table-grid-mode td .btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 0.15rem !important;
+  height: 24px !important;
+  min-height: 24px !important;
+  padding: 0 0.35rem !important;
+  width: auto !important;
+  min-width: max-content !important;
+  max-width: max-content !important;
+  font-size: 0.675rem !important;
+  font-weight: 600 !important;
+  border-radius: 0.35rem !important;
+  white-space: nowrap !important;
+  box-sizing: border-box !important;
+  flex-shrink: 0 !important;
+  position: static !important;
+  float: none !important;
+  transform: none !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+/* Icon-only action buttons */
+.table-grid-mode td button:empty,
+.table-grid-mode td a:empty,
+.table-grid-mode td .list-doc-action-btn,
+.table-grid-mode td .list-attachment-btn {
+  width: 26px !important;
+  min-width: 26px !important;
+  padding: 0 !important;
+  flex-shrink: 0 !important;
+}
