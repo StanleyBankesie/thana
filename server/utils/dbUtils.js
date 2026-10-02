@@ -3758,3 +3758,91 @@ export async function ensureTransportTables() {
     `).catch(() => null);
   }
 }
+
+/**
+ * Ensure core finance tax tables exist with all required columns.
+ * Creates fin_tax_codes, fin_tax_details, and fin_tax_components if missing,
+ * and adds any missing columns.
+ */
+export async function ensureTaxTables() {
+  // fin_tax_codes
+  if (!(await hasTable("fin_tax_codes"))) {
+    await query(`
+      CREATE TABLE IF NOT EXISTS fin_tax_codes (
+        id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+        company_id BIGINT UNSIGNED NOT NULL,
+        code VARCHAR(50) NOT NULL,
+        name VARCHAR(255) NOT NULL,
+        rate_percent DECIMAL(9,4) NOT NULL DEFAULT 0,
+        type ENUM('TAX','DEDUCTION') NOT NULL DEFAULT 'TAX',
+        is_active TINYINT(1) NOT NULL DEFAULT 1,
+        is_sales_tax TINYINT(1) NOT NULL DEFAULT 0,
+        is_purchase_tax TINYINT(1) NOT NULL DEFAULT 0,
+        is_service_tax TINYINT(1) NOT NULL DEFAULT 0,
+        valid_pages VARCHAR(255) NULL,
+        created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        PRIMARY KEY (id),
+        UNIQUE KEY uq_tax_code_company (company_id, code),
+        KEY idx_tax_company (company_id)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    `).catch(() => null);
+  } else {
+    await ensureCol("fin_tax_codes", "valid_pages", "VARCHAR(255) NULL");
+    await ensureCol("fin_tax_codes", "is_sales_tax", "TINYINT(1) NOT NULL DEFAULT 0");
+    await ensureCol("fin_tax_codes", "is_purchase_tax", "TINYINT(1) NOT NULL DEFAULT 0");
+    await ensureCol("fin_tax_codes", "is_service_tax", "TINYINT(1) NOT NULL DEFAULT 0");
+    await ensureCol("fin_tax_codes", "type", "ENUM('TAX','DEDUCTION') NOT NULL DEFAULT 'TAX'");
+    await ensureCol("fin_tax_codes", "rate_percent", "DECIMAL(9,4) NOT NULL DEFAULT 0");
+    await ensureCol("fin_tax_codes", "is_active", "TINYINT(1) NOT NULL DEFAULT 1");
+  }
+
+  // fin_tax_details
+  if (!(await hasTable("fin_tax_details"))) {
+    await query(`
+      CREATE TABLE IF NOT EXISTS fin_tax_details (
+        id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+        company_id BIGINT UNSIGNED NOT NULL,
+        tax_code_id BIGINT UNSIGNED NOT NULL,
+        component_name VARCHAR(100) NOT NULL,
+        rate_percent DECIMAL(9,4) NOT NULL DEFAULT 0,
+        account_id BIGINT UNSIGNED NULL,
+        is_active TINYINT(1) NOT NULL DEFAULT 1,
+        created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        PRIMARY KEY (id),
+        KEY idx_tax_detail_code (tax_code_id),
+        KEY idx_tax_detail_company (company_id)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    `).catch(() => null);
+  } else {
+    await ensureCol("fin_tax_details", "account_id", "BIGINT UNSIGNED NULL");
+    await ensureCol("fin_tax_details", "rate_percent", "DECIMAL(9,4) NOT NULL DEFAULT 0");
+    await ensureCol("fin_tax_details", "is_active", "TINYINT(1) NOT NULL DEFAULT 1");
+  }
+
+  // fin_tax_components
+  if (!(await hasTable("fin_tax_components"))) {
+    await query(`
+      CREATE TABLE IF NOT EXISTS fin_tax_components (
+        id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+        company_id BIGINT UNSIGNED NOT NULL,
+        tax_code_id BIGINT UNSIGNED NOT NULL,
+        tax_detail_id BIGINT UNSIGNED NOT NULL,
+        rate_percent DECIMAL(9,4) NULL,
+        sort_order INT NOT NULL DEFAULT 0,
+        is_active TINYINT(1) NOT NULL DEFAULT 1,
+        created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (id),
+        UNIQUE KEY uq_tax_components (company_id, tax_code_id, tax_detail_id),
+        KEY idx_tc_tax_code (tax_code_id),
+        KEY idx_tc_tax_detail (tax_detail_id)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    `).catch(() => null);
+  } else {
+    await ensureCol("fin_tax_components", "rate_percent", "DECIMAL(9,4) NULL");
+    await ensureCol("fin_tax_components", "sort_order", "INT NOT NULL DEFAULT 0");
+    await ensureCol("fin_tax_components", "is_active", "TINYINT(1) NOT NULL DEFAULT 1");
+  }
+}
+

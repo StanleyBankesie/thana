@@ -632,15 +632,19 @@ export default function AppShell() {
         setPushPromptVisible(false);
         return;
       }
+      if (window.Notification.permission === "denied") {
+        setPushPromptVisible(false);
+        return;
+      }
       if (window.Notification.permission !== "granted") {
         try {
           const perm = await window.Notification.requestPermission();
           if (perm !== "granted") {
-            setPushPromptVisible(true);
+            setPushPromptVisible(false);
             return;
           }
         } catch {
-          setPushPromptVisible(true);
+          setPushPromptVisible(false);
           return;
         }
       }
@@ -791,12 +795,7 @@ export default function AppShell() {
         if (!("PushManager" in window)) return;
         if (!("Notification" in window)) return;
         if (window.Notification.permission !== "granted") {
-          try {
-            const perm = await window.Notification.requestPermission();
-            if (perm !== "granted") return;
-          } catch {
-            return;
-          }
+          return;
         }
         const reg = await navigator.serviceWorker.ready;
         let publicKey = "";
@@ -1009,15 +1008,7 @@ export default function AppShell() {
     return () =>
       navigator.serviceWorker.removeEventListener("message", onSwMessage);
   }, []);
-  useEffect(() => {
-    if (typeof window !== "undefined" && "Notification" in window) {
-      if (window.Notification.permission === "default") {
-        try {
-          window.Notification.requestPermission().catch(() => {});
-        } catch {}
-      }
-    }
-  }, []);
+
   useEffect(() => {
     const roles = Array.isArray(user?.roles)
       ? user.roles

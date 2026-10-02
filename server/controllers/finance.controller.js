@@ -1901,50 +1901,94 @@ export const getAccountBalance = async (req, res, next) => {
 
 export const listTaxCodes = async (req, res, next) => {
   try {
-    const companyId = req.scope.companyId;
+    const companyId = Number(req.scope?.companyId || 1);
     const form = req.query.form ? String(req.query.form).trim() : null;
     const pageId = req.query.pageId ? Number(req.query.pageId) : null;
-    const active =
-      req.query.active === undefined || req.query.active === null
-        ? null
-        : Number(Boolean(req.query.active));
+    let active = null;
+    if (
+      req.query.active !== undefined &&
+      req.query.active !== null &&
+      req.query.active !== ""
+    ) {
+      const activeStr = String(req.query.active).trim().toLowerCase();
+      active = activeStr === "1" || activeStr === "true" ? 1 : 0;
+    }
 
-    // Resolve form code to pageId if necessary
+    // Resolve form code to pageId if necessary (support both camelCase and kebab-case)
     let resolvedPageId = pageId;
     if (!resolvedPageId && form) {
-      resolvedPageId = PAGE_ID_MAP[form] || null;
+      resolvedPageId =
+        PAGE_ID_MAP[form] ||
+        PAGE_ID_MAP[form.toUpperCase().replace(/-/g, "_")] ||
+        null;
     }
 
     const cacheKey = `taxes:company:${companyId}:page:${resolvedPageId}:active:${active}`;
-    const cached = await cacheGet(cacheKey);
-    if (cached) {
-      return res.json({ items: cached });
+    try {
+      const cached = await cacheGet(cacheKey);
+      if (cached) {
+        return res.json({ items: cached });
+      }
+    } catch (cacheErr) {
+      console.warn("[listTaxCodes] Cache read failed:", cacheErr?.message || cacheErr);
     }
 
-    const items = await query(
-      `SELECT id, code, name, rate_percent, type, is_active,
-              valid_pages, is_sales_tax, is_purchase_tax, is_service_tax
-         FROM fin_tax_codes
-        WHERE company_id = :companyId
-          AND (:active IS NULL OR is_active = :active)
-          AND (
-            :resolvedPageId IS NULL OR
-            FIND_IN_SET(:resolvedPageId, REPLACE(valid_pages, ' ', '')) > 0
-          )
-        ORDER BY code ASC`,
-      { companyId, resolvedPageId, active },
-    );
-    
-    await cacheSet(cacheKey, items, 86400).catch(() => {});
-    res.json({ items });
+    const conditions = ["company_id = :companyId"];
+    const params = { companyId };
+
+    if (active !== null) {
+      conditions.push("is_active = :active");
+      params.active = active;
+    }
+
+    if (resolvedPageId !== null) {
+      conditions.push(
+        "FIND_IN_SET(:resolvedPageId, REPLACE(COALESCE(valid_pages, ''), ' ', '')) > 0",
+      );
+      params.resolvedPageId = resolvedPageId;
+    }
+
+    let items = [];
+    try {
+      items = await query(
+        `SELECT id, code, name, rate_percent, type, is_active,
+                valid_pages, is_sales_tax, is_purchase_tax, is_service_tax
+           FROM fin_tax_codes
+          WHERE ${conditions.join(" AND ")}
+          ORDER BY code ASC`,
+        params,
+      );
+    } catch (queryErr) {
+      console.error("[listTaxCodes] Query error:", queryErr?.message || queryErr);
+      // Fallback: If table or column issue occurred, attempt simplified query
+      try {
+        items = await query(
+          `SELECT id, code, name, rate_percent, type, is_active
+             FROM fin_tax_codes
+            WHERE company_id = :companyId
+            ORDER BY code ASC`,
+          { companyId },
+        );
+      } catch (fallbackErr) {
+        console.error("[listTaxCodes] Fallback query error:", fallbackErr?.message || fallbackErr);
+        return res.json({ items: [] });
+      }
+    }
+
+    try {
+      await cacheSet(cacheKey, items, 86400);
+    } catch {}
+
+    res.json({ items: Array.isArray(items) ? items : [] });
   } catch (e) {
-    next(e);
+    console.error("[listTaxCodes] Unhandled error:", e?.message || e);
+    res.json({ items: [] });
   }
 };
 
 export const getTaxCodesByPageId = async (req, res, next) => {
   try {
-    const companyId = req.scope.companyId;
+    const companyId = Number(req.scope?.companyId || 1);
     const pageId = Number(req.params.pageId || 0);
 
     if (!pageId) {
@@ -1952,26 +1996,40 @@ export const getTaxCodesByPageId = async (req, res, next) => {
     }
 
     const cacheKey = `taxes:company:${companyId}:page:${pageId}:active:1`;
-    const cached = await cacheGet(cacheKey);
-    if (cached) {
-      return res.json({ items: cached });
+    try {
+      const cached = await cacheGet(cacheKey);
+      if (cached) {
+        return res.json({ items: cached });
+      }
+    } catch (cacheErr) {
+      console.warn("[getTaxCodesByPageId] Cache read failed:", cacheErr?.message || cacheErr);
     }
 
-    const items = await query(
-      `SELECT id, code, name, rate_percent, type, is_active,
-              valid_pages, is_sales_tax, is_purchase_tax, is_service_tax
-         FROM fin_tax_codes
-        WHERE company_id = :companyId
-          AND is_active = 1
-          AND FIND_IN_SET(:pageId, REPLACE(valid_pages, ' ', '')) > 0
-        ORDER BY code ASC`,
-      { companyId, pageId },
-    );
-    
-    await cacheSet(cacheKey, items, 86400).catch(() => {});
-    res.json({ items });
+    let items = [];
+    try {
+      items = await query(
+        `SELECT id, code, name, rate_percent, type, is_active,
+                valid_pages, is_sales_tax, is_purchase_tax, is_service_tax
+           FROM fin_tax_codes
+          WHERE company_id = :companyId
+            AND is_active = 1
+            AND FIND_IN_SET(:pageId, REPLACE(COALESCE(valid_pages, ''), ' ', '')) > 0
+          ORDER BY code ASC`,
+        { companyId, pageId },
+      );
+    } catch (queryErr) {
+      console.error("[getTaxCodesByPageId] Query error:", queryErr?.message || queryErr);
+      return res.json({ items: [] });
+    }
+
+    try {
+      await cacheSet(cacheKey, items, 86400);
+    } catch {}
+
+    res.json({ items: Array.isArray(items) ? items : [] });
   } catch (e) {
-    next(e);
+    console.error("[getTaxCodesByPageId] Unhandled error:", e?.message || e);
+    res.json({ items: [] });
   }
 };
 

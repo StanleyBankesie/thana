@@ -57,11 +57,19 @@ let API_BASE = import.meta.env.VITE_API_BASE_URL;
 
 if (
   typeof window !== "undefined" &&
-  (window.location.hostname === "thana.omnisuite-erp.com" ||
-    window.location.hostname === "thanaserver.omnisuite-erp.com" ||
+  (window.location.hostname.includes("thana") ||
+    window.location.hostname === "thana.omnisuite-erp.com" ||
     window.location.hostname === "thanaserver.omnisuite-erp.com")
 ) {
   API_BASE = "https://thanaserver.omnisuite-erp.com/api";
+} else if (
+  typeof window !== "undefined" &&
+  window.location.hostname.endsWith(".omnisuite-erp.com")
+) {
+  const prefix = window.location.hostname.split(".")[0];
+  if (!prefix.endsWith("server")) {
+    API_BASE = `https://${prefix}server.omnisuite-erp.com/api`;
+  }
 } else if (!API_BASE) {
   // Default to same-origin so Vite dev proxy handles local API traffic.
   API_BASE = "/api";

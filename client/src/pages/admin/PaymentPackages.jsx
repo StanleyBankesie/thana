@@ -23,24 +23,25 @@ export default function PaymentPackages() {
     support_maintenance: "",
     software_license: "",
     amount: "",
-    duration_months: "",
+    duration_months: "12",
     status: "ACTIVE",
   };
 
   const [formData, setFormData] = useState(initialForm);
 
-  // Auto-calculate the total amount whenever the breakdown fields change
-  useEffect(() => {
-    const total =
-      (parseFloat(formData.cloud_hosting) || 0) +
-      (parseFloat(formData.support_maintenance) || 0) +
-      (parseFloat(formData.software_license) || 0);
-    setFormData((prev) => ({ ...prev, amount: total }));
-  }, [
-    formData.cloud_hosting,
-    formData.support_maintenance,
-    formData.software_license,
-  ]);
+  const handleBreakdownChange = (field, value) => {
+    setFormData((prev) => {
+      const next = { ...prev, [field]: value };
+      const ch = parseFloat(field === "cloud_hosting" ? value : next.cloud_hosting) || 0;
+      const sm = parseFloat(field === "support_maintenance" ? value : next.support_maintenance) || 0;
+      const sl = parseFloat(field === "software_license" ? value : next.software_license) || 0;
+      const sum = ch + sm + sl;
+      return {
+        ...next,
+        amount: sum > 0 ? String(sum) : (value === "" && !sm && !sl ? "" : next.amount),
+      };
+    });
+  };
 
   useEffect(() => {
     fetchConfig();
@@ -81,13 +82,13 @@ export default function PaymentPackages() {
         if (selected) {
           setPackageSearch(selected.plan_name);
           setFormData({
-            plan_name: selected.plan_name,
-            cloud_hosting: selected.cloud_hosting,
-            support_maintenance: selected.support_maintenance,
-            software_license: selected.software_license,
-            amount: selected.amount,
-            duration_months: selected.duration_months,
-            status: selected.status,
+            plan_name: selected.plan_name || "",
+            cloud_hosting: selected.cloud_hosting != null ? String(selected.cloud_hosting) : "",
+            support_maintenance: selected.support_maintenance != null ? String(selected.support_maintenance) : "",
+            software_license: selected.software_license != null ? String(selected.software_license) : "",
+            amount: selected.amount != null ? String(selected.amount) : "",
+            duration_months: selected.duration_months != null ? String(selected.duration_months) : "12",
+            status: selected.status || "ACTIVE",
           });
         }
       }
@@ -96,19 +97,28 @@ export default function PaymentPackages() {
 
   const handleSavePackage = async () => {
     if (
-      !formData.plan_name ||
+      !formData.plan_name?.trim() ||
       formData.amount === "" ||
-      !formData.duration_months
+      formData.duration_months === ""
     ) {
       return toast.error("Please fill in all required fields.");
     }
     setLoading(true);
     try {
+      const payload = {
+        plan_name: formData.plan_name.trim(),
+        amount: parseFloat(formData.amount) || 0,
+        cloud_hosting: parseFloat(formData.cloud_hosting) || 0,
+        support_maintenance: parseFloat(formData.support_maintenance) || 0,
+        software_license: parseFloat(formData.software_license) || 0,
+        duration_months: parseInt(formData.duration_months, 10) || 12,
+        status: formData.status || "ACTIVE",
+      };
       if (selectedPackageId === "NEW") {
-        await api.post(`/subscription-plans`, formData);
+        await api.post(`/subscription-plans`, payload);
         toast.success("Package created successfully.");
       } else {
-        await api.put(`/subscription-plans/${selectedPackageId}`, formData);
+        await api.put(`/subscription-plans/${selectedPackageId}`, payload);
         toast.success("Package updated successfully.");
       }
       setSelectedPackageId("");
@@ -284,64 +294,68 @@ export default function PaymentPackages() {
 
                 <div>
                   <label className="block text-sm font-medium mb-1">
-                    Cloud Hosting & Backup
+                    Cloud Hosting & Backup (GHS)
                   </label>
                   <input
                     type="number"
-                    className="w-full border rounded p-2 bg-slate-50 dark:bg-slate-700 dark:border-slate-600 dark:text-white"
-                    value={formData.cloud_hosting}
+                    step="any"
+                    className="w-full border rounded p-2 bg-white dark:bg-slate-700 dark:border-slate-600 dark:text-white"
+                    placeholder="0.00"
+                    value={formData.cloud_hosting ?? ""}
                     onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        cloud_hosting: parseFloat(e.target.value),
-                      })
+                      handleBreakdownChange("cloud_hosting", e.target.value)
                     }
                   />
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium mb-1">
-                    Support & Maintenance
+                    Support & Maintenance (GHS)
                   </label>
                   <input
                     type="number"
-                    className="w-full border rounded p-2 bg-slate-50 dark:bg-slate-700 dark:border-slate-600 dark:text-white"
-                    value={formData.support_maintenance}
+                    step="any"
+                    className="w-full border rounded p-2 bg-white dark:bg-slate-700 dark:border-slate-600 dark:text-white"
+                    placeholder="0.00"
+                    value={formData.support_maintenance ?? ""}
                     onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        support_maintenance: parseFloat(e.target.value),
-                      })
+                      handleBreakdownChange("support_maintenance", e.target.value)
                     }
                   />
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium mb-1">
-                    Annual Software License
+                    Annual Software License (GHS)
                   </label>
                   <input
                     type="number"
-                    className="w-full border rounded p-2 bg-slate-50 dark:bg-slate-700 dark:border-slate-600 dark:text-white"
-                    value={formData.software_license}
+                    step="any"
+                    className="w-full border rounded p-2 bg-white dark:bg-slate-700 dark:border-slate-600 dark:text-white"
+                    placeholder="0.00"
+                    value={formData.software_license ?? ""}
                     onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        software_license: parseFloat(e.target.value),
-                      })
+                      handleBreakdownChange("software_license", e.target.value)
                     }
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium mb-1 text-primary-600">
-                    Total Calculated Amount
+                  <label className="block text-sm font-medium mb-1 text-primary-600 font-semibold">
+                    Total Calculated Amount (GHS)
                   </label>
                   <input
                     type="number"
-                    disabled
-                    className="w-full border-2 border-primary-200 rounded p-2 bg-primary-50 font-bold text-slate-600"
-                    value={formData.amount}
+                    step="any"
+                    className="w-full border-2 border-primary-200 rounded p-2 bg-white dark:bg-slate-700 dark:border-slate-600 dark:text-white font-bold"
+                    placeholder="0.00"
+                    value={formData.amount ?? ""}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        amount: e.target.value,
+                      }))
+                    }
                   />
                 </div>
 
@@ -357,13 +371,14 @@ export default function PaymentPackages() {
                   </label>
                   <input
                     type="number"
-                    className="w-full border rounded p-2 dark:bg-slate-700 dark:border-slate-600 dark:text-white"
-                    value={formData.duration_months}
+                    className="w-full border rounded p-2 bg-white dark:bg-slate-700 dark:border-slate-600 dark:text-white"
+                    placeholder="12"
+                    value={formData.duration_months ?? ""}
                     onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        duration_months: parseInt(e.target.value) || 0,
-                      })
+                      setFormData((prev) => ({
+                        ...prev,
+                        duration_months: e.target.value,
+                      }))
                     }
                   />
                 </div>
