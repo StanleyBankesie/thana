@@ -322,7 +322,11 @@ const nextWorkflowCode = async (companyId) => {
   return `WF-${String(nextNum).padStart(6, "0")}`;
 };
 
+let workflowTablesEnsured = false;
 const ensureWorkflowTables = async () => {
+  if (workflowTablesEnsured) return;
+  workflowTablesEnsured = true;
+  try {
   await query(`
     CREATE TABLE IF NOT EXISTS adm_workflows (
       id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -465,6 +469,9 @@ const ensureWorkflowTables = async () => {
       KEY idx_wf_task_assignee (assigned_to_user_id, action)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
   `);
+  } catch (err) {
+    console.warn("[ensureWorkflowTables] Warning:", err?.message || err);
+  }
 };
 
 export const listWorkflows = async (req, res, next) => {

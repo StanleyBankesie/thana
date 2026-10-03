@@ -619,34 +619,36 @@ export const pool = new Proxy(
 
 // Helper to dispatch global workflow notifications
 function interceptWorkflowNotification(sql, params, insertId) {
-  if (sql && typeof sql === 'string' && sql.toUpperCase().includes('INSERT INTO ADM_DOCUMENT_WORKFLOWS')) {
-    import('../services/notifications/workflowNotify.js').then(({ notifyWorkflowForward }) => {
-      const companyId = params?.companyId || params?.company_id || 1;
-      const workflowInstanceId = insertId;
-      const assignedTo = params?.assignedTo || params?.assigned_to_user_id || params?.assignedToUserId || params?.user_id;
-      const documentId = params?.documentId || params?.document_id || params?.docId || params?.id;
-      let documentType = params?.docType || params?.document_type || params?.documentType || 'Document';
-      
-      if (documentType === 'Document') {
-         const match = sql.match(/'([A-Z_]+)'/);
-         if (match && match[1] && !match[1].includes('PENDING')) documentType = match[1];
-      }
-      
-      if (workflowInstanceId && assignedTo) {
-         notifyWorkflowForward({
-            companyId,
-            userId: assignedTo,
-            workflowInstanceId,
-            documentId,
-            documentType,
-            title: "Approval Required",
-            message: `${documentType.replace(/_/g, ' ')} ${documentId ? '#' + documentId : ''} requires your approval`,
-            action: "APPROVE",
-            senderName: "System"
-         }).catch(err => console.error("[Auto-Notify] Error:", err.message));
-      }
-    }).catch(() => {});
-  }
+  try {
+    if (sql && typeof sql === 'string' && sql.toUpperCase().includes('INSERT INTO ADM_DOCUMENT_WORKFLOWS')) {
+      import('../services/notifications/workflowNotify.js').then(({ notifyWorkflowForward }) => {
+        const companyId = params?.companyId || params?.company_id || 1;
+        const workflowInstanceId = insertId;
+        const assignedTo = params?.assignedTo || params?.assigned_to_user_id || params?.assignedToUserId || params?.user_id;
+        const documentId = params?.documentId || params?.document_id || params?.docId || params?.id;
+        let documentType = params?.docType || params?.document_type || params?.documentType || 'Document';
+        
+        if (documentType === 'Document') {
+           const match = sql.match(/'([A-Z_]+)'/);
+           if (match && match[1] && !match[1].includes('PENDING')) documentType = match[1];
+        }
+        
+        if (workflowInstanceId && assignedTo) {
+           notifyWorkflowForward({
+              companyId,
+              userId: assignedTo,
+              workflowInstanceId,
+              documentId,
+              documentType,
+              title: "Approval Required",
+              message: `${documentType.replace(/_/g, ' ')} ${documentId ? '#' + documentId : ''} requires your approval`,
+              action: "APPROVE",
+              senderName: "System"
+           }).catch(err => console.error("[Auto-Notify] Error:", err.message));
+        }
+      }).catch(() => {});
+    }
+  } catch {}
 }
 
 // Main Query Utility
@@ -680,7 +682,7 @@ export async function query(sql, params = {}) {
 
     // Default to using prepared statements for security and performance
     const [rows] = await pool.execute(sql, params);
-    interceptWorkflowNotification(sql, params, rows.insertId);
+    interceptWorkflowNotification(sql, params, rows?.insertId);
     return rows;
   } catch (err) {
     // Fallback for queries that cannot be prepared
@@ -691,7 +693,7 @@ export async function query(sql, params = {}) {
           err.message.includes("syntax to use near '?'")))
     ) {
       const [rows] = await pool.query(sql, params);
-      interceptWorkflowNotification(sql, params, rows.insertId);
+      interceptWorkflowNotification(sql, params, rows?.insertId);
       return rows;
     }
 
@@ -713,7 +715,7 @@ export async function query(sql, params = {}) {
       const patchedSql = sanitizeCreatedByAuditJoin(sql);
       if (patchedSql !== sql) {
         const [rows] = await pool.query(patchedSql, params);
-        interceptWorkflowNotification(sql, params, rows.insertId);
+        interceptWorkflowNotification(sql, params, rows?.insertId);
         return rows;
       }
     }

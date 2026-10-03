@@ -3,7 +3,7 @@
  * @description Manages organizational structures including companies, branches, and departments.
  * Handles related configuration, logos, and dynamic schema migrations for companies.
  */
-import { query } from "../db/pool.js";
+import { pool, query } from "../db/pool.js";
 import { httpError } from "../utils/httpError.js";
 import { hasColumn, toNumber, ensureBranchColumns } from "../utils/dbUtils.js";
 import { cacheGet, cacheSet, cacheDelPattern } from "../utils/redis.js";
@@ -138,7 +138,7 @@ export const updateCompanies = async (req, res, next) => {
     if (!name || !code)
       throw httpError(400, "VALIDATION_ERROR", "name and code are required");
 
-    const conn = await query.pool.getConnection();
+    const conn = await pool.getConnection();
     try {
       await conn.beginTransaction();
       const baseParams = {

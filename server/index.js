@@ -65,6 +65,11 @@ import {
   ensureUserPermissionCacheAndTriggers,
   ensureUserBranchMapping,
   ensurePagesTable,
+  ensureBranchColumns,
+  ensureUserColumns,
+  ensureWorkflowTables,
+  ensureSalesOrderColumns,
+  ensureErrorLogsTable,
   hasColumn,
   verifiedTables,
   ensurePMQuotationTables,
@@ -73,6 +78,8 @@ import {
   ensureTransportTables,
   ensureTaxTables,
 } from "./utils/dbUtils.js";
+import { ensureCompanyColumns } from "./controllers/companies.controller.js";
+import { ensureAuthTables } from "./services/token.service.js";
 import { seedDefaultTemplates } from "./services/seed-defaults.js";
 import { ensureIndexes } from "./utils/ensureIndexes.js";
 import { initCronJobs } from "./utils/cronJobs.js";
@@ -1272,6 +1279,10 @@ if (process.env.NODE_ENV !== "test") {
         } else {
           console.log("[Prewarm] Running background schema setup...");
           const steps = [
+            ["company columns", () => ensureCompanyColumns()],
+            ["branch columns", () => ensureBranchColumns()],
+            ["user columns", () => ensureUserColumns()],
+            ["auth tables", () => ensureAuthTables()],
             ["pages table", () => ensurePagesTable()],
             ["user permissions table", () => ensureUserPermissionsTable()],
             [
@@ -1284,6 +1295,9 @@ if (process.env.NODE_ENV !== "test") {
               () => ensureExceptionalPermissionsTable(),
             ],
             ["system logs", () => ensureSystemLogsTable()],
+            ["error logs table", () => ensureErrorLogsTable()],
+            ["workflow tables", () => ensureWorkflowTables()],
+            ["sales order columns", () => ensureSalesOrderColumns()],
             ["pm quotations", () => ensurePMQuotationTables()],
             ["pm invoices", () => ensurePMInvoiceTables()],
             ["social feed tables", () => ensureSocialFeedTables()],

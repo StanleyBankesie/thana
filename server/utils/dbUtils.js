@@ -2808,6 +2808,7 @@ export async function ensureHRTables() {
 }
 
 export async function ensureWorkflowTables() {
+  if (verifiedTables.has("adm_workflows")) return;
   await query(`
     CREATE TABLE IF NOT EXISTS adm_workflows (
       id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -2932,6 +2933,7 @@ export async function ensureWorkflowTables() {
       KEY idx_wf_task_assignee (assigned_to_user_id, action)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
   `);
+  verifiedTables.add("adm_workflows");
 }
 
 export async function ensurePushTables() {
