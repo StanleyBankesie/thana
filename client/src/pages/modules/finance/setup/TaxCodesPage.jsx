@@ -636,38 +636,29 @@ export default function TaxCodesPage() {
               </button>
             </div>
             <div className="p-6">
-              <form onSubmit={create} className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-6 gap-3">
-                  <div>
+              <form onSubmit={create} className="space-y-5">
+                <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
+                  <div className="md:col-span-4">
                     <label className="label">Code *</label>
                     <input
-                      className="input w-full"
+                      className="input w-full font-mono uppercase"
                       value={code}
-                      onChange={(e) => setCode(e.target.value)}
+                      onChange={(e) => setCode(e.target.value.toUpperCase())}
+                      placeholder="e.g. VAT-15"
                       required
                     />
                   </div>
-                  <div className="md:col-span-2">
+                  <div className="md:col-span-8">
                     <label className="label">Name *</label>
                     <input
                       className="input w-full"
                       value={name}
                       onChange={(e) => setName(e.target.value)}
+                      placeholder="e.g. Value Added Tax 15%"
                       required
                     />
                   </div>
-                  <div>
-                    <label className="label">Rate (%)</label>
-                    <input
-                      className="input w-full"
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      value={ratePercent}
-                      onChange={(e) => setRatePercent(e.target.value)}
-                    />
-                  </div>
-                  <div>
+                  <div className="md:col-span-4">
                     <label className="label">Type *</label>
                     <select
                       className="input w-full"
@@ -679,25 +670,39 @@ export default function TaxCodesPage() {
                       <option value="DEDUCTION">Deduction</option>
                     </select>
                   </div>
-                  <div className="flex items-end">
-                    <label className="inline-flex items-center gap-2">
+                  <div className="md:col-span-4">
+                    <label className="label">Rate (%)</label>
+                    <input
+                      className="input w-full font-mono"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      placeholder="0.00"
+                      value={ratePercent}
+                      onChange={(e) => setRatePercent(e.target.value)}
+                    />
+                  </div>
+                  <div className="md:col-span-4 flex items-end">
+                    <label className="inline-flex items-center gap-2 h-[38px] px-3.5 border border-slate-200 dark:border-slate-700 rounded-lg cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800 w-full transition-colors">
                       <input
                         type="checkbox"
+                        className="rounded text-brand focus:ring-brand"
                         checked={isActive}
                         onChange={(e) => setIsActive(e.target.checked)}
                       />
-                      Active
+                      <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Active Status</span>
                     </label>
                   </div>
                 </div>
 
                 {/* Tax Scope */}
                 <div>
-                  <label className="label mb-1">Tax Scope</label>
-                  <div className="flex gap-6 flex-wrap">
-                    <label className="inline-flex items-center gap-2">
+                  <label className="label mb-1.5">Tax Scope</label>
+                  <div className="flex gap-4 flex-wrap p-3.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/40">
+                    <label className="inline-flex items-center gap-2 cursor-pointer text-sm font-medium text-slate-700 dark:text-slate-300">
                       <input
                         type="checkbox"
+                        className="rounded text-brand focus:ring-brand"
                         checked={isSalesTax}
                         onChange={(e) =>
                           handleCreateScopeChange("SALES", e.target.checked)
@@ -705,9 +710,10 @@ export default function TaxCodesPage() {
                       />
                       Sales Tax
                     </label>
-                    <label className="inline-flex items-center gap-2">
+                    <label className="inline-flex items-center gap-2 cursor-pointer text-sm font-medium text-slate-700 dark:text-slate-300">
                       <input
                         type="checkbox"
+                        className="rounded text-brand focus:ring-brand"
                         checked={isPurchaseTax}
                         onChange={(e) =>
                           handleCreateScopeChange("PURCHASE", e.target.checked)
@@ -715,9 +721,10 @@ export default function TaxCodesPage() {
                       />
                       Purchase Tax
                     </label>
-                    <label className="inline-flex items-center gap-2">
+                    <label className="inline-flex items-center gap-2 cursor-pointer text-sm font-medium text-slate-700 dark:text-slate-300">
                       <input
                         type="checkbox"
+                        className="rounded text-brand focus:ring-brand"
                         checked={isServiceTax}
                         onChange={(e) =>
                           handleCreateScopeChange("SERVICE", e.target.checked)
@@ -736,24 +743,32 @@ export default function TaxCodesPage() {
                     pages are selected, the tax code will not be displayed in
                     any transaction forms.
                   </p>
-                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 p-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/40 max-h-56 overflow-y-auto">
                     {ALL_PAGES.map((pg) => (
                       <label
                         key={pg.value}
-                        className="inline-flex items-center gap-2 text-sm"
+                        className="inline-flex items-center gap-2 text-xs font-medium text-slate-700 dark:text-slate-300 cursor-pointer p-1.5 rounded hover:bg-white dark:hover:bg-slate-700 transition-colors"
                       >
                         <input
                           type="checkbox"
+                          className="rounded text-brand focus:ring-brand"
                           checked={validPages.includes(pg.value)}
                           onChange={() => togglePage(pg.value)}
                         />
-                        {pg.label}
+                        <span className="truncate">{pg.label}</span>
                       </label>
                     ))}
                   </div>
                 </div>
-                <div className="pt-2">
-                  <button className="btn btn-success shadow-sm">
+                <div className="pt-2 flex justify-end gap-2">
+                  <button
+                    type="button"
+                    className="btn btn-secondary text-xs px-4 py-2 cursor-pointer"
+                    onClick={() => setShowCreateModal(false)}
+                  >
+                    Cancel
+                  </button>
+                  <button type="submit" className="btn-success text-xs px-4 py-2 font-semibold cursor-pointer shadow-sm">
                     Create Tax Code
                   </button>
                 </div>
@@ -767,28 +782,28 @@ export default function TaxCodesPage() {
       <div className="card shadow-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 overflow-hidden">
         <div className="card-body p-0">
           <div className="overflow-x-auto">
-            <table className="table w-full table-fixed">
+            <table className="table w-full min-w-[960px]">
               <colgroup>
-                <col style={{ width: "14.285%" }} />
-                <col style={{ width: "14.285%" }} />
-                <col style={{ width: "14.285%" }} />
-                <col style={{ width: "14.285%" }} />
-                <col style={{ width: "14.285%" }} />
-                <col style={{ width: "14.285%" }} />
-                <col style={{ width: "14.285%" }} />
+                <col style={{ width: "12%" }} />
+                <col style={{ width: "25%" }} />
+                <col style={{ width: "11%" }} />
+                <col style={{ width: "11%" }} />
+                <col style={{ width: "15%" }} />
+                <col style={{ width: "10%" }} />
+                <col style={{ width: "16%" }} />
               </colgroup>
               <thead>
-                <tr className="bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-xs uppercase tracking-wider">
+                <tr className="bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-xs uppercase tracking-wider font-semibold">
                   <th className="py-3 px-4 text-left">Code</th>
                   <th className="py-3 px-4 text-left">Name</th>
                   <th className="py-3 px-4 text-left">Type</th>
                   <th className="py-3 px-4 text-left">Rate (%)</th>
                   <th className="py-3 px-4 text-left">Scope</th>
                   <th className="py-3 px-4 text-left">Status</th>
-                  <th className="py-3 px-4 text-right">Actions</th>
+                  <th className="py-3 px-4 text-right pr-4">Actions</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-sm">
                 {loading ? (
                   <tr>
                     <td colSpan={7} className="text-center py-10 text-slate-500">
@@ -812,231 +827,97 @@ export default function TaxCodesPage() {
                     </td>
                   </tr>
                 ) : (
-                  items.map((r) => {
-                  const isRowEditing = false;
-                  const draft = editing[r.id] || {};
-                  return (
-                    <React.Fragment key={r.id}>
-                      <tr>
-                        <td className="font-medium">{r.code}</td>
-                        <td>
-                          {isRowEditing ? (
-                            <input
-                              className="input"
-                              value={draft.name ?? ""}
-                              onChange={(e) =>
-                                updateEdit(r.id, "name", e.target.value)
-                              }
-                            />
-                          ) : (
-                            r.name
-                          )}
-                        </td>
-                        <td>
-                          {isRowEditing ? (
-                            <select
-                              className="input"
-                              value={draft.type ?? "TAX"}
-                              onChange={(e) =>
-                                updateEdit(r.id, "type", e.target.value)
-                              }
-                            >
-                              <option value="TAX">Tax</option>
-                              <option value="DEDUCTION">Deduction</option>
-                            </select>
-                          ) : (
-                            r.type
-                          )}
-                        </td>
-                        <td>
-                          {isRowEditing ? (
-                            <input
-                              className="input"
-                              type="number"
-                              step="0.01"
-                              min="0"
-                              value={
-                                draft.rate_percent === undefined
-                                  ? r.rate_percent
-                                  : draft.rate_percent
-                              }
-                              onChange={(e) =>
-                                updateEdit(r.id, "rate_percent", e.target.value)
-                              }
-                            />
-                          ) : (
-                            Number(r.rate_percent || 0).toFixed(2)
-                          )}
-                        </td>
-                        <td>
-                          {isRowEditing ? (
-                            <div className="flex flex-col gap-1 text-xs">
-                              <label className="inline-flex items-center gap-1">
-                                <input
-                                  type="checkbox"
-                                  checked={!!draft.is_sales_tax}
-                                  onChange={(e) =>
-                                    handleEditScopeChange(
-                                      r.id,
-                                      "is_sales_tax",
-                                      e.target.checked,
-                                    )
-                                  }
-                                />
-                                Sales
-                              </label>
-                              <label className="inline-flex items-center gap-1">
-                                <input
-                                  type="checkbox"
-                                  checked={!!draft.is_purchase_tax}
-                                  onChange={(e) =>
-                                    handleEditScopeChange(
-                                      r.id,
-                                      "is_purchase_tax",
-                                      e.target.checked,
-                                    )
-                                  }
-                                />
-                                Purchase
-                              </label>
-                              <label className="inline-flex items-center gap-1">
-                                <input
-                                  type="checkbox"
-                                  checked={!!draft.is_service_tax}
-                                  onChange={(e) =>
-                                    handleEditScopeChange(
-                                      r.id,
-                                      "is_service_tax",
-                                      e.target.checked,
-                                    )
-                                  }
-                                />
-                                Service
-                              </label>
-                            </div>
-                          ) : (
-                            <div className="flex gap-1 flex-wrap">
-                              {r.is_sales_tax ? (
-                                <span className="badge badge-success text-xs">
-                                  Sales
-                                </span>
-                              ) : null}
-                              {r.is_purchase_tax ? (
-                                <span className="badge badge-success text-xs">
-                                  Purchase
-                                </span>
-                              ) : null}
-                              {r.is_service_tax ? (
-                                <span className="badge badge-success text-xs">
-                                  Service
-                                </span>
-                              ) : null}
-                              {!r.is_sales_tax &&
-                                !r.is_purchase_tax &&
-                                !r.is_service_tax && (
-                                  <span className="text-xs text-slate-400">
-                                    —
-                                  </span>
-                                )}
-                            </div>
-                          )}
-                        </td>
-                        <td>
-                          {isRowEditing ? (
-                            <select
-                              className="input"
-                              value={(draft.is_active ? 1 : 0).toString()}
-                              onChange={(e) =>
-                                updateEdit(
-                                  r.id,
-                                  "is_active",
-                                  e.target.value === "1",
-                                )
-                              }
-                            >
-                              <option value="1">Active</option>
-                              <option value="0">Inactive</option>
-                            </select>
-                          ) : r.is_active ? (
-                            <span className="badge badge-success">Active</span>
-                          ) : (
-                            <span className="badge badge-error">Inactive</span>
-                          )}
-                        </td>
-                        <td className="text-right">
-                          {!isRowEditing ? (
-                            <div className="flex justify-end gap-2">
-                              <button
-                                className="btn border border-brand text-brand hover:bg-brand hover:text-white transition-colors shadow-sm"
-                                onClick={() => showComponents(r)}
-                              >
-                                Components
-                              </button>
-                              <button
-                                className="btn"
-                                onClick={() => startEdit(r)}
-                              >
-                                Edit
-                              </button>
-                              <button
-                                className="btn"
-                                onClick={() => toggleActive(r)}
-                              >
-                                {r.is_active ? "Disable" : "Enable"}
-                              </button>
-                            </div>
-                          ) : (
-                            <div className="flex justify-end gap-2">
-                              <button
-                                className="btn-success"
-                                onClick={() => saveEdit(r.id)}
-                              >
-                                Save
-                              </button>
-                              <button
-                                className="btn"
-                                onClick={() => cancelEdit(r.id)}
-                              >
-                                Cancel
-                              </button>
-                            </div>
-                          )}
-                        </td>
-                      </tr>
-                      {/* Inline Valid Pages editing row */}
-                      {isRowEditing && (
-                        <tr>
-                          <td colSpan={7} className="bg-slate-50 px-6 py-3">
-                            <label className="label mb-1 text-xs font-semibold">
-                              Applicable Pages
-                            </label>
-                            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
-                              {ALL_PAGES.map((pg) => (
-                                <label
-                                  key={pg.value}
-                                  className="inline-flex items-center gap-2 text-xs"
-                                >
-                                  <input
-                                    type="checkbox"
-                                    checked={(draft.valid_pages || []).includes(
-                                      pg.value,
-                                    )}
-                                    onChange={() =>
-                                      toggleEditPage(r.id, pg.value)
-                                    }
-                                  />
-                                  {pg.label}
-                                </label>
-                              ))}
-                            </div>
-                          </td>
-                        </tr>
-                      )}
-                      {/* Valid pages badges row removed per request */}
-                    </React.Fragment>
-                  );
-                })
-              )}
+                  items.map((r) => (
+                    <tr key={r.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition-colors">
+                      <td className="py-3 px-4 font-mono font-bold text-brand dark:text-brand-300">
+                        {r.code}
+                      </td>
+                      <td className="py-3 px-4 font-medium text-slate-800 dark:text-slate-100">
+                        {r.name}
+                      </td>
+                      <td className="py-3 px-4">
+                        <span
+                          className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold ${
+                            r.type === "TAX"
+                              ? "bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 border border-blue-200 dark:border-blue-800"
+                              : "bg-purple-50 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300 border border-purple-200 dark:border-purple-800"
+                          }`}
+                        >
+                          {r.type}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4 font-mono font-medium">
+                        {Number(r.rate_percent || 0).toFixed(2)}%
+                      </td>
+                      <td className="py-3 px-4">
+                        <div className="flex gap-1.5 flex-wrap items-center">
+                          {r.is_sales_tax ? (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                              Sales
+                            </span>
+                          ) : null}
+                          {r.is_purchase_tax ? (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
+                              Purchase
+                            </span>
+                          ) : null}
+                          {r.is_service_tax ? (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-cyan-50 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-300 border border-cyan-200 dark:border-cyan-800">
+                              Service
+                            </span>
+                          ) : null}
+                          {!r.is_sales_tax &&
+                            !r.is_purchase_tax &&
+                            !r.is_service_tax && (
+                              <span className="text-xs text-slate-400">
+                                —
+                              </span>
+                            )}
+                        </div>
+                      </td>
+                      <td className="py-3 px-4">
+                        {r.is_active ? (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300">
+                            Active
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400">
+                            Inactive
+                          </span>
+                        )}
+                      </td>
+                      <td className="py-3 px-4 text-right">
+                        <div className="flex items-center justify-end gap-1.5 whitespace-nowrap">
+                          <button
+                            type="button"
+                            className="px-2.5 py-1 text-xs font-medium rounded border border-brand text-brand hover:bg-brand hover:text-white transition-colors cursor-pointer shadow-sm"
+                            onClick={() => showComponents(r)}
+                          >
+                            Components
+                          </button>
+                          <button
+                            type="button"
+                            className="btn btn-secondary text-xs px-2.5 py-1 cursor-pointer"
+                            onClick={() => startEdit(r)}
+                          >
+                            Edit
+                          </button>
+                          <button
+                            type="button"
+                            className={`text-xs px-2.5 py-1 rounded border transition-colors cursor-pointer ${
+                              r.is_active
+                                ? "border-rose-200 text-rose-600 hover:bg-rose-50 dark:border-rose-800 dark:hover:bg-rose-950/30"
+                                : "border-slate-300 text-slate-600 hover:bg-slate-100 dark:border-slate-600 dark:hover:bg-slate-800"
+                            }`}
+                            onClick={() => toggleActive(r)}
+                          >
+                            {r.is_active ? "Disable" : "Enable"}
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
@@ -1075,119 +956,136 @@ export default function TaxCodesPage() {
             <div className="p-6 space-y-4">
               <form
                 onSubmit={addComponent}
-                className="grid grid-cols-1 md:grid-cols-10 gap-3"
+                className="bg-slate-50 dark:bg-slate-800/40 p-4 rounded-xl border border-slate-200 dark:border-slate-700 space-y-4"
               >
-                <div className="md:col-span-3">
-                  <label className="label">Component Name *</label>
-                  <input
-                    className="input w-full"
-                    value={compName}
-                    onChange={(e) => setCompName(e.target.value)}
-                    required
-                  />
+                <div className="text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400">
+                  Add New Component
                 </div>
-                <div className="md:col-span-2">
-                  <label className="label">Ledger Account</label>
-                  <select
-                    className="input text-xs"
-                    value={compAccountId}
-                    onChange={(e) => setCompAccountId(e.target.value)}
-                  >
-                    <option value="">Auto-Resolve (Recommended)</option>
-                    {accounts.map((acc) => (
-                      <option key={acc.id} value={acc.id}>
-                        {acc.code} - {acc.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div className="md:col-span-1">
-                  <label className="label">Rate (%)</label>
-                  <input
-                    className="input w-full"
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    value={compRate}
-                    onChange={(e) => setCompRate(e.target.value)}
-                  />
-                </div>
-                <div className="md:col-span-1">
-                  <label className="label">Sort Order</label>
-                  <input
-                    className="input w-full"
-                    type="number"
-                    min="1"
-                    value={compOrder}
-                    onChange={(e) => setCompOrder(e.target.value)}
-                  />
-                </div>
-                <div className="md:col-span-3">
-                  <label className="label">Calculate On</label>
-                  <div className="border rounded px-3 py-2 space-y-1">
-                    {STEP_OPTIONS.map((s) => (
-                      <label
-                        key={s.value}
-                        className="inline-flex items-center gap-2 mr-4"
-                      >
-                        <input
-                          type="checkbox"
-                          checked={normalizeStepLevels(
-                            compCompoundLevels,
-                          ).includes(s.value)}
-                          onChange={(e) =>
-                            setCompCompoundLevels(
-                              toggleStep(
-                                compCompoundLevels,
-                                s.value,
-                                e.target.checked,
-                              ),
-                            )
-                          }
-                        />
-                        <span className="text-sm">{s.label}</span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-                <div className="flex items-end md:col-span-1">
-                  <label className="inline-flex items-center gap-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-12 gap-3.5">
+                  <div className="md:col-span-4">
+                    <label className="label text-xs">Component Name *</label>
                     <input
-                      type="checkbox"
-                      checked={compActive}
-                      onChange={(e) => setCompActive(e.target.checked)}
+                      className="input w-full text-sm"
+                      placeholder="e.g. NHIL or GETFund"
+                      value={compName}
+                      onChange={(e) => setCompName(e.target.value)}
+                      required
                     />
-                    Active
-                  </label>
-                </div>
-                <div className="flex items-end md:col-span-2">
-                  <button className="btn-success w-full">Add</button>
+                  </div>
+                  <div className="md:col-span-4">
+                    <label className="label text-xs">Ledger Account</label>
+                    <select
+                      className="input w-full text-xs"
+                      value={compAccountId}
+                      onChange={(e) => setCompAccountId(e.target.value)}
+                    >
+                      <option value="">Auto-Resolve (Recommended)</option>
+                      {accounts.map((acc) => (
+                        <option key={acc.id} value={acc.id}>
+                          {acc.code} - {acc.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="sm:col-span-1 md:col-span-2">
+                    <label className="label text-xs">Rate (%)</label>
+                    <input
+                      className="input w-full text-sm font-mono"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      placeholder="0.00"
+                      value={compRate}
+                      onChange={(e) => setCompRate(e.target.value)}
+                    />
+                  </div>
+                  <div className="sm:col-span-1 md:col-span-2">
+                    <label className="label text-xs">Sort Order</label>
+                    <input
+                      className="input w-full text-sm font-mono"
+                      type="number"
+                      min="1"
+                      value={compOrder}
+                      onChange={(e) => setCompOrder(e.target.value)}
+                    />
+                  </div>
+
+                  <div className="md:col-span-7">
+                    <label className="label text-xs">Calculate On</label>
+                    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 flex flex-wrap gap-4 min-h-[38px] items-center">
+                      {STEP_OPTIONS.map((s) => (
+                        <label
+                          key={s.value}
+                          className="inline-flex items-center gap-1.5 cursor-pointer text-xs font-medium text-slate-700 dark:text-slate-300"
+                        >
+                          <input
+                            type="checkbox"
+                            className="rounded text-brand focus:ring-brand"
+                            checked={normalizeStepLevels(
+                              compCompoundLevels,
+                            ).includes(s.value)}
+                            onChange={(e) =>
+                              setCompCompoundLevels(
+                                toggleStep(
+                                  compCompoundLevels,
+                                  s.value,
+                                  e.target.checked,
+                                ),
+                              )
+                            }
+                          />
+                          <span>{s.label}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="sm:col-span-1 md:col-span-2 flex items-end">
+                    <label className="inline-flex items-center gap-2 h-[38px] px-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800 w-full transition-colors">
+                      <input
+                        type="checkbox"
+                        className="rounded text-brand focus:ring-brand"
+                        checked={compActive}
+                        onChange={(e) => setCompActive(e.target.checked)}
+                      />
+                      <span className="text-xs font-medium text-slate-700 dark:text-slate-300">Active</span>
+                    </label>
+                  </div>
+
+                  <div className="sm:col-span-1 md:col-span-3 flex items-end">
+                    <button
+                      type="submit"
+                      className="btn-success w-full h-[38px] text-xs font-semibold flex items-center justify-center gap-1 shadow-sm cursor-pointer"
+                    >
+                      + Add Component
+                    </button>
+                  </div>
                 </div>
               </form>
 
               <div className="overflow-x-auto">
-                <table className="table w-full table-fixed">
+                <table className="table w-full min-w-[880px]">
                   <colgroup>
-                    <col style={{ width: "14.285%" }} />
-                    <col style={{ width: "14.285%" }} />
-                    <col style={{ width: "14.285%" }} />
-                    <col style={{ width: "14.285%" }} />
-                    <col style={{ width: "14.285%" }} />
-                    <col style={{ width: "14.285%" }} />
-                    <col style={{ width: "14.285%" }} />
+                    <col style={{ width: "20%" }} />
+                    <col style={{ width: "24%" }} />
+                    <col style={{ width: "12%" }} />
+                    <col style={{ width: "18%" }} />
+                    <col style={{ width: "8%" }} />
+                    <col style={{ width: "8%" }} />
+                    <col style={{ width: "10%" }} />
                   </colgroup>
                   <thead>
-                    <tr className="bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-xs uppercase tracking-wider">
-                      <th className="py-3 px-4 text-left">Component</th>
-                      <th className="py-3 px-4 text-left">Account Mapping</th>
-                      <th className="py-3 px-4 text-left">Rate (%)</th>
-                      <th className="py-3 px-4 text-left">Calculate On</th>
-                      <th className="py-3 px-4 text-left">Sort</th>
-                      <th className="py-3 px-4 text-left">Status</th>
-                      <th className="py-3 px-4 text-right">Actions</th>
+                    <tr className="bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-xs uppercase tracking-wider font-semibold">
+                      <th className="py-3 px-3 text-left">Component</th>
+                      <th className="py-3 px-3 text-left">Account Mapping</th>
+                      <th className="py-3 px-3 text-left">Rate (%)</th>
+                      <th className="py-3 px-3 text-left">Calculate On</th>
+                      <th className="py-3 px-3 text-left">Sort</th>
+                      <th className="py-3 px-3 text-left">Status</th>
+                      <th className="py-3 px-3 text-right">Actions</th>
                     </tr>
                   </thead>
-                  <tbody>
+                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-sm">
                     {components.map((c) => {
                       const isEdit = !!compEditing[c.id];
                       const d = compEditing[c.id] || {};
@@ -1195,11 +1093,11 @@ export default function TaxCodesPage() {
                         (a) => String(a.id) === String(c.account_id),
                       );
                       return (
-                        <tr key={c.id}>
-                          <td className="font-medium">
+                        <tr key={c.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition-colors">
+                          <td className="py-2.5 px-3 font-medium text-slate-800 dark:text-slate-100">
                             {isEdit ? (
                               <input
-                                className="input"
+                                className="input w-full text-xs"
                                 value={
                                   d.component_name === undefined
                                     ? c.component_name
@@ -1217,10 +1115,10 @@ export default function TaxCodesPage() {
                               c.component_name
                             )}
                           </td>
-                          <td>
+                          <td className="py-2.5 px-3">
                             {isEdit ? (
                               <select
-                                className="input text-xs"
+                                className="input w-full text-xs"
                                 value={
                                   d.account_id === undefined
                                     ? c.account_id || ""
@@ -1242,17 +1140,19 @@ export default function TaxCodesPage() {
                                 ))}
                               </select>
                             ) : acc ? (
-                              `${acc.code} - ${acc.name}`
+                              <span className="text-xs text-slate-700 dark:text-slate-300">
+                                {acc.code} - {acc.name}
+                              </span>
                             ) : (
-                              <span className="text-slate-400 italic">
+                              <span className="text-slate-400 italic text-xs">
                                 Auto-Resolve
                               </span>
                             )}
                           </td>
-                          <td>
+                          <td className="py-2.5 px-3 font-mono">
                             {isEdit ? (
                               <input
-                                className="input"
+                                className="input w-full text-xs font-mono"
                                 type="number"
                                 step="0.01"
                                 min="0"
@@ -1270,12 +1170,12 @@ export default function TaxCodesPage() {
                                 }
                               />
                             ) : (
-                              Number(c.rate_percent || 0).toFixed(2)
+                              `${Number(c.rate_percent || 0).toFixed(2)}%`
                             )}
                           </td>
-                          <td>
+                          <td className="py-2.5 px-3">
                             {isEdit ? (
-                              <div className="border rounded px-2 py-1 space-y-1 min-w-[180px]">
+                              <div className="border border-slate-200 dark:border-slate-700 rounded-lg p-2 space-y-1 bg-white dark:bg-slate-800 text-xs">
                                 {STEP_OPTIONS.map((s) => {
                                   const currentLevels = normalizeStepLevels(
                                     d.compound_levels ??
@@ -1289,10 +1189,11 @@ export default function TaxCodesPage() {
                                   return (
                                     <label
                                       key={s.value}
-                                      className="inline-flex items-center gap-2 mr-3"
+                                      className="inline-flex items-center gap-1.5 mr-3 cursor-pointer text-xs"
                                     >
                                       <input
                                         type="checkbox"
+                                        className="rounded text-brand focus:ring-brand"
                                         checked={currentLevels.includes(
                                           s.value,
                                         )}
@@ -1308,28 +1209,30 @@ export default function TaxCodesPage() {
                                           )
                                         }
                                       />
-                                      <span className="text-xs">{s.label}</span>
+                                      <span>{s.label}</span>
                                     </label>
                                   );
                                 })}
                               </div>
                             ) : (
-                              normalizeStepLevels(
-                                Array.isArray(c.calculate_on_levels)
-                                  ? c.calculate_on_levels
-                                  : c.compound_level !== undefined &&
-                                      c.compound_level !== null
-                                    ? [c.compound_level]
-                                    : [],
-                              )
-                                .map(stepLabel)
-                                .join(", ")
+                              <span className="text-xs text-slate-600 dark:text-slate-400">
+                                {normalizeStepLevels(
+                                  Array.isArray(c.calculate_on_levels)
+                                    ? c.calculate_on_levels
+                                    : c.compound_level !== undefined &&
+                                        c.compound_level !== null
+                                      ? [c.compound_level]
+                                      : [],
+                                )
+                                  .map(stepLabel)
+                                  .join(", ") || "—"}
+                              </span>
                             )}
                           </td>
-                          <td>
+                          <td className="py-2.5 px-3 font-mono text-xs">
                             {isEdit ? (
                               <input
-                                className="input"
+                                className="input w-full text-xs font-mono"
                                 type="number"
                                 min="0"
                                 value={
@@ -1349,10 +1252,10 @@ export default function TaxCodesPage() {
                               c.sort_order
                             )}
                           </td>
-                          <td>
+                          <td className="py-2.5 px-3">
                             {isEdit ? (
                               <select
-                                className="input"
+                                className="input w-full text-xs"
                                 value={(d.is_active ? 1 : 0).toString()}
                                 onChange={(e) =>
                                   compUpdateEdit(
@@ -1366,41 +1269,45 @@ export default function TaxCodesPage() {
                                 <option value="0">Inactive</option>
                               </select>
                             ) : c.is_active ? (
-                              <span className="badge badge-success">
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300">
                                 Active
                               </span>
                             ) : (
-                              <span className="badge badge-error">
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400">
                                 Inactive
                               </span>
                             )}
                           </td>
-                          <td className="text-right">
+                          <td className="py-2.5 px-3 text-right">
                             {!isEdit ? (
-                              <div className="flex justify-end gap-2">
+                              <div className="flex items-center justify-end gap-1.5 whitespace-nowrap">
                                 <button
-                                  className="btn"
+                                  type="button"
+                                  className="btn btn-secondary text-xs px-2.5 py-1 cursor-pointer"
                                   onClick={() => compStartEdit(c)}
                                 >
                                   Edit
                                 </button>
                                 <button
-                                  className="btn"
+                                  type="button"
+                                  className="text-xs px-2.5 py-1 rounded border border-rose-200 text-rose-600 hover:bg-rose-50 dark:border-rose-800 dark:hover:bg-rose-950/30 transition-colors cursor-pointer"
                                   onClick={() => compDisable(c.id)}
                                 >
                                   Disable
                                 </button>
                               </div>
                             ) : (
-                              <div className="flex justify-end gap-2">
+                              <div className="flex items-center justify-end gap-1.5 whitespace-nowrap">
                                 <button
-                                  className="btn-success"
+                                  type="button"
+                                  className="btn-success text-xs px-2.5 py-1 cursor-pointer font-semibold shadow-sm"
                                   onClick={() => compSaveEdit(c.id)}
                                 >
                                   Save
                                 </button>
                                 <button
-                                  className="btn"
+                                  type="button"
+                                  className="btn btn-secondary text-xs px-2.5 py-1 cursor-pointer"
                                   onClick={() =>
                                     setCompEditing((p) => {
                                       const n = { ...p };
@@ -1420,10 +1327,17 @@ export default function TaxCodesPage() {
                     {components.length === 0 && (
                       <tr>
                         <td
-                          colSpan={5}
-                          className="text-center py-6 text-slate-600"
+                          colSpan={7}
+                          className="text-center py-8 text-slate-500"
                         >
-                          No components defined
+                          <div className="flex flex-col items-center justify-center gap-1.5">
+                            <span className="text-sm font-medium text-slate-600 dark:text-slate-400">
+                              No components defined for this tax code yet.
+                            </span>
+                            <span className="text-xs text-slate-400">
+                              Use the form above to add composite breakdown components (e.g. NHIL, GETFund, COVID Levy).
+                            </span>
+                          </div>
                         </td>
                       </tr>
                     )}
@@ -1451,34 +1365,29 @@ export default function TaxCodesPage() {
               </button>
             </div>
             <div className="p-6 space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <div>
+              <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
+                <div className="md:col-span-4">
+                  <label className="label">Code</label>
+                  <input
+                    className="input w-full bg-slate-100 dark:bg-slate-800 text-slate-500 font-mono"
+                    value={items.find((i) => i.id === editingTaxId)?.code || ""}
+                    disabled
+                  />
+                </div>
+                <div className="md:col-span-8">
                   <label className="label">Name *</label>
                   <input
-                    className="input"
+                    className="input w-full"
                     value={editing[editingTaxId]?.name ?? ""}
                     onChange={(e) =>
                       updateEdit(editingTaxId, "name", e.target.value)
                     }
                   />
                 </div>
-                <div>
-                  <label className="label">Rate (%)</label>
-                  <input
-                    className="input"
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    value={editing[editingTaxId]?.rate_percent ?? ""}
-                    onChange={(e) =>
-                      updateEdit(editingTaxId, "rate_percent", e.target.value)
-                    }
-                  />
-                </div>
-                <div>
+                <div className="md:col-span-4">
                   <label className="label">Type *</label>
                   <select
-                    className="input"
+                    className="input w-full"
                     value={editing[editingTaxId]?.type ?? "TAX"}
                     onChange={(e) =>
                       updateEdit(editingTaxId, "type", e.target.value)
@@ -1488,10 +1397,23 @@ export default function TaxCodesPage() {
                     <option value="DEDUCTION">Deduction</option>
                   </select>
                 </div>
-                <div>
+                <div className="md:col-span-4">
+                  <label className="label">Rate (%)</label>
+                  <input
+                    className="input w-full font-mono"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={editing[editingTaxId]?.rate_percent ?? ""}
+                    onChange={(e) =>
+                      updateEdit(editingTaxId, "rate_percent", e.target.value)
+                    }
+                  />
+                </div>
+                <div className="md:col-span-4">
                   <label className="label">Status</label>
                   <select
-                    className="input"
+                    className="input w-full"
                     value={(editing[editingTaxId]?.is_active
                       ? 1
                       : 0
@@ -1511,11 +1433,12 @@ export default function TaxCodesPage() {
               </div>
 
               <div>
-                <label className="label mb-1">Tax Scope</label>
-                <div className="flex gap-6 flex-wrap">
-                  <label className="inline-flex items-center gap-2">
+                <label className="label mb-1.5">Tax Scope</label>
+                <div className="flex gap-4 flex-wrap p-3.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/40">
+                  <label className="inline-flex items-center gap-2 cursor-pointer text-sm font-medium text-slate-700 dark:text-slate-300">
                     <input
                       type="checkbox"
+                      className="rounded text-brand focus:ring-brand"
                       checked={!!editing[editingTaxId]?.is_sales_tax}
                       onChange={(e) =>
                         handleEditScopeChange(
@@ -1527,9 +1450,10 @@ export default function TaxCodesPage() {
                     />
                     Sales Tax
                   </label>
-                  <label className="inline-flex items-center gap-2">
+                  <label className="inline-flex items-center gap-2 cursor-pointer text-sm font-medium text-slate-700 dark:text-slate-300">
                     <input
                       type="checkbox"
+                      className="rounded text-brand focus:ring-brand"
                       checked={!!editing[editingTaxId]?.is_purchase_tax}
                       onChange={(e) =>
                         handleEditScopeChange(
@@ -1541,9 +1465,10 @@ export default function TaxCodesPage() {
                     />
                     Purchase Tax
                   </label>
-                  <label className="inline-flex items-center gap-2">
+                  <label className="inline-flex items-center gap-2 cursor-pointer text-sm font-medium text-slate-700 dark:text-slate-300">
                     <input
                       type="checkbox"
+                      className="rounded text-brand focus:ring-brand"
                       checked={!!editing[editingTaxId]?.is_service_tax}
                       onChange={(e) =>
                         handleEditScopeChange(
@@ -1560,37 +1485,40 @@ export default function TaxCodesPage() {
 
               <div>
                 <label className="label mb-1">Applicable Pages</label>
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 p-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/40 max-h-56 overflow-y-auto">
                   {ALL_PAGES.map((pg) => (
                     <label
                       key={pg.value}
-                      className="inline-flex items-center gap-2 text-sm"
+                      className="inline-flex items-center gap-2 text-xs font-medium text-slate-700 dark:text-slate-300 cursor-pointer p-1.5 rounded hover:bg-white dark:hover:bg-slate-700 transition-colors"
                     >
                       <input
                         type="checkbox"
+                        className="rounded text-brand focus:ring-brand"
                         checked={(
                           editing[editingTaxId]?.valid_pages || []
                         ).includes(pg.value)}
                         onChange={() => toggleEditPage(editingTaxId, pg.value)}
                       />
-                      {pg.label}
+                      <span className="truncate">{pg.label}</span>
                     </label>
                   ))}
                 </div>
               </div>
 
-              <div className="flex justify-end gap-2">
+              <div className="flex justify-end gap-2 pt-2">
                 <button
-                  className="btn"
+                  type="button"
+                  className="btn btn-secondary text-xs px-4 py-2 cursor-pointer"
                   onClick={() => cancelEdit(editingTaxId)}
                 >
                   Cancel
                 </button>
                 <button
-                  className="btn-success"
+                  type="button"
+                  className="btn-success text-xs px-4 py-2 font-semibold cursor-pointer shadow-sm"
                   onClick={() => saveEdit(editingTaxId)}
                 >
-                  Save
+                  Save Changes
                 </button>
               </div>
             </div>
