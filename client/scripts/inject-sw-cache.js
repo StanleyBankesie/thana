@@ -67,6 +67,7 @@ if (!match) {
 }
 
 try {
+  sw = sw.replace(addAllRe, `$1\n${entriesStr}\n$2`);
   writeFileSync(swPath, sw, "utf-8");
   console.log(`inject-sw-cache: rebuilt cache.addAll with ${allEntries.length} entries (${assetUrls.length} assets)`);
 } catch (err) {
