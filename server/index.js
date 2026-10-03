@@ -19,7 +19,7 @@ import backupRoutes from "./routes/backup.routes.js";
 import salesRoutes from "./routes/sales.route.js";
 import purchaseRoutes from "./routes/purchase.routes.js";
 import purchaseBillsRoutes from "./routes/purchase.bills.routes.js";
-import inventoryRoutes from "./routes/inventory.routes.js";
+import inventoryRoutes, { ensureWarehousesTable } from "./routes/inventory.routes.js";
 import financeRoutes from "./routes/finance.routes.js";
 import hrRoutes from "./routes/hr.routes.js";
 import maintenanceRoutes from "./routes/maintenance.routes.js";
@@ -1303,6 +1303,7 @@ if (process.env.NODE_ENV !== "test") {
             ["social feed tables", () => ensureSocialFeedTables()],
             ["transport tables", () => ensureTransportTables()],
             ["tax tables", () => ensureTaxTables()],
+            ["warehouses table", () => ensureWarehousesTable()],
           ];
           for (const [name, fn] of steps) {
             try {

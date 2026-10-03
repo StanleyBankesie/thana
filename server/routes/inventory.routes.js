@@ -35,8 +35,10 @@ import {
   inv_listStockJournals,
   inv_getStockJournalById,
   inv_getNextStockJournalNo,
-  inv_createStockJournal
+  inv_createStockJournal,
+  linkWarehouseBranch,
 } from "../controllers/inventory.controller.js";
+import { verifiedTables } from "../utils/dbUtils.js";
 
 const router = express.Router();
 
@@ -177,15 +179,17 @@ async function hasTrigger(triggerName) {
   return Number(rows?.[0]?.c || 0) > 0;
 }
 
-async function ensureWarehousesTable() {
+export async function ensureWarehousesTable() {
+  if (verifiedTables.has("inv_warehouses")) return;
   if (!(await hasTable("inv_warehouses"))) {
     await query(`
       CREATE TABLE IF NOT EXISTS inv_warehouses (
         id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
         company_id BIGINT UNSIGNED NOT NULL,
-        branch_id BIGINT UNSIGNED NOT NULL,
+        branch_id BIGINT UNSIGNED NOT NULL DEFAULT 1,
         warehouse_code VARCHAR(50) NOT NULL,
         warehouse_name VARCHAR(150) NOT NULL,
+        location VARCHAR(255) NULL,
         is_active TINYINT(1) NOT NULL DEFAULT 1,
         created_by BIGINT UNSIGNED DEFAULT NULL,
         created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -195,12 +199,19 @@ async function ensureWarehousesTable() {
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
     `);
   }
-  await query(
-    `ALTER TABLE inv_warehouses
-      ADD COLUMN IF NOT EXISTS location VARCHAR(255) NULL,
-      ADD COLUMN IF NOT EXISTS created_by BIGINT UNSIGNED NULL,
-      ADD COLUMN IF NOT EXISTS created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP`,
-  ).catch(() => {});
+  if (!(await hasColumn("inv_warehouses", "location"))) {
+    await query(`ALTER TABLE inv_warehouses ADD COLUMN location VARCHAR(255) NULL`).catch(() => {});
+  }
+  if (!(await hasColumn("inv_warehouses", "created_by"))) {
+    await query(`ALTER TABLE inv_warehouses ADD COLUMN created_by BIGINT UNSIGNED NULL`).catch(() => {});
+  }
+  if (!(await hasColumn("inv_warehouses", "created_at"))) {
+    await query(`ALTER TABLE inv_warehouses ADD COLUMN created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP`).catch(() => {});
+  }
+  if (!(await hasColumn("inv_warehouses", "branch_id"))) {
+    await query(`ALTER TABLE inv_warehouses ADD COLUMN branch_id BIGINT UNSIGNED NOT NULL DEFAULT 1`).catch(() => {});
+  }
+  verifiedTables.add("inv_warehouses");
 }
 
 async function ensureStockBalanceDetailsInfrastructure() {
@@ -1549,10 +1560,26 @@ router.post(
   async (req, res, next) => {
     try {
       await ensureWarehousesTable();
-      const { companyId, userId } = req.scope;
+      const { companyId } = req.scope || {};
       const body = req.body || {};
-      const branch_id = toNumber(body.branch_id, 0);
-      const [result] = await pool.execute(
+      const rawBranchId =
+        body.branch_id ||
+        req.headers["x-branch-id"] ||
+        req.query.branchId ||
+        req.scope?.branchId ||
+        req.user?.branchIds?.[0] ||
+        req.user?.branch_id ||
+        1;
+      const branch_id = toNumber(rawBranchId, 1);
+      const userId = Number(req.user?.id || req.user?.sub || 1);
+
+      const warehouse_code = String(body.warehouse_code || "").trim();
+      const warehouse_name = String(body.warehouse_name || "").trim();
+      if (!warehouse_code || !warehouse_name) {
+        throw httpError(400, "VALIDATION_ERROR", "warehouse_code and warehouse_name are required");
+      }
+
+      const result = await query(
         `INSERT INTO inv_warehouses (
            company_id, branch_id, warehouse_code, warehouse_name, location, is_active, created_by
          ) VALUES (
@@ -1560,12 +1587,12 @@ router.post(
          )`,
         {
           companyId,
-          branch_id: branch_id || null,
-          warehouse_code: body.warehouse_code || "",
-          warehouse_name: body.warehouse_name || "",
-          location: body.location || "",
-          is_active: body.is_active ? 1 : 0,
-          userId: userId || null,
+          branch_id,
+          warehouse_code,
+          warehouse_name,
+          location: body.location || null,
+          is_active: body.is_active === undefined ? 1 : Number(Boolean(body.is_active)),
+          userId,
         }
       );
       res.json({ item: { id: result.insertId } });
@@ -1584,9 +1611,20 @@ router.put(
       await ensureWarehousesTable();
       const { companyId = null } = req.scope || {};
       const id = toNumber(req.params.id, 0);
+      if (!id) throw httpError(400, "VALIDATION_ERROR", "Invalid warehouse id");
       const body = req.body || {};
-      await pool.execute(
+      const rawBranchId = body.branch_id || req.headers["x-branch-id"];
+      const branch_id = rawBranchId ? toNumber(rawBranchId, null) : null;
+
+      const warehouse_code = String(body.warehouse_code || "").trim();
+      const warehouse_name = String(body.warehouse_name || "").trim();
+      if (!warehouse_code || !warehouse_name) {
+        throw httpError(400, "VALIDATION_ERROR", "warehouse_code and warehouse_name are required");
+      }
+
+      await query(
         `UPDATE inv_warehouses SET
+           branch_id = COALESCE(:branch_id, branch_id),
            warehouse_code = :warehouse_code,
            warehouse_name = :warehouse_name,
            location = :location,
@@ -1595,10 +1633,11 @@ router.put(
         {
           id,
           companyId,
-          warehouse_code: body.warehouse_code || "",
-          warehouse_name: body.warehouse_name || "",
-          location: body.location || "",
-          is_active: body.is_active ? 1 : 0,
+          branch_id,
+          warehouse_code,
+          warehouse_name,
+          location: body.location || null,
+          is_active: body.is_active === undefined ? 1 : Number(Boolean(body.is_active)),
         }
       );
       res.json({ ok: true });
@@ -1606,6 +1645,13 @@ router.put(
       next(err);
     }
   },
+);
+
+router.put(
+  "/warehouses/:id/link-branch",
+  requireAuth,
+  requireCompanyScope,
+  linkWarehouseBranch,
 );
 
 router.get(

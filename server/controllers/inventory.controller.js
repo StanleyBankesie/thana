@@ -830,16 +830,9 @@ export const linkWarehouseBranch = async (req, res, next) => {
         "VALIDATION_ERROR",
         "branch_id is required to link warehouse",
       );
-    const branchRow = await query(`
-      SELECT id, company_id,
-          created_at,
-          u.username AS created_by_name
-         FROM adm_branches
-        LEFT JOIN adm_users u ON u.id = created_by
-         WHERE id = :branchId
-      LIMIT 1
-      `,
-      { branchId, branchIdsStr: targetBranchId },
+    const branchRow = await query(
+      `SELECT id, company_id FROM adm_branches WHERE id = :targetBranchId LIMIT 1`,
+      { targetBranchId },
     );
     const branch = branchRow?.[0];
     if (!branch) throw httpError(404, "NOT_FOUND", "Target branch not found");
@@ -849,15 +842,8 @@ export const linkWarehouseBranch = async (req, res, next) => {
         "VALIDATION_ERROR",
         "Branch belongs to a different company",
       );
-    const whRow = await query(`
-      SELECT id, company_id, branch_id,
-          created_at,
-          u.username AS created_by_name
-         FROM inv_warehouses
-        LEFT JOIN adm_users u ON u.id = created_by
-         WHERE id = :id AND company_id = :companyId
-      LIMIT 1
-      `,
+    const whRow = await query(
+      `SELECT id, company_id, branch_id FROM inv_warehouses WHERE id = :id AND company_id = :companyId LIMIT 1`,
       { id, companyId },
     );
     const warehouse = whRow?.[0];
@@ -867,12 +853,9 @@ export const linkWarehouseBranch = async (req, res, next) => {
       : [];
     if (allowedBranches.length && !allowedBranches.includes(targetBranchId))
       throw httpError(403, "FORBIDDEN", "Branch access denied");
-    const upd = await query(`
-      UPDATE inv_warehouses
-      SET (:branchIdsStr = '' OR FIND_IN_SET(branch_id, :branchIdsStr))
-      WHERE id = :id AND company_id = :companyId
-      `,
-      { id, companyId, branchId, branchIdsStr: targetBranchId },
+    const upd = await query(
+      `UPDATE inv_warehouses SET branch_id = :targetBranchId WHERE id = :id AND company_id = :companyId`,
+      { id, companyId, targetBranchId },
     );
     if (!upd.affectedRows)
       throw httpError(404, "NOT_FOUND", "Warehouse not found");

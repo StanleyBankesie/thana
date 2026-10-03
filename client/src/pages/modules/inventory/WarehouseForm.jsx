@@ -115,6 +115,7 @@ export default function WarehouseForm() {
         warehouse_name: formData.warehouse_name,
         location: formData.location || null,
         is_active: Boolean(formData.is_active),
+        branch_id: Number(selectedBranchId),
       };
 
       if (isNew) {
