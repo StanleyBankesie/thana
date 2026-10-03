@@ -3767,84 +3767,95 @@ export async function ensureTransportTables() {
  * and adds any missing columns.
  */
 export async function ensureTaxTables() {
-  // fin_tax_codes
-  if (!(await hasTable("fin_tax_codes"))) {
-    await query(`
-      CREATE TABLE IF NOT EXISTS fin_tax_codes (
-        id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-        company_id BIGINT UNSIGNED NOT NULL,
-        code VARCHAR(50) NOT NULL,
-        name VARCHAR(255) NOT NULL,
-        rate_percent DECIMAL(9,4) NOT NULL DEFAULT 0,
-        type ENUM('TAX','DEDUCTION') NOT NULL DEFAULT 'TAX',
-        is_active TINYINT(1) NOT NULL DEFAULT 1,
-        is_sales_tax TINYINT(1) NOT NULL DEFAULT 0,
-        is_purchase_tax TINYINT(1) NOT NULL DEFAULT 0,
-        is_service_tax TINYINT(1) NOT NULL DEFAULT 0,
-        valid_pages VARCHAR(255) NULL,
-        created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-        PRIMARY KEY (id),
-        UNIQUE KEY uq_tax_code_company (company_id, code),
-        KEY idx_tax_company (company_id)
-      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-    `).catch(() => null);
-  } else {
-    await ensureCol("fin_tax_codes", "valid_pages", "VARCHAR(255) NULL");
-    await ensureCol("fin_tax_codes", "is_sales_tax", "TINYINT(1) NOT NULL DEFAULT 0");
-    await ensureCol("fin_tax_codes", "is_purchase_tax", "TINYINT(1) NOT NULL DEFAULT 0");
-    await ensureCol("fin_tax_codes", "is_service_tax", "TINYINT(1) NOT NULL DEFAULT 0");
-    await ensureCol("fin_tax_codes", "type", "ENUM('TAX','DEDUCTION') NOT NULL DEFAULT 'TAX'");
-    await ensureCol("fin_tax_codes", "rate_percent", "DECIMAL(9,4) NOT NULL DEFAULT 0");
-    await ensureCol("fin_tax_codes", "is_active", "TINYINT(1) NOT NULL DEFAULT 1");
-  }
+  if (verifiedTables.has("fin_tax_tables")) return;
 
-  // fin_tax_details
-  if (!(await hasTable("fin_tax_details"))) {
-    await query(`
-      CREATE TABLE IF NOT EXISTS fin_tax_details (
-        id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-        company_id BIGINT UNSIGNED NOT NULL,
-        tax_code_id BIGINT UNSIGNED NOT NULL,
-        component_name VARCHAR(100) NOT NULL,
-        rate_percent DECIMAL(9,4) NOT NULL DEFAULT 0,
-        account_id BIGINT UNSIGNED NULL,
-        is_active TINYINT(1) NOT NULL DEFAULT 1,
-        created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-        PRIMARY KEY (id),
-        KEY idx_tax_detail_code (tax_code_id),
-        KEY idx_tax_detail_company (company_id)
-      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-    `).catch(() => null);
-  } else {
-    await ensureCol("fin_tax_details", "account_id", "BIGINT UNSIGNED NULL");
-    await ensureCol("fin_tax_details", "rate_percent", "DECIMAL(9,4) NOT NULL DEFAULT 0");
-    await ensureCol("fin_tax_details", "is_active", "TINYINT(1) NOT NULL DEFAULT 1");
-  }
+  // 1. fin_tax_codes table
+  await query(`
+    CREATE TABLE IF NOT EXISTS fin_tax_codes (
+      id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+      company_id BIGINT UNSIGNED NOT NULL,
+      code VARCHAR(50) NOT NULL,
+      name VARCHAR(255) NOT NULL,
+      rate_percent DECIMAL(9,4) NOT NULL DEFAULT 0,
+      type VARCHAR(50) NOT NULL DEFAULT 'TAX',
+      is_active TINYINT(1) NOT NULL DEFAULT 1,
+      is_sales_tax TINYINT(1) NOT NULL DEFAULT 0,
+      is_purchase_tax TINYINT(1) NOT NULL DEFAULT 0,
+      is_service_tax TINYINT(1) NOT NULL DEFAULT 0,
+      valid_pages VARCHAR(255) NULL,
+      created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      PRIMARY KEY (id),
+      UNIQUE KEY uq_tax_code_company (company_id, code),
+      KEY idx_tax_company (company_id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  `).catch(() => null);
 
-  // fin_tax_components
-  if (!(await hasTable("fin_tax_components"))) {
-    await query(`
-      CREATE TABLE IF NOT EXISTS fin_tax_components (
-        id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-        company_id BIGINT UNSIGNED NOT NULL,
-        tax_code_id BIGINT UNSIGNED NOT NULL,
-        tax_detail_id BIGINT UNSIGNED NOT NULL,
-        rate_percent DECIMAL(9,4) NULL,
-        sort_order INT NOT NULL DEFAULT 0,
-        is_active TINYINT(1) NOT NULL DEFAULT 1,
-        created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        PRIMARY KEY (id),
-        UNIQUE KEY uq_tax_components (company_id, tax_code_id, tax_detail_id),
-        KEY idx_tc_tax_code (tax_code_id),
-        KEY idx_tc_tax_detail (tax_detail_id)
-      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-    `).catch(() => null);
-  } else {
-    await ensureCol("fin_tax_components", "rate_percent", "DECIMAL(9,4) NULL");
-    await ensureCol("fin_tax_components", "sort_order", "INT NOT NULL DEFAULT 0");
-    await ensureCol("fin_tax_components", "is_active", "TINYINT(1) NOT NULL DEFAULT 1");
-  }
+  // Guarantee columns exist and type allows DEDUCTION without ENUM truncation
+  await query(`ALTER TABLE fin_tax_codes ADD COLUMN type VARCHAR(50) NOT NULL DEFAULT 'TAX'`).catch(() => {});
+  await query(`ALTER TABLE fin_tax_codes MODIFY COLUMN type VARCHAR(50) NOT NULL DEFAULT 'TAX'`).catch(() => {});
+  await query(`ALTER TABLE fin_tax_codes ADD COLUMN rate_percent DECIMAL(9,4) NOT NULL DEFAULT 0`).catch(() => {});
+  await query(`ALTER TABLE fin_tax_codes MODIFY COLUMN rate_percent DECIMAL(9,4) NOT NULL DEFAULT 0`).catch(() => {});
+  await query(`ALTER TABLE fin_tax_codes ADD COLUMN is_active TINYINT(1) NOT NULL DEFAULT 1`).catch(() => {});
+  await query(`ALTER TABLE fin_tax_codes ADD COLUMN is_sales_tax TINYINT(1) NOT NULL DEFAULT 0`).catch(() => {});
+  await query(`ALTER TABLE fin_tax_codes ADD COLUMN is_purchase_tax TINYINT(1) NOT NULL DEFAULT 0`).catch(() => {});
+  await query(`ALTER TABLE fin_tax_codes ADD COLUMN is_service_tax TINYINT(1) NOT NULL DEFAULT 0`).catch(() => {});
+  await query(`ALTER TABLE fin_tax_codes ADD COLUMN valid_pages VARCHAR(255) NULL`).catch(() => {});
+  await query(`ALTER TABLE fin_tax_codes ADD COLUMN created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP`).catch(() => {});
+  await query(`ALTER TABLE fin_tax_codes ADD COLUMN updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`).catch(() => {});
+
+  // 2. fin_tax_details table
+  await query(`
+    CREATE TABLE IF NOT EXISTS fin_tax_details (
+      id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+      company_id BIGINT UNSIGNED NOT NULL,
+      tax_code_id BIGINT UNSIGNED NOT NULL,
+      component_name VARCHAR(100) NOT NULL,
+      rate_percent DECIMAL(9,4) NOT NULL DEFAULT 0,
+      account_id BIGINT UNSIGNED NULL,
+      is_active TINYINT(1) NOT NULL DEFAULT 1,
+      created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      PRIMARY KEY (id),
+      KEY idx_tax_detail_code (tax_code_id),
+      KEY idx_tax_detail_company (company_id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  `).catch(() => null);
+
+  await query(`ALTER TABLE fin_tax_details ADD COLUMN account_id BIGINT UNSIGNED NULL`).catch(() => {});
+  await query(`ALTER TABLE fin_tax_details MODIFY COLUMN account_id BIGINT UNSIGNED NULL`).catch(() => {});
+  await query(`ALTER TABLE fin_tax_details ADD COLUMN rate_percent DECIMAL(9,4) NOT NULL DEFAULT 0`).catch(() => {});
+  await query(`ALTER TABLE fin_tax_details ADD COLUMN is_active TINYINT(1) NOT NULL DEFAULT 1`).catch(() => {});
+  await query(`ALTER TABLE fin_tax_details ADD COLUMN created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP`).catch(() => {});
+  await query(`ALTER TABLE fin_tax_details ADD COLUMN updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`).catch(() => {});
+
+  // 3. fin_tax_components table
+  await query(`
+    CREATE TABLE IF NOT EXISTS fin_tax_components (
+      id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+      company_id BIGINT UNSIGNED NOT NULL,
+      tax_code_id BIGINT UNSIGNED NOT NULL,
+      tax_detail_id BIGINT UNSIGNED NOT NULL,
+      rate_percent DECIMAL(9,4) NULL,
+      sort_order INT NOT NULL DEFAULT 0,
+      is_active TINYINT(1) NOT NULL DEFAULT 1,
+      compound_level INT NULL DEFAULT 0,
+      compound_levels VARCHAR(255) NULL,
+      created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (id),
+      UNIQUE KEY uq_tax_components (company_id, tax_code_id, tax_detail_id),
+      KEY idx_tc_tax_code (tax_code_id),
+      KEY idx_tc_tax_detail (tax_detail_id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  `).catch(() => null);
+
+  await query(`ALTER TABLE fin_tax_components ADD COLUMN rate_percent DECIMAL(9,4) NULL`).catch(() => {});
+  await query(`ALTER TABLE fin_tax_components ADD COLUMN sort_order INT NOT NULL DEFAULT 0`).catch(() => {});
+  await query(`ALTER TABLE fin_tax_components ADD COLUMN is_active TINYINT(1) NOT NULL DEFAULT 1`).catch(() => {});
+  await query(`ALTER TABLE fin_tax_components ADD COLUMN compound_level INT NULL DEFAULT 0`).catch(() => {});
+  await query(`ALTER TABLE fin_tax_components ADD COLUMN compound_levels VARCHAR(255) NULL`).catch(() => {});
+  await query(`ALTER TABLE fin_tax_components ADD COLUMN created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP`).catch(() => {});
+
+  verifiedTables.add("fin_tax_tables");
 }
 

@@ -10,6 +10,7 @@ import {
   resolveWorkflowSelection,
 } from "../utils/workflowResolution.js";
 import { cacheGet, cacheSet, cacheDel, cacheDelPattern } from "../utils/redis.js";
+import { ensureTaxTables } from "../utils/dbUtils.js";
 import * as XLSX from "xlsx";
 
 // Page ID mapping for tax code applicable pages
@@ -1901,6 +1902,7 @@ export const getAccountBalance = async (req, res, next) => {
 
 export const listTaxCodes = async (req, res, next) => {
   try {
+    await ensureTaxTables();
     const companyId = Number(req.scope?.companyId || 1);
     const form = req.query.form ? String(req.query.form).trim() : null;
     const pageId = req.query.pageId ? Number(req.query.pageId) : null;
@@ -2079,13 +2081,20 @@ export const getItemPurchaseTax = async (req, res, next) => {
 
 export const listTaxCodeComponents = async (req, res, next) => {
   try {
-    const companyId = req.scope.companyId;
+    await ensureTaxTables();
+    const companyId = Number(
+      req.scope?.companyId ||
+      req.user?.company_id ||
+      req.headers["x-company-id"] ||
+      1
+    );
     const taxCodeId = Number(req.params.id || req.params.taxCodeId || 0);
     if (!taxCodeId) {
       return next(httpError(400, "VALIDATION_ERROR", "Invalid taxCodeId"));
     }
     const items = await query(
       `SELECT c.id, c.tax_detail_id, c.rate_percent, c.sort_order, c.is_active,
+              c.compound_level, c.compound_levels,
               d.component_name, d.account_id,
               a.code AS account_code, a.name AS account_name
          FROM fin_tax_components c
@@ -3473,7 +3482,13 @@ export const journalsReport = async (req, res, next) => {
 
 export const createTaxCode = async (req, res, next) => {
   try {
-    const companyId = req.scope.companyId;
+    await ensureTaxTables();
+    const companyId = Number(
+      req.scope?.companyId ||
+      req.user?.company_id ||
+      req.headers["x-company-id"] ||
+      1
+    );
     const {
       code,
       name,
@@ -3485,19 +3500,40 @@ export const createTaxCode = async (req, res, next) => {
       isServiceTax,
       validPages,
     } = req.body || {};
-    if (!code || !name || !type)
-      throw httpError(400, "VALIDATION_ERROR", "code, name, type are required");
-    if (!["TAX", "DEDUCTION"].includes(String(type)))
-      throw httpError(400, "VALIDATION_ERROR", "Invalid type");
+
+    const trimmedCode = String(code || "").trim();
+    const trimmedName = String(name || "").trim();
+    const normalizedType = String(type || "TAX").trim().toUpperCase();
+
+    if (!trimmedCode || !trimmedName) {
+      throw httpError(400, "VALIDATION_ERROR", "code and name are required");
+    }
+    if (!["TAX", "DEDUCTION"].includes(normalizedType)) {
+      throw httpError(400, "VALIDATION_ERROR", "type must be TAX or DEDUCTION");
+    }
+
+    const existing = await query(
+      "SELECT id FROM fin_tax_codes WHERE company_id = :companyId AND code = :code LIMIT 1",
+      { companyId, code: trimmedCode },
+    );
+    if (existing.length > 0) {
+      throw httpError(409, "DUPLICATE_CODE", `Tax/deduction code "${trimmedCode}" already exists.`);
+    }
+
     const result = await query(
-      `INSERT INTO fin_tax_codes (company_id, code, name, rate_percent, type, is_active, is_sales_tax, is_purchase_tax, is_service_tax, valid_pages)
-       VALUES (:companyId, :code, :name, :ratePercent, :type, :isActive, :isSalesTax, :isPurchaseTax, :isServiceTax, :validPages)`,
+      `INSERT INTO fin_tax_codes (
+         company_id, code, name, rate_percent, type, is_active,
+         is_sales_tax, is_purchase_tax, is_service_tax, valid_pages
+       ) VALUES (
+         :companyId, :code, :name, :ratePercent, :type, :isActive,
+         :isSalesTax, :isPurchaseTax, :isServiceTax, :validPages
+       )`,
       {
         companyId,
-        code,
-        name,
+        code: trimmedCode,
+        name: trimmedName,
         ratePercent: Number(ratePercent || 0),
-        type: String(type),
+        type: normalizedType,
         isActive: isActive === undefined ? 1 : Number(Boolean(isActive)),
         isSalesTax: isSalesTax ? 1 : 0,
         isPurchaseTax: isPurchaseTax ? 1 : 0,
@@ -3507,15 +3543,25 @@ export const createTaxCode = async (req, res, next) => {
         ),
       },
     );
+    await cacheDelPattern(`taxes:company:${companyId}:*`).catch(() => {});
     res.status(201).json({ id: result.insertId });
   } catch (e) {
+    if (e?.code === "ER_DUP_ENTRY" || e?.errno === 1062) {
+      return next(httpError(409, "DUPLICATE_CODE", "Tax/deduction code already exists."));
+    }
     next(e);
   }
 };
 
 export const updateTaxCode = async (req, res, next) => {
   try {
-    const companyId = req.scope.companyId;
+    await ensureTaxTables();
+    const companyId = Number(
+      req.scope?.companyId ||
+      req.user?.company_id ||
+      req.headers["x-company-id"] ||
+      1
+    );
     const taxCodeId = Number(req.params.taxCodeId || req.params.id);
     const {
       name,
@@ -3532,7 +3578,8 @@ export const updateTaxCode = async (req, res, next) => {
       { companyId, id: taxCodeId },
     );
     if (!rows.length) throw httpError(404, "NOT_FOUND", "Tax code not found");
-    if (type && !["TAX", "DEDUCTION"].includes(String(type)))
+    const normalizedType = type ? String(type).trim().toUpperCase() : undefined;
+    if (normalizedType && !["TAX", "DEDUCTION"].includes(normalizedType))
       throw httpError(400, "VALIDATION_ERROR", "Invalid type");
     await query(
       `UPDATE fin_tax_codes
@@ -3548,10 +3595,10 @@ export const updateTaxCode = async (req, res, next) => {
       {
         companyId,
         id: taxCodeId,
-        name: name || null,
+        name: name !== undefined ? String(name).trim() : null,
         ratePercent:
           ratePercent === undefined ? null : Number(ratePercent || 0),
-        type: type || null,
+        type: normalizedType || null,
         isActive: isActive === undefined ? null : Number(Boolean(isActive)),
         isSalesTax:
           isSalesTax === undefined ? null : Number(Boolean(isSalesTax)),
@@ -3567,6 +3614,7 @@ export const updateTaxCode = async (req, res, next) => {
               ),
       },
     );
+    await cacheDelPattern(`taxes:company:${companyId}:*`).catch(() => {});
     res.json({ ok: true });
   } catch (e) {
     next(e);
@@ -3575,7 +3623,12 @@ export const updateTaxCode = async (req, res, next) => {
 
 export const rectifyTaxCodePages = async (req, res, next) => {
   try {
-    const companyId = req.scope.companyId;
+    const companyId = Number(
+      req.scope?.companyId ||
+      req.user?.company_id ||
+      req.headers["x-company-id"] ||
+      1
+    );
     // Get all tax codes with valid_pages
     const taxCodes = await query(
       `SELECT id, valid_pages FROM fin_tax_codes WHERE company_id = :companyId AND valid_pages IS NOT NULL AND valid_pages != ''`,
@@ -3606,39 +3659,102 @@ export const rectifyTaxCodePages = async (req, res, next) => {
 
 export const createTaxCodeComponent = async (req, res, next) => {
   try {
-    const companyId = req.scope.companyId;
+    await ensureTaxTables();
+    const companyId = Number(
+      req.scope?.companyId ||
+      req.user?.company_id ||
+      req.headers["x-company-id"] ||
+      1
+    );
     const taxCodeId = Number(req.params.taxCodeId || req.params.id);
-    const { componentName, ratePercent, sortOrder, isActive, accountId } =
-      req.body || {};
+    const {
+      componentName,
+      ratePercent,
+      sortOrder,
+      isActive,
+      accountId,
+      compoundLevel,
+      compoundLevels,
+    } = req.body || {};
     if (!taxCodeId)
       return next(httpError(400, "VALIDATION_ERROR", "Invalid taxCodeId"));
     if (!componentName)
       throw httpError(400, "VALIDATION_ERROR", "componentName is required");
+
+    let parsedAccountId = Number(accountId) || null;
+
     const detail = await query(
       `INSERT INTO fin_tax_details (company_id, tax_code_id, component_name, rate_percent, account_id, is_active)
        VALUES (:companyId, :taxCodeId, :componentName, :ratePercent, :accountId, :isActive)`,
       {
         companyId,
         taxCodeId,
-        componentName,
+        componentName: String(componentName).trim(),
         ratePercent: Number(ratePercent || 0),
-        accountId: Number(accountId) || null,
+        accountId: parsedAccountId,
         isActive: isActive === undefined ? 1 : Number(Boolean(isActive)),
       },
     );
     const taxDetailId = detail.insertId;
+
+    // If accountId wasn't passed, attempt auto-creating GL account under Tax Receivables/Payables
+    if (!parsedAccountId && taxDetailId) {
+      try {
+        const tcRows = await query(
+          "SELECT is_purchase_tax FROM fin_tax_codes WHERE id = :taxCodeId",
+          { taxCodeId },
+        );
+        const isPurchase = !!tcRows?.[0]?.is_purchase_tax;
+        const conn = await pool.getConnection();
+        try {
+          await conn.beginTransaction();
+          parsedAccountId = await ensureTaxComponentAccountTx(conn, {
+            companyId,
+            taxDetailId,
+            componentName: String(componentName).trim(),
+            isPurchase,
+          });
+          await conn.commit();
+        } catch (txErr) {
+          await conn.rollback().catch(() => {});
+        } finally {
+          conn.release();
+        }
+      } catch (accErr) {
+        console.warn("[createTaxCodeComponent] Auto account creation skipped:", accErr?.message || accErr);
+      }
+    }
+
+    const compLevel =
+      compoundLevel !== undefined && compoundLevel !== null
+        ? Number(compoundLevel)
+        : 0;
+    const compLevelsStr = Array.isArray(compoundLevels)
+      ? compoundLevels.join(",")
+      : compoundLevels
+        ? String(compoundLevels)
+        : "0";
+
     await query(
-      `INSERT INTO fin_tax_components (company_id, tax_code_id, tax_detail_id, rate_percent, sort_order, is_active)
-       VALUES (:companyId, :taxCodeId, :taxDetailId, :ratePercent, :sortOrder, :isActive)`,
+      `INSERT INTO fin_tax_components (
+         company_id, tax_code_id, tax_detail_id, rate_percent, sort_order,
+         is_active, compound_level, compound_levels
+       ) VALUES (
+         :companyId, :taxCodeId, :taxDetailId, :ratePercent, :sortOrder,
+         :isActive, :compLevel, :compLevelsStr
+       )`,
       {
         companyId,
         taxCodeId,
         taxDetailId,
         ratePercent: Number(ratePercent || 0),
-        sortOrder: sortOrder || 100,
+        sortOrder: Number(sortOrder || 100),
         isActive: isActive === undefined ? 1 : Number(Boolean(isActive)),
+        compLevel,
+        compLevelsStr,
       },
     );
+    await cacheDelPattern(`taxes:company:${companyId}:*`).catch(() => {});
     res.status(201).json({ id: taxDetailId });
   } catch (e) {
     next(e);
@@ -3648,10 +3764,23 @@ export const createTaxCodeComponent = async (req, res, next) => {
 export const updateTaxCodeComponent = async (req, res, next) => {
   const conn = await pool.getConnection();
   try {
-    const companyId = req.scope.companyId;
+    await ensureTaxTables();
+    const companyId = Number(
+      req.scope?.companyId ||
+      req.user?.company_id ||
+      req.headers["x-company-id"] ||
+      1
+    );
     const componentId = Number(req.params.id);
-    const { componentName, accountId, ratePercent, sortOrder, isActive } =
-      req.body || {};
+    const {
+      componentName,
+      accountId,
+      ratePercent,
+      sortOrder,
+      isActive,
+      compoundLevel,
+      compoundLevels,
+    } = req.body || {};
 
     await conn.beginTransaction();
 
@@ -3671,17 +3800,30 @@ export const updateTaxCodeComponent = async (req, res, next) => {
         {
           companyId,
           id: taxDetailId,
-          componentName: componentName || null,
+          componentName: componentName ? String(componentName).trim() : null,
           accountId: accountId === null ? null : Number(accountId) || null,
         },
       );
     }
 
+    const compLevel =
+      compoundLevel !== undefined && compoundLevel !== null
+        ? Number(compoundLevel)
+        : null;
+    const compLevelsStr =
+      compoundLevels !== undefined
+        ? Array.isArray(compoundLevels)
+          ? compoundLevels.join(",")
+          : String(compoundLevels)
+        : null;
+
     await conn.execute(
       `UPDATE fin_tax_components
        SET rate_percent = COALESCE(:ratePercent, rate_percent),
            sort_order = COALESCE(:sortOrder, sort_order),
-           is_active = COALESCE(:isActive, is_active)
+           is_active = COALESCE(:isActive, is_active),
+           compound_level = COALESCE(:compLevel, compound_level),
+           compound_levels = COALESCE(:compLevelsStr, compound_levels)
        WHERE company_id = :companyId AND id = :id`,
       {
         companyId,
@@ -3689,6 +3831,8 @@ export const updateTaxCodeComponent = async (req, res, next) => {
         ratePercent: ratePercent === undefined ? null : Number(ratePercent),
         sortOrder: sortOrder === undefined ? null : Number(sortOrder),
         isActive: isActive === undefined ? null : Number(Boolean(isActive)),
+        compLevel,
+        compLevelsStr,
       },
     );
 
@@ -3707,7 +3851,12 @@ export const updateTaxCodeComponent = async (req, res, next) => {
 
 export const deleteTaxCodeComponent = async (req, res, next) => {
   try {
-    const companyId = req.scope.companyId;
+    const companyId = Number(
+      req.scope?.companyId ||
+      req.user?.company_id ||
+      req.headers["x-company-id"] ||
+      1
+    );
     const componentId = Number(req.params.id);
     await query(
       "DELETE FROM fin_tax_components WHERE company_id = :companyId AND id = :id",
@@ -3716,6 +3865,7 @@ export const deleteTaxCodeComponent = async (req, res, next) => {
         id: componentId,
       },
     );
+    await cacheDelPattern(`taxes:company:${companyId}:*`).catch(() => {});
     res.json({ ok: true });
   } catch (e) {
     next(e);
