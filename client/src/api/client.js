@@ -160,6 +160,8 @@ const WARM_CACHE_EXCLUDED_PREFIXES = [
   "/admin/page-permissions",
   "/access/",
   "/social-feed",
+  "/finance/tax-codes",
+  "/finance/setup/",
 ];
 
 function isWarmCacheEligible(url, config, cachedEntry) {

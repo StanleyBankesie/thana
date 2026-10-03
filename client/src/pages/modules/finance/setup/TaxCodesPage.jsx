@@ -210,8 +210,14 @@ export default function TaxCodesPage() {
     try {
       setLoading(true);
       const [taxesRes, accountsRes] = await Promise.all([
-        api.get("/finance/tax-codes"),
-        api.get("/finance/accounts", { params: { postable: 1, active: 1 } }),
+        api.get("/finance/tax-codes", {
+          params: { _t: Date.now() },
+          __skipWarmCache: true,
+        }),
+        api.get("/finance/accounts", {
+          params: { postable: 1, active: 1, _t: Date.now() },
+          __skipWarmCache: true,
+        }),
       ]);
       setItems(taxesRes.data?.items || []);
       setAccounts(
@@ -457,7 +463,7 @@ export default function TaxCodesPage() {
       setIsServiceTax(false);
       setValidPages([]);
       setShowCreateModal(false);
-      load();
+      await load();
     } catch (e2) {
       toast.error(e2?.response?.data?.message || "Failed to create tax code");
     }
@@ -783,7 +789,30 @@ export default function TaxCodesPage() {
                 </tr>
               </thead>
               <tbody>
-                {items.map((r) => {
+                {loading ? (
+                  <tr>
+                    <td colSpan={7} className="text-center py-10 text-slate-500">
+                      <div className="flex items-center justify-center gap-2">
+                        <div className="w-5 h-5 border-2 border-brand border-t-transparent rounded-full animate-spin"></div>
+                        <span className="text-sm font-medium">Loading tax codes...</span>
+                      </div>
+                    </td>
+                  </tr>
+                ) : items.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} className="text-center py-12 text-slate-400">
+                      <div className="flex flex-col items-center justify-center gap-2">
+                        <span className="text-base font-semibold text-slate-600 dark:text-slate-300">
+                          No tax codes or deductions found
+                        </span>
+                        <span className="text-xs text-slate-400">
+                          Click &quot;+ Create Tax Code&quot; above to add your first tax or deduction.
+                        </span>
+                      </div>
+                    </td>
+                  </tr>
+                ) : (
+                  items.map((r) => {
                   const isRowEditing = false;
                   const draft = editing[r.id] || {};
                   return (
@@ -1006,7 +1035,8 @@ export default function TaxCodesPage() {
                       {/* Valid pages badges row removed per request */}
                     </React.Fragment>
                   );
-                })}
+                })
+              )}
               </tbody>
             </table>
           </div>

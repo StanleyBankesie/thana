@@ -281,20 +281,26 @@ export async function cacheDelPattern(pattern) {
     return;
   }
   try {
-    // r.keys() with keyPrefix set: ioredis prepends the prefix to the pattern
-    // but the RETURNED keys from Redis already have the raw prefix baked in.
-    // We need to strip REDIS_KEY_PREFIX from each returned key before calling del.
-    const keys = await r.keys(pattern);
-    if (keys.length === 0) return;
+    // With ioredis keyPrefix set (e.g. "sm:"), r.keys(pattern) does NOT automatically prepend
+    // keyPrefix to the pattern argument in Redis, so searching for "taxes:*" will never match "sm:taxes:*".
+    // We must query Redis using the full pattern with prefix if present, or search both.
+    const searchPattern = REDIS_KEY_PREFIX && !pattern.startsWith(REDIS_KEY_PREFIX)
+      ? `${REDIS_KEY_PREFIX}${pattern}`
+      : pattern;
 
-    // Strip the keyPrefix from each key so ioredis doesn't double-apply it
+    const keys = await r.keys(searchPattern);
+    if (!keys || keys.length === 0) return;
+
+    // Strip the keyPrefix from each key so ioredis del() doesn't double-apply it
     const strippedKeys = keys.map((k) =>
       REDIS_KEY_PREFIX && k.startsWith(REDIS_KEY_PREFIX)
         ? k.slice(REDIS_KEY_PREFIX.length)
         : k
     );
 
-    await r.del(...strippedKeys);
+    if (strippedKeys.length > 0) {
+      await r.del(...strippedKeys);
+    }
   } catch (err) {
     console.error("[Redis] cacheDelPattern error:", err.message);
   }

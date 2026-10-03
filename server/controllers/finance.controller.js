@@ -1903,7 +1903,12 @@ export const getAccountBalance = async (req, res, next) => {
 export const listTaxCodes = async (req, res, next) => {
   try {
     await ensureTaxTables();
-    const companyId = Number(req.scope?.companyId || 1);
+    const companyId = Number(
+      req.scope?.companyId ||
+      req.user?.company_id ||
+      req.headers["x-company-id"] ||
+      1
+    );
     const form = req.query.form ? String(req.query.form).trim() : null;
     const pageId = req.query.pageId ? Number(req.query.pageId) : null;
     let active = null;
@@ -1925,17 +1930,29 @@ export const listTaxCodes = async (req, res, next) => {
         null;
     }
 
+    // The Setup page loads without form or pageId to manage all codes.
+    // Setup management queries MUST always query fresh data from the database.
+    const isSetupQuery = !resolvedPageId && !form && active === null;
     const cacheKey = `taxes:company:${companyId}:page:${resolvedPageId}:active:${active}`;
-    try {
-      const cached = await cacheGet(cacheKey);
-      if (cached) {
-        return res.json({ items: cached });
+
+    if (!isSetupQuery) {
+      try {
+        const cached = await cacheGet(cacheKey);
+        if (cached && Array.isArray(cached) && cached.length > 0) {
+          return res.json({ items: cached });
+        }
+      } catch (cacheErr) {
+        console.warn("[listTaxCodes] Cache read failed:", cacheErr?.message || cacheErr);
       }
-    } catch (cacheErr) {
-      console.warn("[listTaxCodes] Cache read failed:", cacheErr?.message || cacheErr);
+    } else {
+      // Purge any stale setup cache
+      await cacheDel(cacheKey).catch(() => {});
+      await cacheDelPattern(`taxes:company:${companyId}:*`).catch(() => {});
+      await cacheDelPattern("taxes:*").catch(() => {});
     }
 
-    const conditions = ["company_id = :companyId"];
+    // Flexible company matching: match current company OR company 1 (default ERP company) OR NULL/0
+    const conditions = ["(company_id = :companyId OR company_id = 1 OR company_id IS NULL OR company_id = 0)"];
     const params = { companyId };
 
     if (active !== null) {
@@ -1957,7 +1974,7 @@ export const listTaxCodes = async (req, res, next) => {
                 valid_pages, is_sales_tax, is_purchase_tax, is_service_tax
            FROM fin_tax_codes
           WHERE ${conditions.join(" AND ")}
-          ORDER BY code ASC`,
+          ORDER BY is_active DESC, code ASC`,
         params,
       );
     } catch (queryErr) {
@@ -1967,9 +1984,10 @@ export const listTaxCodes = async (req, res, next) => {
         items = await query(
           `SELECT id, code, name, rate_percent, type, is_active
              FROM fin_tax_codes
-            WHERE company_id = :companyId
-            ORDER BY code ASC`,
-          { companyId },
+            WHERE (company_id = :companyId OR company_id = 1 OR company_id IS NULL OR company_id = 0)
+            ${active !== null ? "AND is_active = :active" : ""}
+            ORDER BY is_active DESC, code ASC`,
+          params,
         );
       } catch (fallbackErr) {
         console.error("[listTaxCodes] Fallback query error:", fallbackErr?.message || fallbackErr);
@@ -1977,9 +1995,12 @@ export const listTaxCodes = async (req, res, next) => {
       }
     }
 
-    try {
-      await cacheSet(cacheKey, items, 86400);
-    } catch {}
+    // Only cache non-empty transactional lookups (max 5 minutes, never 24 hours)
+    if (!isSetupQuery && Array.isArray(items) && items.length > 0) {
+      try {
+        await cacheSet(cacheKey, items, 300);
+      } catch {}
+    }
 
     res.json({ items: Array.isArray(items) ? items : [] });
   } catch (e) {
@@ -1990,7 +2011,12 @@ export const listTaxCodes = async (req, res, next) => {
 
 export const getTaxCodesByPageId = async (req, res, next) => {
   try {
-    const companyId = Number(req.scope?.companyId || 1);
+    const companyId = Number(
+      req.scope?.companyId ||
+      req.user?.company_id ||
+      req.headers["x-company-id"] ||
+      1
+    );
     const pageId = Number(req.params.pageId || 0);
 
     if (!pageId) {
@@ -2000,7 +2026,7 @@ export const getTaxCodesByPageId = async (req, res, next) => {
     const cacheKey = `taxes:company:${companyId}:page:${pageId}:active:1`;
     try {
       const cached = await cacheGet(cacheKey);
-      if (cached) {
+      if (cached && Array.isArray(cached) && cached.length > 0) {
         return res.json({ items: cached });
       }
     } catch (cacheErr) {
@@ -2013,7 +2039,7 @@ export const getTaxCodesByPageId = async (req, res, next) => {
         `SELECT id, code, name, rate_percent, type, is_active,
                 valid_pages, is_sales_tax, is_purchase_tax, is_service_tax
            FROM fin_tax_codes
-          WHERE company_id = :companyId
+          WHERE (company_id = :companyId OR company_id = 1 OR company_id IS NULL OR company_id = 0)
             AND is_active = 1
             AND FIND_IN_SET(:pageId, REPLACE(COALESCE(valid_pages, ''), ' ', '')) > 0
           ORDER BY code ASC`,
@@ -2024,9 +2050,11 @@ export const getTaxCodesByPageId = async (req, res, next) => {
       return res.json({ items: [] });
     }
 
-    try {
-      await cacheSet(cacheKey, items, 86400);
-    } catch {}
+    if (Array.isArray(items) && items.length > 0) {
+      try {
+        await cacheSet(cacheKey, items, 300);
+      } catch {}
+    }
 
     res.json({ items: Array.isArray(items) ? items : [] });
   } catch (e) {
@@ -3544,6 +3572,7 @@ export const createTaxCode = async (req, res, next) => {
       },
     );
     await cacheDelPattern(`taxes:company:${companyId}:*`).catch(() => {});
+    await cacheDelPattern("taxes:*").catch(() => {});
     res.status(201).json({ id: result.insertId });
   } catch (e) {
     if (e?.code === "ER_DUP_ENTRY" || e?.errno === 1062) {
@@ -3574,7 +3603,7 @@ export const updateTaxCode = async (req, res, next) => {
       validPages,
     } = req.body || {};
     const rows = await query(
-      "SELECT id FROM fin_tax_codes WHERE company_id = :companyId AND id = :id",
+      "SELECT id FROM fin_tax_codes WHERE (company_id = :companyId OR company_id = 1 OR company_id IS NULL OR company_id = 0) AND id = :id",
       { companyId, id: taxCodeId },
     );
     if (!rows.length) throw httpError(404, "NOT_FOUND", "Tax code not found");
@@ -3591,9 +3620,8 @@ export const updateTaxCode = async (req, res, next) => {
              is_purchase_tax = COALESCE(:isPurchaseTax, is_purchase_tax),
              is_service_tax = COALESCE(:isServiceTax, is_service_tax),
              valid_pages = COALESCE(:validPages, valid_pages)
-       WHERE company_id = :companyId AND id = :id`,
+       WHERE id = :id`,
       {
-        companyId,
         id: taxCodeId,
         name: name !== undefined ? String(name).trim() : null,
         ratePercent:
@@ -3615,6 +3643,7 @@ export const updateTaxCode = async (req, res, next) => {
       },
     );
     await cacheDelPattern(`taxes:company:${companyId}:*`).catch(() => {});
+    await cacheDelPattern("taxes:*").catch(() => {});
     res.json({ ok: true });
   } catch (e) {
     next(e);
