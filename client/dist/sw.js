@@ -14,7 +14,7 @@ if (!DEV_MODE) {
       (async () => {
         const cache = await caches.open(ASSET_CACHE);
         await cache.addAll([
-        "/assets/index-D9WxF4rc.js"
+        "/assets/index-BuQpIn97.js"
 ]);
       })(),
     );

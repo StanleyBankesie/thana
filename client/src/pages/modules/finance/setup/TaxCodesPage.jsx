@@ -237,7 +237,9 @@ export default function TaxCodesPage() {
   async function loadComponents(taxId) {
     try {
       const res = await api.get(`/finance/tax-codes/${taxId}/components`);
-      setComponents(res.data?.items || []);
+      const items = res.data?.items || [];
+      setComponents(items);
+      setCompOrder(String(items.length + 1));
     } catch (e) {
       toast.error(
         e?.response?.data?.message || "Failed to load tax components",
@@ -251,7 +253,7 @@ export default function TaxCodesPage() {
     setCompName("");
     setCompAccountId("");
     setCompRate("");
-    setCompOrder("");
+    setCompOrder("1");
     setCompCompoundLevels(["0"]);
     setCompActive(true);
     loadComponents(r.id);
@@ -261,11 +263,19 @@ export default function TaxCodesPage() {
     e.preventDefault();
     if (!selectedTaxId) return;
     try {
+      const parsedOrder =
+        compOrder &&
+        !isNaN(Number(compOrder)) &&
+        Number(compOrder) > 0 &&
+        Number(compOrder) < 100
+          ? Number(compOrder)
+          : components.length + 1;
+
       await api.post(`/finance/tax-codes/${selectedTaxId}/components`, {
         componentName: compName.trim(),
         accountId: compAccountId ? Number(compAccountId) : null,
         ratePercent: compRate ? Number(compRate) : 0,
-        sortOrder: compOrder ? Number(compOrder) : 100,
+        sortOrder: parsedOrder,
         compoundLevel: Number(normalizeStepLevels(compCompoundLevels)[0]),
         compoundLevels: normalizeStepLevels(compCompoundLevels).map(Number),
         isActive: compActive,
@@ -276,7 +286,7 @@ export default function TaxCodesPage() {
       setCompName("");
       setCompAccountId("");
       setCompRate("");
-      setCompOrder("");
+      setCompOrder(String(components.length + 2));
       setCompCompoundLevels(["0"]);
       setCompActive(true);
       loadComponents(selectedTaxId);
@@ -288,13 +298,16 @@ export default function TaxCodesPage() {
   const [compEditing, setCompEditing] = useState({});
 
   function compStartEdit(c) {
+    const defaultIdx = components.findIndex((item) => item.id === c.id) + 1;
+    const safeSortOrder =
+      c.sort_order && Number(c.sort_order) < 100 ? c.sort_order : defaultIdx;
     setCompEditing((p) => ({
       ...p,
       [c.id]: {
         component_name: c.component_name,
         account_id: c.account_id || "",
         rate_percent: c.rate_percent,
-        sort_order: c.sort_order,
+        sort_order: safeSortOrder,
         compound_level: c.compound_level,
         compound_levels: normalizeStepLevels(
           Array.isArray(c.calculate_on_levels)
@@ -1005,6 +1018,7 @@ export default function TaxCodesPage() {
                       className="input w-full text-sm font-mono"
                       type="number"
                       min="1"
+                      placeholder={String(components.length + 1)}
                       value={compOrder}
                       onChange={(e) => setCompOrder(e.target.value)}
                     />
@@ -1086,7 +1100,7 @@ export default function TaxCodesPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-sm">
-                    {components.map((c) => {
+                    {components.map((c, index) => {
                       const isEdit = !!compEditing[c.id];
                       const d = compEditing[c.id] || {};
                       const acc = accounts.find(
@@ -1234,10 +1248,12 @@ export default function TaxCodesPage() {
                               <input
                                 className="input w-full text-xs font-mono"
                                 type="number"
-                                min="0"
+                                min="1"
                                 value={
                                   d.sort_order === undefined
-                                    ? c.sort_order
+                                    ? c.sort_order && Number(c.sort_order) < 100
+                                      ? c.sort_order
+                                      : index + 1
                                     : d.sort_order
                                 }
                                 onChange={(e) =>
@@ -1249,7 +1265,9 @@ export default function TaxCodesPage() {
                                 }
                               />
                             ) : (
-                              c.sort_order
+                              c.sort_order && Number(c.sort_order) < 100
+                                ? c.sort_order
+                                : index + 1
                             )}
                           </td>
                           <td className="py-2.5 px-3">

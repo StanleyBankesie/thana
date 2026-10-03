@@ -594,7 +594,7 @@ async function loadTaxComponentsByCodeTx(conn, { companyId, taxCodeId }) {
     `SELECT c.tax_detail_id,
             COALESCE(c.rate_percent, d.rate_percent, 0) AS rate_percent,
             COALESCE(c.compound_level, 0) AS compound_level,
-            COALESCE(c.sort_order, 100) AS sort_order,
+            COALESCE(c.sort_order, 1) AS sort_order,
             d.component_name
        FROM fin_tax_components c
        JOIN fin_tax_details d
@@ -2120,7 +2120,7 @@ export const listTaxCodeComponents = async (req, res, next) => {
     if (!taxCodeId) {
       return next(httpError(400, "VALIDATION_ERROR", "Invalid taxCodeId"));
     }
-    const items = await query(
+    let items = await query(
       `SELECT c.id, c.tax_detail_id, c.rate_percent, c.sort_order, c.is_active,
               c.compound_level, c.compound_levels,
               d.component_name, d.account_id,
@@ -2135,6 +2135,27 @@ export const listTaxCodeComponents = async (req, res, next) => {
         ORDER BY c.sort_order ASC, c.id ASC`,
       { companyId, taxCodeId },
     );
+
+    if (Array.isArray(items) && items.length > 0) {
+      const hasUnsequenced = items.some(
+        (it) =>
+          it.sort_order === null ||
+          it.sort_order === undefined ||
+          Number(it.sort_order) >= 100 ||
+          Number(it.sort_order) <= 0,
+      );
+      if (hasUnsequenced) {
+        for (let i = 0; i < items.length; i++) {
+          const newOrder = i + 1;
+          items[i].sort_order = newOrder;
+          await query(
+            `UPDATE fin_tax_components SET sort_order = :newOrder WHERE id = :id AND company_id = :companyId`,
+            { newOrder, id: items[i].id, companyId },
+          ).catch(() => {});
+        }
+      }
+    }
+
     res.json({ items });
   } catch (e) {
     next(e);
@@ -3764,6 +3785,25 @@ export const createTaxCodeComponent = async (req, res, next) => {
         ? String(compoundLevels)
         : "0";
 
+    let finalSortOrder =
+      sortOrder !== undefined && sortOrder !== null && sortOrder !== ""
+        ? Number(sortOrder)
+        : null;
+    if (
+      !finalSortOrder ||
+      isNaN(finalSortOrder) ||
+      finalSortOrder >= 100 ||
+      finalSortOrder <= 0
+    ) {
+      const [maxOrderRow] = await query(
+        `SELECT COALESCE(MAX(sort_order), 0) AS max_order
+           FROM fin_tax_components
+          WHERE company_id = :companyId AND tax_code_id = :taxCodeId AND sort_order < 100`,
+        { companyId, taxCodeId },
+      );
+      finalSortOrder = Number(maxOrderRow?.max_order || 0) + 1;
+    }
+
     await query(
       `INSERT INTO fin_tax_components (
          company_id, tax_code_id, tax_detail_id, rate_percent, sort_order,
@@ -3777,7 +3817,7 @@ export const createTaxCodeComponent = async (req, res, next) => {
         taxCodeId,
         taxDetailId,
         ratePercent: Number(ratePercent || 0),
-        sortOrder: Number(sortOrder || 100),
+        sortOrder: finalSortOrder,
         isActive: isActive === undefined ? 1 : Number(Boolean(isActive)),
         compLevel,
         compLevelsStr,
