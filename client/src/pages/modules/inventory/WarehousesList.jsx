@@ -106,16 +106,16 @@ export default function WarehousesList() {
                   <th>Name</th>
                   <th>Location</th>
                   <th>Status</th>
+                  <th>Created By</th>
+                  <th>Created Date</th>
                   <th>Actions</th>
-                                <th>Created By</th>
-                <th>Created Date</th>
                 </tr>
               </thead>
               <tbody>
                 {loading ? (
                   <tr>
                     <td
-                      colSpan="5"
+                      colSpan="7"
                       className="text-center py-8 text-slate-500 dark:text-slate-400"
                     >
                       Loading...
@@ -126,7 +126,7 @@ export default function WarehousesList() {
                 {!loading && !filtered.length ? (
                   <tr>
                     <td
-                      colSpan="5"
+                      colSpan="7"
                       className="text-center py-8 text-slate-500 dark:text-slate-400"
                     >
                       No warehouses found
@@ -152,6 +152,8 @@ export default function WarehousesList() {
                         {Number(w.is_active) === 1 ? "ACTIVE" : "INACTIVE"}
                       </span>
                     </td>
+                    <td>{w.created_by_name || "-"}</td>
+                    <td>{w.created_at ? new Date(w.created_at).toLocaleDateString() : "-"}</td>
                     <td>
                       <div className="flex items-center gap-2 whitespace-nowrap">
                         <Link
@@ -168,8 +170,6 @@ export default function WarehousesList() {
                         </Link>
                       </div>
                     </td>
-                    <td>{w.created_by_name || "-"}</td>
-                    <td>{w.created_at ? new Date(w.created_at).toLocaleDateString() : "-"}</td>
                   </tr>
                 ))}
               </tbody>

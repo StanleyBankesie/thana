@@ -193,24 +193,23 @@ export async function ensureWarehousesTable() {
         is_active TINYINT(1) NOT NULL DEFAULT 1,
         created_by BIGINT UNSIGNED DEFAULT NULL,
         created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         PRIMARY KEY (id),
         UNIQUE KEY uq_warehouse_scope_code (company_id, branch_id, warehouse_code),
         KEY idx_warehouse_scope (company_id, branch_id)
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
     `);
   }
-  if (!(await hasColumn("inv_warehouses", "location"))) {
-    await query(`ALTER TABLE inv_warehouses ADD COLUMN location VARCHAR(255) NULL`).catch(() => {});
-  }
-  if (!(await hasColumn("inv_warehouses", "created_by"))) {
-    await query(`ALTER TABLE inv_warehouses ADD COLUMN created_by BIGINT UNSIGNED NULL`).catch(() => {});
-  }
-  if (!(await hasColumn("inv_warehouses", "created_at"))) {
-    await query(`ALTER TABLE inv_warehouses ADD COLUMN created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP`).catch(() => {});
-  }
-  if (!(await hasColumn("inv_warehouses", "branch_id"))) {
-    await query(`ALTER TABLE inv_warehouses ADD COLUMN branch_id BIGINT UNSIGNED NOT NULL DEFAULT 1`).catch(() => {});
-  }
+  await query(`ALTER TABLE inv_warehouses ADD COLUMN location VARCHAR(255) NULL`).catch(() => {});
+  await query(`ALTER TABLE inv_warehouses ADD COLUMN branch_id BIGINT UNSIGNED NOT NULL DEFAULT 1`).catch(() => {});
+  await query(`ALTER TABLE inv_warehouses ADD COLUMN created_by BIGINT UNSIGNED NULL`).catch(() => {});
+  await query(`ALTER TABLE inv_warehouses ADD COLUMN created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP`).catch(() => {});
+  await query(`ALTER TABLE inv_warehouses ADD COLUMN updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`).catch(() => {});
+
+  // Backfill existing rows that have NULL created_at or created_by
+  await query(`UPDATE inv_warehouses SET created_at = NOW() WHERE created_at IS NULL OR CAST(created_at AS CHAR) LIKE '0000%'`).catch(() => {});
+  await query(`UPDATE inv_warehouses SET created_by = 1 WHERE created_by IS NULL OR created_by = 0`).catch(() => {});
+
   verifiedTables.add("inv_warehouses");
 }
 
@@ -1510,18 +1509,27 @@ router.get(
       const activeOnly = !["0", "false", "all"].includes(activeParam);
       const rows = await query(
         `
-        SELECT id, warehouse_code, warehouse_name, location, branch_id, is_active,
-          created_at,
-          u.username AS created_by_name
-         FROM inv_warehouses
-        LEFT JOIN adm_users u ON u.id = created_by
-         WHERE company_id = :companyId
-           AND (:branchIdsStr = '' OR FIND_IN_SET(branch_id, :branchIdsStr))
-           AND (:activeOnly = 0 OR is_active = 1)
-        ORDER BY warehouse_name ASC
+        SELECT 
+          w.id, 
+          w.warehouse_code, 
+          w.warehouse_name, 
+          w.location, 
+          w.branch_id, 
+          w.is_active,
+          w.created_at,
+          w.created_by,
+          (SELECT COALESCE(u.username, u.full_name, 'Admin') FROM adm_users u WHERE u.id = w.created_by LIMIT 1) AS created_by_name
+        FROM inv_warehouses w
+        WHERE w.company_id = :companyId
+          AND (:branchIdsStr = '' OR FIND_IN_SET(w.branch_id, :branchIdsStr))
+          AND (:activeOnly = 0 OR w.is_active = 1)
+        ORDER BY w.warehouse_name ASC
         `,
         { companyId, branchIdsStr: req.scope.branchIdsStr || '', activeOnly: activeOnly ? 1 : 0 },
-      ).catch(() => []);
+      ).catch((err) => {
+        console.error("[warehouses-list] Query failed:", err);
+        return [];
+      });
       res.json({ items: rows });
     } catch (err) {
       next(err);
@@ -1540,9 +1548,12 @@ router.get(
       const { companyId, branchIdsStr } = req.scope;
       const id = toNumber(req.params.id, 0);
       const rows = await query(
-        `SELECT * FROM inv_warehouses
-         WHERE id = :id AND company_id = :companyId
-           AND (:branchIdsStr = '' OR FIND_IN_SET(branch_id, :branchIdsStr))`,
+        `SELECT 
+           w.*,
+           (SELECT COALESCE(u.username, u.full_name, 'Admin') FROM adm_users u WHERE u.id = w.created_by LIMIT 1) AS created_by_name
+         FROM inv_warehouses w
+         WHERE w.id = :id AND w.company_id = :companyId
+           AND (:branchIdsStr = '' OR FIND_IN_SET(w.branch_id, :branchIdsStr))`,
         { id, companyId, branchIdsStr: branchIdsStr || '' }
       );
       if (!rows.length) throw httpError(404, "NOT_FOUND", "Warehouse not found");
@@ -1571,7 +1582,13 @@ router.post(
         req.user?.branch_id ||
         1;
       const branch_id = toNumber(rawBranchId, 1);
-      const userId = Number(req.user?.id || req.user?.sub || 1);
+      const userId = Number(
+        body.created_by ||
+        req.user?.id ||
+        req.user?.sub ||
+        req.scope?.userId ||
+        1
+      );
 
       const warehouse_code = String(body.warehouse_code || "").trim();
       const warehouse_name = String(body.warehouse_name || "").trim();
@@ -1581,9 +1598,9 @@ router.post(
 
       const result = await query(
         `INSERT INTO inv_warehouses (
-           company_id, branch_id, warehouse_code, warehouse_name, location, is_active, created_by
+           company_id, branch_id, warehouse_code, warehouse_name, location, is_active, created_by, created_at
          ) VALUES (
-           :companyId, :branch_id, :warehouse_code, :warehouse_name, :location, :is_active, :userId
+           :companyId, :branch_id, :warehouse_code, :warehouse_name, :location, :is_active, :userId, NOW()
          )`,
         {
           companyId,

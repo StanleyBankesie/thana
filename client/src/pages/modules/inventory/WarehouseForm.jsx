@@ -3,7 +3,7 @@
  */
 
 import React, { useEffect, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 
 import { api } from "api/client";
 import { useAuth } from "../../../auth/AuthContext.jsx";
@@ -16,9 +16,11 @@ import { useAuth } from "../../../auth/AuthContext.jsx";
  */
 export default function WarehouseForm() {
   const { id } = useParams();
+  const [searchParams] = useSearchParams();
+  const isView = searchParams.get("mode") === "view";
   const navigate = useNavigate();
   const isNew = id === "new";
-  const { scope } = useAuth();
+  const { scope, user } = useAuth();
 
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -29,6 +31,8 @@ export default function WarehouseForm() {
     warehouse_name: "",
     location: "",
     is_active: true,
+    created_by_name: "",
+    created_at: "",
   });
   const [branches, setBranches] = useState([]);
   const [selectedBranchId, setSelectedBranchId] = useState("");
@@ -74,6 +78,8 @@ export default function WarehouseForm() {
           warehouse_name: w.warehouse_name || "",
           location: w.location || "",
           is_active: Boolean(w.is_active),
+          created_by_name: w.created_by_name || "",
+          created_at: w.created_at || "",
         });
         if (w.branch_id) {
           setSelectedBranchId(String(w.branch_id));
@@ -96,6 +102,7 @@ export default function WarehouseForm() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (isView) return;
     setSaving(true);
     setError("");
 
@@ -116,6 +123,7 @@ export default function WarehouseForm() {
         location: formData.location || null,
         is_active: Boolean(formData.is_active),
         branch_id: Number(selectedBranchId),
+        created_by: user?.id || user?.sub || 1,
       };
 
       if (isNew) {
@@ -169,11 +177,11 @@ export default function WarehouseForm() {
           <div className="flex justify-between items-center text-white">
             <div>
               <h1 className="text-2xl font-bold dark:text-brand-300">
-                {isNew ? "New Warehouse" : "Edit Warehouse"}
+                {isView ? "Warehouse Details" : isNew ? "New Warehouse" : "Edit Warehouse"}
               </h1>
               <p className="text-sm mt-1">Maintain warehouse master data</p>
             </div>
-            <button onClick={() => window.history.back()} className="btn-success">
+            <button type="button" onClick={() => navigate("/inventory/warehouses")} className="btn-success">
               Back to List
             </button>
           </div>
@@ -191,6 +199,7 @@ export default function WarehouseForm() {
                   className="input"
                   value={selectedBranchId}
                   onChange={(e) => setSelectedBranchId(e.target.value)}
+                  disabled={isView}
                   required
                 >
                   <option value="">Select a branch</option>
@@ -210,6 +219,7 @@ export default function WarehouseForm() {
                   onChange={(e) =>
                     setFormData({ ...formData, warehouse_code: e.target.value })
                   }
+                  disabled={isView}
                   required
                 />
               </div>
@@ -222,6 +232,7 @@ export default function WarehouseForm() {
                   onChange={(e) =>
                     setFormData({ ...formData, warehouse_name: e.target.value })
                   }
+                  disabled={isView}
                   required
                 />
               </div>
@@ -237,6 +248,7 @@ export default function WarehouseForm() {
                   onChange={(e) =>
                     setFormData({ ...formData, location: e.target.value })
                   }
+                  disabled={isView}
                 />
               </div>
               <div>
@@ -250,6 +262,7 @@ export default function WarehouseForm() {
                       is_active: e.target.value === "ACTIVE",
                     })
                   }
+                  disabled={isView}
                 >
                   <option value="ACTIVE">ACTIVE</option>
                   <option value="INACTIVE">INACTIVE</option>
@@ -257,13 +270,36 @@ export default function WarehouseForm() {
               </div>
             </div>
 
+            {!isNew && (formData.created_by_name || formData.created_at) && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700">
+                <div>
+                  <label className="label text-xs uppercase tracking-wider text-slate-500">Created By</label>
+                  <div className="font-medium text-slate-800 dark:text-slate-200">
+                    {formData.created_by_name || "Admin"}
+                  </div>
+                </div>
+                <div>
+                  <label className="label text-xs uppercase tracking-wider text-slate-500">Created Date</label>
+                  <div className="font-medium text-slate-800 dark:text-slate-200">
+                    {formData.created_at ? new Date(formData.created_at).toLocaleString() : "-"}
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div className="flex justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-700">
-              <button onClick={() => window.history.back()} className="btn-success">
-                Cancel
+              <button type="button" onClick={() => navigate("/inventory/warehouses")} className="btn btn-secondary">
+                {isView ? "Close" : "Cancel"}
               </button>
-              <button type="submit" className="btn-success" disabled={saving}>
-                {saving ? "Saving..." : "Save Warehouse"}
-              </button>
+              {isView ? (
+                <Link to={`/inventory/warehouses/${id}?mode=edit`} className="btn-success">
+                  Edit Warehouse
+                </Link>
+              ) : (
+                <button type="submit" className="btn-success" disabled={saving}>
+                  {saving ? "Saving..." : "Save Warehouse"}
+                </button>
+              )}
             </div>
           </form>
         </div>
