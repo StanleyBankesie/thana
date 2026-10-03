@@ -38,7 +38,7 @@ export const initializeSocket = (server) => {
     pingInterval: 25000,
     pingTimeout: 60000,
     maxHttpBufferSize: 1e6,
-    transports: ["websocket", "polling"],
+    transports: ["polling", "websocket"],
   });
 
   // Attach Redis adapter if available

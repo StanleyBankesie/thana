@@ -1,4 +1,4 @@
-const CACHE_VERSION = "v9";
+const CACHE_VERSION = "v10";
 const ASSET_CACHE = "omnisuite-assets-" + CACHE_VERSION;
 const API_CACHE = "omnisuite-api-" + CACHE_VERSION;
 const DEV_MODE =

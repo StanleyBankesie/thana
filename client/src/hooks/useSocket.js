@@ -74,10 +74,10 @@ export function useSocket() {
       import.meta.env.VITE_SOCKET_TRANSPORT || ""
     ).toLowerCase();
     
-    // Prefer WebSocket with polling fallback to avoid repeated session ID errors on reverse proxy
-    const transports = transportPref === "polling" 
-      ? ["polling"] 
-      : ["websocket", "polling"];
+    // Default to HTTP polling to guarantee 100% compatibility with Plesk, Phusion Passenger, and reverse proxies without requiring WebSocket upgrades
+    const transports = transportPref === "websocket" 
+      ? ["websocket", "polling"] 
+      : ["polling"];
       
     const disableSockets = import.meta.env.VITE_DISABLE_SOCKETS === "true";
 
