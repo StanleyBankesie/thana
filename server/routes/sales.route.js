@@ -19,6 +19,7 @@ import { query, pool } from "../db/pool.js";
 // Utility Dependencies
 import { httpError } from "../utils/httpError.js";
 import { ensureSalesOrderColumns } from "../utils/dbUtils.js";
+import { isBranchSharingEnabled } from "../utils/branchSharing.js";
 import { checkAndSendAutomaticNotification } from "../utils/externalNotification.js";
 import {
   getInactiveWorkflowBehavior,
@@ -2210,7 +2211,8 @@ router.get(
 
       const params = { companyId, branchIdsStr };
       const where = ["c.company_id = :companyId"];
-      if (branchIdsStr) {
+      const shareCustomers = await isBranchSharingEnabled(companyId, "BRANCH_SHARE_CUSTOMERS");
+      if (branchIdsStr && !shareCustomers) {
         where.push("(:branchIdsStr = '' OR c.branch_id IS NULL OR FIND_IN_SET(c.branch_id, :branchIdsStr))");
       }
       if (onlyActive) where.push("c.is_active = 1");

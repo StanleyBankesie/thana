@@ -10,7 +10,7 @@ import {
   resolveWorkflowSelection,
 } from "../utils/workflowResolution.js";
 import { cacheGet, cacheSet, cacheDel, cacheDelPattern } from "../utils/redis.js";
-import { ensureTaxTables } from "../utils/dbUtils.js";
+import { ensureTaxTables, hasColumn as dbHasColumn } from "../utils/dbUtils.js";
 import * as XLSX from "xlsx";
 
 // Page ID mapping for tax code applicable pages
@@ -472,23 +472,22 @@ function toYmd(d) {
 
 /**
  * Checks if a specific column exists in a given table.
- * @param {Object} conn - The database connection.
- * @param {string} tableName - The name of the table.
- * @param {string} columnName - The name of the column to check.
+ * Supports both hasColumn(conn, tableName, columnName) and hasColumn(tableName, columnName).
+ * @param {Object|string} connOrTable - The database connection or table name.
+ * @param {string} tableOrCol - The table name or column name.
+ * @param {string} [col] - The column name if connection was passed as first argument.
  * @returns {Promise<boolean>} True if the column exists, false otherwise.
  */
-async function hasColumn(conn, tableName, columnName) {
-  const [rows] = await conn.execute(
-    `
-    SELECT COUNT(*) AS c
-    FROM information_schema.columns
-    WHERE table_schema = DATABASE()
-      AND table_name = :tableName
-      AND column_name = :columnName
-    `,
-    { tableName, columnName },
-  );
-  return Number(rows?.[0]?.c || 0) > 0;
+async function hasColumn(connOrTable, tableOrCol, col) {
+  let tableName, columnName;
+  if (col !== undefined) {
+    tableName = tableOrCol;
+    columnName = col;
+  } else {
+    tableName = connOrTable;
+    columnName = tableOrCol;
+  }
+  return dbHasColumn(tableName, columnName);
 }
 
 // ============================================================================
@@ -1596,7 +1595,7 @@ export const listExpenseAccounts = async (req, res, next) => {
               g.id AS group_id, g.code AS group_code, g.name AS group_name, g.nature
        FROM fin_accounts a
        JOIN fin_account_groups g ON g.id = a.group_id AND g.company_id = a.company_id
-       LEFT JOIN fin_currencies c ON c.id = a.currency_id AND c.company_id = a.currency_id
+       LEFT JOIN fin_currencies c ON c.id = a.currency_id
        WHERE a.company_id = :companyId
          ${hasBranchCol && branchIdsStr ? "AND (:branchIdsStr = '' OR a.branch_id IS NULL OR FIND_IN_SET(a.branch_id, :branchIdsStr))" : ""}
          AND g.nature = 'EXPENSE'

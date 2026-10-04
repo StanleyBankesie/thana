@@ -156,6 +156,7 @@ function MaintenanceLanding() {
 
   return (
     <ModuleDashboard
+      moduleKey="maintenance"
       moduleTitle="Maintenance & Equipment Management"
       moduleDescription="Manage equipment, asset maintenance, work orders, PM schedules, rosters, and spare parts procurement."
       stats={stats}

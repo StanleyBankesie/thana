@@ -103,8 +103,8 @@ export default function SupplierForm() {
           payment_terms: s.payment_terms || "",
           is_active: Boolean(s.is_active),
           supplier_type: s.supplier_type || prev.supplier_type || "LOCAL",
-          currency_id: s.currency_id || "",
-          expense_account_id: s.expense_account_id || "",
+          currency_id: s.currency_id ? String(s.currency_id) : "",
+          expense_account_id: s.expense_account_id ? String(s.expense_account_id) : "",
           service_contractor:
             String(s.service_contractor || "").toUpperCase() === "Y",
         }));
@@ -230,25 +230,32 @@ export default function SupplierForm() {
     fetchCountries();
   }, []);
 
-  // Set purchase account as default when expense accounts are loaded (for new suppliers only)
+  // Set purchase account as default when expense accounts are loaded
   useEffect(() => {
-    if (!isNew || formData.expense_account_id || !expenseAccounts.length)
+    if (formData.expense_account_id || !expenseAccounts.length)
       return;
 
-    // Find purchase account - look for accounts with "purchase" in the name
-    const purchaseAccount = expenseAccounts.find(
-      (a) =>
-        a.name?.toLowerCase().includes("purchase") ||
-        a.account_name?.toLowerCase().includes("purchase"),
-    );
+    // Find purchase account - look for accounts with "purchase" in the name, or fallback to first expense account
+    const purchaseAccount =
+      expenseAccounts.find(
+        (a) =>
+          String(a.name || "").toLowerCase() === "purchase account" ||
+          String(a.account_name || "").toLowerCase() === "purchase account",
+      ) ||
+      expenseAccounts.find(
+        (a) =>
+          a.name?.toLowerCase().includes("purchase") ||
+          a.account_name?.toLowerCase().includes("purchase"),
+      ) ||
+      expenseAccounts[0];
 
-    if (purchaseAccount) {
+    if (purchaseAccount?.id) {
       setFormData((prev) => ({
         ...prev,
-        expense_account_id: purchaseAccount.id,
+        expense_account_id: prev.expense_account_id || String(purchaseAccount.id),
       }));
     }
-  }, [expenseAccounts, isNew, formData.expense_account_id]);
+  }, [expenseAccounts, formData.expense_account_id]);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -778,14 +785,14 @@ export default function SupplierForm() {
                   <select
                     name="expense_account_id"
                     className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-slate-500 outline-none"
-                    value={formData.expense_account_id}
+                    value={formData.expense_account_id ? String(formData.expense_account_id) : ""}
                     onChange={handleChange}
                     required
                   >
                     <option value="">Select expense account</option>
                     {expenseAccounts.map((a) => (
-                      <option key={a.id} value={a.id}>
-                        {a.name}
+                      <option key={a.id} value={String(a.id)}>
+                        {a.code ? `${a.code} - ` : ""}{a.name}
                       </option>
                     ))}
                   </select>

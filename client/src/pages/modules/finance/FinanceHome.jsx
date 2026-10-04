@@ -273,6 +273,7 @@ export default function FinanceHome() {
 
   return (
     <ModuleDashboard
+      moduleKey="finance"
       title="Finance Module"
       description="Comprehensive accounting, budgeting, and financial reporting system"
       stats={stats}

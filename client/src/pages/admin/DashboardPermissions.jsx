@@ -8,7 +8,7 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import { api } from "../../api/client.js";
 import { MODULES_REGISTRY } from "../../data/modulesRegistry.js";
-import { DASHBOARD_CARDS } from "../../data/dashboardCards.js";
+import { DASHBOARD_CARDS, getAllCardAliases } from "../../data/dashboardCards.js";
 import { useAuth } from "../../auth/AuthContext.jsx";
 import { usePermission } from "../../auth/PermissionContext.jsx";
 
@@ -295,18 +295,65 @@ export default function DashboardPermissions() {
     const card_key = type === "card" ? key : null;
     const ticker_key = type === "ticker" ? key : null;
     setView(module_key, dashboard_key, card_key, ticker_key, allow);
+
+    const permissionsToSave = [
+      {
+        module_key,
+        dashboard_key,
+        card_key,
+        ticker_key,
+        can_view: allow ? 1 : 0,
+      },
+    ];
+
+    // If card has recognized aliases, sync them as well
+    if (type === "card" && card_key) {
+      const aliases = getAllCardAliases(card_key);
+      for (const alias of aliases) {
+        if (alias !== card_key) {
+          setView(module_key, null, alias, null, allow);
+          permissionsToSave.push({
+            module_key,
+            dashboard_key: null,
+            card_key: alias,
+            ticker_key: null,
+            can_view: allow ? 1 : 0,
+          });
+        }
+      }
+    }
+
+    // If customizing Home for the first time, preserve the other default cards
+    if (module_key === "home" && type === "card") {
+      const existingHomeCards = perms.filter(
+        (p) => String(p.module_key) === "home" && p.card_key
+      );
+      if (existingHomeCards.length === 0) {
+        const defaultCards = [
+          "sales-total-revenue",
+          "sales-pending-orders",
+          "sales-active-customers",
+          "purchase-total-value",
+        ];
+        defaultCards.forEach((dc) => {
+          if (dc !== key) {
+            setView("home", null, dc, null, true);
+            permissionsToSave.push({
+              module_key: "home",
+              dashboard_key: null,
+              card_key: dc,
+              ticker_key: null,
+              can_view: 1,
+            });
+          }
+        });
+      }
+    }
+
     try {
       await api.put("/access/dashboard-permissions", {
         user_id: Number(selectedUserId),
-        permissions: [
-          {
-            module_key,
-            dashboard_key,
-            card_key,
-            ticker_key,
-            can_view: allow ? 1 : 0,
-          },
-        ],
+        permissions: permissionsToSave,
       });
       await refreshPermissions();
       try {

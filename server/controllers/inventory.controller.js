@@ -5,6 +5,7 @@
  */
 import { query, pool } from "../db/pool.js";
 import { httpError } from "../utils/httpError.js";
+import { isBranchSharingEnabled } from "../utils/branchSharing.js";
 import { cacheGet, cacheSet, cacheDelPattern } from "../utils/redis.js";
 
 async function hasColumn(tableName, columnName) {
@@ -294,6 +295,7 @@ export const listItems = async (req, res, next) => {
       ? "group_id"
       : "item_group_id";
     const hasBranchCol = await hasColumn("inv_items", "branch_id");
+    const shareItems = await isBranchSharingEnabled(companyId, "BRANCH_SHARE_ITEMS");
     const rows = await query(`
       SELECT i.id,
              i.item_code,
@@ -342,7 +344,7 @@ export const listItems = async (req, res, next) => {
        AND sb.item_id = i.id
         LEFT JOIN adm_users u ON u.id = i.created_by
          WHERE i.company_id = :companyId
-           ${hasBranchCol && branchIdsStr ? "AND (:branchIdsStr = '' OR i.branch_id IS NULL OR FIND_IN_SET(i.branch_id, :branchIdsStr))" : ""}
+           ${hasBranchCol && branchIdsStr && !shareItems ? "AND (:branchIdsStr = '' OR i.branch_id IS NULL OR FIND_IN_SET(i.branch_id, :branchIdsStr))" : ""}
            ${req.query.all !== "1" && req.query.all !== "true" ? "AND i.is_active = 1" : ""}
       ORDER BY i.item_name ASC
       `,

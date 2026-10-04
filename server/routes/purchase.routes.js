@@ -20,6 +20,7 @@ import {
 // ---- Database Configuration & Services ----
 import { query, pool } from "../db/pool.js";
 import { httpError } from "../utils/httpError.js";
+import { isBranchSharingEnabled } from "../utils/branchSharing.js";
 import { updateItemAverageCostTx } from "../services/costing.service.js";
 import { checkAndSendAutomaticNotification } from "../utils/externalNotification.js";
 import {
@@ -6213,7 +6214,8 @@ router.get(
       let sql = "SELECT * FROM pur_suppliers WHERE company_id = :companyId";
       const params = { companyId };
 
-      if (hasBranchCol && branchIdsStr) {
+      const shareSuppliers = await isBranchSharingEnabled(companyId, "BRANCH_SHARE_SUPPLIERS");
+      if (hasBranchCol && branchIdsStr && !shareSuppliers) {
         sql += " AND (:branchIdsStr = '' OR branch_id IS NULL OR FIND_IN_SET(branch_id, :branchIdsStr))";
         params.branchIdsStr = branchIdsStr;
       }
@@ -6255,7 +6257,8 @@ router.get(
       await ensureSupplierServiceContractorColumn();
       await ensureSupplierExpenseAccountColumn();
       const hasBranchCol = await hasColumn("pur_suppliers", "branch_id");
-      const branchClause = hasBranchCol && branchIdsStr ? " AND (:branchIdsStr = '' OR branch_id IS NULL OR FIND_IN_SET(branch_id, :branchIdsStr))" : "";
+      const shareSuppliers = await isBranchSharingEnabled(companyId, "BRANCH_SHARE_SUPPLIERS");
+      const branchClause = hasBranchCol && branchIdsStr && !shareSuppliers ? " AND (:branchIdsStr = '' OR branch_id IS NULL OR FIND_IN_SET(branch_id, :branchIdsStr))" : "";
       const rows = await query(
         `SELECT * FROM pur_suppliers WHERE id = :id AND company_id = :companyId${branchClause}`,
         { id, companyId, branchIdsStr },

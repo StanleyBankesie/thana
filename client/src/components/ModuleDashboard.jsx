@@ -549,7 +549,7 @@ const ModuleDashboard = ({
         if (!canShowItem(s)) return false;
         const path = String(s.path || "");
         const parts = path.split("/").filter(Boolean);
-        const mk = String(s.module_key || parts[0] || "");
+        const mk = String(s.module_key || moduleKey || parts[0] || (location.pathname.split("/").filter(Boolean)[0] || ""));
         const key =
           String(s.rbac_key || "")
             .toLowerCase()
@@ -560,6 +560,7 @@ const ModuleDashboard = ({
             .replace(/\s+/g, "-")
             .replace(/[^a-z0-9-]/g, "");
         if (!mk || !key) return true;
+        if (s.rbac_key && canViewDashboardElement(mk, "card", s.rbac_key) === false) return false;
         return canViewDashboardElement(mk, "card", key);
       }).length > 0 && (
         <div className="mb-8">
@@ -572,7 +573,7 @@ const ModuleDashboard = ({
                 if (!canShowItem(stat)) return false;
                 const path = String(stat.path || "");
                 const parts = path.split("/").filter(Boolean);
-                const mk = String(stat.module_key || parts[0] || "");
+                const mk = String(stat.module_key || moduleKey || parts[0] || (location.pathname.split("/").filter(Boolean)[0] || ""));
                 const key =
                   String(stat.rbac_key || "")
                     .toLowerCase()
@@ -583,6 +584,7 @@ const ModuleDashboard = ({
                     .replace(/\s+/g, "-")
                     .replace(/[^a-z0-9-]/g, "");
                 if (!mk || !key) return true;
+                if (stat.rbac_key && canViewDashboardElement(mk, "card", stat.rbac_key) === false) return false;
                 return canViewDashboardElement(mk, "card", key);
               })
               .map((stat, index) => {

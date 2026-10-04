@@ -337,6 +337,7 @@ const SalesModuleHome = () => {
 
   return (
     <ModuleDashboard
+      moduleKey="sales"
       useSectionNavigation={true}
       title="Sales Module"
       description="Customer orders, quotations, invoicing, and sales analytics"

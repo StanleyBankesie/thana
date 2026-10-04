@@ -636,8 +636,15 @@ export default function HomePage() {
       const modAllowed = isModuleEnabled(canonicalMod) || isModuleEnabled(rawModKey);
       
       cards.forEach(card => {
-        // Include card if module is enabled OR if the card is explicitly configured for Home
+        // Check if card is forbidden in its parent module
+        if (canViewDashboardElement(rawModKey, "card", card.key) === false) {
+          return;
+        }
+        // Check if card is permitted on Home
         const cardAllowedForHome = canViewDashboardElement("home", "card", card.key);
+        if (cardAllowedForHome === false) {
+          return;
+        }
         if (!modAllowed && !cardAllowedForHome) {
           return;
         }
@@ -698,6 +705,7 @@ export default function HomePage() {
 
         metrics.push({
           key: card.key,
+          moduleKey: rawModKey,
           label: card.label,
           value: finalValue,
           badge: overview?.badges?.[card.key]?.text || "",
@@ -712,7 +720,11 @@ export default function HomePage() {
 
   const visibleMetrics = React.useMemo(() => {
     const checked = allPossibleMetrics.filter((m) => {
-      return m.key ? canViewDashboardElement("home", "card", m.key) : false;
+      if (!m.key) return false;
+      if (m.moduleKey && canViewDashboardElement(m.moduleKey, "card", m.key) === false) {
+        return false;
+      }
+      return canViewDashboardElement("home", "card", m.key) === true;
     });
 
     return checked.slice(0, 8);

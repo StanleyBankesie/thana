@@ -2993,6 +2993,75 @@ router.post(
   },
 );
 
+router.get(
+  "/settings/branch-sharing",
+  requireAuth,
+  requireCompanyScope,
+  async (req, res, next) => {
+    try {
+      await ensureSystemSettingsTable();
+      const { companyId } = req.scope || {};
+      const rows = await query(
+        `SELECT setting_key, setting_value
+         FROM adm_system_settings
+         WHERE (company_id = :companyId OR company_id IS NULL)
+           AND setting_key IN ('BRANCH_SHARE_CUSTOMERS', 'BRANCH_SHARE_SUPPLIERS', 'BRANCH_SHARE_ITEMS')
+         ORDER BY company_id DESC`,
+        { companyId: companyId ?? null },
+      );
+      const map = {};
+      for (const r of rows) {
+        if (map[r.setting_key] === undefined) {
+          map[r.setting_key] = r.setting_value;
+        }
+      }
+      res.json({
+        data: {
+          share_customers: map.BRANCH_SHARE_CUSTOMERS === "1" || map.BRANCH_SHARE_CUSTOMERS === "true",
+          share_suppliers: map.BRANCH_SHARE_SUPPLIERS === "1" || map.BRANCH_SHARE_SUPPLIERS === "true",
+          share_items: map.BRANCH_SHARE_ITEMS === "1" || map.BRANCH_SHARE_ITEMS === "true",
+        },
+      });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
+router.post(
+  "/settings/branch-sharing",
+  requireAuth,
+  requireCompanyScope,
+  async (req, res, next) => {
+    try {
+      await ensureSystemSettingsTable();
+      const { companyId } = req.scope || {};
+      const body = req.body || {};
+      const shareCustomers = body.share_customers ? "1" : "0";
+      const shareSuppliers = body.share_suppliers ? "1" : "0";
+      const shareItems = body.share_items ? "1" : "0";
+
+      await query(
+        `INSERT INTO adm_system_settings (company_id, branch_id, setting_key, setting_value)
+         VALUES 
+           (:companyId, NULL, 'BRANCH_SHARE_CUSTOMERS', :shareCustomers),
+           (:companyId, NULL, 'BRANCH_SHARE_SUPPLIERS', :shareSuppliers),
+           (:companyId, NULL, 'BRANCH_SHARE_ITEMS', :shareItems)
+         ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value), updated_at = CURRENT_TIMESTAMP`,
+        {
+          companyId: companyId ?? null,
+          shareCustomers,
+          shareSuppliers,
+          shareItems,
+        },
+      );
+      res.json({ success: true, message: "Branch data sharing settings saved successfully" });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
 router.post("/email/test", requireAuth, async (req, res, next) => {
   try {
     const to =

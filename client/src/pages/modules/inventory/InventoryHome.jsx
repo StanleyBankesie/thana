@@ -567,6 +567,7 @@ function InventoryHomeIndex() {
 
   return (
     <ModuleDashboard
+      moduleKey="inventory"
       useSectionNavigation={true}
       title="Inventory Management"
       description="Stock management, warehouse operations, and inventory control"

@@ -9,6 +9,7 @@ import { api } from "api/client";
 import { toast } from "react-toastify";
 import { Bell, Mail, MessageSquare, Smartphone, Trash2, Edit2, Users } from "lucide-react";
 import NotificationSettings from "./notifications/NotificationSettings.jsx";
+import BranchDataSharingSection from "../../../components/BranchDataSharingSection.jsx";
 
 const TABS = [
   { key: "general", label: "General" },
@@ -282,6 +283,8 @@ export default function SettingsPage() {
               <AnnouncementsSection />
             </div>
           </div>
+
+          <BranchDataSharingSection />
         </div>
       )}
 

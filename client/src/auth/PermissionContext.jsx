@@ -9,7 +9,7 @@ import React, {
 import { useAuth } from "../auth/AuthContext.jsx";
 import { api } from "../api/client.js";
 import { MODULES_REGISTRY } from "../data/modulesRegistry.js";
-import { DASHBOARD_CARDS } from "../data/dashboardCards.js";
+import { DASHBOARD_CARDS, getCardModule, getAllCardAliases } from "../data/dashboardCards.js";
 
 /**
  * PermissionContext - Centralized permission management
@@ -416,11 +416,35 @@ export const PermissionProvider = ({ children }) => {
           : it.ticker_key
             ? "ticker"
             : "dashboard";
-        const key = String(
+        const rawKey = String(
           it.card_key || it.ticker_key || it.dashboard_key || "",
         );
-        const composite = `${mk}|${type}|${key}`;
-        m.set(composite, Number(it.can_view) === 1);
+        const normKey = rawKey
+          .toLowerCase()
+          .trim()
+          .replace(/\s+/g, "-")
+          .replace(/[^a-z0-9-]/g, "");
+        const canView = Number(it.can_view) === 1;
+
+        m.set(`${mk}|${type}|${rawKey}`, canView);
+        m.set(`${mk}|${type}|${normKey}`, canView);
+        if (normKey.startsWith(`${mk}-`)) {
+          m.set(`${mk}|${type}|${normKey.slice(mk.length + 1)}`, canView);
+        } else {
+          m.set(`${mk}|${type}|${mk}-${normKey}`, canView);
+        }
+
+        // Also index known aliases
+        const aliases = getAllCardAliases(rawKey);
+        for (const alias of aliases) {
+          m.set(`${mk}|${type}|${alias}`, canView);
+          if (alias.startsWith(`${mk}-`)) {
+            m.set(`${mk}|${type}|${alias.slice(mk.length + 1)}`, canView);
+          } else {
+            m.set(`${mk}|${type}|${mk}-${alias}`, canView);
+          }
+        }
+
         const set = byModule.get(mk) || new Set();
         set.add(type);
         byModule.set(mk, set);
@@ -1351,9 +1375,48 @@ export const PermissionProvider = ({ children }) => {
         .replace(/\s+/g, "-")
         .replace(/[^a-z0-9-]/g, "");
       if (!dashboardViewLoaded) return false;
-      const comp = `${mk}|${t}|${normKey}`;
 
+      // Build all candidate variations for lookup
+      const candidates = new Set([normKey, rawKey]);
+      if (normKey.startsWith(`${mk}-`)) {
+        candidates.add(normKey.slice(mk.length + 1));
+      } else {
+        candidates.add(`${mk}-${normKey}`);
+      }
+      const aliases = getAllCardAliases(rawKey);
+      aliases.forEach((a) => {
+        candidates.add(a);
+        if (a.startsWith(`${mk}-`)) candidates.add(a.slice(mk.length + 1));
+        else candidates.add(`${mk}-${a}`);
+      });
+
+      // Special handling for Home cards
       if (mk === "home" && t === "card") {
+        // 1. If explicitly disabled in Home: strictly false
+        for (const c of candidates) {
+          if (dashboardViewMap.get(`home|card|${c}`) === false) {
+            return false;
+          }
+        }
+
+        // 2. If explicitly disabled in its parent module: strictly false
+        const parentMod = getCardModule(normKey);
+        if (parentMod) {
+          for (const c of candidates) {
+            if (dashboardViewMap.get(`${parentMod}|card|${c}`) === false) {
+              return false;
+            }
+          }
+        }
+
+        // 3. If explicitly enabled in Home: strictly true
+        for (const c of candidates) {
+          if (dashboardViewMap.get(`home|card|${c}`) === true) {
+            return true;
+          }
+        }
+
+        // 4. Fallback for unconfigured Home
         let hasHomeCardConfig = false;
         for (const k of dashboardViewMap.keys()) {
           if (k.startsWith("home|card|")) {
@@ -1362,7 +1425,7 @@ export const PermissionProvider = ({ children }) => {
           }
         }
         if (hasHomeCardConfig) {
-          return dashboardViewMap.get(comp) === true;
+          return false;
         } else {
           const defaultCards = [
             "sales-total-revenue",
@@ -1370,15 +1433,28 @@ export const PermissionProvider = ({ children }) => {
             "sales-active-customers",
             "purchase-total-value",
           ];
-          return defaultCards.includes(normKey);
+          const isDefault = defaultCards.some((dc) => candidates.has(dc));
+          if (!isDefault) return false;
+          if (parentMod) {
+            for (const c of candidates) {
+              if (dashboardViewMap.get(`${parentMod}|card|${c}`) === false) {
+                return false;
+              }
+            }
+          }
+          return true;
         }
       }
 
-      // If this item has an explicit permission entry, respect it
-      if (dashboardViewMap.has(comp)) {
-        return dashboardViewMap.get(comp) === true;
+      // For module cards (mk !== "home"):
+      // 1. If any candidate entry exists in dashboardViewMap: respect it immediately
+      for (const c of candidates) {
+        if (dashboardViewMap.has(`${mk}|${t}|${c}`)) {
+          return dashboardViewMap.get(`${mk}|${t}|${c}`) === true;
+        }
       }
-      // No explicit config for this item — fall back to module-level RBAC
+
+      // 2. No explicit config for this card — fall back to module-level RBAC
       if (mk) {
         return canAccessPath(`/${mk}`);
       }
