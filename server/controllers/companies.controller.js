@@ -513,25 +513,67 @@ export const createBranch = async (req, res, next) => {
       email,
       remarks,
       stock_upload_user_id,
+      logo,
+      tax_id,
+      currency_id,
     } = req.body || {};
 
     if (!company_id)
       throw httpError(400, "VALIDATION_ERROR", "company_id is required");
+    if (!name || !code)
+      throw httpError(400, "VALIDATION_ERROR", "name and code are required");
+
     const hasLogo = await hasColumn("adm_branches", "logo");
     const hasTaxId = await hasColumn("adm_branches", "tax_id");
     const hasCurrencyId = await hasColumn("adm_branches", "currency_id");
+    const hasStockUser = await hasColumn("adm_branches", "stock_upload_user_id");
+    const hasCreatedBy = await hasColumn("adm_branches", "created_by");
 
-    const extraCols = [
-      hasLogo ? "logo" : "",
-      hasTaxId ? "tax_id" : "",
-      hasCurrencyId ? "currency_id" : "",
-    ].filter(Boolean);
+    const extraCols = [];
+    const extraVals = [];
+    const queryParams = {
+      company_id,
+      name,
+      code,
+      is_active: is_active === undefined ? 1 : Number(Boolean(is_active)),
+      is_superbranch: is_superbranch ? 1 : 0,
+      parent_branch_id: parent_branch_id ? Number(parent_branch_id) : null,
+      address: address || null,
+      city: city || null,
+      state: state || null,
+      postal_code: postal_code || null,
+      country: country || null,
+      location: location || null,
+      telephone: telephone || null,
+      email: email || null,
+      remarks: remarks || null,
+    };
 
-    const extraVals = [
-      hasLogo ? ":logo" : "",
-      hasTaxId ? ":tax_id" : "",
-      hasCurrencyId ? ":currency_id" : "",
-    ].filter(Boolean);
+    if (hasStockUser) {
+      extraCols.push("stock_upload_user_id");
+      extraVals.push(":stock_upload_user_id");
+      queryParams.stock_upload_user_id = stock_upload_user_id ? Number(stock_upload_user_id) : null;
+    }
+    if (hasLogo && logo !== undefined) {
+      extraCols.push("logo");
+      extraVals.push(":logo");
+      queryParams.logo = logo || null;
+    }
+    if (hasTaxId && tax_id !== undefined) {
+      extraCols.push("tax_id");
+      extraVals.push(":tax_id");
+      queryParams.tax_id = tax_id || null;
+    }
+    if (hasCurrencyId && currency_id !== undefined) {
+      extraCols.push("currency_id");
+      extraVals.push(":currency_id");
+      queryParams.currency_id = currency_id ? Number(currency_id) : null;
+    }
+    if (hasCreatedBy && req.user?.id) {
+      extraCols.push("created_by");
+      extraVals.push(":created_by");
+      queryParams.created_by = Number(req.user.id);
+    }
 
     const colsSql = extraCols.length ? `, ${extraCols.join(", ")}` : "";
     const valsSql = extraVals.length ? `, ${extraVals.join(", ")}` : "";
@@ -539,33 +581,13 @@ export const createBranch = async (req, res, next) => {
     const result = await query(`INSERT INTO adm_branches (
           company_id, name, code, is_active, is_superbranch, parent_branch_id,
           address, city, state, postal_code, country,
-          location, telephone, email, remarks, stock_upload_user_id${colsSql}
+          location, telephone, email, remarks${colsSql}
         ) VALUES (
           :company_id, :name, :code, :is_active, :is_superbranch, :parent_branch_id,
           :address, :city, :state, :postal_code, :country,
-          :location, :telephone, :email, :remarks, :stock_upload_user_id${valsSql}
+          :location, :telephone, :email, :remarks${valsSql}
         )`,
-      {
-        company_id,
-        name,
-        code,
-        is_active: is_active === undefined ? 1 : Number(Boolean(is_active)),
-        is_superbranch: is_superbranch ? 1 : 0,
-        parent_branch_id: parent_branch_id ? Number(parent_branch_id) : null,
-        address: address || null,
-        city: city || null,
-        state: state || null,
-        postal_code: postal_code || null,
-        country: country || null,
-        location: location || null,
-        telephone: telephone || null,
-        email: email || null,
-        remarks: remarks || null,
-        stock_upload_user_id: stock_upload_user_id ? Number(stock_upload_user_id) : null,
-        logo: req.body.logo || null,
-        tax_id: req.body.tax_id || null,
-        currency_id: req.body.currency_id ? Number(req.body.currency_id) : null,
-      },
+      queryParams,
     );
     res.status(201).json({ id: result.insertId });
   } catch (err) {
@@ -610,11 +632,44 @@ export const updateBranch = async (req, res, next) => {
     const hasLogo = await hasColumn("adm_branches", "logo");
     const hasTaxId = await hasColumn("adm_branches", "tax_id");
     const hasCurrencyId = await hasColumn("adm_branches", "currency_id");
+    const hasStockUser = await hasColumn("adm_branches", "stock_upload_user_id");
 
     const extraUpdates = [];
-    if (hasLogo && logo !== undefined) extraUpdates.push("logo = :logo");
-    if (hasTaxId && tax_id !== undefined) extraUpdates.push("tax_id = :tax_id");
-    if (hasCurrencyId && currency_id !== undefined) extraUpdates.push("currency_id = :currency_id");
+    const queryParams = {
+      id,
+      company_id,
+      name,
+      code,
+      is_active: is_active === undefined ? 1 : Number(Boolean(is_active)),
+      is_superbranch: is_superbranch ? 1 : 0,
+      parent_branch_id: parent_branch_id ? Number(parent_branch_id) : null,
+      address: address || null,
+      city: city || null,
+      state: state || null,
+      postal_code: postal_code || null,
+      country: country || null,
+      location: location || null,
+      telephone: telephone || null,
+      email: email || null,
+      remarks: remarks || null,
+    };
+
+    if (hasStockUser && stock_upload_user_id !== undefined) {
+      extraUpdates.push("stock_upload_user_id = :stock_upload_user_id");
+      queryParams.stock_upload_user_id = stock_upload_user_id ? Number(stock_upload_user_id) : null;
+    }
+    if (hasLogo && logo !== undefined) {
+      extraUpdates.push("logo = :logo");
+      queryParams.logo = logo || null;
+    }
+    if (hasTaxId && tax_id !== undefined) {
+      extraUpdates.push("tax_id = :tax_id");
+      queryParams.tax_id = tax_id || null;
+    }
+    if (hasCurrencyId && currency_id !== undefined) {
+      extraUpdates.push("currency_id = :currency_id");
+      queryParams.currency_id = currency_id ? Number(currency_id) : null;
+    }
 
     const extraUpdatesSql = extraUpdates.length ? `, ${extraUpdates.join(", ")}` : "";
 
@@ -633,32 +688,10 @@ export const updateBranch = async (req, res, next) => {
              location = :location,
              telephone = :telephone,
              email = :email,
-             remarks = :remarks,
-             stock_upload_user_id = :stock_upload_user_id
+             remarks = :remarks
              ${extraUpdatesSql}
          WHERE id = :id`,
-      {
-        id,
-        company_id,
-        name,
-        code,
-        is_active: is_active === undefined ? 1 : Number(Boolean(is_active)),
-        is_superbranch: is_superbranch ? 1 : 0,
-        parent_branch_id: parent_branch_id ? Number(parent_branch_id) : null,
-        address: address || null,
-        city: city || null,
-        state: state || null,
-        postal_code: postal_code || null,
-        country: country || null,
-        location: location || null,
-        telephone: telephone || null,
-        email: email || null,
-        remarks: remarks || null,
-        stock_upload_user_id: stock_upload_user_id ? Number(stock_upload_user_id) : null,
-        logo: logo || null,
-        tax_id: tax_id || null,
-        currency_id: currency_id ? Number(currency_id) : null,
-      },
+      queryParams,
     );
     res.json({ affectedRows: result.affectedRows });
   } catch (err) {
