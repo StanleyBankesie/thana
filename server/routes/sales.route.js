@@ -2198,7 +2198,7 @@ router.get(
   requirePermission("SAL.CUSTOMER.VIEW"),
   async (req, res, next) => {
     try {
-      const companyId = req.scope.companyId;
+      const { companyId, branchId = null, branchIdsStr = "" } = req.scope || {};
       const activeParam = String(req.query.active || "")
         .trim()
         .toLowerCase();
@@ -2208,8 +2208,11 @@ router.get(
       
       const serviceCustomerParam = String(req.query.service_customer || "").trim().toUpperCase();
 
-      const params = { companyId };
+      const params = { companyId, branchIdsStr };
       const where = ["c.company_id = :companyId"];
+      if (branchIdsStr) {
+        where.push("(:branchIdsStr = '' OR c.branch_id IS NULL OR FIND_IN_SET(c.branch_id, :branchIdsStr))");
+      }
       if (onlyActive) where.push("c.is_active = 1");
       if (serviceCustomerParam === "Y") where.push("c.service_customer = 'Y'");
       else if (serviceCustomerParam === "N") where.push("c.service_customer = 'N'");
@@ -2380,7 +2383,7 @@ router.get(
   requirePermission("SAL.CUSTOMER.VIEW"),
   async (req, res, next) => {
     try {
-      const { companyId = null } = req.scope || {};
+      const { companyId = null, branchIdsStr = "" } = req.scope || {};
       const id = Number(req.params.id);
       if (!Number.isFinite(id)) {
         throw httpError(400, "VALIDATION_ERROR", "Invalid id");
@@ -2398,8 +2401,9 @@ router.get(
         LEFT JOIN adm_users u ON u.id = c.created_by
         LEFT JOIN fin_accounts fa ON fa.id = c.sales_account_id AND fa.company_id = c.company_id
          WHERE c.id = :id AND c.company_id = :companyId
+           AND (:branchIdsStr = '' OR c.branch_id IS NULL OR FIND_IN_SET(c.branch_id, :branchIdsStr))
          LIMIT 1`,
-        { id, companyId },
+        { id, companyId, branchIdsStr },
       ).catch(() => []);
       if (!rows.length) throw httpError(404, "NOT_FOUND", "Customer not found");
       res.json({ item: rows[0] });
@@ -2461,7 +2465,10 @@ router.post(
                  :price_type_id, :currency_id, :credit_limit, :enforce_credit_limit, :payment_terms, :is_active, :sales_account_id, :service_customer, :createdBy)`,
         {
           companyId,
-          branchId, branchIdsStr,
+          branchId: req.body.branch_id !== undefined
+            ? (Number(req.body.branch_id) || null)
+            : (branchId ? Number(branchId) : null),
+          branchIdsStr,
           customer_code: customer_code || null,
           customer_name,
           email: email || null,
@@ -2548,6 +2555,7 @@ router.put(
         is_active,
         sales_account_id,
         service_customer,
+        branch_id,
       } = req.body;
 
       await ensureCustomersTableColumns();
@@ -2563,6 +2571,8 @@ router.put(
           : 1;
 
       const isEnforced = enforce_credit_limit === true || enforce_credit_limit === 1 || String(enforce_credit_limit) === "true" ? 1 : 0;
+
+      const updateBranchSql = branch_id !== undefined ? ", branch_id = :branch_id" : "";
 
       const result = await query(
         `UPDATE sal_customers 
@@ -2586,10 +2596,12 @@ router.put(
              is_active = :is_active,
              sales_account_id = :sales_account_id,
              service_customer = :service_customer
+             ${updateBranchSql}
          WHERE id = :id AND company_id = :companyId`,
         {
           id,
           companyId,
+          branch_id: branch_id !== undefined ? (Number(branch_id) || null) : null,
           customer_code: customer_code || null,
           customer_name,
           email: email || null,

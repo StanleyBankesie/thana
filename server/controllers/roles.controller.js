@@ -69,16 +69,26 @@ export const getUserRole = async (req, res, next) => {
 export const listRoles = async (req, res, next) => {
   try {
     const companyId = req.query.company_id || req.scope?.companyId;
+    const branchIdsStr = req.query.branchIdsStr || req.scope?.branchIdsStr;
+    const hasBranchCol = await hasColumn("adm_roles", "branch_id");
     
     // Define base query and parameters
     let queryStr =
-      "SELECT id, company_id, name, code, is_active, created_at FROM adm_roles";
+      `SELECT id, company_id, ${hasBranchCol ? "branch_id, " : ""}name, code, is_active, created_at FROM adm_roles`;
     const params = {};
+    const whereClauses = [];
     
     // Apply company context filtering if applicable
     if (companyId) {
-      queryStr += " WHERE company_id = :companyId";
+      whereClauses.push("company_id = :companyId");
       params.companyId = companyId;
+    }
+    if (hasBranchCol && branchIdsStr) {
+      whereClauses.push("(:branchIdsStr = '' OR branch_id IS NULL OR FIND_IN_SET(branch_id, :branchIdsStr))");
+      params.branchIdsStr = branchIdsStr;
+    }
+    if (whereClauses.length) {
+      queryStr += " WHERE " + whereClauses.join(" AND ");
     }
     queryStr += " ORDER BY name ASC";
     const items = await query(queryStr, params);
@@ -106,10 +116,13 @@ export const getRoleById = async (req, res, next) => {
     await ensureRolePagesTable();
     await ensureUserPermissionsTable();
     
+    const hasBranchCol = await hasColumn("adm_roles", "branch_id");
+    const branchClause = hasBranchCol && branchIdsStr ? " AND (:branchIdsStr = '' OR branch_id IS NULL OR FIND_IN_SET(branch_id, :branchIdsStr))" : "";
+
     // Fetch the base role document
     const items = await query(
-      "SELECT id, company_id, name, code, is_active FROM adm_roles WHERE id = :id AND company_id = :companyId LIMIT 1",
-      { id, companyId },
+      `SELECT id, company_id, ${hasBranchCol ? "branch_id, " : ""}name, code, is_active FROM adm_roles WHERE id = :id AND company_id = :companyId${branchClause} LIMIT 1`,
+      { id, companyId, branchIdsStr },
     );
     if (!items.length) throw httpError(404, "NOT_FOUND", "Role not found");
     const role = items[0];
@@ -145,10 +158,19 @@ export const createRole = async (req, res, next) => {
     await ensureUserPermissionsTable();
     if (!name || !code)
       throw httpError(400, "VALIDATION_ERROR", "name and code are required");
+
+    const hasBranchCol = await hasColumn("adm_roles", "branch_id");
+    const targetBranchId = req.body.branch_id !== undefined
+      ? (Number(req.body.branch_id) || null)
+      : (scope.branchId ? Number(scope.branchId) : null);
+    const cols = `company_id, ${hasBranchCol ? "branch_id, " : ""}name, code, is_active`;
+    const vals = `:companyId, ${hasBranchCol ? ":branchId, " : ""}:name, :code, :is_active`;
+
     const result = await query(
-      "INSERT INTO adm_roles (company_id, name, code, is_active) VALUES (:companyId, :name, :code, :is_active)",
+      `INSERT INTO adm_roles (${cols}) VALUES (${vals})`,
       {
         companyId,
+        branchId: targetBranchId,
         name,
         code,
         is_active: is_active === undefined ? 1 : Number(Boolean(is_active)),
@@ -192,15 +214,19 @@ export const updateRole = async (req, res, next) => {
     await ensureRolePagesTable();
     await ensureUserPermissionsTable();
 
-    const { name, code, is_active, pages } = req.body || {};
+    const { name, code, is_active, pages, branch_id } = req.body || {};
     if (!name || !code)
       throw httpError(400, "VALIDATION_ERROR", "name and code are required");
 
+    const hasBranchCol = await hasColumn("adm_roles", "branch_id");
+    const branchUpdateClause = hasBranchCol && branch_id !== undefined ? ", branch_id = :branchId" : "";
+
     const result = await query(
-      "UPDATE adm_roles SET name = :name, code = :code, is_active = :is_active WHERE id = :id AND company_id = :companyId",
+      `UPDATE adm_roles SET name = :name, code = :code, is_active = :is_active${branchUpdateClause} WHERE id = :id AND company_id = :companyId`,
       {
         id,
         companyId,
+        branchId: branch_id !== undefined ? (Number(branch_id) || null) : null,
         name,
         code,
         is_active: is_active === undefined ? 1 : Number(Boolean(is_active)),

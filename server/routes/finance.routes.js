@@ -24,6 +24,7 @@ router.get(
   "/chart-of-accounts",
   requireAuth,
   requireCompanyScope,
+  requireBranchScope,
   financeController.listChartOfAccounts,
 );
 
@@ -31,6 +32,7 @@ router.get(
   "/accounts",
   requireAuth,
   requireCompanyScope,
+  requireBranchScope,
   financeController.listChartOfAccounts,
 );
 
@@ -43,6 +45,7 @@ router.get(
   "/expense-accounts",
   requireAuth,
   requireCompanyScope,
+  requireBranchScope,
   financeController.listExpenseAccounts,
 );
 
@@ -50,6 +53,7 @@ router.post(
   "/accounts/sync",
   requireAuth,
   requireCompanyScope,
+  requireBranchScope,
   financeController.syncAccounts,
 );
 
@@ -57,6 +61,7 @@ router.put(
   "/accounts/force-postable",
   requireAuth,
   requireCompanyScope,
+  requireBranchScope,
   financeController.forcePostableAccounts,
 );
 
@@ -64,6 +69,7 @@ router.post(
   "/accounts",
   requireAuth,
   requireCompanyScope,
+  requireBranchScope,
   financeController.createAccount,
 );
 
@@ -71,6 +77,7 @@ router.put(
   "/accounts/:id",
   requireAuth,
   requireCompanyScope,
+  requireBranchScope,
   financeController.requireIdParam("id"),
   financeController.updateAccount,
 );

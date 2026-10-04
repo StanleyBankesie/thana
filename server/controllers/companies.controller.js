@@ -517,17 +517,33 @@ export const createBranch = async (req, res, next) => {
 
     if (!company_id)
       throw httpError(400, "VALIDATION_ERROR", "company_id is required");
-    if (!name || !code)
-      throw httpError(400, "VALIDATION_ERROR", "name and code are required");
+    const hasLogo = await hasColumn("adm_branches", "logo");
+    const hasTaxId = await hasColumn("adm_branches", "tax_id");
+    const hasCurrencyId = await hasColumn("adm_branches", "currency_id");
+
+    const extraCols = [
+      hasLogo ? "logo" : "",
+      hasTaxId ? "tax_id" : "",
+      hasCurrencyId ? "currency_id" : "",
+    ].filter(Boolean);
+
+    const extraVals = [
+      hasLogo ? ":logo" : "",
+      hasTaxId ? ":tax_id" : "",
+      hasCurrencyId ? ":currency_id" : "",
+    ].filter(Boolean);
+
+    const colsSql = extraCols.length ? `, ${extraCols.join(", ")}` : "";
+    const valsSql = extraVals.length ? `, ${extraVals.join(", ")}` : "";
 
     const result = await query(`INSERT INTO adm_branches (
           company_id, name, code, is_active, is_superbranch, parent_branch_id,
           address, city, state, postal_code, country,
-          location, telephone, email, remarks, stock_upload_user_id
+          location, telephone, email, remarks, stock_upload_user_id${colsSql}
         ) VALUES (
           :company_id, :name, :code, :is_active, :is_superbranch, :parent_branch_id,
           :address, :city, :state, :postal_code, :country,
-          :location, :telephone, :email, :remarks, :stock_upload_user_id
+          :location, :telephone, :email, :remarks, :stock_upload_user_id${valsSql}
         )`,
       {
         company_id,
@@ -546,6 +562,9 @@ export const createBranch = async (req, res, next) => {
         email: email || null,
         remarks: remarks || null,
         stock_upload_user_id: stock_upload_user_id ? Number(stock_upload_user_id) : null,
+        logo: req.body.logo || null,
+        tax_id: req.body.tax_id || null,
+        currency_id: req.body.currency_id ? Number(req.body.currency_id) : null,
       },
     );
     res.status(201).json({ id: result.insertId });
@@ -578,12 +597,26 @@ export const updateBranch = async (req, res, next) => {
       email,
       remarks,
       stock_upload_user_id,
+      logo,
+      tax_id,
+      currency_id,
     } = req.body || {};
 
     if (!company_id)
       throw httpError(400, "VALIDATION_ERROR", "company_id is required");
     if (!name || !code)
       throw httpError(400, "VALIDATION_ERROR", "name and code are required");
+
+    const hasLogo = await hasColumn("adm_branches", "logo");
+    const hasTaxId = await hasColumn("adm_branches", "tax_id");
+    const hasCurrencyId = await hasColumn("adm_branches", "currency_id");
+
+    const extraUpdates = [];
+    if (hasLogo && logo !== undefined) extraUpdates.push("logo = :logo");
+    if (hasTaxId && tax_id !== undefined) extraUpdates.push("tax_id = :tax_id");
+    if (hasCurrencyId && currency_id !== undefined) extraUpdates.push("currency_id = :currency_id");
+
+    const extraUpdatesSql = extraUpdates.length ? `, ${extraUpdates.join(", ")}` : "";
 
     const result = await query(`UPDATE adm_branches
          SET company_id = :company_id,
@@ -602,6 +635,7 @@ export const updateBranch = async (req, res, next) => {
              email = :email,
              remarks = :remarks,
              stock_upload_user_id = :stock_upload_user_id
+             ${extraUpdatesSql}
          WHERE id = :id`,
       {
         id,
@@ -621,6 +655,9 @@ export const updateBranch = async (req, res, next) => {
         email: email || null,
         remarks: remarks || null,
         stock_upload_user_id: stock_upload_user_id ? Number(stock_upload_user_id) : null,
+        logo: logo || null,
+        tax_id: tax_id || null,
+        currency_id: currency_id ? Number(currency_id) : null,
       },
     );
     res.json({ affectedRows: result.affectedRows });

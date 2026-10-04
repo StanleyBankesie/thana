@@ -6201,16 +6201,22 @@ router.get(
   requirePermission("PURCHASE.RFQ.VIEW"),
   async (req, res, next) => {
     try {
-      const { companyId = null } = req.scope || {};
+      const { companyId = null, branchIdsStr = '' } = req.scope || {};
       const { active, contractor } = req.query;
 
       await ensureSupplierTypeColumn();
       await ensureSupplierCurrencyColumn();
       await ensureSupplierServiceContractorColumn();
       await ensureSupplierExpenseAccountColumn();
+      const hasBranchCol = await hasColumn("pur_suppliers", "branch_id");
 
       let sql = "SELECT * FROM pur_suppliers WHERE company_id = :companyId";
       const params = { companyId };
+
+      if (hasBranchCol && branchIdsStr) {
+        sql += " AND (:branchIdsStr = '' OR branch_id IS NULL OR FIND_IN_SET(branch_id, :branchIdsStr))";
+        params.branchIdsStr = branchIdsStr;
+      }
 
       if (active === "true") {
         sql += " AND is_active = 1";
@@ -6241,16 +6247,18 @@ router.get(
   requirePermission("PURCHASE.RFQ.VIEW"),
   async (req, res, next) => {
     try {
-      const { companyId = null } = req.scope || {};
+      const { companyId = null, branchIdsStr = '' } = req.scope || {};
       const id = toNumber(req.params.id);
       if (!id) throw httpError(400, "VALIDATION_ERROR", "Invalid id");
       await ensureSupplierTypeColumn();
       await ensureSupplierCurrencyColumn();
       await ensureSupplierServiceContractorColumn();
       await ensureSupplierExpenseAccountColumn();
+      const hasBranchCol = await hasColumn("pur_suppliers", "branch_id");
+      const branchClause = hasBranchCol && branchIdsStr ? " AND (:branchIdsStr = '' OR branch_id IS NULL OR FIND_IN_SET(branch_id, :branchIdsStr))" : "";
       const rows = await query(
-        "SELECT * FROM pur_suppliers WHERE id = :id AND company_id = :companyId",
-        { id, companyId },
+        `SELECT * FROM pur_suppliers WHERE id = :id AND company_id = :companyId${branchClause}`,
+        { id, companyId, branchIdsStr },
       );
       if (!rows.length) throw httpError(404, "NOT_FOUND", "Supplier not found");
       res.json({ item: rows[0] });
@@ -6323,11 +6331,19 @@ router.post(
           supplierCode = `SU-${String(nextNum).padStart(6, "0")}`;
       }
 
+      const hasBranchCol = await hasColumn("pur_suppliers", "branch_id");
+      const targetBranchId = body.branch_id !== undefined
+        ? (Number(body.branch_id) || null)
+        : (req.scope?.branchId ? Number(req.scope.branchId) : null);
+      const cols = `company_id, ${hasBranchCol ? "branch_id, " : ""}supplier_code, supplier_name, contact_person, email, phone, address, city, state, country, payment_terms, supplier_type, currency_id, service_contractor, is_active, expense_account_id`;
+      const vals = `:companyId, ${hasBranchCol ? ":branchId, " : ""}:supplierCode, :supplierName, :contactPerson, :email, :phone, :address, :city, :state, :country, :paymentTerms, :supplierType, :currencyId, :serviceContractor, :isActive, :expenseAccountId`;
+
       const [resHeader] = await conn.execute(
-        `INSERT INTO pur_suppliers (company_id, supplier_code, supplier_name, contact_person, email, phone, address, city, state, country, payment_terms, supplier_type, currency_id, service_contractor, is_active, expense_account_id)
-         VALUES (:companyId, :supplierCode, :supplierName, :contactPerson, :email, :phone, :address, :city, :state, :country, :paymentTerms, :supplierType, :currencyId, :serviceContractor, :isActive, :expenseAccountId)`,
+        `INSERT INTO pur_suppliers (${cols})
+         VALUES (${vals})`,
         {
           companyId,
+          branchId: targetBranchId,
           supplierCode,
           supplierName: body.supplier_name || null,
           contactPerson: body.contact_person || null,
@@ -6441,6 +6457,8 @@ router.put(
       await ensureSupplierServiceContractorColumn();
       await ensureSupplierLocationColumns();
       await ensureSupplierExpenseAccountColumn();
+      const hasBranchCol = await hasColumn("pur_suppliers", "branch_id");
+      const branchUpdateClause = hasBranchCol && body.branch_id !== undefined ? ", branch_id = :branchId" : "";
 
       await conn.beginTransaction();
       await conn.execute(
@@ -6459,10 +6477,12 @@ router.put(
              service_contractor = :serviceContractor,
              is_active = :isActive,
              expense_account_id = :expenseAccountId
+             ${branchUpdateClause}
          WHERE id = :id AND company_id = :companyId`,
         {
           id,
           companyId,
+          branchId: body.branch_id !== undefined ? (Number(body.branch_id) || null) : null,
           supplierName: body.supplier_name || null,
           contactPerson: body.contact_person || null,
           email: body.email || null,

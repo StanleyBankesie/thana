@@ -1549,7 +1549,8 @@ export const listAccountGroups = async (req, res, next) => {
 export const listChartOfAccounts = async (req, res, next) => {
   try {
     await ensureAccountBalanceObjects();
-    const companyId = req.scope.companyId;
+    const { companyId, branchId = null, branchIdsStr = '' } = req.scope || {};
+    const hasBranchCol = await hasColumn("fin_accounts", "branch_id");
     const search = req.query.search ? String(req.query.search).trim() : null;
     const groupId = req.query.groupId ? Number(req.query.groupId) : null;
     const nature = req.query.nature ? String(req.query.nature).trim().toUpperCase() : null;
@@ -1557,6 +1558,7 @@ export const listChartOfAccounts = async (req, res, next) => {
     const postable = req.query.postable !== undefined && req.query.postable !== "" && req.query.postable !== null ? Number(req.query.postable) : null;
     const items = await query(
       `SELECT a.id, a.code, a.name, a.balance_type, a.is_postable, a.is_active, a.currency_id,
+              ${hasBranchCol ? "a.branch_id," : ""}
               c.code AS currency_code,
               g.id AS group_id, g.code AS group_code, g.name AS group_name, g.nature,
               COALESCE(ab.balance_amount, 0) AS current_balance,
@@ -1568,13 +1570,14 @@ export const listChartOfAccounts = async (req, res, next) => {
        LEFT JOIN fin_account_balances ab ON ab.account_id = a.id AND ab.company_id = a.company_id
        LEFT JOIN fin_account_groups pg ON pg.id = g.parent_id
        WHERE a.company_id = :companyId
+         ${hasBranchCol && branchIdsStr ? "AND (:branchIdsStr = '' OR a.branch_id IS NULL OR FIND_IN_SET(a.branch_id, :branchIdsStr))" : ""}
          AND (:search IS NULL OR a.code LIKE CONCAT('%', :search, '%') OR a.name LIKE CONCAT('%', :search, '%') OR g.name LIKE CONCAT('%', :search, '%'))
          AND (:groupId IS NULL OR a.group_id = :groupId)
          AND (:nature IS NULL OR g.nature = :nature)
          AND (:active IS NULL OR a.is_active = :active)
          AND (:postable IS NULL OR a.is_postable = :postable)
        ORDER BY g.code ASC, a.code ASC`,
-      { companyId, search, groupId, nature, active, postable },
+      { companyId, branchIdsStr, search, groupId, nature, active, postable },
     );
     res.json({ items });
   } catch (e) {
@@ -1584,19 +1587,22 @@ export const listChartOfAccounts = async (req, res, next) => {
 
 export const listExpenseAccounts = async (req, res, next) => {
   try {
-    const companyId = req.scope.companyId;
+    const { companyId, branchId = null, branchIdsStr = '' } = req.scope || {};
+    const hasBranchCol = await hasColumn("fin_accounts", "branch_id");
     const items = await query(
       `SELECT a.id, a.code, a.name, a.is_postable, a.is_active, a.currency_id,
+              ${hasBranchCol ? "a.branch_id," : ""}
               c.code AS currency_code,
               g.id AS group_id, g.code AS group_code, g.name AS group_name, g.nature
        FROM fin_accounts a
        JOIN fin_account_groups g ON g.id = a.group_id AND g.company_id = a.company_id
        LEFT JOIN fin_currencies c ON c.id = a.currency_id AND c.company_id = a.currency_id
        WHERE a.company_id = :companyId
+         ${hasBranchCol && branchIdsStr ? "AND (:branchIdsStr = '' OR a.branch_id IS NULL OR FIND_IN_SET(a.branch_id, :branchIdsStr))" : ""}
          AND g.nature = 'EXPENSE'
          AND a.is_active = 1
        ORDER BY g.code ASC, a.code ASC`,
-      { companyId },
+      { companyId, branchIdsStr },
     );
     res.json({ items });
   } catch (e) {
@@ -1613,7 +1619,11 @@ export const listExpenseAccounts = async (req, res, next) => {
  */
 export const createAccount = async (req, res, next) => {
   try {
-    const companyId = req.scope.companyId;
+    const { companyId, branchId = null } = req.scope || {};
+    const hasBranchCol = await hasColumn("fin_accounts", "branch_id");
+    const targetBranchId = req.body.branch_id !== undefined
+      ? (Number(req.body.branch_id) || null)
+      : (branchId ? Number(branchId) : null);
     const {
       groupId,
       name,
@@ -1693,11 +1703,15 @@ export const createAccount = async (req, res, next) => {
       }
     }
 
+    const cols = `company_id, ${hasBranchCol ? "branch_id, " : ""}group_id, code, name, currency_id, is_postable, is_control_account, is_active`;
+    const vals = `:companyId, ${hasBranchCol ? ":branchId, " : ""}:groupId, :code, :name, :currencyId, :isPostable, :isControlAccount, :isActive`;
+
     const result = await query(
-      `INSERT INTO fin_accounts (company_id, group_id, code, name, currency_id, is_postable, is_control_account, is_active)
-       VALUES (:companyId, :groupId, :code, :name, :currencyId, :isPostable, :isControlAccount, :isActive)`,
+      `INSERT INTO fin_accounts (${cols})
+       VALUES (${vals})`,
       {
         companyId,
+        branchId: targetBranchId,
         groupId,
         code,
         name: name.trim(),
@@ -1745,6 +1759,9 @@ export const updateAccount = async (req, res, next) => {
       }
     }
 
+    const hasBranchCol = await hasColumn("fin_accounts", "branch_id");
+    const branchUpdateClause = hasBranchCol && req.body.branch_id !== undefined ? ", branch_id = :branchId" : "";
+
     await query(
       `UPDATE fin_accounts SET
         group_id = COALESCE(:groupId, group_id),
@@ -1754,10 +1771,12 @@ export const updateAccount = async (req, res, next) => {
         is_postable = COALESCE(:isPostable, is_postable),
         is_control_account = COALESCE(:isControlAccount, is_control_account),
         is_active = COALESCE(:isActive, is_active)
+        ${branchUpdateClause}
        WHERE id = :id AND company_id = :companyId`,
       {
         id,
         companyId,
+        branchId: req.body.branch_id !== undefined ? (Number(req.body.branch_id) || null) : null,
         groupId: groupId || null,
         name: name ? name.trim() : null,
         code: code ? code.trim() : null,
@@ -4595,10 +4614,18 @@ export const createAccountGroup = async (req, res, next) => {
       }
     }
 
+    const hasBranchCol = await hasColumn("fin_account_groups", "branch_id");
+    const targetBranchId = req.body.branch_id !== undefined
+      ? (Number(req.body.branch_id) || null)
+      : (req.scope?.branchId ? Number(req.scope.branchId) : null);
+    const cols = `company_id, ${hasBranchCol ? "branch_id, " : ""}code, name, nature, parent_id, is_active`;
+    const vals = `:companyId, ${hasBranchCol ? ":branchId, " : ""}:code, :name, :nature, :parentId, :isActive`;
+
     const result = await query(
-      "INSERT INTO fin_account_groups (company_id, code, name, nature, parent_id, is_active) VALUES (:companyId, :code, :name, :nature, :parentId, :isActive)",
+      `INSERT INTO fin_account_groups (${cols}) VALUES (${vals})`,
       {
         companyId,
+        branchId: targetBranchId,
         code,
         name,
         nature,
