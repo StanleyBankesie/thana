@@ -2038,10 +2038,14 @@ router.get(
         growth = 100;
       }
 
+      const curDay = Math.max(new Date().getDate(), 1);
+      const avgSalesThisMonth = curDay > 0 ? (thisMonth / curDay) : 0;
+
       res.json({
         success: true,
         data: {
           salesThisMonth: thisMonth,
+          avgSalesThisMonth: Number(avgSalesThisMonth.toFixed(2)),
           openQuotations: Number(openQuotesData?.[0]?.count || 0),
           pendingDeliveries: Number(pendingDeliveriesData?.[0]?.count || 0),
           overdueInvoices: Number(overdueInvoicesData?.[0]?.count || 0),

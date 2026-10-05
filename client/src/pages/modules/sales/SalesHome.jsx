@@ -243,6 +243,16 @@ const SalesModuleHome = () => {
       actions: [{ label: "View", path: "/sales/reports/invoice-summary", type: "outline" }],
     },
     {
+      rbac_key: "average-sales-this-month",
+      icon: "📊",
+      value: "GH₵0.00",
+      label: "Average Sales This Month",
+      change: "",
+      changeType: "neutral",
+      path: "/sales/reports/invoice-summary",
+      actions: [{ label: "View", path: "/sales/reports/invoice-summary", type: "outline" }],
+    },
+    {
       rbac_key: "open-quotations",
       icon: "🔵",
       value: "0",
@@ -302,6 +312,7 @@ const SalesModuleHome = () => {
         const data = res?.data?.data || res?.data || {};
         if (mounted) {
           const totalThisMonth = Number(data.salesThisMonth || 0);
+          const avgSalesThisMonth = Number(data.avgSalesThisMonth || 0);
           const openQuotes = Number(data.openQuotations || 0);
           const pendingDelivs = Number(data.pendingDeliveries || 0);
           const overdueInvs = Number(data.overdueInvoices || 0);
@@ -309,20 +320,31 @@ const SalesModuleHome = () => {
           const growth = String(data.salesGrowth || "0%");
 
           setStats((prev) => {
-            const next = [...prev];
-            next[0] = {
-              ...next[0],
-              value: `GH₵${totalThisMonth.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
-            };
-            next[1] = { ...next[1], value: String(openQuotes) };
-            next[2] = { ...next[2], value: String(pendingDelivs) };
-            next[3] = { ...next[3], value: String(overdueInvs) };
-            next[4] = {
-              ...next[4],
-              value: `GH₵${totalRev.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
-            };
-            next[5] = { ...next[5], value: growth };
-            return next;
+            return prev.map((s) => {
+              if (s.rbac_key === "sales-this-month") {
+                return {
+                  ...s,
+                  value: `GH₵${totalThisMonth.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+                };
+              }
+              if (s.rbac_key === "average-sales-this-month" || s.rbac_key === "sales-avg-sales-this-month") {
+                return {
+                  ...s,
+                  value: `GH₵${avgSalesThisMonth.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+                };
+              }
+              if (s.rbac_key === "open-quotations") return { ...s, value: String(openQuotes) };
+              if (s.rbac_key === "pending-deliveries") return { ...s, value: String(pendingDelivs) };
+              if (s.rbac_key === "overdue-invoices") return { ...s, value: String(overdueInvs) };
+              if (s.rbac_key === "total-revenue") {
+                return {
+                  ...s,
+                  value: `GH₵${totalRev.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+                };
+              }
+              if (s.rbac_key === "sales-growth") return { ...s, value: growth };
+              return s;
+            });
           });
         }
       } catch (err) {

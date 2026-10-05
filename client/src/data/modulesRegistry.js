@@ -74,13 +74,11 @@ export const MODULES_REGISTRY = {
       { key: "prospect-conversion", label: "Prospect Conversion", type: "feature" },
     ],
     dashboards: [
-
-
-
-          { key: "sales-total-revenue", label: "Total Revenue This Month", type: "dashboard" },
+      { key: "sales-total-revenue", label: "Total Revenue This Month", type: "dashboard" },
+      { key: "sales-avg-sales-this-month", label: "Average Sales This Month", type: "dashboard" },
       { key: "sales-pending-orders", label: "Pending Orders", type: "dashboard" },
       { key: "sales-active-customers", label: "Active Customers", type: "dashboard" },
-]
+    ]
   },
 
   purchase: {

@@ -233,7 +233,14 @@ export default function DashboardPermissions() {
     ticker_key = null,
   ) => {
     const key = permKey(module_key, dashboard_key, card_key, ticker_key);
-    if (key in userToggles) return userToggles[key];
+    if (key in userToggles) return Boolean(userToggles[key]);
+    if (card_key) {
+      const aliases = getAllCardAliases(card_key);
+      for (const a of aliases) {
+        const ak = permKey(module_key, dashboard_key, a, ticker_key);
+        if (ak in userToggles) return Boolean(userToggles[ak]);
+      }
+    }
     const match = perms.filter(
       (p) =>
         String(p.module_key) === String(module_key) &&
@@ -242,18 +249,36 @@ export default function DashboardPermissions() {
         String(p.ticker_key || "") === String(ticker_key || ""),
     );
     if (match.length === 0) {
+      if (card_key) {
+        const aliases = getAllCardAliases(card_key);
+        const aliasMatch = perms.filter(
+          (p) =>
+            String(p.module_key) === String(module_key) &&
+            aliases.includes(String(p.card_key || "")),
+        );
+        if (aliasMatch.length > 0) {
+          const latest = aliasMatch[aliasMatch.length - 1];
+          return Number(latest?.can_view) === 1;
+        }
+      }
+
       if (module_key === "home" && card_key) {
+        const hasHomeConfig = perms.some((p) => String(p.module_key) === "home" && p.card_key && Number(p.can_view) === 1);
+        if (hasHomeConfig) {
+          return false;
+        }
         const defaultCards = [
           "sales-total-revenue",
+          "sales-avg-sales-this-month",
           "sales-pending-orders",
-          "sales-active-customers",
           "purchase-total-value",
         ];
         return defaultCards.includes(card_key);
       }
       return true;
     }
-    return match.some((p) => Number(p.can_view) === 1);
+    const latest = match[match.length - 1];
+    return Number(latest?.can_view) === 1;
   };
   const setView = (module_key, dashboard_key, card_key, ticker_key, value) => {
     setPerms((prev) => {
@@ -323,33 +348,6 @@ export default function DashboardPermissions() {
       }
     }
 
-    // If customizing Home for the first time, preserve the other default cards
-    if (module_key === "home" && type === "card") {
-      const existingHomeCards = perms.filter(
-        (p) => String(p.module_key) === "home" && p.card_key
-      );
-      if (existingHomeCards.length === 0) {
-        const defaultCards = [
-          "sales-total-revenue",
-          "sales-pending-orders",
-          "sales-active-customers",
-          "purchase-total-value",
-        ];
-        defaultCards.forEach((dc) => {
-          if (dc !== key) {
-            setView("home", null, dc, null, true);
-            permissionsToSave.push({
-              module_key: "home",
-              dashboard_key: null,
-              card_key: dc,
-              ticker_key: null,
-              can_view: 1,
-            });
-          }
-        });
-      }
-    }
-
     try {
       await api.put("/access/dashboard-permissions", {
         user_id: Number(selectedUserId),
@@ -372,6 +370,74 @@ export default function DashboardPermissions() {
       // Revert optimistic update on failure
       setView(module_key, dashboard_key, card_key, ticker_key, !allow);
       toast.error(err.response?.data?.message || "Failed to save");
+    }
+  };
+
+  const handleRemoveHomeCard = async (cardKey) => {
+    if (!selectedUserId) return;
+    const aliases = getAllCardAliases(cardKey);
+    const updates = {};
+    const permsToSave = [];
+    aliases.forEach((a) => {
+      const k = permKey("home", null, a, null);
+      updates[k] = false;
+      setView("home", null, a, null, false);
+      permsToSave.push({
+        module_key: "home",
+        dashboard_key: null,
+        card_key: a,
+        ticker_key: null,
+        can_view: 0,
+      });
+    });
+    setUserToggles((prev) => ({ ...prev, ...updates }));
+    try {
+      await api.put("/access/dashboard-permissions", {
+        user_id: Number(selectedUserId),
+        permissions: permsToSave,
+      });
+      await refreshPermissions();
+      try {
+        window.dispatchEvent(new Event("rbac:changed"));
+      } catch {}
+      toast.success("Card removed from Home");
+    } catch {
+      toast.error("Failed to remove card");
+    }
+  };
+
+  const handleClearAllHomeCards = async (activeCards) => {
+    if (!selectedUserId || !activeCards.length) return;
+    const updates = {};
+    const permsToSave = [];
+    activeCards.forEach((c) => {
+      const aliases = getAllCardAliases(c.key);
+      aliases.forEach((a) => {
+        const k = permKey("home", null, a, null);
+        updates[k] = false;
+        setView("home", null, a, null, false);
+        permsToSave.push({
+          module_key: "home",
+          dashboard_key: null,
+          card_key: a,
+          ticker_key: null,
+          can_view: 0,
+        });
+      });
+    });
+    setUserToggles((prev) => ({ ...prev, ...updates }));
+    try {
+      await api.put("/access/dashboard-permissions", {
+        user_id: Number(selectedUserId),
+        permissions: permsToSave,
+      });
+      await refreshPermissions();
+      try {
+        window.dispatchEvent(new Event("rbac:changed"));
+      } catch {}
+      toast.success("All cards cleared from Home");
+    } catch {
+      toast.error("Failed to clear cards");
     }
   };
 
@@ -415,9 +481,31 @@ export default function DashboardPermissions() {
                 let cards = KNOWN_CARDS[m.key] || [];
                 if (m.key === "home") {
                   if (licensedModules && Array.isArray(licensedModules) && licensedModules.length > 0) {
+                    const canonicalToShort = {
+                      "human-resources": "hr",
+                      "project-management": "projects",
+                      "service-management": "service",
+                      "business-intelligence": "bi",
+                      "executive-overview": "executive",
+                      "administration": "admin",
+                    };
+                    const shortToCanonical = {
+                      hr: "human-resources",
+                      projects: "project-management",
+                      service: "service-management",
+                      bi: "business-intelligence",
+                      executive: "executive-overview",
+                      admin: "administration",
+                    };
                     cards = cards.filter((c) => {
                       const mod = c.moduleGroup;
-                      return licensedModules.includes(mod) || licensedModules.includes(m.key);
+                      const isAllowedByLic =
+                        licensedModules.includes(mod) ||
+                        licensedModules.includes(shortToCanonical[mod] || mod) ||
+                        licensedModules.includes(canonicalToShort[mod] || mod) ||
+                        licensedModules.includes(m.key);
+                      const isCurrentlyEnabled = getView("home", null, c.key, null);
+                      return isAllowedByLic || isCurrentlyEnabled;
                     });
                   }
                 }
@@ -559,6 +647,73 @@ export default function DashboardPermissions() {
                         <div className="">
                           {m.key === "home" ? (
                             <div className="space-y-4">
+                              {/* Active Home Cards Summary Bar */}
+                              {(() => {
+                                const activeHomeCards = cards.filter((c) => getView("home", null, c.key, null));
+                                return (
+                                  <div className="p-4 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-200 dark:border-slate-700">
+                                    <div className="flex flex-wrap items-center justify-between gap-3 mb-2.5">
+                                      <div>
+                                        <h4 className="text-sm font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
+                                          <span>🏠</span> Homepage Active Cards
+                                          <span className={`text-xs px-2 py-0.5 rounded-full font-semibold border ${
+                                            activeHomeCards.length > 4 
+                                              ? "bg-rose-500/10 text-rose-600 border-rose-500/20"
+                                              : "bg-brand-500/10 text-brand-600 border-brand-500/20"
+                                          }`}>
+                                            {activeHomeCards.length} / 4 Selected
+                                          </span>
+                                        </h4>
+                                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                                          Only the cards selected here will appear on the Homepage (maximum 4).
+                                        </p>
+                                      </div>
+                                      {activeHomeCards.length > 0 && (
+                                        <button
+                                          type="button"
+                                          onClick={() => handleClearAllHomeCards(activeHomeCards)}
+                                          className="btn btn-xs btn-outline border-rose-300 text-rose-600 hover:bg-rose-50 hover:border-rose-400"
+                                        >
+                                          Clear All Home Cards
+                                        </button>
+                                      )}
+                                    </div>
+                                    {activeHomeCards.length > 4 && (
+                                      <div className="mb-2.5 p-2 rounded-lg bg-amber-500/10 border border-amber-500/30 text-xs text-amber-700 dark:text-amber-400 flex items-center gap-1.5 font-medium">
+                                        <span>⚠️</span>
+                                        <span>
+                                          Maximum 4 cards allowed for the Homepage. Please remove {activeHomeCards.length - 4} excess card{activeHomeCards.length - 4 > 1 ? "s" : ""} using the ✕ button below.
+                                        </span>
+                                      </div>
+                                    )}
+                                    {activeHomeCards.length > 0 ? (
+                                      <div className="flex flex-wrap gap-2 pt-1">
+                                        {activeHomeCards.map((c) => (
+                                          <span
+                                            key={c.key}
+                                            className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-medium bg-brand-50 dark:bg-brand-900/30 text-brand-700 dark:text-brand-300 border border-brand-200 dark:border-brand-700/50 shadow-sm"
+                                          >
+                                            <span>{c.label}</span>
+                                            <button
+                                              type="button"
+                                              title={`Remove ${c.label} from Home`}
+                                              onClick={() => handleRemoveHomeCard(c.key)}
+                                              className="hover:text-rose-600 font-bold ml-1"
+                                            >
+                                              ✕
+                                            </button>
+                                          </span>
+                                        ))}
+                                      </div>
+                                    ) : (
+                                      <p className="text-xs text-amber-600 dark:text-amber-400 italic">
+                                        No cards selected. (Default cards will be shown until you select at least one card).
+                                      </p>
+                                    )}
+                                  </div>
+                                );
+                              })()}
+
                               {Array.from(new Set(cards.map((c) => c.moduleGroup))).map((modGroup) => {
                                 const groupCards = cards.filter((c) => c.moduleGroup === modGroup);
                                 if (groupCards.length === 0) return null;
@@ -581,9 +736,9 @@ export default function DashboardPermissions() {
                                                 cards.forEach((hc) => {
                                                   if (getView("home", null, hc.key, null)) checkedCount++;
                                                 });
-                                                if (checkedCount >= 8) {
+                                                if (checkedCount >= 4) {
                                                   toast.error(
-                                                    "You can only select up to 8 cards for the Home dashboard."
+                                                    "You can only select up to 4 cards for the Home dashboard."
                                                   );
                                                   return;
                                                 }

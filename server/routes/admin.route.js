@@ -6,6 +6,7 @@
 import express from "express";
 import multer from "multer";
 import { setRuntimeApiKey } from "../services/ai/banks.service.js";
+import { autoPostMidnightPosSalesToFinance } from "../services/posFinanceAutoPost.service.js";
 
 // Controller Imports
 import {
@@ -3060,6 +3061,139 @@ router.post(
       next(err);
     }
   },
+);
+
+router.get(
+  "/settings/pos-day-control",
+  requireAuth,
+  requireCompanyScope,
+  async (req, res, next) => {
+    try {
+      await ensureSystemSettingsTable();
+      const { companyId } = req.scope || {};
+      const rows = await query(
+        `SELECT setting_key, setting_value
+         FROM adm_system_settings
+         WHERE (company_id = :companyId OR company_id IS NULL)
+           AND setting_key IN ('POS_ENABLE_DAY_OPEN_CLOSE', 'POS_AUTO_FINANCE_SALES_ACCOUNT_ID')
+         ORDER BY company_id DESC`,
+        { companyId: companyId ?? null }
+      );
+      const map = {};
+      for (const r of rows) {
+        if (map[r.setting_key] === undefined) {
+          map[r.setting_key] = r.setting_value;
+        }
+      }
+
+      const enableDayOpenClose =
+        map.POS_ENABLE_DAY_OPEN_CLOSE === undefined ||
+        map.POS_ENABLE_DAY_OPEN_CLOSE === null ||
+        map.POS_ENABLE_DAY_OPEN_CLOSE === "1" ||
+        map.POS_ENABLE_DAY_OPEN_CLOSE === "true";
+
+      const salesAccountId = map.POS_AUTO_FINANCE_SALES_ACCOUNT_ID || null;
+
+      const paymentModes = await query(
+        `SELECT pm.id, pm.name, pm.type, pm.account, pm.is_active,
+                a.code AS account_code, a.name AS account_name
+         FROM pos_payment_modes pm
+         LEFT JOIN fin_accounts a ON (a.id = pm.account OR a.code = pm.account) AND a.company_id = pm.company_id
+         WHERE pm.company_id = :companyId AND pm.is_active = 1`,
+        { companyId: companyId ?? null }
+      ).catch(() => []);
+
+      const taxSettings = await query(
+        `SELECT ts.tax_account_id, a.code AS tax_account_code, a.name AS tax_account_name
+         FROM pos_tax_settings ts
+         LEFT JOIN fin_accounts a ON a.id = ts.tax_account_id AND a.company_id = ts.company_id
+         WHERE ts.company_id = :companyId LIMIT 1`,
+        { companyId: companyId ?? null }
+      ).catch(() => []);
+
+      let salesAccountInfo = null;
+      if (salesAccountId) {
+        const sRows = await query(
+          `SELECT id, code, name FROM fin_accounts WHERE company_id = :companyId AND id = :id LIMIT 1`,
+          { companyId: companyId ?? null, id: salesAccountId }
+        ).catch(() => []);
+        if (sRows.length > 0) salesAccountInfo = sRows[0];
+      }
+      if (!salesAccountInfo) {
+        const defRows = await query(
+          `SELECT id, code, name FROM fin_accounts
+           WHERE company_id = :companyId AND is_active = 1 AND (code IN ('4000', '400000') OR LOWER(name) LIKE '%sales revenue%')
+           ORDER BY CASE WHEN code = '4000' THEN 0 ELSE 1 END LIMIT 1`,
+          { companyId: companyId ?? null }
+        ).catch(() => []);
+        if (defRows.length > 0) salesAccountInfo = defRows[0];
+      }
+
+      res.json({
+        data: {
+          enable_day_open_close: enableDayOpenClose,
+          sales_account_id: salesAccountId ? String(salesAccountId) : (salesAccountInfo ? String(salesAccountInfo.id) : ""),
+          sales_account: salesAccountInfo,
+          payment_modes: paymentModes,
+          tax_account: taxSettings?.[0] || null,
+        },
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+
+router.post(
+  "/settings/pos-day-control",
+  requireAuth,
+  requireCompanyScope,
+  async (req, res, next) => {
+    try {
+      await ensureSystemSettingsTable();
+      const { companyId } = req.scope || {};
+      const body = req.body || {};
+      const enableVal = body.enable_day_open_close === false || body.enable_day_open_close === "0" ? "0" : "1";
+      const salesAccId = body.sales_account_id ? String(body.sales_account_id) : "";
+
+      await query(
+        `INSERT INTO adm_system_settings (company_id, branch_id, setting_key, setting_value)
+         VALUES 
+           (:companyId, NULL, 'POS_ENABLE_DAY_OPEN_CLOSE', :enableVal),
+           (:companyId, NULL, 'POS_AUTO_FINANCE_SALES_ACCOUNT_ID', :salesAccId)
+         ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value), updated_at = CURRENT_TIMESTAMP`,
+        {
+          companyId: companyId ?? null,
+          enableVal,
+          salesAccId,
+        }
+      );
+      res.json({ success: true, message: "Day Open & Close settings saved successfully" });
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+
+router.post(
+  "/settings/pos-day-control/test-auto-post",
+  requireAuth,
+  requireCompanyScope,
+  async (req, res, next) => {
+    try {
+      const { companyId, branchId } = req.scope || {};
+      const date = req.body?.date || new Date().toISOString().slice(0, 10);
+      const outcome = await autoPostMidnightPosSalesToFinance({
+        targetDate: date,
+        specificCompanyId: companyId,
+        specificBranchId: branchId,
+        isManualTest: true,
+      });
+      res.json({ success: true, data: outcome });
+    } catch (err) {
+      next(err);
+    }
+  }
 );
 
 router.post("/email/test", requireAuth, async (req, res, next) => {

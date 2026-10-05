@@ -662,6 +662,7 @@ export default function HomePage() {
         else if (card.key === "bi-top-product") val = overview?.topProduct || "Best Seller";
         else if (card.key === "sales-pending-orders") val = overview?.openQuotations || 0;
         else if (card.key === "sales-total-revenue") val = overview?.monthlyRevenue || 0;
+        else if (card.key === "sales-avg-sales-this-month" || card.key === "avg-sales-this-month" || card.key === "average-sales-this-month") val = overview?.avgSalesThisMonth || 0;
         else if (card.key === "purchase-total-value") val = overview?.totalPurchases || 0;
         else if (card.key === "purchase-pending-pos") val = overview?.activePOs || 0;
         else if (card.key === "purchase-active-suppliers") val = overview?.activeSuppliers || 0;
@@ -700,7 +701,24 @@ export default function HomePage() {
         else if (card.key === "sys-active-sessions") val = overview?.activeSessions || 1;
         
         // Currency formatting for known monetary values
-        const isMonetary = ["sales-total-revenue", "pos-today-sales", "pos-avg-order", "pos-monthly-revenue", "bi-company-revenue", "purchase-total-value", "finance-cash-balance", "finance-ar", "finance-ap", "exec-gross-profit", "exec-net-income", "exec-total-expenses", "sm-total-revenue"].includes(card.key);
+        const isMonetary = [
+          "sales-total-revenue",
+          "sales-avg-sales-this-month",
+          "avg-sales-this-month",
+          "average-sales-this-month",
+          "pos-today-sales",
+          "pos-avg-order",
+          "pos-monthly-revenue",
+          "bi-company-revenue",
+          "purchase-total-value",
+          "finance-cash-balance",
+          "finance-ar",
+          "finance-ap",
+          "exec-gross-profit",
+          "exec-net-income",
+          "exec-total-expenses",
+          "sm-total-revenue"
+        ].includes(card.key);
         const finalValue = isMonetary ? fmtCurrency(val) : String(val);
 
         metrics.push({
@@ -708,7 +726,7 @@ export default function HomePage() {
           moduleKey: rawModKey,
           label: card.label,
           value: finalValue,
-          badge: overview?.badges?.[card.key]?.text || "",
+          badge: overview?.badges?.[card.key]?.text || (card.key.includes("avg-sales") ? overview?.badges?.["sales-avg-sales-this-month"]?.text : "") || "",
           icon: defaultIcons[rawModKey] || "📊",
           path: defaultPaths[rawModKey] || "/"
         });
@@ -727,7 +745,7 @@ export default function HomePage() {
       return canViewDashboardElement("home", "card", m.key) === true;
     });
 
-    return checked.slice(0, 8);
+    return checked.slice(0, 4);
   }, [allPossibleMetrics, canViewDashboardElement]);
 
   // Quick Actions section removed per request

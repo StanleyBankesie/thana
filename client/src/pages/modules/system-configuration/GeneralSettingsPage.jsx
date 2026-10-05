@@ -5,6 +5,7 @@ import { toast } from "react-toastify";
 import { useAuth } from "../../../auth/AuthContext.jsx";
 import { Brain, Sparkles, CheckCircle, ShieldCheck } from "lucide-react";
 import BranchDataSharingSection from "../../../components/BranchDataSharingSection.jsx";
+import PosDayControlSection from "../../../components/PosDayControlSection.jsx";
 
 export default function GeneralSettingsPage() {
   const { user } = useAuth();
@@ -854,6 +855,8 @@ export default function GeneralSettingsPage() {
         </div>
 
         <BranchDataSharingSection />
+
+        <PosDayControlSection />
 
         <div className="card">
           <div className="card-body space-y-3">

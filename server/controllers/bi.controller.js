@@ -909,6 +909,12 @@ export const getHomeOverview = async (req, res, next) => {
     const apOutstanding = Number(finData?.apOutstanding || 0);
     const cashBalance = todaySales + monthlyRevenue;
 
+    const now = new Date();
+    const currentDay = Math.max(now.getDate(), 1);
+    const daysInLastMonth = new Date(now.getFullYear(), now.getMonth(), 0).getDate() || 30;
+    const avgSalesThisMonth = currentDay > 0 ? (monthlyRevenue / currentDay) : 0;
+    const avgSalesLastMonth = daysInLastMonth > 0 ? (lastMonthSales / daysInLastMonth) : 0;
+
     let growthPct = 0;
     if (lastMonthSales > 0) {
       growthPct = Math.round(((monthlyRevenue - lastMonthSales) / lastMonthSales) * 100);
@@ -916,12 +922,24 @@ export const getHomeOverview = async (req, res, next) => {
       growthPct = 100;
     }
 
+    let avgGrowthPct = 0;
+    if (avgSalesLastMonth > 0) {
+      avgGrowthPct = Math.round(((avgSalesThisMonth - avgSalesLastMonth) / avgSalesLastMonth) * 100);
+    } else if (avgSalesThisMonth > 0) {
+      avgGrowthPct = 100;
+    }
+
+    const avgSalesBadge = `${avgGrowthPct >= 0 ? '+' : ''}${avgGrowthPct}% vs last mo`;
+
     const badges = {
       "today-sales": { text: `Active Today: ${todayTransactions} txn(s)` },
       "total-customers": { text: "Active" },
       "average-order": { text: `${allTimeCount} Orders Total` },
       "monthly-revenue": { text: `${growthPct >= 0 ? '+' : ''}${growthPct}% vs last mo` },
       "sales-total-revenue": { text: `${growthPct >= 0 ? '+' : ''}${growthPct}% vs last mo` },
+      "sales-avg-sales-this-month": { text: avgSalesBadge },
+      "avg-sales-this-month": { text: avgSalesBadge },
+      "average-sales-this-month": { text: avgSalesBadge },
     };
 
     res.json({
@@ -930,6 +948,9 @@ export const getHomeOverview = async (req, res, next) => {
       totalCustomers,
       averageOrder,
       monthlyRevenue,
+      avgSalesThisMonth: Number(avgSalesThisMonth.toFixed(2)),
+      avgSalesLastMonth: Number(avgSalesLastMonth.toFixed(2)),
+      avgGrowthPct,
       allTimeRevenue,
       itemsTracked,
       totalItems: itemsTracked,
@@ -1066,11 +1087,14 @@ export const getModuleAnalytics = async (req, res, next) => {
     const totalPosToday = Number(posToday[0]?.v || 0);
     const totalPosTxn = Number(pos[0]?.c || 0);
     const avgOrder = totalPosTxn > 0 ? (totalSalesRev / totalPosTxn) : 0;
+    const currentDayVal = Math.max(new Date().getDate(), 1);
+    const avgSalesMTD = currentDayVal > 0 ? (totalSalesRev / currentDayVal) : 0;
 
     res.json({
       success: true,
       data: {
         'sales-total-revenue': totalSalesRev,
+        'sales-avg-sales-this-month': Number(avgSalesMTD.toFixed(2)),
         'sales-pending-orders': Number(openQuotes[0]?.v || 0),
         'sales-active-customers': Number(cust[0]?.v || 0),
         'purchase-total-value': Number(po[0]?.v || 0),

@@ -1,6 +1,7 @@
 export const DASHBOARD_CARDS = {
   sales: [
     { key: "sales-total-revenue", label: "Total Sales This Month", aliases: ["sales-this-month", "total-revenue"] },
+    { key: "sales-avg-sales-this-month", label: "Average Sales This Month", aliases: ["avg-sales-this-month", "average-sales-this-month", "avg-sales-month", "sales-avg-sales"] },
     { key: "sales-open-quotations", label: "Open Quotations", aliases: ["open-quotations"] },
     { key: "sales-pending-deliveries", label: "Pending Deliveries", aliases: ["pending-deliveries"] },
     { key: "sales-overdue-invoices", label: "Overdue Invoices", aliases: ["overdue-invoices"] },

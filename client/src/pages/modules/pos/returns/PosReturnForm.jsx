@@ -129,7 +129,8 @@ export default function PosReturnForm() {
       .then((res) => {
         if (cancelled) return;
         const item = res?.data?.item || null;
-        const isOpen = String(item?.status || "").toUpperCase() === "OPEN";
+        const isDayEnabled = res?.data?.enable_day_open_close !== false;
+        const isOpen = !isDayEnabled || String(item?.status || "").toUpperCase() === "OPEN";
         setDayOpen(isOpen);
       })
       .catch(() => {

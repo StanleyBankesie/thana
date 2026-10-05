@@ -257,13 +257,18 @@ router.get(
         return res.json({ items: [] });
       }
       const rows = await query(
-        `SELECT user_id, module_key, dashboard_key, card_key, ticker_key, can_view, created_at, updated_at
+        `SELECT user_id, module_key, dashboard_key, card_key, ticker_key, can_view, created_at, updated_at, id
          FROM adm_dashboard_permissions
          WHERE user_id = :userId
-         ORDER BY module_key ASC, dashboard_key ASC, card_key ASC, ticker_key ASC`,
+         ORDER BY id ASC`,
         { userId },
       );
-      res.json({ items: rows || [] });
+      const dedupMap = new Map();
+      for (const r of rows) {
+        const k = `${r.module_key}|${r.dashboard_key || ""}|${r.card_key || ""}|${r.ticker_key || ""}`;
+        dedupMap.set(k, r);
+      }
+      res.json({ items: Array.from(dedupMap.values()) });
     } catch (err) {
       next(err);
     }

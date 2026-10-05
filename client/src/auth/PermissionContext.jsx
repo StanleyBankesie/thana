@@ -1418,8 +1418,8 @@ export const PermissionProvider = ({ children }) => {
 
         // 4. Fallback for unconfigured Home
         let hasHomeCardConfig = false;
-        for (const k of dashboardViewMap.keys()) {
-          if (k.startsWith("home|card|")) {
+        for (const [k, v] of dashboardViewMap.entries()) {
+          if (k.startsWith("home|card|") && v === true) {
             hasHomeCardConfig = true;
             break;
           }
@@ -1429,8 +1429,8 @@ export const PermissionProvider = ({ children }) => {
         } else {
           const defaultCards = [
             "sales-total-revenue",
+            "sales-avg-sales-this-month",
             "sales-pending-orders",
-            "sales-active-customers",
             "purchase-total-value",
           ];
           const isDefault = defaultCards.some((dc) => candidates.has(dc));

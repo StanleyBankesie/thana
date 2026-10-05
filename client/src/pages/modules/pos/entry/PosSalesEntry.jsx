@@ -177,6 +177,13 @@ export default function PosSalesEntry() {
   const [dayExists, setDayExists] = useState(false);
   const [dayStatus, setDayStatus] = useState("");
   const [dayLoading, setDayLoading] = useState(true);
+  const [dayControlEnabled, setDayControlEnabled] = useState(() => {
+    try {
+      const cached = localStorage.getItem("pos_enable_day_open_close");
+      if (cached === "false") return false;
+    } catch {}
+    return true;
+  });
   const [terminalCode, setTerminalCode] = useState("");
   const [terminalWarehouseId, setTerminalWarehouseId] = useState("");
   const [amountPaid, setAmountPaid] = useState("");
@@ -371,25 +378,42 @@ export default function PosSalesEntry() {
           const params = code ? { params: { terminal: code } } : undefined;
           const res = await api.get("/pos/day/status", params);
           const item = res?.data?.item || null;
+          const isDayEnabled = res?.data?.enable_day_open_close !== false;
+          try {
+            localStorage.setItem("pos_enable_day_open_close", String(isDayEnabled));
+          } catch {}
           const status = String(item?.status || "").toUpperCase();
           const isOpen = status === "OPEN";
           if (!cancelled) {
-            setDayExists(!!item);
-            setDayStatus(status);
-            setDayOpen(isOpen);
+            setDayControlEnabled(isDayEnabled);
+            setDayExists(!isDayEnabled ? true : !!item);
+            setDayStatus(!isDayEnabled ? "BYPASS" : status);
+            setDayOpen(!isDayEnabled ? true : isOpen);
           }
         } catch {
           if (!cancelled) {
-            setDayExists(false);
-            setDayStatus("");
-            setDayOpen(false);
+            let fallbackEnabled = true;
+            try {
+              const cached = localStorage.getItem("pos_enable_day_open_close");
+              if (cached === "false") fallbackEnabled = false;
+            } catch {}
+            setDayControlEnabled(fallbackEnabled);
+            setDayExists(!fallbackEnabled);
+            setDayStatus(!fallbackEnabled ? "BYPASS" : "");
+            setDayOpen(!fallbackEnabled);
           }
         }
       } catch {
         if (cancelled) return;
-        setDayExists(false);
-        setDayStatus("");
-        setDayOpen(false);
+        let fallbackEnabled = true;
+        try {
+          const cached = localStorage.getItem("pos_enable_day_open_close");
+          if (cached === "false") fallbackEnabled = false;
+        } catch {}
+        setDayControlEnabled(fallbackEnabled);
+        setDayExists(!fallbackEnabled);
+        setDayStatus(!fallbackEnabled ? "BYPASS" : "");
+        setDayOpen(!fallbackEnabled);
       } finally {
         if (cancelled) return;
         setDayLoading(false);
@@ -400,6 +424,24 @@ export default function PosSalesEntry() {
       cancelled = true;
     };
   }, [user?.id, user?.sub]);
+
+  useEffect(() => {
+    function onPosDayControlChanged(e) {
+      const isEnabled = e?.detail?.enabled;
+      if (typeof isEnabled === "boolean") {
+        setDayControlEnabled(isEnabled);
+        if (!isEnabled) {
+          setDayExists(true);
+          setDayStatus("BYPASS");
+          setDayOpen(true);
+        }
+      }
+    }
+    window.addEventListener("pos-day-control-changed", onPosDayControlChanged);
+    return () => {
+      window.removeEventListener("pos-day-control-changed", onPosDayControlChanged);
+    };
+  }, []);
 
   useEffect(() => {
     function onPosDayEvent(e) {
@@ -1635,7 +1677,7 @@ export default function PosSalesEntry() {
 
   async function checkout(overrideAdditionalModeId = null) {
     if (!cart.length || saving) return;
-    if (!dayExists) {
+    if (dayControlEnabled && (!dayExists || !dayOpen)) {
       alert(
         "Please open POS Day for today before making sales. Go to POS → Start/End Business Day to open the day.",
       );
@@ -2252,25 +2294,31 @@ export default function PosSalesEntry() {
               />
               {online ? "Online" : "Offline"}
             </span>
-            <span className="ml-3">
-              Status:
-              <span
-                className={`ml-1 px-2 py-0.5 rounded ${
-                  dayOpen
-                    ? "bg-green-100 text-green-700"
-                    : "bg-red-100 text-red-700"
-                }`}
-              >
-                {dayOpen ? "Open" : dayExists ? "Closed" : "Not Opened"}
+            {dayControlEnabled && (
+              <span className="ml-3">
+                Status:
+                <span
+                  className={`ml-1 px-2 py-0.5 rounded ${
+                    dayOpen
+                      ? "bg-green-100 text-green-700"
+                      : "bg-red-100 text-red-700"
+                  }`}
+                >
+                  {dayOpen
+                    ? "Open"
+                    : dayExists
+                      ? "Closed"
+                      : "Not Opened"}
+                </span>
               </span>
-            </span>
+            )}
           </div>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-2">
         <div className="lg:col-span-3 space-y-3">
-          {!dayExists && !dayLoading ? (
+          {dayControlEnabled && !dayExists && !dayLoading ? (
             <div className="alert alert-warning">
               <div className="flex items-center justify-between">
                 <div>
@@ -2285,13 +2333,41 @@ export default function PosSalesEntry() {
               </div>
             </div>
           ) : null}
-          {dayExists && dayOpen && !dayLoading ? (
+          {dayControlEnabled && dayExists && !dayOpen && !dayLoading ? (
+            <div className="alert alert-warning">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="font-semibold">POS Day is Closed</div>
+                  <div className="text-sm">
+                    Today’s POS Day has been closed. You cannot make sales until a new day is opened.
+                  </div>
+                </div>
+                <Link to="/pos/day-management" className="btn btn-primary">
+                  Start/End Business Day
+                </Link>
+              </div>
+            </div>
+          ) : null}
+          {(!dayControlEnabled || (dayExists && dayOpen)) && !dayLoading ? (
             <div className="rounded-lg border border-slate-200 bg-white p-4 flex items-center justify-between">
               <div>
-                <div className="font-semibold">POS Day is Open</div>
-                <div className="text-sm text-slate-600">
-                  Review collections and close day when ready.
-                </div>
+                {dayControlEnabled ? (
+                  <>
+                    <div className="font-semibold">POS Day is Open</div>
+                    <div className="text-sm text-slate-600">
+                      Review collections and close day when ready.
+                    </div>
+                  </>
+                ) : (
+                  <div>
+                    <div className="font-semibold text-slate-800">
+                      Customer & Payment
+                    </div>
+                    <div className="text-sm text-slate-500">
+                      Select customer and payment mode
+                    </div>
+                  </div>
+                )}
               </div>
               <div className="flex items-center gap-2">
                 <div className="w-48">
@@ -2350,13 +2426,15 @@ export default function PosSalesEntry() {
                 >
                   Customer Sales
                 </Link>
-                <Link
-                  to="/pos/day-management"
-                  className="btn btn-primary"
-                  title="Go to Start/End Business Day"
-                >
-                  Close Day
-                </Link>
+                {dayControlEnabled && (
+                  <Link
+                    to="/pos/day-management"
+                    className="btn btn-primary"
+                    title="Go to Start/End Business Day"
+                  >
+                    Close Day
+                  </Link>
+                )}
               </div>
             </div>
           ) : null}

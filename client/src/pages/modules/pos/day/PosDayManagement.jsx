@@ -71,6 +71,7 @@ export default function PosDayManagement() {
   }, [user]);
   const [dayOpen, setDayOpen] = useState(false);
   const [statusLoading, setStatusLoading] = useState(true);
+  const [dayControlEnabled, setDayControlEnabled] = useState(true);
   const [showForceOpenForm, setShowForceOpenForm] = useState(false);
   const [openData, setOpenData] = useState({
     dateTime: toLocalInputDateTime(new Date()),
@@ -347,6 +348,7 @@ export default function PosDayManagement() {
       .get("/pos/day/status", { params: { terminal: term } })
       .then((res) => {
         if (cancelled) return;
+        setDayControlEnabled(res?.data?.enable_day_open_close !== false);
         const item = res?.data?.item;
         const suggestedNext = Number(res?.data?.nextOpeningFloat ?? 0);
         const suggestedNextMomoMain = Number(
@@ -960,6 +962,17 @@ export default function PosDayManagement() {
           </div>
         </div>
       </div>
+
+      {!dayControlEnabled && (
+        <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-xs text-amber-800 dark:text-amber-300 flex items-center justify-between gap-3">
+          <div>
+            <span className="font-bold">⚡ Day Open & Day Close is Inactive:</span> Cashiers can make sales directly without opening or closing the day. All sales will be automatically aggregated and posted to Finance at 11:59 PM.
+          </div>
+          <Link to="/system-configuration/general-settings" className="btn btn-xs btn-outline border-amber-500 text-amber-800 dark:text-amber-200">
+            Settings
+          </Link>
+        </div>
+      )}
 
       <div className="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-4">
         <div className="flex flex-wrap gap-4 items-center justify-between">
