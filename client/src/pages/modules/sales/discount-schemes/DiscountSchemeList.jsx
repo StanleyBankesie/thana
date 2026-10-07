@@ -81,7 +81,7 @@ export default function DiscountSchemeList() {
             <p>Percentage and fixed-amount discount campaigns</p>
           </div>
           <div className="ds-header-actions">
-            <button onClick={() => window.history.back()} className="ds-btn ds-btn-secondary"
+            <button onClick={() => navigate("/sales/discount-schemes")} className="ds-btn ds-btn-secondary"
             >
               Back to Campaign Types
             </button>

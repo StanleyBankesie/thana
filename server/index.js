@@ -870,12 +870,17 @@ const _staticOpts = {
     } else if (filePath.endsWith(".css")) {
       res.setHeader("Content-Type", "text/css; charset=utf-8");
       res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+    } else if (filePath.endsWith(".jfif") || filePath.endsWith(".jpg") || filePath.endsWith(".jpeg")) {
+      res.setHeader("Content-Type", "image/jpeg");
+      res.setHeader("Cache-Control", "public, max-age=86400");
     }
   },
 };
 const _frontendCandidates = [
   path.join(__dirname, "../client/dist"),
   path.join(process.cwd(), "client/dist"),
+  path.join(__dirname, "../client/public"),
+  path.join(process.cwd(), "client/public"),
   path.join(__dirname, "dist"),
   path.join(process.cwd(), "dist"),
   path.join(__dirname, "../dist"),

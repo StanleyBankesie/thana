@@ -922,6 +922,103 @@ export const PermissionProvider = ({ children }) => {
     return roleFeatures.has(k) || permByFeatureKey.has(k);
   };
 
+  const canViewDashboardElement = (moduleKey, type, key) => {
+    if (isSuper) return true;
+    const mk = String(moduleKey || "");
+    const t = String(type || "");
+    const rawKey = String(key || "");
+    const normKey = rawKey
+      .toLowerCase()
+      .trim()
+      .replace(/\s+/g, "-")
+      .replace(/[^a-z0-9-]/g, "");
+    if (!dashboardViewLoaded) return isSuper;
+
+    // Build all candidate variations for lookup
+    const candidates = new Set([normKey, rawKey]);
+    if (normKey.startsWith(`${mk}-`)) {
+      candidates.add(normKey.slice(mk.length + 1));
+    } else {
+      candidates.add(`${mk}-${normKey}`);
+    }
+    const aliases = getAllCardAliases(rawKey);
+    aliases.forEach((a) => {
+      candidates.add(a);
+      if (a.startsWith(`${mk}-`)) candidates.add(a.slice(mk.length + 1));
+      else candidates.add(`${mk}-${a}`);
+    });
+
+    // Special handling for Home cards
+    if (mk === "home" && t === "card") {
+      // 1. If explicitly disabled in Home: strictly false
+      for (const c of candidates) {
+        if (dashboardViewMap.get(`home|card|${c}`) === false) {
+          return false;
+        }
+      }
+
+      // 2. If explicitly disabled in its parent module: strictly false
+      const parentMod = getCardModule(normKey);
+      if (parentMod) {
+        for (const c of candidates) {
+          if (dashboardViewMap.get(`${parentMod}|card|${c}`) === false) {
+            return false;
+          }
+        }
+      }
+
+      // 3. If explicitly enabled in Home: strictly true
+      for (const c of candidates) {
+        if (dashboardViewMap.get(`home|card|${c}`) === true) {
+          return true;
+        }
+      }
+
+      // 4. Fallback for unconfigured Home
+      let hasHomeCardConfig = false;
+      for (const [k, v] of dashboardViewMap.entries()) {
+        if (k.startsWith("home|card|") && v === true) {
+          hasHomeCardConfig = true;
+          break;
+        }
+      }
+      if (hasHomeCardConfig) {
+        return false;
+      } else {
+        const defaultCards = [
+          "sales-total-revenue",
+          "sales-avg-sales-this-month",
+          "sales-pending-orders",
+          "purchase-total-value",
+        ];
+        const isDefault = defaultCards.some((dc) => candidates.has(dc));
+        if (!isDefault) return false;
+        if (parentMod) {
+          for (const c of candidates) {
+            if (dashboardViewMap.get(`${parentMod}|card|${c}`) === false) {
+              return false;
+            }
+          }
+        }
+        return true;
+      }
+    }
+
+    // For module cards/dashboards (mk !== "home"):
+    // 1. If any candidate entry exists in dashboardViewMap: respect it immediately
+    for (const c of candidates) {
+      if (dashboardViewMap.has(`${mk}|${t}|${c}`)) {
+        return dashboardViewMap.get(`${mk}|${t}|${c}`) === true;
+      }
+    }
+
+    // 2. No explicit config for this element — fall back to module-level RBAC
+    if (mk) {
+      return canAccessPath(`/${mk}`);
+    }
+    return isSuper;
+  };
+
   const canAccessPath = (path, action = "view") => {
     const p = String(path || "");
     if (!p) return false;
@@ -1527,101 +1624,7 @@ export const PermissionProvider = ({ children }) => {
     getPagePerms,
     canPerformPageAction,
     basePathFrom,
-    canViewDashboardElement: (moduleKey, type, key) => {
-      const mk = String(moduleKey || "");
-      const t = String(type || "");
-      const rawKey = String(key || "");
-      const normKey = rawKey
-        .toLowerCase()
-        .trim()
-        .replace(/\s+/g, "-")
-        .replace(/[^a-z0-9-]/g, "");
-      if (!dashboardViewLoaded) return false;
-
-      // Build all candidate variations for lookup
-      const candidates = new Set([normKey, rawKey]);
-      if (normKey.startsWith(`${mk}-`)) {
-        candidates.add(normKey.slice(mk.length + 1));
-      } else {
-        candidates.add(`${mk}-${normKey}`);
-      }
-      const aliases = getAllCardAliases(rawKey);
-      aliases.forEach((a) => {
-        candidates.add(a);
-        if (a.startsWith(`${mk}-`)) candidates.add(a.slice(mk.length + 1));
-        else candidates.add(`${mk}-${a}`);
-      });
-
-      // Special handling for Home cards
-      if (mk === "home" && t === "card") {
-        // 1. If explicitly disabled in Home: strictly false
-        for (const c of candidates) {
-          if (dashboardViewMap.get(`home|card|${c}`) === false) {
-            return false;
-          }
-        }
-
-        // 2. If explicitly disabled in its parent module: strictly false
-        const parentMod = getCardModule(normKey);
-        if (parentMod) {
-          for (const c of candidates) {
-            if (dashboardViewMap.get(`${parentMod}|card|${c}`) === false) {
-              return false;
-            }
-          }
-        }
-
-        // 3. If explicitly enabled in Home: strictly true
-        for (const c of candidates) {
-          if (dashboardViewMap.get(`home|card|${c}`) === true) {
-            return true;
-          }
-        }
-
-        // 4. Fallback for unconfigured Home
-        let hasHomeCardConfig = false;
-        for (const [k, v] of dashboardViewMap.entries()) {
-          if (k.startsWith("home|card|") && v === true) {
-            hasHomeCardConfig = true;
-            break;
-          }
-        }
-        if (hasHomeCardConfig) {
-          return false;
-        } else {
-          const defaultCards = [
-            "sales-total-revenue",
-            "sales-avg-sales-this-month",
-            "sales-pending-orders",
-            "purchase-total-value",
-          ];
-          const isDefault = defaultCards.some((dc) => candidates.has(dc));
-          if (!isDefault) return false;
-          if (parentMod) {
-            for (const c of candidates) {
-              if (dashboardViewMap.get(`${parentMod}|card|${c}`) === false) {
-                return false;
-              }
-            }
-          }
-          return true;
-        }
-      }
-
-      // For module cards (mk !== "home"):
-      // 1. If any candidate entry exists in dashboardViewMap: respect it immediately
-      for (const c of candidates) {
-        if (dashboardViewMap.has(`${mk}|${t}|${c}`)) {
-          return dashboardViewMap.get(`${mk}|${t}|${c}`) === true;
-        }
-      }
-
-      // 2. No explicit config for this card — fall back to module-level RBAC
-      if (mk) {
-        return canAccessPath(`/${mk}`);
-      }
-      return isSuper;
-    },
+    canViewDashboardElement,
     setActionSessionOverride: (fk, action, value) => {
       const key =
         action === "can_view"

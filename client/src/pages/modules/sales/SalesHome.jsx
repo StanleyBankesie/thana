@@ -538,53 +538,30 @@ export const salesModuleSections = [
         {
           title: "Price Setup",
           path: "/sales/price-setup",
-        
           description: "Manage standard and customer pricing",
           icon: "💰",
           actions: [
-          { label: "View", path: "/sales/quotations",
-        actions: [
-          { label: "View", path: "/sales/quotations", type: "outline" },
-          { label: "New", path: "/sales/quotations/new", type: "primary" }
-        ], type: "outline" },
-          { label: "New", path: "/sales/quotations/new",
-        actions: [
-          { label: "View", path: "/sales/quotations/new", type: "outline" },
-          { label: "New", path: "/sales/quotations/new/new", type: "primary" }
-        ], type: "primary" }
-        ],
+            { label: "View", path: "/sales/price-setup", type: "outline" }
+          ],
         },
         {
           title: "Promotional Campaigns",
           path: "/sales/discount-schemes",
-        
           description: "Discount campaigns, purchase reward schemes, and promotions",
           icon: "🏷️",
           actions: [
-          { label: "View", path: "/sales/discount-schemes",
-        actions: [
-          { label: "View", path: "/sales/discount-schemes", type: "outline" },
-          { label: "New", path: "/sales/discount-schemes/new", type: "primary" }
-        ], type: "outline" },
-          { label: "New", path: "/sales/discount-schemes/new",
-        actions: [
-          { label: "View", path: "/sales/discount-schemes/new", type: "outline" },
-          { label: "New", path: "/sales/discount-schemes/new/new", type: "primary" }
-        ], type: "primary" }
-        ],
+            { label: "View", path: "/sales/discount-schemes", type: "outline" },
+            { label: "New", path: "/sales/discount-schemes/discount/new", type: "primary" }
+          ],
         },
         {
           title: "Sales Setup",
           path: "/sales/setup",
-        
           description: "Configure sales return reasons and return workflows",
           icon: "⚙️",
           actions: [
-          { label: "View", path: "/sales/setup",
-        actions: [
-          { label: "View", path: "/sales/setup", type: "outline" }
-        ], type: "outline" }
-        ],
+            { label: "View", path: "/sales/setup", type: "outline" }
+          ],
         },
       ],
     },
@@ -856,8 +833,16 @@ export default function SalesHome() {
         <Route path="/price-setup" element={<PriceSetup />} />
         <Route path="/discount-schemes" element={<CampaignHub />} />
         <Route path="/discount-schemes/list" element={<DiscountSchemeList />} />
+        <Route path="/discount-schemes/discount" element={<DiscountSchemeList />} />
+        <Route path="/discount-schemes/discount/new" element={<CampaignForm />} />
+        <Route path="/discount-schemes/discount/edit/:id" element={<CampaignForm />} />
+        <Route path="/discount-schemes/discount/:id" element={<CampaignForm />} />
         <Route path="/discount-schemes/new" element={<CampaignForm />} />
         <Route path="/discount-schemes/edit/:id" element={<CampaignForm />} />
+        <Route path="/discount-schemes/purchase-reward" element={<PurchaseRewardCampaignList />} />
+        <Route path="/discount-schemes/purchase-reward/new" element={<PurchaseRewardCampaignForm />} />
+        <Route path="/discount-schemes/purchase-reward/edit/:id" element={<PurchaseRewardCampaignForm />} />
+        <Route path="/discount-schemes/purchase-reward/:id" element={<PurchaseRewardCampaignForm />} />
         <Route path="/discount-schemes/purchase-rewards" element={<PurchaseRewardCampaignList />} />
         <Route path="/discount-schemes/purchase-rewards/new" element={<PurchaseRewardCampaignForm />} />
         <Route path="/discount-schemes/purchase-rewards/edit/:id" element={<PurchaseRewardCampaignForm />} />

@@ -25,22 +25,31 @@ export const BACKGROUND_PRESETS = [
     theme: "Dark & Vibrant",
   },
   {
-    id: "geometric-cubes",
-    name: "Geometric Cubes",
+    id: "amber-luster",
+    name: "Amber Luster",
+    subtitle: "Warm Gold",
+    description: "Luminous flowing golden amber waveforms on dark luxury backdrop",
+    url: "/backgrounds/Gemini_Generated_Image_hsy20ihsy20ihsy2.jfif",
+    previewUrl: "/backgrounds/Gemini_Generated_Image_hsy20ihsy20ihsy2.jfif",
+    theme: "Warm Amber",
+  },
+  {
+    id: "slate-horizon",
+    name: "Slate Modern",
     subtitle: "Modern 3D",
-    description: "Floating 3D pale-blue cubes scattering across a matte finish canvas",
-    url: "/backgrounds/abstract-geometric-cubes.jpg",
-    previewUrl: "/backgrounds/abstract-geometric-cubes.jpg",
+    description: "Sophisticated frosted 3D slate sculpture with sculptural depth",
+    url: "/backgrounds/Gemini_Generated_Image_5eegyy5eegyy5eeg.jfif",
+    previewUrl: "/backgrounds/Gemini_Generated_Image_5eegyy5eegyy5eeg.jfif",
     theme: "3D Isometric",
   },
   {
-    id: "aurora-glow",
-    name: "Aurora Glow",
+    id: "midnight-flow",
+    name: "Midnight Flow",
     subtitle: "Ethereal",
-    description: "Soft luminous flowing aurora wave with subtle depth",
-    url: "/backgrounds/abstract-aurora-glow.jpg",
-    previewUrl: "/backgrounds/abstract-aurora-glow.jpg",
-    theme: "Soft Ambient",
+    description: "Smooth deep navy flowing ripples with crystalline glow",
+    url: "/backgrounds/Gemini_Generated_Image_txb3zytxb3zytxb3.jfif",
+    previewUrl: "/backgrounds/Gemini_Generated_Image_txb3zytxb3zytxb3.jfif",
+    theme: "Midnight Blue",
   },
   {
     id: "none",
@@ -76,9 +85,17 @@ export default function AppBackgroundControlSection() {
         const res = await api.get("/admin/settings/app-background");
         if (mounted && res.data?.success) {
           const d = res.data;
-          const preset = d.background_preset || "silk-waves";
+          let preset = d.background_preset || "silk-waves";
+          let bgUrl = d.background_url || "";
+          if (preset === "geometric-cubes" || bgUrl.includes("abstract-geometric-cubes")) {
+            preset = "slate-horizon";
+            bgUrl = "/backgrounds/Gemini_Generated_Image_5eegyy5eegyy5eeg.jfif";
+          } else if (preset === "aurora-glow" || bgUrl.includes("abstract-aurora-glow")) {
+            preset = "amber-luster";
+            bgUrl = "/backgrounds/Gemini_Generated_Image_hsy20ihsy20ihsy2.jfif";
+          }
           setSelectedPreset(preset);
-          setBackgroundUrl(d.background_url || "");
+          setBackgroundUrl(bgUrl);
           setOpacity(Number.isFinite(d.background_opacity) ? d.background_opacity : 40);
           setBlur(Number.isFinite(d.background_blur) ? d.background_blur : 0);
           setHasCustom(Boolean(d.has_custom));
@@ -343,7 +360,7 @@ export default function AppBackgroundControlSection() {
               </span>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4">
               {BACKGROUND_PRESETS.map((preset) => {
                 const isSelected = selectedPreset === preset.id;
                 return (
@@ -362,6 +379,11 @@ export default function AppBackgroundControlSection() {
                         <img
                           src={preset.previewUrl}
                           alt={preset.name}
+                          onError={(e) => {
+                            if (e.target.src.endsWith(".jfif")) {
+                              e.target.src = e.target.src.replace(/\.jfif$/, ".jpg");
+                            }
+                          }}
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                         />
                       ) : (

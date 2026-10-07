@@ -342,23 +342,92 @@ export default function GeneralSettingsPage() {
             const srcHeight = img.naturalHeight || img.height;
             const srcRatio = srcWidth / srcHeight;
 
-            let sx = 0, sy = 0, sWidth = srcWidth, sHeight = srcHeight;
-
-            if (srcRatio > targetRatio) {
-              sWidth = Math.round(srcHeight * targetRatio);
-              sx = Math.round((srcWidth - sWidth) / 2);
-            } else {
-              sHeight = Math.round(srcWidth / targetRatio);
-              sy = Math.round((srcHeight - sHeight) / 2);
-            }
-
             const canvas = document.createElement("canvas");
             canvas.width = targetWidth;
             canvas.height = targetHeight;
             const ctx = canvas.getContext("2d");
             ctx.imageSmoothingEnabled = true;
             ctx.imageSmoothingQuality = "high";
-            ctx.drawImage(img, sx, sy, sWidth, sHeight, 0, 0, targetWidth, targetHeight);
+
+            // Default dark slate background matching theme
+            ctx.fillStyle = "#0f172a";
+            ctx.fillRect(0, 0, targetWidth, targetHeight);
+
+            const isLandscape = srcWidth > srcHeight;
+
+            if (isLandscape) {
+              // Convert landscape to portrait (1152 × 1440 px) without cutting off content:
+              // 1. Draw blurred, ambient version of the landscape image to fill the 1152×1440 background
+              ctx.save();
+              const bgScale =
+                Math.max(targetWidth / srcWidth, targetHeight / srcHeight) * 1.05;
+              const bgW = srcWidth * bgScale;
+              const bgH = srcHeight * bgScale;
+              const bgX = (targetWidth - bgW) / 2;
+              const bgY = (targetHeight - bgH) / 2;
+
+              if (typeof ctx.filter !== "undefined") {
+                ctx.filter = "blur(35px) brightness(0.65)";
+                ctx.drawImage(img, bgX, bgY, bgW, bgH);
+                ctx.filter = "none";
+              } else {
+                ctx.drawImage(img, bgX, bgY, bgW, bgH);
+              }
+              ctx.restore();
+
+              // Dark ambient overlay for contrast and depth
+              ctx.fillStyle = "rgba(15, 23, 42, 0.35)";
+              ctx.fillRect(0, 0, targetWidth, targetHeight);
+
+              // 2. Fit the entire landscape image horizontally across 1152 px, centered vertically
+              const fitWidth = targetWidth;
+              const fitHeight = Math.round(targetWidth / srcRatio);
+              const fitY = Math.round((targetHeight - fitHeight) / 2);
+
+              // Subtle drop shadow behind the main graphic
+              ctx.save();
+              ctx.shadowColor = "rgba(0, 0, 0, 0.45)";
+              ctx.shadowBlur = 28;
+              ctx.shadowOffsetY = 6;
+              ctx.drawImage(
+                img,
+                0,
+                0,
+                srcWidth,
+                srcHeight,
+                0,
+                fitY,
+                fitWidth,
+                fitHeight,
+              );
+              ctx.restore();
+            } else {
+              // Portrait or square: smoothly scale & center-crop to exact 1152 × 1440 (4:5 ratio)
+              let sx = 0,
+                sy = 0,
+                sWidth = srcWidth,
+                sHeight = srcHeight;
+
+              if (srcRatio > targetRatio) {
+                sWidth = Math.round(srcHeight * targetRatio);
+                sx = Math.round((srcWidth - sWidth) / 2);
+              } else {
+                sHeight = Math.round(srcWidth / targetRatio);
+                sy = Math.round((srcHeight - sHeight) / 2);
+              }
+
+              ctx.drawImage(
+                img,
+                sx,
+                sy,
+                sWidth,
+                sHeight,
+                0,
+                0,
+                targetWidth,
+                targetHeight,
+              );
+            }
 
             canvas.toBlob(
               (blob) => {
@@ -366,7 +435,7 @@ export default function GeneralSettingsPage() {
                 else reject(new Error("Canvas conversion failed"));
               },
               "image/jpeg",
-              0.88,
+              0.9,
             );
           } catch (err) {
             reject(err);
@@ -894,7 +963,7 @@ export default function GeneralSettingsPage() {
               <div>
                 <div className="text-lg font-semibold text-slate-900 dark:text-white">Login Hero Image</div>
                 <div className="text-sm text-slate-500 dark:text-slate-400">
-                  Featured visual on the right side of the login portal. Uploaded images are automatically formatted and centered to suit the exact 4:5 hero dimensions (1152 × 1440 px).
+                  Featured visual on the right side of the login portal. Uploaded images are automatically formatted to the exact 4:5 hero dimensions (1152 × 1440 px). Landscape images are automatically converted to portrait with ambient background fill so no content is cut off.
                 </div>
               </div>
               {loginHeroImageUrl ? (
