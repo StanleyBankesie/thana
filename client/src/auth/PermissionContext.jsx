@@ -132,6 +132,75 @@ export const PermissionProvider = ({ children }) => {
     } catch {}
   }, [globalOverrides]);
 
+  const [appMode, setAppMode] = useState(() => {
+    try {
+      if (typeof localStorage !== "undefined") {
+        return localStorage.getItem("omnisuite.app_mode") || "STANDARD";
+      }
+    } catch {}
+    return "STANDARD";
+  });
+
+  const [appBackground, setAppBackground] = useState(() => {
+    try {
+      if (typeof localStorage !== "undefined") {
+        const cached = localStorage.getItem("omnisuite.app_background");
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (parsed && typeof parsed === "object") return parsed;
+        }
+      }
+    } catch {}
+    return {
+      url: "/backgrounds/abstract-silk-waves.jpg",
+      preset: "silk-waves",
+      opacity: 40,
+      blur: 0,
+    };
+  });
+
+  const [moduleSectionViewEnabled, setModuleSectionViewEnabled] = useState(() => {
+    try {
+      if (typeof localStorage !== "undefined") {
+        const val = localStorage.getItem("omnisuite.module_section_view");
+        if (val !== null) return val === "true";
+      }
+    } catch {}
+    return false;
+  });
+
+  useEffect(() => {
+    const handleAppModeChange = (e) => {
+      const nextMode = e.detail?.mode;
+      if (nextMode) {
+        setAppMode(nextMode);
+      }
+    };
+    const handleSectionViewChange = (e) => {
+      const nextVal = e.detail?.enabled;
+      if (typeof nextVal === "boolean") {
+        setModuleSectionViewEnabled(nextVal);
+      }
+    };
+    window.addEventListener("app-mode-changed", handleAppModeChange);
+    window.addEventListener("module-section-view-changed", handleSectionViewChange);
+    return () => {
+      window.removeEventListener("app-mode-changed", handleAppModeChange);
+      window.removeEventListener("module-section-view-changed", handleSectionViewChange);
+    };
+  }, []);
+
+  useEffect(() => {
+    const handleAppBgChange = (e) => {
+      const nextBg = e.detail?.background;
+      if (nextBg) {
+        setAppBackground((prev) => ({ ...prev, ...nextBg }));
+      }
+    };
+    window.addEventListener("app-background-changed", handleAppBgChange);
+    return () => window.removeEventListener("app-background-changed", handleAppBgChange);
+  }, []);
+
   /**
    * Load user permissions from backend
    */
@@ -139,6 +208,44 @@ export const PermissionProvider = ({ children }) => {
     try {
       if (!background) setLoading(true);
       setError(null);
+
+      // Background sync application mode & module section view
+      api.get("/admin/settings/app-mode", BACKGROUND_GET_CONFIG)
+        .then((res) => {
+          const mode = res.data?.mode || "STANDARD";
+          setAppMode(mode);
+          const secView = res.data?.module_section_view === true;
+          setModuleSectionViewEnabled(secView);
+          try {
+            if (typeof localStorage !== "undefined") {
+              localStorage.setItem("omnisuite.app_mode", mode);
+              localStorage.setItem("omnisuite.module_section_view", String(secView));
+            }
+          } catch {}
+        })
+        .catch(() => {});
+
+      // Background sync application background
+      api.get("/admin/settings/app-background", BACKGROUND_GET_CONFIG)
+        .then((res) => {
+          if (res.data?.success) {
+            const bgData = {
+              url: res.data.background_url || "",
+              preset: res.data.background_preset || "silk-waves",
+              opacity: Number.isFinite(res.data.background_opacity) ? res.data.background_opacity : 40,
+              blur: res.data.background_blur ?? 0,
+              hasCustom: res.data.has_custom || false,
+              customUrl: res.data.custom_url || null,
+            };
+            setAppBackground(bgData);
+            try {
+              if (typeof localStorage !== "undefined") {
+                localStorage.setItem("omnisuite.app_background", JSON.stringify(bgData));
+              }
+            } catch {}
+          }
+        })
+        .catch(() => {});
 
       if (!initialized || !token) {
         setModules(new Set());
@@ -724,9 +831,19 @@ export const PermissionProvider = ({ children }) => {
       }
     }
 
-    const allowKey = `${mk}:${seg}`;
+    const allowKey = seg.includes(":") ? seg : `${mk}:${seg}`;
     if (roleFeatures.has(allowKey)) return true;
     if (permByFeatureKey.has(allowKey)) return true;
+
+    // Check case-insensitive and normalized variations
+    const normAllowKey = allowKey.toLowerCase().replace(/[^a-z0-9:]/g, "");
+    for (const rf of roleFeatures) {
+      if (rf.toLowerCase().replace(/[^a-z0-9:]/g, "") === normAllowKey) return true;
+    }
+    for (const pk of permByFeatureKey.keys()) {
+      if (pk.toLowerCase().replace(/[^a-z0-9:]/g, "") === normAllowKey) return true;
+    }
+
     if (mk === "purchase") {
       if (
         (seg === "purchase-upload" || seg === "upload") &&
@@ -784,14 +901,10 @@ export const PermissionProvider = ({ children }) => {
         return true;
       }
       if (
-        seg === "items" &&
+        (seg === "items" || seg === "item-master" || seg === "item-groups") &&
         (roleFeatures.has("inventory:item-master") ||
-          permByFeatureKey.has("inventory:item-master"))
-      )
-        return true;
-      if (
-        seg === "item-master" &&
-        (roleFeatures.has("inventory:items") ||
+          permByFeatureKey.has("inventory:item-master") ||
+          roleFeatures.has("inventory:items") ||
           permByFeatureKey.has("inventory:items"))
       )
         return true;
@@ -818,7 +931,7 @@ export const PermissionProvider = ({ children }) => {
     const mk = String(parts[0] || "");
     const seg = String(parts[1] || "");
 
-    const moduleInfo = MODULES_REGISTRY[mk];
+    const moduleInfo = MODULES_REGISTRY[mk] || {};
 
     let isExclusive = false;
     let exclusiveFeatureKey = null;
@@ -867,13 +980,55 @@ export const PermissionProvider = ({ children }) => {
       return true;
     }
 
-    if (!moduleInfo) return true;
-    const isKnown =
-      (moduleInfo.features || []).some((f) => String(f.key) === seg) ||
-      (moduleInfo.dashboards || []).some((d) => String(d.key) === seg);
-    if (!isKnown) return true;
+    // Direct check: feature key by seg (e.g. /inventory/items)
+    if (canAccessFeatureKey(mk, seg)) return true;
 
-    return canAccessFeatureKey(mk, seg);
+    // Check composite or sub-paths, e.g. /inventory/reports/stock-balances
+    for (let i = 1; i < parts.length; i++) {
+      const sub = parts[i];
+      if (canAccessFeatureKey(mk, sub)) return true;
+      const normSub = sub.toLowerCase().replace(/[^a-z0-9]/g, "");
+      if (canAccessFeatureKey(mk, normSub)) return true;
+      if (canAccessFeatureKey(mk, `${normSub}report`)) return true;
+    }
+
+    // Match against registered features in the module registry
+    const registeredFeatures = moduleInfo.features || [];
+    const matchedFeature = registeredFeatures.find((f) => {
+      const fk = String(f.key || "").toLowerCase();
+      const normFk = fk.replace(/[^a-z0-9]/g, "");
+      for (let i = 1; i < parts.length; i++) {
+        const pNorm = String(parts[i]).toLowerCase().replace(/[^a-z0-9]/g, "");
+        if (normFk === pNorm || normFk.includes(pNorm) || pNorm.includes(normFk)) return true;
+      }
+      return false;
+    });
+
+    if (matchedFeature) {
+      return canAccessFeatureKey(mk, matchedFeature.key);
+    }
+
+    // Match registered dashboards
+    const registeredDashboards = moduleInfo.dashboards || [];
+    const matchedDashboard = registeredDashboards.find((d) => {
+      const dk = String(d.key || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+      for (let i = 1; i < parts.length; i++) {
+        const pNorm = String(parts[i]).toLowerCase().replace(/[^a-z0-9]/g, "");
+        if (dk === pNorm || dk.includes(pNorm) || pNorm.includes(dk)) return true;
+      }
+      return false;
+    });
+
+    if (matchedDashboard) {
+      return canViewDashboardElement(mk, "dashboard", matchedDashboard.key);
+    }
+
+    // If role has explicit configuration and the page was NOT granted access, DENY it!
+    if (hasExplicitRoleConfig) {
+      return false;
+    }
+
+    return isSuper;
   };
 
   const canPerformAction = (featureKey, action = "view") => {
@@ -1332,6 +1487,13 @@ export const PermissionProvider = ({ children }) => {
   }, []);
 
   const value = {
+    appMode,
+    isBasicMode: appMode === "BASIC",
+    setAppMode,
+    moduleSectionViewEnabled,
+    setModuleSectionViewEnabled,
+    appBackground,
+    setAppBackground,
     modules,
     licensedModules,
     permissions,

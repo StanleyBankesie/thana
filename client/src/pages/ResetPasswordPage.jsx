@@ -198,7 +198,7 @@ export default function ResetPasswordPage() {
           className="hidden md:block w-full md:w-1/2 relative bg-slate-900 overflow-hidden"
           style={{
             backgroundImage: `url(${loginHeroImageUrl || backgroundImage})`,
-            backgroundSize: "contain",
+            backgroundSize: "cover",
             backgroundPosition: "center center",
             backgroundRepeat: "no-repeat",
           }}

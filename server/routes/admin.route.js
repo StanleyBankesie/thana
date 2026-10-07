@@ -5,6 +5,8 @@
 // Module Dependencies
 import express from "express";
 import multer from "multer";
+import path from "path";
+import fs from "fs";
 import { setRuntimeApiKey } from "../services/ai/banks.service.js";
 import { autoPostMidnightPosSalesToFinance } from "../services/posFinanceAutoPost.service.js";
 
@@ -1700,6 +1702,55 @@ const loginBackgroundUpload = multer({
     else cb(new Error("Only image files are allowed"), false);
   },
 });
+const appBgUploadDir = path.join(process.cwd(), "uploads", "backgrounds");
+try {
+  if (!fs.existsSync(appBgUploadDir)) {
+    fs.mkdirSync(appBgUploadDir, { recursive: true });
+  }
+} catch {}
+
+const appBackgroundStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    try {
+      if (!fs.existsSync(appBgUploadDir)) {
+        fs.mkdirSync(appBgUploadDir, { recursive: true });
+      }
+    } catch {}
+    cb(null, appBgUploadDir);
+  },
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname || "") || ".jpg";
+    cb(null, `custom-bg-${Date.now()}${ext}`);
+  },
+});
+
+const appBackgroundUpload = multer({
+  storage: appBackgroundStorage,
+  limits: { fileSize: 15 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    if (String(file.mimetype || "").startsWith("image/")) cb(null, true);
+    else cb(new Error("Only image files are allowed"), false);
+  },
+});
+
+let _appBgColumnsEnsured = false;
+async function ensureAppBackgroundColumns() {
+  if (_appBgColumnsEnsured) return;
+  await ensureLoginBrandingTable();
+  try {
+    const cols = await query(`SHOW COLUMNS FROM adm_login_branding`);
+    const colNames = (cols || []).map((c) => c.Field);
+    if (!colNames.includes("app_bg_image")) {
+      await query(`ALTER TABLE adm_login_branding ADD COLUMN app_bg_image LONGBLOB NULL`);
+    }
+    if (!colNames.includes("app_bg_mime")) {
+      await query(`ALTER TABLE adm_login_branding ADD COLUMN app_bg_mime VARCHAR(100) NULL`);
+    }
+  } catch (err) {
+    console.error("Failed to ensure app_bg columns in adm_login_branding:", err);
+  }
+  _appBgColumnsEnsured = true;
+}
 
 let _brandingTableEnsured = false;
 async function ensureLoginBrandingTable() {
@@ -1793,6 +1844,20 @@ router.get("/settings/login-background", async (req, res, next) => {
 
 router.get("/settings/login-hero-background", async (req, res, next) => {
   try {
+    const bgDir = path.join(process.cwd(), "uploads", "backgrounds");
+    const candidates = [
+      path.join(bgDir, "login-hero.jpg"),
+      path.join(bgDir, "login-hero.jpeg"),
+      path.join(bgDir, "login-hero.png"),
+      path.join(bgDir, "login-hero.webp"),
+    ];
+    for (const file of candidates) {
+      if (fs.existsSync(file)) {
+        res.setHeader("Cache-Control", "public, max-age=300");
+        return res.sendFile(file);
+      }
+    }
+
     await ensureLoginBrandingTable();
     const rows = await query(
       `SELECT hero_image, hero_mime
@@ -1854,6 +1919,18 @@ router.post(
         throw httpError(400, "VALIDATION_ERROR", "Hero image is required");
       }
       await ensureLoginBrandingTable();
+
+      // Write to uploads/backgrounds disk storage for static streaming
+      try {
+        const bgDir = path.join(process.cwd(), "uploads", "backgrounds");
+        if (!fs.existsSync(bgDir)) fs.mkdirSync(bgDir, { recursive: true });
+        const ext = req.file.mimetype?.includes("png") ? "png" : "jpg";
+        const heroDiskPath = path.join(bgDir, `login-hero.${ext}`);
+        fs.writeFileSync(heroDiskPath, req.file.buffer);
+      } catch (fsErr) {
+        console.warn("Failed to write login hero image to disk:", fsErr.message);
+      }
+
       try { await query("SET SESSION max_allowed_packet = 16777216"); } catch {}
       await query(
         `INSERT INTO adm_login_branding (id, hero_image, hero_mime)
@@ -1894,6 +1971,18 @@ router.delete(
   requirePageAccess("/administration/settings", "delete"),
   async (req, res, next) => {
     try {
+      const bgDir = path.join(process.cwd(), "uploads", "backgrounds");
+      const candidates = [
+        path.join(bgDir, "login-hero.jpg"),
+        path.join(bgDir, "login-hero.jpeg"),
+        path.join(bgDir, "login-hero.png"),
+        path.join(bgDir, "login-hero.webp"),
+      ];
+      for (const file of candidates) {
+        if (fs.existsSync(file)) {
+          try { fs.unlinkSync(file); } catch {}
+        }
+      }
       await ensureLoginBrandingTable();
       await query(`UPDATE adm_login_branding SET hero_image = NULL, hero_mime = NULL WHERE id = 1`);
       res.json({ success: true });
@@ -3190,6 +3279,351 @@ router.post(
         isManualTest: true,
       });
       res.json({ success: true, data: outcome });
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+
+router.get(
+  "/settings/app-mode",
+  requireAuth,
+  requireCompanyScope,
+  async (req, res, next) => {
+    try {
+      await ensureSystemSettingsTable();
+      const { companyId } = req.scope || {};
+      const rows = await query(
+        `SELECT setting_key, setting_value
+         FROM adm_system_settings
+         WHERE (company_id = :companyId OR company_id IS NULL)
+           AND setting_key IN ('SYSTEM_APPLICATION_MODE', 'MODULE_HOME_SECTION_VIEW')
+         ORDER BY company_id DESC`,
+        { companyId: companyId ?? null }
+      );
+      let rawMode = "STANDARD";
+      let sectionView = false;
+      for (const r of rows) {
+        if (r.setting_key === "SYSTEM_APPLICATION_MODE") {
+          rawMode = r.setting_value ? String(r.setting_value).toUpperCase() : "STANDARD";
+        } else if (r.setting_key === "MODULE_HOME_SECTION_VIEW") {
+          sectionView = r.setting_value === "true" || r.setting_value === "1";
+        }
+      }
+      const mode = rawMode === "BASIC" ? "BASIC" : "STANDARD";
+      res.json({ success: true, mode, module_section_view: sectionView });
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+
+router.post(
+  "/settings/app-mode",
+  requireAuth,
+  requireCompanyScope,
+  async (req, res, next) => {
+    try {
+      await ensureSystemSettingsTable();
+      const { companyId } = req.scope || {};
+      const requestedMode = String(req.body?.mode || "STANDARD").toUpperCase() === "BASIC" ? "BASIC" : "STANDARD";
+      const moduleSectionView = req.body?.module_section_view === true || req.body?.module_section_view === "true" || req.body?.module_section_view === 1 || req.body?.module_section_view === "1";
+
+      await query(
+        `DELETE FROM adm_system_settings 
+         WHERE setting_key = 'SYSTEM_APPLICATION_MODE' AND (company_id = :companyId OR (:companyId IS NULL AND company_id IS NULL))`,
+        { companyId: companyId ?? null }
+      );
+      await query(
+        `INSERT INTO adm_system_settings (company_id, branch_id, setting_key, setting_value)
+         VALUES (:companyId, NULL, 'SYSTEM_APPLICATION_MODE', :mode)`,
+        {
+          companyId: companyId ?? null,
+          mode: requestedMode,
+        }
+      );
+
+      if (req.body?.module_section_view !== undefined) {
+        await query(
+          `DELETE FROM adm_system_settings 
+           WHERE setting_key = 'MODULE_HOME_SECTION_VIEW' AND (company_id = :companyId OR (:companyId IS NULL AND company_id IS NULL))`,
+          { companyId: companyId ?? null }
+        );
+        await query(
+          `INSERT INTO adm_system_settings (company_id, branch_id, setting_key, setting_value)
+           VALUES (:companyId, NULL, 'MODULE_HOME_SECTION_VIEW', :sectionView)`,
+          {
+            companyId: companyId ?? null,
+            sectionView: moduleSectionView ? "true" : "false",
+          }
+        );
+      }
+
+      res.json({
+        success: true,
+        message: `Application settings updated`,
+        mode: requestedMode,
+        module_section_view: moduleSectionView,
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+
+// ===== Application Background Settings =====
+router.get(
+  "/settings/app-background",
+  async (req, res, next) => {
+    try {
+      await ensureSystemSettingsTable();
+      await ensureAppBackgroundColumns().catch(() => {});
+      const companyId = req.scope?.companyId ?? null;
+
+      const rows = await query(
+        `SELECT setting_key, setting_value
+         FROM adm_system_settings
+         WHERE (company_id = :companyId OR company_id IS NULL)
+           AND setting_key IN ('APP_BACKGROUND_URL', 'APP_BACKGROUND_PRESET', 'APP_BACKGROUND_OPACITY', 'APP_BACKGROUND_BLUR')
+         ORDER BY company_id DESC`,
+        { companyId }
+      );
+
+      const map = {};
+      for (const r of rows) {
+        if (map[r.setting_key] === undefined) {
+          map[r.setting_key] = r.setting_value;
+        }
+      }
+
+      let hasCustom = false;
+      let customVersion = null;
+      try {
+        if (fs.existsSync(appBgUploadDir)) {
+          const files = fs.readdirSync(appBgUploadDir).filter((f) => f.startsWith("custom-bg-"));
+          if (files.length > 0) {
+            hasCustom = true;
+            const stat = fs.statSync(path.join(appBgUploadDir, files[0]));
+            customVersion = Math.round(stat.mtimeMs);
+          }
+        }
+      } catch {}
+      if (!hasCustom) {
+        try {
+          const customRows = await query(
+            `SELECT app_bg_image IS NOT NULL AS has_image, updated_at
+             FROM adm_login_branding
+             WHERE id = 1
+             LIMIT 1`
+          );
+          if (customRows[0]?.has_image) {
+            hasCustom = true;
+            customVersion = customRows[0]?.updated_at ? new Date(customRows[0].updated_at).getTime() : Date.now();
+          }
+        } catch {}
+      }
+
+      const defaultUrl = "/backgrounds/abstract-silk-waves.jpg";
+      const backgroundUrl = map.APP_BACKGROUND_URL !== undefined ? map.APP_BACKGROUND_URL : defaultUrl;
+      const backgroundPreset = map.APP_BACKGROUND_PRESET !== undefined ? map.APP_BACKGROUND_PRESET : "silk-waves";
+      const backgroundOpacity = map.APP_BACKGROUND_OPACITY !== undefined ? Number(map.APP_BACKGROUND_OPACITY) : 40;
+      const backgroundBlur = map.APP_BACKGROUND_BLUR !== undefined ? Number(map.APP_BACKGROUND_BLUR) : 0;
+
+      res.json({
+        success: true,
+        background_url: backgroundUrl,
+        background_preset: backgroundPreset,
+        background_opacity: Number.isFinite(backgroundOpacity) ? backgroundOpacity : 40,
+        background_blur: Number.isFinite(backgroundBlur) ? backgroundBlur : 0,
+        has_custom: hasCustom,
+        custom_url: hasCustom ? `/api/admin/settings/app-background/image?v=${customVersion || Date.now()}` : null,
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+
+router.post(
+  "/settings/app-background",
+  requireAuth,
+  requireCompanyScope,
+  async (req, res, next) => {
+    try {
+      await ensureSystemSettingsTable();
+      const companyId = req.scope?.companyId ?? null;
+      const {
+        background_url = "/backgrounds/abstract-silk-waves.jpg",
+        background_preset = "silk-waves",
+        background_opacity = 40,
+        background_blur = 0,
+      } = req.body || {};
+
+      const settings = [
+        { key: "APP_BACKGROUND_URL", value: String(background_url || "") },
+        { key: "APP_BACKGROUND_PRESET", value: String(background_preset || "silk-waves") },
+        { key: "APP_BACKGROUND_OPACITY", value: String(background_opacity ?? 40) },
+        { key: "APP_BACKGROUND_BLUR", value: String(background_blur ?? 0) },
+      ];
+
+      for (const s of settings) {
+        await query(
+          `DELETE FROM adm_system_settings 
+           WHERE setting_key = :key AND (company_id = :companyId OR (:companyId IS NULL AND company_id IS NULL))`,
+          { companyId, key: s.key }
+        );
+        await query(
+          `INSERT INTO adm_system_settings (company_id, branch_id, setting_key, setting_value)
+           VALUES (:companyId, NULL, :key, :value)`,
+          {
+            companyId,
+            key: s.key,
+            value: s.value,
+          }
+        );
+      }
+
+      res.json({
+        success: true,
+        message: "Application background settings saved successfully",
+        background_url,
+        background_preset,
+        background_opacity,
+        background_blur,
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+
+router.post(
+  "/settings/app-background/upload",
+  requireAuth,
+  requireCompanyScope,
+  appBackgroundUpload.single("image"),
+  async (req, res, next) => {
+    try {
+      if (!req.file) {
+        throw httpError(400, "VALIDATION_ERROR", "Background image file is required");
+      }
+
+      // Remove older custom background files on disk so only the current one is kept
+      try {
+        if (fs.existsSync(appBgUploadDir)) {
+          const currentFilename = path.basename(req.file.path);
+          const files = fs.readdirSync(appBgUploadDir).filter((f) => f.startsWith("custom-bg-") && f !== currentFilename);
+          for (const f of files) {
+            try { fs.unlinkSync(path.join(appBgUploadDir, f)); } catch {}
+          }
+        }
+      } catch {}
+
+      const customUrl = `/api/admin/settings/app-background/image?v=${Date.now()}`;
+      const companyId = req.scope?.companyId ?? null;
+
+      await query(
+        `DELETE FROM adm_system_settings 
+         WHERE setting_key IN ('APP_BACKGROUND_URL', 'APP_BACKGROUND_PRESET')
+           AND (company_id = :companyId OR (:companyId IS NULL AND company_id IS NULL))`,
+        { companyId }
+      );
+      await query(
+        `INSERT INTO adm_system_settings (company_id, branch_id, setting_key, setting_value)
+         VALUES (:companyId, NULL, 'APP_BACKGROUND_URL', :url)`,
+        { companyId, url: customUrl }
+      );
+      await query(
+        `INSERT INTO adm_system_settings (company_id, branch_id, setting_key, setting_value)
+         VALUES (:companyId, NULL, 'APP_BACKGROUND_PRESET', 'custom')`,
+        { companyId }
+      );
+
+      res.json({
+        success: true,
+        message: "Custom background image uploaded and saved successfully",
+        background_url: customUrl,
+        background_preset: "custom",
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+
+router.get("/settings/app-background/image", async (req, res, next) => {
+  try {
+    if (fs.existsSync(appBgUploadDir)) {
+      const files = fs.readdirSync(appBgUploadDir).filter((f) => f.startsWith("custom-bg-"));
+      if (files.length > 0) {
+        const latestFile = files.sort().reverse()[0];
+        const fullPath = path.join(appBgUploadDir, latestFile);
+        res.setHeader("Cache-Control", "public, max-age=300");
+        return res.sendFile(fullPath);
+      }
+    }
+
+    // Fallback to adm_login_branding if previously stored in DB
+    await ensureAppBackgroundColumns().catch(() => {});
+    const rows = await query(
+      `SELECT app_bg_image, app_bg_mime
+       FROM adm_login_branding
+       WHERE id = 1
+       LIMIT 1`
+    );
+    const row = rows[0] || null;
+    if (!row?.app_bg_image) return res.status(404).end();
+    const body = Buffer.isBuffer(row.app_bg_image)
+      ? row.app_bg_image
+      : Buffer.from(row.app_bg_image);
+    res.setHeader("Content-Type", row.app_bg_mime || "image/jpeg");
+    res.setHeader("Cache-Control", "public, max-age=300");
+    return res.end(body);
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.delete(
+  "/settings/app-background/custom",
+  requireAuth,
+  requireCompanyScope,
+  async (req, res, next) => {
+    try {
+      if (fs.existsSync(appBgUploadDir)) {
+        const files = fs.readdirSync(appBgUploadDir).filter((f) => f.startsWith("custom-bg-"));
+        for (const f of files) {
+          try { fs.unlinkSync(path.join(appBgUploadDir, f)); } catch {}
+        }
+      }
+      await ensureAppBackgroundColumns().catch(() => {});
+      await query(
+        `UPDATE adm_login_branding
+         SET app_bg_image = NULL, app_bg_mime = NULL
+         WHERE id = 1`
+      ).catch(() => {});
+
+      const companyId = req.scope?.companyId ?? null;
+      const defaultUrl = "/backgrounds/abstract-silk-waves.jpg";
+
+      await query(
+        `DELETE FROM adm_system_settings 
+         WHERE setting_key IN ('APP_BACKGROUND_URL', 'APP_BACKGROUND_PRESET')
+           AND (company_id = :companyId OR (:companyId IS NULL AND company_id IS NULL))`,
+        { companyId }
+      );
+      await query(
+        `INSERT INTO adm_system_settings (company_id, branch_id, setting_key, setting_value)
+         VALUES (:companyId, NULL, 'APP_BACKGROUND_URL', :url)`,
+        { companyId, url: defaultUrl }
+      );
+      await query(
+        `INSERT INTO adm_system_settings (company_id, branch_id, setting_key, setting_value)
+         VALUES (:companyId, NULL, 'APP_BACKGROUND_PRESET', 'silk-waves')`,
+        { companyId }
+      );
+
+      res.json({ success: true, message: "Custom background removed and reset to default preset", default_url: defaultUrl });
     } catch (err) {
       next(err);
     }

@@ -31,17 +31,17 @@ async function ensureItemFlagColumns() {
   }
   if (!(await hasColumn("inv_items", "is_stockable"))) {
     await query(
-      "ALTER TABLE inv_items ADD COLUMN is_stockable CHAR(1) NOT NULL DEFAULT 'N'",
+      "ALTER TABLE inv_items ADD COLUMN is_stockable CHAR(1) NOT NULL DEFAULT 'Y'",
     );
   }
   if (!(await hasColumn("inv_items", "is_sellable"))) {
     await query(
-      "ALTER TABLE inv_items ADD COLUMN is_sellable CHAR(1) NOT NULL DEFAULT 'N'",
+      "ALTER TABLE inv_items ADD COLUMN is_sellable CHAR(1) NOT NULL DEFAULT 'Y'",
     );
   }
   if (!(await hasColumn("inv_items", "is_purchasable"))) {
     await query(
-      "ALTER TABLE inv_items ADD COLUMN is_purchasable CHAR(1) NOT NULL DEFAULT 'N'",
+      "ALTER TABLE inv_items ADD COLUMN is_purchasable CHAR(1) NOT NULL DEFAULT 'Y'",
     );
   }
   if (!(await hasColumn("inv_items", "category_id"))) {
@@ -629,9 +629,9 @@ export const createItem = async (req, res, next) => {
         (await resolveAccountId(companyId, body.sales_account));
     }
     const serviceItem = yn(body.service_item, "N");
-    const isStockable = yn(body.is_stockable, "N");
-    const isSellable = yn(body.is_sellable, "N");
-    const isPurchasable = yn(body.is_purchasable, "N");
+    const isStockable = yn(body.is_stockable, "Y");
+    const isSellable = yn(body.is_sellable, "Y");
+    const isPurchasable = yn(body.is_purchasable, "Y");
     const isActive =
       body.is_active === undefined ? 1 : Number(Boolean(body.is_active));
     if (!itemCode || !itemName)
@@ -740,9 +740,9 @@ export const updateItem = async (req, res, next) => {
     const itemGroupId =
       Number(body.item_group_id || body.group_id || 0) || null;
     const serviceItem = yn(body.service_item, "N");
-    const isStockable = yn(body.is_stockable, "N");
-    const isSellable = yn(body.is_sellable, "N");
-    const isPurchasable = yn(body.is_purchasable, "N");
+    const isStockable = yn(body.is_stockable, "Y");
+    const isSellable = yn(body.is_sellable, "Y");
+    const isPurchasable = yn(body.is_purchasable, "Y");
     const isActive =
       body.is_active === undefined ? 1 : Number(Boolean(body.is_active));
     if (!itemCode || !itemName)

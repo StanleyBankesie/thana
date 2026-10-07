@@ -62,6 +62,7 @@ import MaterialReturnReportPage from "./reports/MaterialReturnReportPage.jsx";
 import StockAdjustmentReportPage from "./reports/StockAdjustmentReportPage.jsx";
 import LowStockNotificationsPage from "./LowStockNotificationsPage.jsx";
 import InventoryReportsPage from "./reports/InventoryReportsPage.jsx";
+import ExpiredItemsReportPage from "./reports/ExpiredItemsReportPage.jsx";
 import StockBalancesPage from "./StockBalancesPage.jsx";
 import StockJournalList from "./StockJournalList.jsx";
 import StockJournalForm from "./StockJournalForm.jsx";
@@ -373,6 +374,15 @@ export const inventorySections = [
         ],
         description: "Age of current stock holdings",
         icon: "⏳",
+      },
+      {
+        name: "Expired Items Report",
+        path: "/inventory/reports/expired-items",
+        actions: [
+          { label: "View", path: "/inventory/reports/expired-items", type: "outline" }
+        ],
+        description: "Expired stock, shelf-life risks and loss valuation",
+        icon: "⚠️",
       },
       {
         name: "Fast Moving Items",
@@ -899,6 +909,10 @@ export default function InventoryHome() {
         path="reports/stock-aging-analysis"
         element={<StockAgingAnalysisReportPage />}
       />
+      <Route
+        path="reports/expired-items"
+        element={<ExpiredItemsReportPage />}
+      />
       <Route path="reports/slow-moving" element={<SlowMovingReportPage />} />
       <Route path="reports/fast-moving" element={<FastMovingReportPage />} />
       <Route path="reports/non-moving" element={<NonMovingReportPage />} />
@@ -1160,6 +1174,15 @@ export const inventoryFeatures = [
     path: "/inventory/reports/stock-aging-analysis",
         actions: [
           { label: "View", path: "/inventory/reports/stock-aging-analysis", type: "outline" }
+        ],
+    type: "dashboard",
+  },
+  {
+    module_key: "inventory",
+    label: "Expired Items Report",
+    path: "/inventory/reports/expired-items",
+        actions: [
+          { label: "View", path: "/inventory/reports/expired-items", type: "outline" }
         ],
     type: "dashboard",
   },

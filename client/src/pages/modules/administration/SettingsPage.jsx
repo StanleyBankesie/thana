@@ -130,37 +130,82 @@ export default function SettingsPage() {
     if (!file) return;
     try {
       setloginHeroImageSaving(true);
-      let uploadFile = file;
-      if (file.size > 300 * 1024) {
-        const compressed = await new Promise((resolve) => {
-          const img = new Image();
-          const url = URL.createObjectURL(file);
-          img.onload = () => {
-            URL.revokeObjectURL(url);
-            let w = img.naturalWidth, h = img.naturalHeight;
-            const maxDim = 1920;
-            if (w > maxDim || h > maxDim) {
-              if (w > h) { h = (h / w) * maxDim; w = maxDim; }
-              else { w = (w / h) * maxDim; h = maxDim; }
+      // Automatically modify dimensions to suit the actual space/size of the Login Hero Image
+      // Target hero container is 576 x 720 px (4:5 ratio). Target 2x resolution: 1152 x 1440 px.
+      const compressed = await new Promise((resolve, reject) => {
+        const img = new Image();
+        const url = URL.createObjectURL(file);
+        img.onload = () => {
+          URL.revokeObjectURL(url);
+          try {
+            const targetWidth = 1152;
+            const targetHeight = 1440;
+            const targetRatio = targetWidth / targetHeight; // 0.8 (4:5)
+            const srcWidth = img.naturalWidth || img.width;
+            const srcHeight = img.naturalHeight || img.height;
+            const srcRatio = srcWidth / srcHeight;
+
+            let sx = 0, sy = 0, sWidth = srcWidth, sHeight = srcHeight;
+
+            if (srcRatio > targetRatio) {
+              // Image is wider than 4:5 - center crop horizontally
+              sWidth = Math.round(srcHeight * targetRatio);
+              sx = Math.round((srcWidth - sWidth) / 2);
+            } else {
+              // Image is taller than 4:5 - center crop vertically
+              sHeight = Math.round(srcWidth / targetRatio);
+              sy = Math.round((srcHeight - sHeight) / 2);
             }
-            const c = document.createElement("canvas");
-            c.width = w; c.height = h;
-            const ctx = c.getContext("2d");
-            ctx.drawImage(img, 0, 0, w, h);
-            c.toBlob(blob => resolve(blob), "image/jpeg", 0.8);
-          };
-          img.src = url;
-        });
-        uploadFile = new File([compressed], file.name.replace(/\.[^.]+$/, ".jpg"), { type: "image/jpeg" });
-      }
+
+            const canvas = document.createElement("canvas");
+            canvas.width = targetWidth;
+            canvas.height = targetHeight;
+            const ctx = canvas.getContext("2d");
+            ctx.imageSmoothingEnabled = true;
+            ctx.imageSmoothingQuality = "high";
+            ctx.drawImage(img, sx, sy, sWidth, sHeight, 0, 0, targetWidth, targetHeight);
+
+            canvas.toBlob(
+              (blob) => {
+                if (blob) resolve(blob);
+                else reject(new Error("Canvas conversion failed"));
+              },
+              "image/jpeg",
+              0.88,
+            );
+          } catch (err) {
+            reject(err);
+          }
+        };
+        img.onerror = () => {
+          URL.revokeObjectURL(url);
+          reject(new Error("Failed to load image file"));
+        };
+        img.src = url;
+      });
+
+      const uploadFile = new File(
+        [compressed],
+        (file.name || "login-hero").replace(/\.[^.]+$/, ".jpg"),
+        { type: "image/jpeg" },
+      );
+
       const fd = new FormData();
       fd.append("background", uploadFile);
-      await api.post("/admin/settings/login-hero-background", fd, { headers: { "Content-Type": "multipart/form-data" } });
-      toast.success("Login hero image updated");
+      await api.post("/admin/settings/login-hero-background", fd, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      toast.success("Login hero image updated and automatically formatted to 1152×1440 (4:5 ratio)");
       await loadloginHeroImageMeta();
     } catch (e) {
-      toast.error(e?.response?.data?.message || e?.message || "Failed to update Login hero image");
-    } finally { setloginHeroImageSaving(false); }
+      toast.error(
+        e?.response?.data?.message ||
+          e?.message ||
+          "Failed to update Login hero image",
+      );
+    } finally {
+      setloginHeroImageSaving(false);
+    }
   }
 
   async function clearloginHeroImage() {
@@ -255,20 +300,31 @@ export default function SettingsPage() {
             <div className="card-body space-y-3">
               <div className="flex justify-between items-start gap-4">
                 <div>
-                  <div className="text-lg font-semibold">Login Hero Image</div>
-                  <div className="text-sm text-slate-500">Change the image shown behind the login form.</div>
+                  <div className="text-lg font-semibold text-slate-900 dark:text-white">Login Hero Image</div>
+                  <div className="text-sm text-slate-500 dark:text-slate-400">
+                    Hero image featured on the right side of the login portal. Uploaded images are automatically formatted and centered to suit the exact 4:5 hero dimensions (1152 × 1440 px).
+                  </div>
                 </div>
                 {loginHeroImageUrl ? (
-                  <div className="w-44 h-28 rounded-lg border border-slate-200 bg-slate-900 overflow-hidden flex items-center justify-center p-1 shadow-inner">
-                    <img src={loginHeroImageUrl} alt="Hero Background Preview" className="w-full h-full object-contain rounded" />
+                  <div className="w-28 sm:w-32 h-36 sm:h-40 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-900 overflow-hidden flex items-center justify-center shadow-md relative group shrink-0">
+                    <img src={loginHeroImageUrl} alt="Hero Background Preview" className="w-full h-full object-cover rounded-xl" />
+                    <span className="absolute bottom-1 right-1 text-[9px] font-bold px-1.5 py-0.5 rounded bg-black/60 text-white backdrop-blur-xs">
+                      4:5
+                    </span>
                   </div>
                 ) : (
-                  <div className="w-44 h-28 rounded-lg border border-dashed border-slate-300 flex items-center justify-center text-xs text-slate-500 font-medium">Default image</div>
+                  <div className="w-28 sm:w-32 h-36 sm:h-40 rounded-xl border border-dashed border-slate-300 dark:border-slate-700 flex flex-col items-center justify-center text-xs text-slate-500 font-medium shrink-0 bg-slate-50/50 dark:bg-slate-800/50">
+                    <span>Default hero</span>
+                    <span className="text-[10px] text-slate-400 mt-1">4:5 ratio</span>
+                  </div>
                 )}
               </div>
-              <div className="flex flex-wrap gap-2">
-                <label className="btn-primary cursor-pointer">
-                  {loginHeroImageSaving ? "Saving..." : "Upload Background"}
+              <div className="flex flex-wrap items-center gap-2 pt-1">
+                <label className="btn-primary cursor-pointer inline-flex items-center gap-1.5">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                  </svg>
+                  <span>{loginHeroImageSaving ? "Processing & Uploading..." : "Upload Hero Image"}</span>
                   <input type="file" accept="image/*" className="hidden" disabled={loginHeroImageSaving} onChange={e => { const file = e.target.files?.[0] || null; e.target.value = ""; uploadloginHeroImage(file); }} />
                 </label>
                 <button type="button" className="btn-outline" disabled={loginHeroImageSaving || !loginHeroImageUrl} onClick={clearloginHeroImage}>Reset to Default</button>

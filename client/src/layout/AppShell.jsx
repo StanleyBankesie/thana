@@ -78,6 +78,7 @@ import {
   Presentation,
   Truck,
   Home,
+  X,
 } from "lucide-react";
 import FloatingChat from "../components/chat/FloatingChat.jsx";
 import BanksAiFloating from "../components/ai/BanksAiFloating.jsx";
@@ -245,6 +246,7 @@ export default function AppShell() {
     ensurePagePerms,
     basePathFrom,
     canAccessFeatureKey,
+    appBackground,
   } = usePermission();
   const { theme } = useTheme();
   const { pending, failed, completed, items, lastEvent } = useOfflineQueue();
@@ -501,12 +503,7 @@ export default function AppShell() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.pathname]);
 
-  const [sidebarOpen, setSidebarOpen] = useState(() => {
-    if (typeof window !== "undefined") {
-      return window.matchMedia("(min-width: 768px)").matches;
-    }
-    return false;
-  });
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const sidebarTouchStart = useRef(null);
   const handleSidebarTouchStart = (e) => {
     sidebarTouchStart.current = {
@@ -1116,15 +1113,6 @@ export default function AppShell() {
     return modules.some((m) => m.path === path);
   }, [location.pathname]);
 
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      if (window.matchMedia("(min-width: 768px)").matches) {
-        setSidebarOpen(isRootPage);
-      } else {
-        setSidebarOpen(false);
-      }
-    }
-  }, [location.pathname, isRootPage]);
 
   useEffect(() => {
     function onDocClick(e) {
@@ -1267,6 +1255,11 @@ export default function AppShell() {
             (el.closest && (
               el.closest("[data-rbac-exempt='true']") ||
               el.closest("[data-rbac-exempt]") ||
+              el.closest("header") ||
+              el.closest("aside") ||
+              el.closest("nav") ||
+              el.closest(".app-header") ||
+              el.closest(".app-sidebar") ||
               el.closest("form") ||
               el.closest(".form-section") ||
               el.closest("[data-form]")
@@ -1356,11 +1349,11 @@ export default function AppShell() {
   }, [location.pathname, canPerformAction, globalOverrides]);
 
   return (
-    <div className="min-h-screen  bg-slate-50 (#f8fafc)  text-slate-900 dark:bg-slate-900 dark:text-slate-100 flex flex-col">
+    <div className="min-h-screen text-slate-900 dark:text-slate-100 flex flex-col bg-slate-50 dark:bg-slate-900">
       {!sidebarOpen && (
         <button
           type="button"
-          aria-label="Open menu"
+          aria-label="Toggle navigation menu"
           className="lg:hidden fixed left-3 top-3 z-[90] inline-flex items-center justify-center w-12 h-12 rounded-full shadow-erp bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700"
           onClick={() => setSidebarOpen(true)}
           data-rbac-exempt="true"
@@ -1371,11 +1364,12 @@ export default function AppShell() {
       {/* Floating Social Feed Notification - Always Visible */}
       <SocialFeedNotification />
 
-      <header className="flex justify-between items-center px-6 py-1 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 shadow-sm z-50 sticky top-0">
+      <header data-rbac-exempt="true" className="flex justify-between items-center px-6 py-1 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 shadow-sm z-50 sticky top-0">
         <div className="flex items-center gap-3 flex-nowrap">
           <button
             type="button"
-            aria-label="Open menu"
+            aria-label="Toggle navigation menu"
+            data-rbac-exempt="true"
             onClick={() => setSidebarOpen((v) => !v)}
             className="inline-flex items-center justify-center w-9 h-9 rounded-lg text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800 transition-colors"
           >
@@ -1541,7 +1535,7 @@ export default function AppShell() {
       {queueOpen && (
         <div className="px-6 py-3 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950">
           <div className="text-sm">
-            Pending {pending} â€¢ Failed {failed} â€¢ Completed {completed}
+            Pending {pending} • Failed {failed} • Completed {completed}
           </div>
           <div className="mt-3">
             <div className="grid grid-cols-1 gap-2">
@@ -1585,11 +1579,11 @@ export default function AppShell() {
               <h2 className="text-lg font-bold">Switch Role & Branch</h2>
               <button
                 type="button"
-                className="text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-slate-200 dark:hover:bg-slate-800 transition-colors"
                 onClick={() => setContextModalOpen(false)}
                 aria-label="Close"
               >
-                âœ•
+                <X className="w-5 h-5" />
               </button>
             </div>
             <div className="mt-4 space-y-4">
@@ -1885,20 +1879,22 @@ export default function AppShell() {
 
       <div
         className={
-          "flex-1 " +
+          "flex-1 relative z-10 " +
           (sidebarOpen ? "grid md:grid-cols-[280px_1fr]" : "grid grid-cols-1")
         }
       >
         {sidebarOpen && (
           <button
             type="button"
-            aria-label="Close menu"
+            aria-label="Close navigation menu"
+            data-rbac-exempt="true"
             onClick={() => setSidebarOpen(false)}
             className="fixed inset-0 z-50 bg-black/40 md:hidden transition-opacity duration-300 animate-in fade-in"
           />
         )}
 
         <aside
+          data-rbac-exempt="true"
           onTouchStart={handleSidebarTouchStart}
           onTouchEnd={handleSidebarTouchEnd}
           className={
@@ -1958,8 +1954,22 @@ export default function AppShell() {
           </nav>
         </aside>
 
-        <main className=" bg-slate-50 (#f8fafc)  dark:bg-slate-900 overflow-x-hidden min-w-0">
-          <div className="w-full max-w-full 2xl:max-w-[1600px] mx-auto p-2 md:p-2 lg:p-3">
+        <main className="flex-1 overflow-x-hidden min-w-0 relative bg-slate-100 dark:bg-slate-900 min-h-[calc(100vh-45px)]">
+          {/* Main Application Background Image Layer (strictly inside main application area) */}
+          {appBackground?.url ? (
+            <div
+              aria-hidden="true"
+              className="fixed top-[45px] bottom-0 right-0 pointer-events-none z-0 bg-cover bg-center bg-no-repeat transition-all duration-300 ease-in-out"
+              style={{
+                left: sidebarOpen ? "280px" : "0px",
+                backgroundImage: `url(${appBackground.url})`,
+                opacity: Math.max(0, Math.min(1, Number(appBackground.opacity ?? 40) / 100)),
+                filter: appBackground.blur ? `blur(${appBackground.blur}px)` : undefined,
+              }}
+            />
+          ) : null}
+
+          <div className="relative z-10 w-full max-w-full 2xl:max-w-[1600px] mx-auto p-2 md:p-2 lg:p-3">
             {pushPromptVisible ? (
               <div className="mb-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-3 flex items-center justify-between">
                 <div className="text-sm">

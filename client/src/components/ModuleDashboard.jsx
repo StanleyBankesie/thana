@@ -33,7 +33,7 @@ const getSectionIcon = (section, sectionIndex) => {
 
 import React, { useState, useMemo } from "react";
 import { useNavigate, useLocation, NavLink } from "react-router-dom";
-import { ArrowLeft, ChevronDown } from "lucide-react";
+import { ArrowLeft, ChevronDown, ChevronRight, ArrowRight, Sparkles } from "lucide-react";
 import { usePermission } from "../auth/PermissionContext.jsx";
 import { MODULES_REGISTRY } from "../data/modulesRegistry.js";
 import { ModuleTopNavBar } from "./ModuleLayout.jsx";
@@ -158,8 +158,15 @@ const ModuleDashboard = ({
       }
     }
   }, [location.search, sections]);
-  const { canAccessPath, canAccessFeatureKey, canViewDashboardElement, isSuper } =
-    usePermission();
+  const {
+    canAccessPath,
+    canAccessFeatureKey,
+    canViewDashboardElement,
+    isModuleEnabled,
+    moduleSectionViewEnabled,
+    isSuper,
+    isBasicMode,
+  } = usePermission();
 
   const isDashboardPath = (path) => {
     const parts = String(path || "").split("/").filter(Boolean);
@@ -240,13 +247,15 @@ const ModuleDashboard = ({
     if (!item) return false;
     if (item.hidden) return false;
     const path = String(item.path || "");
-    if (!path) return false;
+    if (!path && !item.feature_key) return false;
 
     if (showAll || isSuper) return true;
 
     const parts = path.split("/").filter(Boolean);
-    const mk = String(item.module_key || parts[0] || "");
-    const fk = String(item.feature_key || parts[1] || "");
+    const mk = String(item.module_key || moduleKey || parts[0] || "");
+    const rawFk = String(item.feature_key || "");
+
+    if (mk && typeof isModuleEnabled === "function" && !isModuleEnabled(mk)) return false;
 
     if (mk && isDashboardPath(path)) {
       return (
@@ -255,15 +264,15 @@ const ModuleDashboard = ({
       );
     }
 
-    if (mk && fk) {
-      if (canAccessFeatureKey(mk, fk)) return true;
-      if (item.feature_key && canAccessFeatureKey(mk, item.feature_key)) return true;
-      if (parts.length > 2) {
-        const fk2 = String(parts[2] || "");
-        if (fk2 && canAccessFeatureKey(mk, fk2)) return true;
-      }
+    if (mk && rawFk) {
+      if (!canAccessFeatureKey(mk, rawFk)) return false;
     }
-    return canAccessPath(path);
+
+    if (path) {
+      if (!canAccessPath(path)) return false;
+    }
+
+    return true;
   };
 
   const allSections = React.useMemo(() => {
@@ -374,6 +383,34 @@ const ModuleDashboard = ({
     });
   }, [allSections, searchTerm, normalizeForSearch]);
 
+  const totalVisiblePages = useMemo(() => {
+    return filteredSections.reduce((count, s) => {
+      const sItems = s.items || s.features || [];
+      return count + sItems.filter((item) => canShowItem(item)).length;
+    }, 0);
+  }, [filteredSections, canShowItem]);
+
+  const shouldShowSectionCardsFirst = useMemo(() => {
+    if (isBasicMode) return false;
+    if (typeof moduleSectionViewEnabled === "boolean") return moduleSectionViewEnabled;
+    try {
+      if (typeof localStorage !== "undefined") {
+        return localStorage.getItem("omnisuite.module_section_view") === "true";
+      }
+    } catch {}
+    return false;
+  }, [isBasicMode, moduleSectionViewEnabled]);
+
+  const visibleSectionsList = useMemo(() => {
+    return filteredSections
+      .map((section, sectionIndex) => {
+        const rawItems = section.items || section.features || [];
+        const visibleSectionItems = rawItems.filter((item) => canShowItem(item));
+        return { section, sectionIndex, visibleSectionItems };
+      })
+      .filter(({ visibleSectionItems }) => visibleSectionItems.length > 0);
+  }, [filteredSections, canShowItem]);
+
   const isSearching = Boolean(String(searchTerm || "").trim());
 
   const slug = (s) =>
@@ -469,45 +506,43 @@ const ModuleDashboard = ({
   }, [location.pathname, location.search, location.hash, navigate]);
 
   return (
-    <div className="space-y-6 animate-fade-in px-3 sm:px-4 md:-mx-6 md:px-6">
-      <div className="-mx-3 px-3 sm:-mx-4 sm:px-4 md:-mx-6 md:px-6 sticky top-0 z-40 bg-slate-50 dark:bg-slate-950 pb-2 pt-2 -mt-2">
+    <div className="space-y-6 animate-fade-in px-3 sm:px-4 md:-mx-6 md:px-6 bg-transparent text-slate-900 dark:text-slate-100">
+      <div className="-mx-3 px-3 sm:-mx-4 sm:px-4 md:-mx-6 md:px-6 sticky top-0 z-40 bg-slate-50/75 dark:bg-slate-950/75 backdrop-blur-md pb-2 pt-2 -mt-2 transition-colors">
         <ModuleTopNavBar sections={allSections} headerActions={resolvedHeaderActions} moduleKey={moduleKey} />
       </div>
 
       <div className="space-y-8">
         {/* Header */}
-        <div className="mb-8 hidden lg:flex items-start justify-between gap-4">
+        <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          {(!useSectionNavigation || searchTerm || activeSection === null) && (
-            <h1 className="text-3xl font-bold text-brand-900 dark:text-white tracking-tight mb-2">
-              {title}
-            </h1>
-          )}
-          {description && (!useSectionNavigation || searchTerm || activeSection === null) && (
+          <h1 className="text-3xl font-bold text-brand-900 dark:text-white tracking-tight mb-2">
+            {title}
+          </h1>
+          {description && (
             <p className="text-slate-500 dark:text-slate-400 text-lg max-w-3xl">
               {description}
             </p>
           )}
         </div>
         <div className="flex items-center gap-2">
-          {!searchTerm && useSectionNavigation && activeSection !== null && (
+          {!searchTerm && activeSection !== null && (
             <button 
               type="button"
               onClick={() => {
-              setActiveSection(null);
-              const searchParams = new URLSearchParams(location.search || "");
-              searchParams.delete("section");
-              navigate({ pathname: location.pathname, search: searchParams.toString() }, { replace: true });
-            }}
+                setActiveSection(null);
+                const searchParams = new URLSearchParams(location.search || "");
+                searchParams.delete("section");
+                navigate({ pathname: location.pathname, search: searchParams.toString() }, { replace: true });
+              }}
               className="btn btn-secondary flex items-center gap-2 shadow-xs hover:shadow transition-all font-semibold"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
               </svg>
-              <span>Back</span>
+              <span>{shouldShowSectionCardsFirst ? "Back to Sections" : "All Sections"}</span>
             </button>
           )}
-          {(!useSectionNavigation || searchTerm || activeSection === null) && resolvedHeaderActions.map((a, i) => (
+          {resolvedHeaderActions.map((a, i) => (
             <button
               key={i}
               onClick={(e) => handleNavigate(a.path, e)}
@@ -522,7 +557,6 @@ const ModuleDashboard = ({
       </div>
 
       {/* Search Field */}
-      {(!useSectionNavigation || searchTerm || activeSection === null) && (
       <div className="mb-6">
         <div className="max-w-md">
           <div className="relative">
@@ -542,10 +576,9 @@ const ModuleDashboard = ({
           </div>
         </div>
       </div>
-      )}
 
       {/* Key Statistics */}
-      {!isSearching && (!useSectionNavigation || searchTerm || activeSection === null) && stats.filter((s) => {
+      {!isSearching && stats.filter((s) => {
         if (!canShowItem(s)) return false;
         const path = String(s.path || "");
         const parts = path.split("/").filter(Boolean);
@@ -721,7 +754,7 @@ const ModuleDashboard = ({
       )}
 
       {/* Quick Actions */}
-      {!isSearching && (!useSectionNavigation || searchTerm || activeSection === null) &&
+      {!isSearching &&
         quickActions.filter((a) => !a?.path || canShowItem(a)).length > 0 && (
         <div className="mb-10">
           <h2 className="text-xl font-semibold text-brand-800 dark:text-brand-200 mb-4 flex items-center gap-2">
@@ -751,188 +784,259 @@ const ModuleDashboard = ({
       {/* Category Sections */}
       <div className="space-y-10">
         {searchTerm && filteredSections.length === 0 && (
-          <div className="text-center py-8 text-slate-500 dark:text-slate-400">
+          <div className="text-center py-12 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md rounded-2xl border border-dashed border-slate-200 dark:border-slate-800 p-8 shadow-sm">
             <div className="text-4xl mb-2">🔍</div>
-            <p>No menu items found matching "{searchTerm}"</p>
+            <p className="font-semibold text-slate-800 dark:text-slate-200">No menu items found matching "{searchTerm}"</p>
             <button
               onClick={() => setSearchTerm("")}
-              className="mt-2 text-brand-600 hover:text-brand-700 underline"
+              className="mt-3 text-sm font-semibold text-brand-600 hover:text-brand-700 underline"
             >
               Clear search
             </button>
           </div>
         )}
-        
-        {/* Section Navigation Mode: View all sections as cards */}
-        {!searchTerm && useSectionNavigation && activeSection === null && (
-          <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-6">
-            {filteredSections.map((section, sectionIndex) => {
-              const sectionTitle = section.title || section.category;
-              const sectionIcon = getSectionIcon(section, sectionIndex);
-              const itemsList = section.items || section.features || [];
-              const itemCount = itemsList.filter(item => canShowItem(item)).length;
-              const sectionDescription = section.description || (itemCount ? `${itemCount} feature pages` : "");
-              
-              // Gradient accents based on section index
-              const gradients = [
-                "from-blue-500/10 via-indigo-500/5 to-transparent border-blue-500/20 hover:border-blue-500/50 dark:hover:border-blue-400/60 shadow-blue-500/5",
-                "from-emerald-500/10 via-teal-500/5 to-transparent border-emerald-500/20 hover:border-emerald-500/50 dark:hover:border-emerald-400/60 shadow-emerald-500/5",
-                "from-amber-500/10 via-orange-500/5 to-transparent border-amber-500/20 hover:border-amber-500/50 dark:hover:border-amber-400/60 shadow-amber-500/5",
-                "from-purple-500/10 via-pink-500/5 to-transparent border-purple-500/20 hover:border-purple-500/50 dark:hover:border-purple-400/60 shadow-purple-500/5",
-                "from-cyan-500/10 via-blue-500/5 to-transparent border-cyan-500/20 hover:border-cyan-500/50 dark:hover:border-cyan-400/60 shadow-cyan-500/5",
-              ];
-              const cardGradient = gradients[sectionIndex % gradients.length];
 
-              const iconGradients = [
-                "from-blue-500 to-indigo-600 shadow-blue-500/25",
-                "from-emerald-500 to-teal-600 shadow-emerald-500/25",
-                "from-amber-500 to-orange-600 shadow-amber-500/25",
-                "from-purple-500 to-pink-600 shadow-purple-500/25",
-                "from-cyan-500 to-blue-600 shadow-cyan-500/25",
-              ];
-              const iconStyle = iconGradients[sectionIndex % iconGradients.length];
+        {!searchTerm && totalVisiblePages === 0 && (
+          <div className="text-center py-12 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md rounded-2xl border border-dashed border-slate-200 dark:border-slate-800 p-8 shadow-sm">
+            <div className="text-3xl mb-2">📂</div>
+            <h3 className="font-semibold text-slate-800 dark:text-slate-200">No assigned module pages found</h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Please contact your administrator to assign page permissions in this module.</p>
+          </div>
+        )}
+
+        {shouldShowSectionCardsFirst && !searchTerm && activeSection === null ? (
+          <div className="space-y-6">
+            <div className="flex items-center justify-between border-b border-slate-200/80 dark:border-slate-800/80 pb-3">
+              <div>
+                <h2 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2 tracking-tight">
+                  <span>📂</span>
+                  <span>Pages Sections</span>
+                </h2>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                  Click a section below to explore its pages and workflows.
+                </p>
+              </div>
+              <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200/60 dark:border-slate-700/60 shrink-0">
+                {visibleSectionsList.length} {visibleSectionsList.length === 1 ? "Section" : "Sections"}
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5">
+              {visibleSectionsList.map(({ section, sectionIndex, visibleSectionItems }) => {
+                const sectionTitle = section.title || section.category || "Pages";
+                const sectionIcon = getSectionIcon(section, sectionIndex);
+
+                return (
+                  <div
+                    key={sectionIndex}
+                    onClick={() => {
+                      setActiveSection(sectionIndex);
+                      const searchParams = new URLSearchParams(location.search || "");
+                      searchParams.set("section", String(sectionIndex));
+                      navigate(
+                        { pathname: location.pathname, search: searchParams.toString() },
+                        { replace: true }
+                      );
+                    }}
+                    className="relative overflow-hidden rounded-2xl bg-white/90 dark:bg-slate-900/90 backdrop-blur-md p-5 border border-slate-200/80 dark:border-slate-800/90 shadow-sm hover:shadow-xl hover:-translate-y-1.5 hover:border-brand-400/80 dark:hover:border-brand-500/60 transition-all duration-300 group cursor-pointer flex flex-col justify-between"
+                  >
+                    {/* Ambient Hover Glow */}
+                    <div className="absolute -right-10 -top-10 w-28 h-28 bg-gradient-to-br from-brand-500/10 to-indigo-500/10 group-hover:from-brand-500/25 group-hover:to-indigo-500/25 rounded-full blur-xl transition-all duration-500 pointer-events-none" />
+
+                    <div>
+                      <div className="flex items-start justify-between gap-3 mb-4">
+                        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-brand-600 to-brand-800 text-white text-xl flex items-center justify-center shadow-md group-hover:scale-110 group-hover:rotate-2 transition-transform duration-300 shrink-0">
+                          {sectionIcon}
+                        </div>
+                        {section.badge ? (
+                          <span className="bg-brand-50 text-brand-700 dark:bg-brand-950/40 dark:text-brand-300 text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider border border-brand-200/60 dark:border-brand-800/60 shrink-0">
+                            {section.badge}
+                          </span>
+                        ) : (
+                          <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full shrink-0">
+                            {visibleSectionItems.length} {visibleSectionItems.length === 1 ? "page" : "pages"}
+                          </span>
+                        )}
+                      </div>
+
+                      <h3 className="text-base font-bold text-slate-900 dark:text-white group-hover:text-brand-600 dark:group-hover:text-brand-400 transition-colors tracking-tight line-clamp-1 mb-1.5">
+                        {sectionTitle}
+                      </h3>
+
+                      {/* Preview of pages in this section */}
+                      <div className="text-xs text-slate-500 dark:text-slate-400 space-y-1 mb-4">
+                        <div className="line-clamp-2 leading-relaxed">
+                          {visibleSectionItems
+                            .slice(0, 3)
+                            .map((p) => p.title || p.name || p.label)
+                            .join(" • ")}
+                          {visibleSectionItems.length > 3 ? ` • +${visibleSectionItems.length - 3} more` : ""}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="pt-3 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between">
+                      <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 group-hover:text-brand-600 dark:group-hover:text-brand-400 transition-colors">
+                        Explore Section
+                      </span>
+                      <span className="inline-flex items-center gap-1 text-xs font-bold text-brand-600 dark:text-brand-400 group-hover:translate-x-1 transition-transform">
+                        <span>View Pages</span>
+                        <ChevronRight size={14} />
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ) : (
+          <>
+            {shouldShowSectionCardsFirst && !searchTerm && activeSection !== null && (
+              <div className="flex items-center justify-between bg-white/80 dark:bg-slate-900/80 backdrop-blur-md p-3 px-4 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-xs mb-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveSection(null);
+                    const searchParams = new URLSearchParams(location.search || "");
+                    searchParams.delete("section");
+                    navigate(
+                      { pathname: location.pathname, search: searchParams.toString() },
+                      { replace: true }
+                    );
+                  }}
+                  className="inline-flex items-center gap-2 text-sm font-bold text-brand-600 dark:text-brand-400 hover:text-brand-800 dark:hover:text-white transition-colors"
+                >
+                  <ArrowLeft size={16} />
+                  <span>Back to Pages Sections</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveSection(null);
+                    const searchParams = new URLSearchParams(location.search || "");
+                    searchParams.delete("section");
+                    navigate(
+                      { pathname: location.pathname, search: searchParams.toString() },
+                      { replace: true }
+                    );
+                  }}
+                  className="text-xs text-slate-500 hover:underline"
+                >
+                  All Sections
+                </button>
+              </div>
+            )}
+
+            {filteredSections.map((section, sectionIndex) => {
+              if (!searchTerm && activeSection !== null && activeSection !== sectionIndex) {
+                return null;
+              }
+
+              const sectionTitle = section.title || section.category || "Pages";
+              const sectionIcon = getSectionIcon(section, sectionIndex);
+              const rawItems = section.items || section.features || [];
+              const visibleSectionItems = rawItems.filter((item) => canShowItem(item));
+              if (visibleSectionItems.length === 0) return null;
 
               return (
                 <div
                   key={sectionIndex}
-                  className={`relative overflow-hidden rounded-2xl bg-white dark:bg-slate-800/90 backdrop-blur-md p-6 border shadow-sm hover:shadow-xl hover:-translate-y-1.5 transition-all duration-300 ease-out group cursor-pointer flex flex-col justify-between ${cardGradient}`}
-                  onClick={() => {
-                    setActiveSection(sectionIndex);
-                    const secTitle = section.title || section.category;
-                    if (secTitle) {
-                      const searchParams = new URLSearchParams(location.search || "");
-                      searchParams.set("section", secTitle);
-                      navigate({ pathname: location.pathname, search: searchParams.toString() }, { replace: true });
-                    }
-                  }}
+                  id={`section-${slug(sectionTitle)}`}
+                  data-section-title={String(sectionTitle || "")}
+                  className="space-y-4"
                 >
-                  {/* Subtle top background tint */}
-                  <div className={`absolute inset-0 bg-gradient-to-br ${cardGradient} opacity-0 group-hover:opacity-60 transition-opacity duration-500 pointer-events-none`} />
-
-                  <div className="relative z-10">
-                    <div className="flex items-center justify-between gap-3 mb-4">
-                      <div 
-                        className={`shrink-0 bg-gradient-to-br ${iconStyle} text-white flex items-center justify-center text-2xl shadow-lg group-hover:scale-110 group-hover:rotate-2 transition-transform duration-300`}
-                        style={{ width: '52px', height: '52px', minWidth: '52px', minHeight: '52px', maxWidth: '52px', maxHeight: '52px', borderRadius: '50%' }}
-                      >
+                  <div className="flex items-center justify-between border-b border-slate-200/80 dark:border-slate-800/80 pb-3">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-brand-600 to-brand-800 text-white text-lg flex items-center justify-center shadow-xs shrink-0">
                         {sectionIcon}
                       </div>
-                      <span className="flex-none w-max inline-block text-[11px] font-bold uppercase tracking-wider px-3 py-1 rounded-full bg-slate-100 dark:bg-slate-700/70 text-slate-600 dark:text-slate-300 border border-slate-200/80 dark:border-slate-600/60 shadow-2xs">
-                        {itemCount} {itemCount === 1 ? 'Page' : 'Pages'}
-                      </span>
+                      <div className="flex items-center gap-2.5 min-w-0 flex-wrap">
+                        <h2 className="text-lg font-bold text-slate-900 dark:text-white tracking-tight truncate">
+                          {sectionTitle}
+                        </h2>
+                        {section.badge && (
+                          <span className="bg-brand-50 text-brand-700 dark:bg-brand-950/40 dark:text-brand-300 text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider border border-brand-200/60 dark:border-brand-800/60 shrink-0">
+                            {section.badge}
+                          </span>
+                        )}
+                      </div>
                     </div>
-
-                    <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 group-hover:text-brand-600 dark:group-hover:text-brand-400 transition-colors mb-1.5">
-                      {sectionTitle}
-                    </h3>
-                    
-                    {sectionDescription && (
-                      <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 leading-relaxed">
-                        {sectionDescription}
-                      </p>
-                    )}
-                  </div>
-
-                  <div className="relative z-10 pt-4 mt-4 border-t border-slate-100 dark:border-slate-700/60 flex items-center justify-between text-xs font-bold text-brand-600 dark:text-brand-400 group-hover:translate-x-0.5 transition-all">
-                    <span>Explore Section</span>
-                    <svg className="w-4 h-4 transform group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                    </svg>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-
-        {/* Normal Mode OR Section Navigation Mode: View active section items */}
-        {(!useSectionNavigation || searchTerm || activeSection !== null) && filteredSections.map((section, sectionIndex) => {
-          if (!searchTerm && useSectionNavigation && activeSection !== sectionIndex) {
-            return null; // Skip if in section navigation mode and not the active section
-          }
-          
-          const sectionTitle = section.title || section.category;
-          const sectionItems = section.items || section.features || [];
-
-          return (
-            <div
-              key={sectionIndex}
-              id={`section-${slug(sectionTitle)}`}
-              data-section-title={String(sectionTitle || "")}
-            >
-
-              {(!useSectionNavigation || searchTerm || activeSection === null) && (
-                <div className="flex items-center gap-3 mb-5 border-b border-slate-200 dark:border-slate-700 pb-2">
-                  <h2 className="text-xl font-bold text-slate-800 dark:text-white">
-                    {sectionTitle}
-                  </h2>
-                  {section.badge && (
-                    <span className="bg-brand-100 text-brand-700 dark:bg-brand-900/40 dark:text-brand-300 text-xs font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider">
-                      {section.badge}
+                    <span className="text-xs font-semibold text-slate-400 dark:text-slate-500 shrink-0">
+                      {visibleSectionItems.length} {visibleSectionItems.length === 1 ? "page" : "pages"}
                     </span>
-                  )}
-                </div>
-              )}
+                  </div>
 
-              <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-                {sectionItems
-                  .filter((item) => canShowItem(item))
-                  .map((item, itemIndex) => {
-                    const itemTitle = item.title || item.name;
-                    const itemActions = Array.isArray(item.actions)
-                      ? item.actions.filter((action) => canShowItem(action))
-                      : [];
+                  {/* Individual Page Cards Grid */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                    {visibleSectionItems.map((item, itemIndex) => {
+                      const itemTitle = item.title || item.name || item.label;
+                      const itemActions = Array.isArray(item.actions)
+                        ? item.actions.filter((action) => canShowItem(action))
+                        : [];
+                      const itemDesc = item.description || item.desc;
 
-                    return (
-                      <div
-                        key={itemIndex}
-                        className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm p-6 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700/50 hover:border-brand-300/80 dark:hover:border-brand-600/80 hover:-translate-y-1.5 hover:shadow-[0_15px_35px_rgba(14,54,70,0.06)] dark:hover:shadow-[0_15px_35px_rgba(0,0,0,0.25)] transition-all duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] group relative overflow-hidden"
-                        onClick={() => handleNavigate(item.path)}
-                      >
-                        {/* Subtle hover background tint for item cards */}
-                        <div className="absolute inset-0 bg-gradient-to-br from-brand-50/60 to-transparent dark:from-slate-700/50 dark:to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
+                      return (
+                        <div
+                          key={item.path || itemIndex}
+                          className="relative overflow-hidden rounded-2xl bg-white/90 dark:bg-slate-900/90 backdrop-blur-md p-4 sm:p-5 border border-slate-200/80 dark:border-slate-800/90 shadow-sm hover:shadow-xl hover:-translate-y-1 hover:border-brand-300/80 dark:hover:border-brand-500/50 transition-all duration-300 group cursor-pointer flex flex-col justify-between"
+                          onClick={() => handleNavigate(item.path)}
+                        >
+                          {/* Ambient Corner Glow on Hover */}
+                          <div className="absolute -right-8 -top-8 w-24 h-24 bg-gradient-to-br from-brand-500/10 to-indigo-500/10 group-hover:from-brand-500/20 group-hover:to-indigo-500/20 rounded-full blur-xl transition-all duration-500 pointer-events-none" />
 
-                        <div className="flex flex-col lg:flex-row items-center lg:items-start text-center lg:text-left gap-4 relative z-10">
-                          <div 
-                            className="shrink-0 rounded-full bg-gradient-to-br from-brand-50 to-brand-100/50 dark:from-slate-700 dark:to-slate-800 flex items-center justify-center text-xl shadow-inner group-hover:scale-110 group-hover:rotate-1 group-hover:from-brand-100 group-hover:to-brand-200/50 dark:group-hover:from-slate-600 dark:group-hover:to-slate-700 transition-all duration-300"
-                            style={{ width: '44px', height: '44px', minWidth: '44px', minHeight: '44px', maxWidth: '44px', maxHeight: '44px', borderRadius: '50%' }}
-                          >
-                            {typeof item.icon === "string" ? (
-                              item.icon
-                            ) : item.icon ? (
-                              React.createElement(item.icon, { className: "w-5 h-5 text-slate-700 dark:text-slate-300" })
-                            ) : (
-                              "📄"
-                            )}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <h3 className="font-semibold text-slate-800 dark:text-slate-100 group-hover:text-brand-700 dark:group-hover:text-brand-400 transition-colors mb-1">
+                          <div className="relative z-10">
+                            <div className="flex items-start justify-between gap-3 mb-3">
+                              <div 
+                                className="shrink-0 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200/70 dark:border-slate-700/80 flex items-center justify-center text-xl shadow-2xs group-hover:scale-110 group-hover:border-brand-300 dark:group-hover:border-brand-500/60 transition-all duration-300"
+                                style={{ width: "44px", height: "44px", minWidth: "44px", minHeight: "44px" }}
+                              >
+                                {typeof item.icon === "string" ? (
+                                  item.icon
+                                ) : item.icon && typeof item.icon === "function" ? (
+                                  <item.icon className="w-5 h-5 text-slate-700 dark:text-slate-300" />
+                                ) : item.icon ? (
+                                  React.createElement(item.icon, { className: "w-5 h-5 text-slate-700 dark:text-slate-300" })
+                                ) : (
+                                  "📄"
+                                )}
+                              </div>
+
+                              {sectionTitle && (
+                                <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200/60 dark:border-slate-700/60 group-hover:bg-brand-50 group-hover:text-brand-700 dark:group-hover:bg-brand-950/60 dark:group-hover:text-brand-300 dark:group-hover:border-brand-800/60 transition-colors truncate max-w-[130px]">
+                                  {sectionTitle}
+                                </span>
+                              )}
+                            </div>
+
+                            <h3 className="font-bold text-sm sm:text-base text-slate-900 dark:text-white group-hover:text-brand-600 dark:group-hover:text-brand-400 transition-colors line-clamp-1 mb-1 tracking-tight">
                               {itemTitle}
                             </h3>
-                            {item.description && (
-                              <p className="text-sm text-slate-500 dark:text-slate-400 line-clamp-2 leading-relaxed">
-                                {item.description}
+
+                            {itemDesc ? (
+                              <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 leading-relaxed min-h-[2rem]">
+                                {itemDesc}
                               </p>
+                            ) : (
+                              <div className="min-h-[2rem]" />
                             )}
-                            {itemActions.length > 0 && (
-                              <div className="mt-4 flex flex-wrap gap-2 justify-center lg:justify-start">
+                          </div>
+
+                          <div className="relative z-10 pt-3 mt-3 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between">
+                            {itemActions.length > 0 ? (
+                              <div className="flex flex-wrap gap-1.5 justify-end w-full">
                                 {itemActions.map((action, actionIndex) => {
-                                  const actionType = String(
-                                    action.type || "outline",
-                                  ).toLowerCase();
+                                  const actionType = String(action.type || "outline").toLowerCase();
                                   const actionClass =
                                     actionType === "primary"
-                                      ? "bg-brand text-white hover:bg-brand-700 border-brand shadow-sm hover:shadow"
-                                      : "bg-white dark:bg-slate-800 text-brand-700 dark:text-brand-300 hover:bg-brand-50 dark:hover:bg-slate-700 border-slate-200 dark:border-slate-600 hover:border-brand-300 dark:hover:border-brand-600 shadow-sm";
+                                      ? "bg-brand-600 text-white hover:bg-brand-700 shadow-2xs"
+                                      : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-brand-50 dark:hover:bg-slate-700 hover:text-brand-600 border border-slate-200 dark:border-slate-700";
 
                                   return (
                                     <button
                                       key={`${action.path || action.label}-${actionIndex}`}
                                       type="button"
-                                      className={`inline-flex items-center rounded-lg border px-3 py-1.5 text-xs font-semibold transition-all duration-200 ${actionClass}`}
-                                      onClick={(e) =>
-                                        handleNavigate(action.path, e)
-                                      }
+                                      className={`inline-flex items-center rounded-lg px-2.5 py-1 text-xs font-semibold transition-all ${actionClass}`}
+                                      onClick={(e) => handleNavigate(action.path, e)}
                                       title={action.title || action.label}
                                     >
                                       {action.label || "Open"}
@@ -940,18 +1044,27 @@ const ModuleDashboard = ({
                                   );
                                 })}
                               </div>
+                            ) : (
+                              <div className="flex items-center justify-between w-full">
+                                <span className="text-[11px] font-medium text-slate-400 dark:text-slate-500 group-hover:text-brand-600/70 dark:group-hover:text-brand-400/70 transition-colors">
+                                  Direct Access
+                                </span>
+                                <span className="inline-flex items-center gap-1 text-xs font-semibold text-brand-600 dark:text-brand-400 group-hover:translate-x-0.5 transition-transform">
+                                  <span>Open</span>
+                                  <ChevronRight size={13} className="transform group-hover:translate-x-0.5 transition-transform" />
+                                </span>
+                              </div>
                             )}
                           </div>
                         </div>
-                        {/* Custom bottom line slide-in highlight on hover */}
-                        <div className="absolute bottom-0 left-0 w-full h-[2px] bg-gradient-to-r from-brand-500/80 to-primary-500/80 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left" />
-                      </div>
-                    );
-                  })}
-              </div>
-            </div>
-          );
-        })}
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+          </>
+        )}
       </div>
       </div>
       {overlayType === "reports" && overlayItems.length > 0 ? (

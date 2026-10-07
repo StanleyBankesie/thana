@@ -2028,6 +2028,174 @@ router.get(
   },
 );
 
+// ─── Expired & Near-Expiry Items Report ───────────────────────────────────────
+router.get(
+  "/reports/expired-items",
+  requireAuth,
+  requireCompanyScope,
+  requireBranchScope,
+  async (req, res, next) => {
+    try {
+      await ensureStockBalanceDetailsInfrastructure();
+      const { companyId, branchId = null, branchIdsStr = "" } = req.scope || {};
+      const {
+        status = "ALL_RISK", // 'EXPIRED', 'EXPIRING_30', 'EXPIRING_60', 'EXPIRING_90', 'ALL_RISK', 'ALL'
+        warehouse_id = "",
+        item_id = "",
+        search = "",
+        from_date = "",
+        to_date = "",
+      } = req.query || {};
+
+      const baseWhere = [
+        "sb.company_id = :companyId",
+        "(:branchIdsStr = '' OR FIND_IN_SET(sb.branch_id, :branchIdsStr))",
+        "sb.qty > 0",
+        "(sb.expiry_date IS NOT NULL OR b.expiry_date IS NOT NULL)",
+      ];
+      const params = { companyId, branchIdsStr };
+
+      if (warehouse_id) {
+        baseWhere.push("sb.warehouse_id = :warehouseId");
+        params.warehouseId = Number(warehouse_id);
+      }
+
+      if (item_id) {
+        baseWhere.push("sb.item_id = :itemId");
+        params.itemId = Number(item_id);
+      }
+
+      if (search) {
+        baseWhere.push(
+          "(i.item_code LIKE :search OR i.item_name LIKE :search OR sb.batch_no LIKE :search OR b.batch_no LIKE :search)"
+        );
+        params.search = `%${search}%`;
+      }
+
+      if (from_date) {
+        baseWhere.push("COALESCE(sb.expiry_date, b.expiry_date) >= :fromDate");
+        params.fromDate = from_date;
+      }
+
+      if (to_date) {
+        baseWhere.push("COALESCE(sb.expiry_date, b.expiry_date) <= :toDate");
+        params.toDate = to_date;
+      }
+
+      // Filter by status category if not custom date range
+      if (status === "EXPIRED") {
+        baseWhere.push("COALESCE(sb.expiry_date, b.expiry_date) < CURDATE()");
+      } else if (status === "EXPIRING_30") {
+        baseWhere.push(
+          "COALESCE(sb.expiry_date, b.expiry_date) BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 30 DAY)"
+        );
+      } else if (status === "EXPIRING_60") {
+        baseWhere.push(
+          "COALESCE(sb.expiry_date, b.expiry_date) BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 60 DAY)"
+        );
+      } else if (status === "EXPIRING_90") {
+        baseWhere.push(
+          "COALESCE(sb.expiry_date, b.expiry_date) BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 90 DAY)"
+        );
+      } else if (status === "ALL_RISK") {
+        baseWhere.push(
+          "COALESCE(sb.expiry_date, b.expiry_date) <= DATE_ADD(CURDATE(), INTERVAL 90 DAY)"
+        );
+      }
+
+      const rows = await query(
+        `SELECT
+           sb.id AS balance_id,
+           sb.item_id,
+           sb.warehouse_id,
+           sb.branch_id,
+           i.item_code,
+           i.item_name,
+           i.uom,
+           ig.group_name AS category_name,
+           w.warehouse_name,
+           COALESCE(sb.batch_no, b.batch_no, '-') AS batch_no,
+           sb.serial_no,
+           COALESCE(sb.expiry_date, b.expiry_date) AS expiry_date,
+           sb.qty,
+           sb.reserved_qty,
+           GREATEST(0, sb.qty - sb.reserved_qty) AS available_qty,
+           COALESCE(b.cost, i.cost_price, 0) AS unit_cost,
+           ROUND(sb.qty * COALESCE(b.cost, i.cost_price, 0), 2) AS total_cost_value,
+           DATEDIFF(COALESCE(sb.expiry_date, b.expiry_date), CURDATE()) AS days_until_expiry,
+           CASE
+             WHEN COALESCE(sb.expiry_date, b.expiry_date) < CURDATE() THEN 'EXPIRED'
+             WHEN COALESCE(sb.expiry_date, b.expiry_date) = CURDATE() THEN 'EXPIRES_TODAY'
+             WHEN DATEDIFF(COALESCE(sb.expiry_date, b.expiry_date), CURDATE()) <= 30 THEN 'EXPIRING_30'
+             WHEN DATEDIFF(COALESCE(sb.expiry_date, b.expiry_date), CURDATE()) <= 60 THEN 'EXPIRING_60'
+             WHEN DATEDIFF(COALESCE(sb.expiry_date, b.expiry_date), CURDATE()) <= 90 THEN 'EXPIRING_90'
+             ELSE 'ACTIVE'
+           END AS expiry_status
+         FROM inv_stock_balances sb
+         JOIN inv_items i ON i.id = sb.item_id
+         LEFT JOIN inv_warehouses w ON w.id = sb.warehouse_id
+         LEFT JOIN inv_item_groups ig ON ig.id = i.item_group_id
+         LEFT JOIN inv_item_batches b ON b.item_id = sb.item_id
+           AND b.company_id = sb.company_id
+           AND b.batch_no = sb.batch_no
+           AND sb.batch_no IS NOT NULL AND sb.batch_no != ''
+         WHERE ${baseWhere.join(" AND ")}
+         ORDER BY COALESCE(sb.expiry_date, b.expiry_date) ASC, sb.qty DESC`,
+        params,
+      );
+
+      // Compute aggregated summary stats across all items for this company/branch
+      const summaryRows = await query(
+        `SELECT
+           COUNT(DISTINCT CASE WHEN COALESCE(sb.expiry_date, b.expiry_date) < CURDATE() THEN sb.item_id END) AS expired_items_count,
+           COUNT(CASE WHEN COALESCE(sb.expiry_date, b.expiry_date) < CURDATE() THEN 1 END) AS expired_batches_count,
+           COALESCE(SUM(CASE WHEN COALESCE(sb.expiry_date, b.expiry_date) < CURDATE() THEN sb.qty ELSE 0 END), 0) AS total_expired_qty,
+           COALESCE(SUM(CASE WHEN COALESCE(sb.expiry_date, b.expiry_date) < CURDATE() THEN sb.qty * COALESCE(b.cost, i.cost_price, 0) ELSE 0 END), 0) AS total_expired_value,
+
+           COALESCE(SUM(CASE WHEN COALESCE(sb.expiry_date, b.expiry_date) BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 30 DAY) THEN sb.qty ELSE 0 END), 0) AS total_expiring_30_qty,
+           COALESCE(SUM(CASE WHEN COALESCE(sb.expiry_date, b.expiry_date) BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 30 DAY) THEN sb.qty * COALESCE(b.cost, i.cost_price, 0) ELSE 0 END), 0) AS total_expiring_30_value,
+
+           COALESCE(SUM(CASE WHEN COALESCE(sb.expiry_date, b.expiry_date) BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 60 DAY) THEN sb.qty ELSE 0 END), 0) AS total_expiring_60_qty,
+           COALESCE(SUM(CASE WHEN COALESCE(sb.expiry_date, b.expiry_date) BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 60 DAY) THEN sb.qty * COALESCE(b.cost, i.cost_price, 0) ELSE 0 END), 0) AS total_expiring_60_value,
+
+           COALESCE(SUM(CASE WHEN COALESCE(sb.expiry_date, b.expiry_date) BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 90 DAY) THEN sb.qty ELSE 0 END), 0) AS total_expiring_90_qty,
+           COALESCE(SUM(CASE WHEN COALESCE(sb.expiry_date, b.expiry_date) BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 90 DAY) THEN sb.qty * COALESCE(b.cost, i.cost_price, 0) ELSE 0 END), 0) AS total_expiring_90_value
+         FROM inv_stock_balances sb
+         JOIN inv_items i ON i.id = sb.item_id
+         LEFT JOIN inv_item_batches b ON b.item_id = sb.item_id
+           AND b.company_id = sb.company_id
+           AND b.batch_no = sb.batch_no
+           AND sb.batch_no IS NOT NULL AND sb.batch_no != ''
+         WHERE sb.company_id = :companyId
+           AND (:branchIdsStr = '' OR FIND_IN_SET(sb.branch_id, :branchIdsStr))
+           AND sb.qty > 0
+           AND (sb.expiry_date IS NOT NULL OR b.expiry_date IS NOT NULL)`,
+        { companyId, branchIdsStr },
+      ).catch(() => []);
+
+      const summary = Array.isArray(summaryRows) && summaryRows.length > 0 ? summaryRows[0] : {};
+
+      res.json({
+        items: rows || [],
+        summary: {
+          expired_items_count: Number(summary?.expired_items_count || 0),
+          expired_batches_count: Number(summary?.expired_batches_count || 0),
+          total_expired_qty: Number(summary?.total_expired_qty || 0),
+          total_expired_value: Number(summary?.total_expired_value || 0),
+          total_expiring_30_qty: Number(summary?.total_expiring_30_qty || 0),
+          total_expiring_30_value: Number(summary?.total_expiring_30_value || 0),
+          total_expiring_60_qty: Number(summary?.total_expiring_60_qty || 0),
+          total_expiring_60_value: Number(summary?.total_expiring_60_value || 0),
+          total_expiring_90_qty: Number(summary?.total_expiring_90_qty || 0),
+          total_expiring_90_value: Number(summary?.total_expiring_90_value || 0),
+        },
+      });
+    } catch (e) {
+      next(e);
+    }
+  },
+);
+
 // ─── Stock Balances Report ────────────────────────────────────────────────────
 router.get(
   "/stock-balances",

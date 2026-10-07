@@ -96,6 +96,13 @@ export default function InventoryReportsPage() {
           icon: Clock,
           color: "text-red-500 bg-red-50 dark:bg-red-950/40",
         },
+        {
+          title: "Expired & Near-Expiry Items",
+          description: "Monitor expired batches, shelf-life deterioration, and loss valuation",
+          path: "/inventory/reports/expired-items",
+          icon: ShieldAlert,
+          color: "text-rose-600 bg-rose-50 dark:bg-rose-950/40",
+        },
       ],
     },
     {
@@ -160,7 +167,7 @@ export default function InventoryReportsPage() {
         <div className="card p-4 border-l-4 border-brand bg-white dark:bg-slate-900 shadow-sm flex items-center justify-between">
           <div>
             <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Inventory Reports</p>
-            <h3 className="text-xl font-extrabold text-slate-900 dark:text-slate-100 mt-1">13 Active</h3>
+            <h3 className="text-xl font-extrabold text-slate-900 dark:text-slate-100 mt-1">14 Active</h3>
           </div>
           <Package className="w-7 h-7 text-brand opacity-80" />
         </div>

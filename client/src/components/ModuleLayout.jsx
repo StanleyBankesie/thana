@@ -21,6 +21,10 @@ export function ModuleNavDropdown({ section, location, navigate, moduleKey }) {
       if (!item || item.hidden || !(item.path || item.title || item.name || item.label)) return false;
       const title = item.title || item.name || item.label;
 
+      if (item.feature_key) {
+        if (!canPerformAction(`${mk}:${item.feature_key}`, "view")) return false;
+      }
+
       // 1. Check if it's a known feature by exact label
       const featureMatch = features.find(f => f.label === title || f.name === title);
       if (featureMatch) {
@@ -70,11 +74,12 @@ export function ModuleNavDropdown({ section, location, navigate, moduleKey }) {
            }
         }
 
-        // 6. Final fallback: use the system's canAccessPath (which defaults to true for unknown paths)
+        // 6. Final fallback: use the system's canAccessPath
         if (!canAccessPath(item.path, "view")) return false;
+        return true;
       }
       
-      return true;
+      return false;
     });
   }, [section, canPerformAction, canViewDashboardElement, canAccessPath, moduleKey, location]);
 
@@ -188,7 +193,7 @@ export function ModuleTopNavBar({ sections = [], headerActions = [], moduleKey }
   if (!sections.length && !resolvedHeaderActions.length) return null;
 
   return (
-    <div className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 sticky top-0 z-40 shadow-sm px-4 py-2">
+    <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800 sticky top-0 z-40 shadow-sm px-4 py-2">
       <div className="flex items-center gap-1.5 flex-wrap">
         {/* Back to Modules */}
         <NavLink
@@ -236,7 +241,7 @@ export function ModuleTopNavBar({ sections = [], headerActions = [], moduleKey }
 // ─── Module Layout Wrapper ─────────────────────────────────────
 export default function ModuleLayout({ children, sections = [], headerActions = [], moduleKey }) {
   return (
-    <div className="min-h-screen flex flex-col bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100">
+    <div className="min-h-screen flex flex-col bg-transparent text-slate-900 dark:text-slate-100">
       <div className="flex-1">{children}</div>
     </div>
   );

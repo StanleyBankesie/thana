@@ -44,7 +44,7 @@ export default function ItemForm({ isModal = false, modalItemId, onClose, onSave
     barcode: "",
     cost_price: 0,
     selling_price: 0,
-    currency_id: "",
+    currency_id: "1",
     image_url: "",
     is_active: true,
     item_type: "",
@@ -59,7 +59,7 @@ export default function ItemForm({ isModal = false, modalItemId, onClose, onSave
     vat_on_sales_id: "",
     purchase_account_id: "",
     sales_account_id: "",
-    service_item: isModal && isNew ? true : false,
+    service_item: false,
     is_stockable: true,
     is_sellable: true,
     is_purchasable: true,
@@ -111,11 +111,30 @@ export default function ItemForm({ isModal = false, modalItemId, onClose, onSave
         setTaxes(Array.isArray(d.taxes) ? d.taxes : []);
         const curList = Array.isArray(d.currencies) ? d.currencies : [];
         setCurrencies(curList);
-        const baseCur = curList.find((c) => Number(c.is_base) === 1 || c.is_base === true);
-        if (isNew && baseCur) {
-          setFormData((prev) => ({ ...prev, currency_id: baseCur.id }));
+        const ghsCur =
+          curList.find(
+            (c) =>
+              String(c.code || "").toUpperCase() === "GHS" ||
+              String(c.name || "").toLowerCase().includes("ghana")
+          ) ||
+          curList.find((c) => Number(c.is_base) === 1 || c.is_base === true) ||
+          curList[0];
+        if (isNew && ghsCur) {
+          setFormData((prev) => ({ ...prev, currency_id: String(ghsCur.id) }));
         }
         setUoms(loadedUoms);
+        if (isNew) {
+          const pcsUom = loadedUoms.find(
+            (u) =>
+              String(u.uom_code || u.code || u.uom || "").toUpperCase() === "PCS"
+          );
+          if (pcsUom) {
+            setFormData((prev) => ({
+              ...prev,
+              uom: pcsUom.uom_code || pcsUom.code || pcsUom.uom || "PCS",
+            }));
+          }
+        }
         setCategories(loadedCategories);
         setItemTypes(loadedItemTypes);
 
@@ -209,11 +228,31 @@ export default function ItemForm({ isModal = false, modalItemId, onClose, onSave
         );
         const curList = Array.isArray(currenciesRes.data?.items) ? currenciesRes.data.items : [];
         setCurrencies(curList);
-        const baseCur = curList.find((c) => Number(c.is_base) === 1 || c.is_base === true);
-        if (isNew && baseCur) {
-          setFormData((prev) => ({ ...prev, currency_id: baseCur.id }));
+        const ghsCur =
+          curList.find(
+            (c) =>
+              String(c.code || "").toUpperCase() === "GHS" ||
+              String(c.name || "").toLowerCase().includes("ghana")
+          ) ||
+          curList.find((c) => Number(c.is_base) === 1 || c.is_base === true) ||
+          curList[0];
+        if (isNew && ghsCur) {
+          setFormData((prev) => ({ ...prev, currency_id: String(ghsCur.id) }));
         }
-        setUoms(Array.isArray(uomsRes.data?.items) ? uomsRes.data.items : []);
+        const fallbackUomsList = Array.isArray(uomsRes.data?.items) ? uomsRes.data.items : [];
+        setUoms(fallbackUomsList);
+        if (isNew) {
+          const pcsUom = fallbackUomsList.find(
+            (u) =>
+              String(u.uom_code || u.code || u.uom || "").toUpperCase() === "PCS"
+          );
+          if (pcsUom) {
+            setFormData((prev) => ({
+              ...prev,
+              uom: pcsUom.uom_code || pcsUom.code || pcsUom.uom || "PCS",
+            }));
+          }
+        }
         setItemTypes(
           Array.isArray(itemTypesRes.data?.items)
             ? itemTypesRes.data.items
@@ -227,6 +266,12 @@ export default function ItemForm({ isModal = false, modalItemId, onClose, onSave
     loadLookups();
 
     if (isNew) {
+      setFormData((prev) => ({
+        ...prev,
+        is_stockable: true,
+        is_sellable: true,
+        is_purchasable: true,
+      }));
       // Fetch next item code
       api
         .get("/inventory/items/next-code")
@@ -272,10 +317,18 @@ export default function ItemForm({ isModal = false, modalItemId, onClose, onSave
           purchase_account_id: it.purchase_account_id || "",
           sales_account_id: it.sales_account_id || "",
           service_item: String(it.service_item || "").toUpperCase() === "Y",
-          is_stockable: String(it.is_stockable ?? "Y").toUpperCase() === "Y",
-          is_sellable: String(it.is_sellable ?? "Y").toUpperCase() === "Y",
+          is_stockable:
+            it.is_stockable !== null && it.is_stockable !== undefined
+              ? (String(it.is_stockable).toUpperCase() === "Y" || it.is_stockable === 1 || it.is_stockable === true)
+              : true,
+          is_sellable:
+            it.is_sellable !== null && it.is_sellable !== undefined
+              ? (String(it.is_sellable).toUpperCase() === "Y" || it.is_sellable === 1 || it.is_sellable === true)
+              : true,
           is_purchasable:
-            String(it.is_purchasable ?? "Y").toUpperCase() === "Y",
+            it.is_purchasable !== null && it.is_purchasable !== undefined
+              ? (String(it.is_purchasable).toUpperCase() === "Y" || it.is_purchasable === 1 || it.is_purchasable === true)
+              : true,
           is_production_item: String(it.is_production_item ?? (isProductionMode ? "Y" : "N")).toUpperCase() === "Y",
         });
       })
@@ -347,11 +400,18 @@ export default function ItemForm({ isModal = false, modalItemId, onClose, onSave
       const payload = {
         item_code: formData.item_code,
         item_name: formData.item_name,
-        uom: formData.uom,
+        uom: formData.uom || "PCS",
         barcode: formData.barcode || null,
         cost_price: Number(formData.cost_price) || 0,
         selling_price: Number(formData.selling_price) || 0,
-        currency_id: formData.currency_id || null,
+        currency_id:
+          formData.currency_id ||
+          currencies.find(
+            (c) =>
+              String(c.code || "").toUpperCase() === "GHS" ||
+              String(c.name || "").toLowerCase().includes("ghana")
+          )?.id ||
+          1,
         image_url: formData.image_url || null,
         is_active: Boolean(formData.is_active),
         item_type: formData.item_type || null,
@@ -575,15 +635,19 @@ export default function ItemForm({ isModal = false, modalItemId, onClose, onSave
                 </select>
               </div>
               <div>
-                <label className="label">Base UOM</label>
+                <label className="label">Unit of Measure</label>
                 <select
                   className="input"
-                  value={formData.uom}
+                  value={formData.uom || "PCS"}
                   onChange={(e) =>
                     setFormData({ ...formData, uom: e.target.value })
                   }
                 >
-                  <option value="">-- Select UOM --</option>
+                  <option value="">-- Select Unit of Measure --</option>
+                  {!uoms.some(
+                    (u) =>
+                      String(u.uom_code || u.code || u.uom || "").toUpperCase() === "PCS"
+                  ) && <option value="PCS">PCS</option>}
                   {lookupLoading ? (
                     <option>Loading...</option>
                   ) : (
@@ -670,7 +734,15 @@ export default function ItemForm({ isModal = false, modalItemId, onClose, onSave
                 <label className="label">Currency</label>
                 <select
                   className="input"
-                  value={formData.currency_id}
+                  value={
+                    formData.currency_id ||
+                    currencies.find(
+                      (c) =>
+                        String(c.code || "").toUpperCase() === "GHS" ||
+                        String(c.name || "").toLowerCase().includes("ghana")
+                    )?.id ||
+                    "1"
+                  }
                   onChange={(e) =>
                     setFormData({ ...formData, currency_id: e.target.value })
                   }
@@ -913,40 +985,44 @@ export default function ItemForm({ isModal = false, modalItemId, onClose, onSave
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {!isProductionMode && (
                 <>
-                  <div className="flex items-center gap-2 p-2 border rounded">
+                  <label className="flex items-center gap-2 p-2 border rounded cursor-pointer select-none hover:bg-slate-50 dark:hover:bg-slate-800/50">
                     <input
                       type="checkbox"
-                      checked={formData.service_item}
+                      className="checkbox cursor-pointer"
+                      checked={Boolean(formData.service_item)}
                       onChange={(e) =>
                         setFormData({ ...formData, service_item: e.target.checked })
                       }
                     />
-                    <span>Service Item</span>
-                  </div>
-                  <div className="flex items-center gap-2 p-2 border rounded">
+                    <span className="font-medium text-sm">Service Item</span>
+                  </label>
+                  <label className="flex items-center gap-2 p-2 border rounded cursor-pointer select-none hover:bg-slate-50 dark:hover:bg-slate-800/50">
                     <input
                       type="checkbox"
-                      checked={formData.is_stockable}
+                      className="checkbox cursor-pointer"
+                      checked={Boolean(formData.is_stockable)}
                       onChange={(e) =>
                         setFormData({ ...formData, is_stockable: e.target.checked })
                       }
                     />
-                    <span>Is Stockable</span>
-                  </div>
-                  <div className="flex items-center gap-2 p-2 border rounded">
+                    <span className="font-medium text-sm">Is Stockable</span>
+                  </label>
+                  <label className="flex items-center gap-2 p-2 border rounded cursor-pointer select-none hover:bg-slate-50 dark:hover:bg-slate-800/50">
                     <input
                       type="checkbox"
-                      checked={formData.is_sellable}
+                      className="checkbox cursor-pointer"
+                      checked={Boolean(formData.is_sellable)}
                       onChange={(e) =>
                         setFormData({ ...formData, is_sellable: e.target.checked })
                       }
                     />
-                    <span>Is Sellable</span>
-                  </div>
-                  <div className="flex items-center gap-2 p-2 border rounded">
+                    <span className="font-medium text-sm">Is Sellable</span>
+                  </label>
+                  <label className="flex items-center gap-2 p-2 border rounded cursor-pointer select-none hover:bg-slate-50 dark:hover:bg-slate-800/50">
                     <input
                       type="checkbox"
-                      checked={formData.is_purchasable}
+                      className="checkbox cursor-pointer"
+                      checked={Boolean(formData.is_purchasable)}
                       onChange={(e) =>
                         setFormData({
                           ...formData,
@@ -954,8 +1030,8 @@ export default function ItemForm({ isModal = false, modalItemId, onClose, onSave
                         })
                       }
                     />
-                    <span>Is Purchasable</span>
-                  </div>
+                    <span className="font-medium text-sm">Is Purchasable</span>
+                  </label>
                 </>
               )}
               <div className="flex items-center gap-2 p-2 border rounded bg-indigo-50/50 dark:bg-indigo-950/30 border-indigo-200 dark:border-indigo-800">

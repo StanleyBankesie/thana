@@ -12,6 +12,8 @@ import CompanyFeed from "../../components/CompanyFeed/CompanyFeed";
 import { toast } from "react-toastify";
 import { getModuleDashboards } from "../../data/modulesRegistry.js";
 import { DASHBOARD_CARDS } from "../../data/dashboardCards.js";
+import { getAssignedPagesForModule } from "../../data/modulePagesRegistry.js";
+import { ArrowRight, ChevronRight } from "lucide-react";
 
 /**
  * HomePage component
@@ -21,6 +23,7 @@ import { DASHBOARD_CARDS } from "../../data/dashboardCards.js";
  */
 export default function HomePage() {
   const { user, token, scope } = useAuth();
+  const perm = usePermission();
   const {
     canAccessPath,
     hasRoleFeature,
@@ -28,7 +31,9 @@ export default function HomePage() {
     canReverseApproval,
     getEnabledModules,
     isModuleEnabled,
-  } = usePermission();
+    canViewModule,
+    isBasicMode,
+  } = perm;
   const navigate = useNavigate();
   const [pendingItems, setPendingItems] = useState([]);
   const [notifications, setNotifications] = useState([]);
@@ -748,6 +753,48 @@ export default function HomePage() {
     return checked.slice(0, 4);
   }, [allPossibleMetrics, canViewDashboardElement]);
 
+  const assignedModulesWithPages = useMemo(() => {
+    if (!isBasicMode) return [];
+
+    const candidateModules = [
+      { key: "sales", label: "Sales", path: "/sales", icon: "💳", color: "from-blue-600 to-indigo-600", lightBg: "bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300 border-blue-200/60 dark:border-blue-800/60", badge: "Commercial" },
+      { key: "inventory", label: "Inventory", path: "/inventory", icon: "🏬", color: "from-emerald-600 to-teal-600", lightBg: "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 border-emerald-200/60 dark:border-emerald-800/60", badge: "Logistics" },
+      { key: "purchase", label: "Purchase", path: "/purchase", icon: "🛒", color: "from-amber-600 to-orange-600", lightBg: "bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300 border-amber-200/60 dark:border-amber-800/60", badge: "Procurement" },
+      { key: "pos", label: "Point of Sale", path: "/pos", icon: "🏷️", color: "from-purple-600 to-fuchsia-600", lightBg: "bg-purple-50 text-purple-700 dark:bg-purple-950/40 dark:text-purple-300 border-purple-200/60 dark:border-purple-800/60", badge: "Retail" },
+      { key: "finance", label: "Finance & Accounts", path: "/finance", icon: "🏦", color: "from-emerald-700 to-green-700", lightBg: "bg-green-50 text-green-700 dark:bg-green-950/40 dark:text-green-300 border-green-200/60 dark:border-green-800/60", badge: "Accounting" },
+      { key: "human-resources", label: "Human Resources", path: "/human-resources", icon: "👔", color: "from-sky-600 to-blue-600", lightBg: "bg-sky-50 text-sky-700 dark:bg-sky-950/40 dark:text-sky-300 border-sky-200/60 dark:border-sky-800/60", badge: "People" },
+      { key: "maintenance", label: "Maintenance", path: "/maintenance", icon: "🛠️", color: "from-orange-600 to-amber-600", lightBg: "bg-orange-50 text-orange-700 dark:bg-orange-950/40 dark:text-orange-300 border-orange-200/60 dark:border-orange-800/60", badge: "Assets" },
+      { key: "production", label: "Production", path: "/production", icon: "🏭", color: "from-violet-600 to-purple-600", lightBg: "bg-violet-50 text-violet-700 dark:bg-violet-950/40 dark:text-violet-300 border-violet-200/60 dark:border-violet-800/60", badge: "Factory" },
+      { key: "project-management", label: "Project Management", path: "/project-management", icon: "📌", color: "from-rose-600 to-red-600", lightBg: "bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300 border-rose-200/60 dark:border-rose-800/60", badge: "Projects" },
+      { key: "service-management", label: "Service Management", path: "/service-management", icon: "🎧", color: "from-cyan-600 to-teal-600", lightBg: "bg-cyan-50 text-cyan-700 dark:bg-cyan-950/40 dark:text-cyan-300 border-cyan-200/60 dark:border-cyan-800/60", badge: "Support" },
+      { key: "transport", label: "Transport & Fleet", path: "/transport", icon: "🚚", color: "from-teal-600 to-emerald-600", lightBg: "bg-teal-50 text-teal-700 dark:bg-teal-950/40 dark:text-teal-300 border-teal-200/60 dark:border-teal-800/60", badge: "Fleet" },
+      { key: "business-intelligence", label: "Business Intelligence", path: "/business-intelligence", icon: "📈", color: "from-indigo-600 to-violet-600", lightBg: "bg-indigo-50 text-indigo-700 dark:bg-indigo-950/40 dark:text-indigo-300 border-indigo-200/60 dark:border-indigo-800/60", badge: "Analytics" },
+      { key: "executive-overview", label: "Executive Overview", path: "/executive-overview", icon: "📊", color: "from-blue-700 to-cyan-700", lightBg: "bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300 border-blue-200/60 dark:border-blue-800/60", badge: "Executive" },
+      { key: "administration", label: "Administration", path: "/administration", icon: "⚙️", color: "from-slate-700 to-slate-900", lightBg: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border-slate-200/60 dark:border-slate-700/60", badge: "Security" },
+      { key: "system-configuration", label: "System Configuration", path: "/system-configuration", icon: "🔧", color: "from-zinc-700 to-slate-800", lightBg: "bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 border-zinc-200/60 dark:border-zinc-700/60", badge: "Setup" },
+    ];
+
+    const allowed = candidateModules.filter((m) => {
+      if (m.key === "system-configuration") {
+        return Number(user?.id) === 1 || Number(user?.id) === 2;
+      }
+      if (typeof canViewModule === "function") {
+        return canViewModule(m.key);
+      }
+      return isModuleEnabled(m.key);
+    });
+
+    return allowed
+      .map((mod) => {
+        const pages = getAssignedPagesForModule(mod.key, perm, 3);
+        return {
+          ...mod,
+          pages,
+        };
+      })
+      .filter((mod) => mod.pages.length > 0);
+  }, [isBasicMode, canViewModule, isModuleEnabled, perm, user?.id]);
+
   // Quick Actions section removed per request
 
   const approvedNotifications = useMemo(() => {
@@ -840,7 +887,7 @@ export default function HomePage() {
   };
 
   return (
-    <div className="min-h-screen p-2 md:p-3 font-sans text-slate-900 bg-slate-50 dark:bg-transparent">
+    <div className="min-h-screen p-2 md:p-3 font-sans text-slate-900 bg-transparent">
       <div className="max-w-7xl mx-auto space-y-4 fullbleed-sm">
         {/* Header Section */}
         <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-brand-900 to-brand-800 p-8 shadow-erp text-white">
@@ -1110,8 +1157,10 @@ export default function HomePage() {
           })}
         </div>
 
-        {/* Main Content Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {!isBasicMode ? (
+          <>
+            {/* Main Content Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div className="space-y-6">
             <div className="bg-white dark:bg-slate-900 rounded-xl shadow-[0_8px_30px_rgb(0,0,0,0.03)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.2)] p-6 border border-slate-100 dark:border-slate-800/80 hover:border-slate-200/80 dark:hover:border-slate-700/80 hover:shadow-[0_12px_40px_rgb(0,0,0,0.06)] dark:hover:shadow-[0_12px_40px_rgb(0,0,0,0.25)] transition-all duration-300 relative overflow-hidden ">
               <button
@@ -1545,6 +1594,114 @@ export default function HomePage() {
             </div>
           </div>
         </div>
+      </>
+    ) : (
+          /* Basic Mode: Assigned Modules & Primary Pages */
+          <div className="space-y-6">
+            {assignedModulesWithPages.length === 0 ? (
+              <div className="text-center py-12 bg-white dark:bg-slate-900 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800 p-8">
+                <div className="text-3xl mb-2">📂</div>
+                <h3 className="font-semibold text-slate-800 dark:text-slate-200">No assigned module pages found</h3>
+                <p className="text-xs text-slate-500 mt-1">Please contact your administrator to assign module permissions to your user role.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                {assignedModulesWithPages.map((mod) => (
+                  <div
+                    key={mod.key}
+                    className="relative rounded-2xl bg-white dark:bg-slate-900/90 border border-slate-200/80 dark:border-slate-800/90 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between overflow-hidden group"
+                  >
+                    {/* Ambient Glow on Hover */}
+                    <div className={`absolute -right-12 -top-12 w-32 h-32 bg-gradient-to-br ${mod.color || "from-brand-500 to-brand-700"} opacity-0 group-hover:opacity-10 dark:group-hover:opacity-20 rounded-full blur-2xl transition-opacity duration-500 pointer-events-none`} />
+
+                    {/* Module Header */}
+                    <div className="p-5 border-b border-slate-100 dark:border-slate-800/80 flex items-center justify-between gap-3 relative z-10">
+                      <div className="flex items-center gap-3.5 min-w-0">
+                        <div className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${mod.color || "from-brand-600 to-brand-800"} text-white text-2xl flex items-center justify-center shadow-md shadow-brand-900/10 shrink-0 group-hover:scale-105 group-hover:rotate-1 transition-transform`}>
+                          {mod.icon}
+                        </div>
+                        <div className="min-w-0">
+                          <h3 className="font-extrabold text-base text-slate-900 dark:text-white tracking-tight truncate group-hover:text-brand-600 dark:group-hover:text-brand-400 transition-colors">
+                            {mod.label}
+                          </h3>
+                          <div className="flex items-center gap-1.5 mt-1">
+                            {mod.badge && (
+                              <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border ${mod.lightBg}`}>
+                                {mod.badge}
+                              </span>
+                            )}
+                            <span className="text-[11px] text-slate-400 dark:text-slate-500 font-medium">
+                              • {mod.pages.length} {mod.pages.length === 1 ? "page" : "pages"}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => navigate(mod.path)}
+                        className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-brand-600 hover:text-white dark:bg-slate-800 dark:hover:bg-brand-600 text-slate-700 dark:text-slate-200 transition-all flex items-center gap-1.5 shrink-0 shadow-2xs"
+                        title={`Open ${mod.label} Module`}
+                      >
+                        <span>Explore</span>
+                        <ArrowRight size={13} className="group-hover:translate-x-0.5 transition-transform" />
+                      </button>
+                    </div>
+
+                    {/* Assigned Pages List (Up to 3) */}
+                    <div className="p-4 space-y-2.5 flex-1 relative z-10">
+                      {mod.pages.map((page, pIdx) => (
+                        <div
+                          key={page.path || pIdx}
+                          onClick={() => navigate(page.path)}
+                          className="p-3 rounded-xl border border-slate-100 dark:border-slate-800/80 bg-slate-50/60 dark:bg-slate-800/40 hover:bg-white dark:hover:bg-slate-800 hover:border-brand-300 dark:hover:border-brand-500/50 hover:shadow-md transition-all duration-200 cursor-pointer flex items-center justify-between group/page"
+                        >
+                          <div className="flex items-center gap-3 min-w-0 pr-2">
+                            <div className="w-9 h-9 rounded-xl bg-white dark:bg-slate-700/80 border border-slate-200/70 dark:border-slate-600/60 flex items-center justify-center text-lg shadow-2xs shrink-0 group-hover/page:scale-110 group-hover/page:border-brand-400 transition-all">
+                              {page.icon || "📄"}
+                            </div>
+                            <div className="min-w-0">
+                              <div className="text-sm font-bold text-slate-800 dark:text-slate-100 truncate group-hover/page:text-brand-600 dark:group-hover:text-brand-400 transition-colors">
+                                {page.title}
+                              </div>
+                              {page.description && (
+                                <div className="text-xs text-slate-500 dark:text-slate-400 truncate mt-0.5">
+                                  {page.description}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="shrink-0 flex items-center">
+                            <span className="inline-flex items-center gap-1 text-[11px] font-bold text-slate-500 dark:text-slate-400 group-hover/page:text-brand-600 dark:group-hover:text-brand-300 group-hover/page:bg-brand-50 dark:group-hover:bg-brand-950/60 px-2.5 py-1 rounded-md transition-all">
+                              <span>Open</span>
+                              <ChevronRight size={13} className="transform group-hover/page:translate-x-0.5 transition-transform" />
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Card Footer */}
+                    <div className="px-5 py-3 bg-slate-50/70 dark:bg-slate-800/30 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 relative z-10">
+                      <span className="text-[11px] font-medium text-slate-400 dark:text-slate-500">
+                        Primary shortcuts
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => navigate(mod.path)}
+                        className="text-brand-600 dark:text-brand-400 hover:text-brand-700 dark:hover:text-brand-300 font-semibold flex items-center gap-1 hover:underline transition-colors"
+                      >
+                        <span>All {mod.label} pages</span>
+                        <ArrowRight size={12} />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </div>
       {showApprovalModal && (
         <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
