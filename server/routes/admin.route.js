@@ -32,6 +32,7 @@ import {
   requireBranchScope,
 } from "../middleware/auth.js";
 import { requirePermission } from "../middleware/requirePermission.js";
+import { verifyAccessToken } from "../services/token.service.js";
 
 // Database Utilities and Error Handling
 import { query, pool } from "../db/pool.js";
@@ -3378,14 +3379,41 @@ router.get(
     try {
       await ensureSystemSettingsTable();
       await ensureAppBackgroundColumns().catch(() => {});
-      const companyId = req.scope?.companyId ?? null;
+
+      let companyId = req.scope?.companyId ?? null;
+      if (!companyId) {
+        try {
+          const authHeader = String(req.headers.authorization || "");
+          const customHeader = String(req.headers["x-access-token"] || "");
+          const token = authHeader.startsWith("Bearer ")
+            ? authHeader.slice(7).trim()
+            : customHeader.trim();
+          if (token) {
+            const payload = verifyAccessToken(token);
+            if (payload) {
+              companyId =
+                Number(
+                  req.headers["x-company-id"] ||
+                    payload.companyId ||
+                    payload.company_id ||
+                    payload.companyIds?.[0],
+                ) || null;
+            }
+          }
+        } catch {}
+      }
 
       const rows = await query(
-        `SELECT setting_key, setting_value
+        `SELECT company_id, setting_key, setting_value
          FROM adm_system_settings
-         WHERE (company_id = :companyId OR company_id IS NULL)
-           AND setting_key IN ('APP_BACKGROUND_URL', 'APP_BACKGROUND_PRESET', 'APP_BACKGROUND_OPACITY', 'APP_BACKGROUND_BLUR')
-         ORDER BY company_id DESC`,
+         WHERE setting_key IN ('APP_BACKGROUND_URL', 'APP_BACKGROUND_PRESET', 'APP_BACKGROUND_OPACITY', 'APP_BACKGROUND_BLUR')
+         ORDER BY 
+           CASE 
+             WHEN :companyId IS NOT NULL AND company_id = :companyId THEN 1
+             WHEN company_id IS NULL THEN 2
+             ELSE 3 
+           END ASC,
+           id DESC`,
         { companyId }
       );
 
@@ -3467,16 +3495,33 @@ router.post(
       ];
 
       for (const s of settings) {
+        if (companyId != null) {
+          await query(
+            `DELETE FROM adm_system_settings 
+             WHERE setting_key = :key AND company_id = :companyId`,
+            { companyId, key: s.key }
+          );
+          await query(
+            `INSERT INTO adm_system_settings (company_id, branch_id, setting_key, setting_value)
+             VALUES (:companyId, NULL, :key, :value)`,
+            {
+              companyId,
+              key: s.key,
+              value: s.value,
+            }
+          );
+        }
+
+        // Always also update global fallback setting (company_id IS NULL)
         await query(
           `DELETE FROM adm_system_settings 
-           WHERE setting_key = :key AND (company_id = :companyId OR (:companyId IS NULL AND company_id IS NULL))`,
-          { companyId, key: s.key }
+           WHERE setting_key = :key AND company_id IS NULL`,
+          { key: s.key }
         );
         await query(
           `INSERT INTO adm_system_settings (company_id, branch_id, setting_key, setting_value)
-           VALUES (:companyId, NULL, :key, :value)`,
+           VALUES (NULL, NULL, :key, :value)`,
           {
-            companyId,
             key: s.key,
             value: s.value,
           }
@@ -3522,21 +3567,42 @@ router.post(
       const customUrl = `/api/admin/settings/app-background/image?v=${Date.now()}`;
       const companyId = req.scope?.companyId ?? null;
 
+      const keysToClear = ["APP_BACKGROUND_URL", "APP_BACKGROUND_PRESET"];
+      for (const k of keysToClear) {
+        if (companyId != null) {
+          await query(
+            `DELETE FROM adm_system_settings WHERE setting_key = :k AND company_id = :companyId`,
+            { k, companyId }
+          );
+        }
+        await query(
+          `DELETE FROM adm_system_settings WHERE setting_key = :k AND company_id IS NULL`,
+          { k }
+        );
+      }
+
+      if (companyId != null) {
+        await query(
+          `INSERT INTO adm_system_settings (company_id, branch_id, setting_key, setting_value)
+           VALUES (:companyId, NULL, 'APP_BACKGROUND_URL', :url)`,
+          { companyId, url: customUrl }
+        );
+        await query(
+          `INSERT INTO adm_system_settings (company_id, branch_id, setting_key, setting_value)
+           VALUES (:companyId, NULL, 'APP_BACKGROUND_PRESET', 'custom')`,
+          { companyId }
+        );
+      }
+
       await query(
-        `DELETE FROM adm_system_settings 
-         WHERE setting_key IN ('APP_BACKGROUND_URL', 'APP_BACKGROUND_PRESET')
-           AND (company_id = :companyId OR (:companyId IS NULL AND company_id IS NULL))`,
-        { companyId }
+        `INSERT INTO adm_system_settings (company_id, branch_id, setting_key, setting_value)
+         VALUES (NULL, NULL, 'APP_BACKGROUND_URL', :url)`,
+        { url: customUrl }
       );
       await query(
         `INSERT INTO adm_system_settings (company_id, branch_id, setting_key, setting_value)
-         VALUES (:companyId, NULL, 'APP_BACKGROUND_URL', :url)`,
-        { companyId, url: customUrl }
-      );
-      await query(
-        `INSERT INTO adm_system_settings (company_id, branch_id, setting_key, setting_value)
-         VALUES (:companyId, NULL, 'APP_BACKGROUND_PRESET', 'custom')`,
-        { companyId }
+         VALUES (NULL, NULL, 'APP_BACKGROUND_PRESET', 'custom')`,
+        {}
       );
 
       res.json({
@@ -3606,22 +3672,33 @@ router.delete(
       const companyId = req.scope?.companyId ?? null;
       const defaultUrl = "/backgrounds/abstract-silk-waves.jpg";
 
-      await query(
-        `DELETE FROM adm_system_settings 
-         WHERE setting_key IN ('APP_BACKGROUND_URL', 'APP_BACKGROUND_PRESET')
-           AND (company_id = :companyId OR (:companyId IS NULL AND company_id IS NULL))`,
-        { companyId }
-      );
-      await query(
-        `INSERT INTO adm_system_settings (company_id, branch_id, setting_key, setting_value)
-         VALUES (:companyId, NULL, 'APP_BACKGROUND_URL', :url)`,
-        { companyId, url: defaultUrl }
-      );
-      await query(
-        `INSERT INTO adm_system_settings (company_id, branch_id, setting_key, setting_value)
-         VALUES (:companyId, NULL, 'APP_BACKGROUND_PRESET', 'silk-waves')`,
-        { companyId }
-      );
+      const keysToReset = [
+        { key: "APP_BACKGROUND_URL", value: defaultUrl },
+        { key: "APP_BACKGROUND_PRESET", value: "silk-waves" },
+      ];
+
+      for (const item of keysToReset) {
+        if (companyId != null) {
+          await query(
+            `DELETE FROM adm_system_settings WHERE setting_key = :key AND company_id = :companyId`,
+            { key: item.key, companyId }
+          );
+          await query(
+            `INSERT INTO adm_system_settings (company_id, branch_id, setting_key, setting_value)
+             VALUES (:companyId, NULL, :key, :value)`,
+            { companyId, key: item.key, value: item.value }
+          );
+        }
+        await query(
+          `DELETE FROM adm_system_settings WHERE setting_key = :key AND company_id IS NULL`,
+          { key: item.key }
+        );
+        await query(
+          `INSERT INTO adm_system_settings (company_id, branch_id, setting_key, setting_value)
+           VALUES (NULL, NULL, :key, :value)`,
+          { key: item.key, value: item.value }
+        );
+      }
 
       res.json({ success: true, message: "Custom background removed and reset to default preset", default_url: defaultUrl });
     } catch (err) {

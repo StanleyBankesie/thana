@@ -72,6 +72,7 @@ export const MODULES_REGISTRY = {
       { key: "sales-upload", label: "Sales Upload", type: "feature", isExclusive: true },
       { key: "prospect-customers", label: "Prospective Customers", type: "feature" },
       { key: "prospect-conversion", label: "Prospect Conversion", type: "feature" },
+      { key: "setup", label: "Sales Setup", type: "feature" },
     ],
     dashboards: [
       { key: "sales-total-revenue", label: "Total Revenue This Month", type: "dashboard" },

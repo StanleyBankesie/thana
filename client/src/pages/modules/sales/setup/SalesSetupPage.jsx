@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useEffect } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useSearchParams } from "react-router-dom";
 import { api } from "../../../../api/client.js";
 import { toast } from "react-toastify";
 import { Guard } from "../../../../hooks/usePermissions.jsx";
@@ -16,14 +16,18 @@ import { Guard } from "../../../../hooks/usePermissions.jsx";
  * @returns {JSX.Element} The sales setup interface.
  */
 export default function SalesSetupPage() {
-  const location = useLocation();
-  const searchParams = new URLSearchParams(location.search);
-  const initialTab = searchParams.get("tab") || "zones";
-  const [activeTab, setActiveTab] = useState(initialTab);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const currentTab = searchParams.get("tab") || "zones";
+  const [activeTab, setActiveTab] = useState(currentTab);
   const [loading, setLoading] = useState(false);
   const [items, setItems] = useState([]);
   const [form, setForm] = useState({});
   const [isEditing, setIsEditing] = useState(false);
+
+  const changeTab = (tab) => {
+    setActiveTab(tab);
+    setSearchParams({ tab });
+  };
 
   const loadData = async () => {
     setLoading(true);
@@ -36,10 +40,15 @@ export default function SalesSetupPage() {
 
       if (endpoint) {
         const res = await api.get(endpoint);
-        setItems(res?.data?.items || []);
+        const dataItems = res?.data?.items;
+        setItems(Array.isArray(dataItems) ? dataItems : []);
+      } else {
+        setItems([]);
       }
-    } catch {
+    } catch (err) {
+      console.error("Sales setup load error:", err);
       toast.error("Failed to load data");
+      setItems([]);
     } finally {
       setLoading(false);
     }
@@ -60,45 +69,15 @@ export default function SalesSetupPage() {
       else if (activeTab === "reasons") endpoint = "/sales/return-reasons";
       else if (activeTab === "price-types") endpoint = "/sales/price-types";
 
-      // The original SalesSetupPage sent a batch of items via POST { [tab]: items }
-      // To adapt this to the HrSetupPage model (single item add/edit) without writing new endpoints,
-      // wait, the original SalesSetupPage actually replaces ALL items for a category using POST.
-      // So if we just append the form to the existing items and POST, it works!
-      // But let's check the endpoints. `/sales/zones` accepts `{ zones: [...] }`.
-      
       let payload = {};
       if (activeTab === "salespersons") {
-        let updatedItems = [...items];
-        if (isEditing) {
-          updatedItems = updatedItems.map((it) => (it.id === form.id ? form : it));
-        } else {
-          updatedItems.push(form);
-        }
-        payload = { salespersons: updatedItems };
+        payload = { salespersons: [form] };
       } else if (activeTab === "zones") {
-        let updatedItems = [...items];
-        if (isEditing) {
-          updatedItems = updatedItems.map((it) => (it.id === form.id ? form : it));
-        } else {
-          updatedItems.push(form);
-        }
-        payload = { zones: updatedItems };
+        payload = { zones: [form] };
       } else if (activeTab === "reasons") {
-        let updatedItems = [...items];
-        if (isEditing) {
-          updatedItems = updatedItems.map((it) => (it.id === form.id ? form : it));
-        } else {
-          updatedItems.push(form);
-        }
-        payload = { reasons: updatedItems };
+        payload = { reasons: [form] };
       } else if (activeTab === "price-types") {
-        let updatedItems = [...items];
-        if (isEditing) {
-          updatedItems = updatedItems.map((it) => (it.id === form.id ? form : it));
-        } else {
-          updatedItems.push(form);
-        }
-        payload = { priceTypes: updatedItems };
+        payload = { priceTypes: [form] };
       }
 
       await api.post(endpoint, payload);
@@ -107,12 +86,13 @@ export default function SalesSetupPage() {
       setIsEditing(false);
       loadData();
     } catch (err) {
+      console.error("Sales setup save error:", err);
       toast.error("Failed to save");
     }
   };
 
   const handleEdit = (item) => {
-    setForm(item);
+    setForm({ ...item });
     setIsEditing(true);
   };
 
@@ -123,11 +103,15 @@ export default function SalesSetupPage() {
       if (activeTab === "zones") endpoint = `/sales/zones/${id}`;
       else if (activeTab === "reasons") endpoint = `/sales/return-reasons/${id}`;
       else if (activeTab === "price-types") endpoint = `/sales/price-types/${id}`;
+      else if (activeTab === "salespersons") endpoint = `/sales/sales-persons/${id}`;
 
-      await api.delete(endpoint);
-      toast.success("Deleted successfully");
-      loadData();
+      if (endpoint) {
+        await api.delete(endpoint);
+        toast.success("Deleted successfully");
+        loadData();
+      }
     } catch (err) {
+      console.error("Sales setup delete error:", err);
       toast.error("Failed to delete item");
     }
   };
@@ -146,7 +130,7 @@ export default function SalesSetupPage() {
           {["zones", "reasons", "price-types", "salespersons"].map((tab) => (
             <button
               key={tab}
-              onClick={() => setActiveTab(tab)}
+              onClick={() => changeTab(tab)}
               className={`px-4 py-2 text-sm font-medium capitalize whitespace-nowrap ${
                 activeTab === tab
                   ? "border-b-2 border-brand text-brand"
@@ -382,14 +366,21 @@ export default function SalesSetupPage() {
                             {item.is_active ? "Active" : "Inactive"}
                           </span>
                         </td>
-                        <td className="px-4 py-3 text-right">
+                        <td className="px-4 py-3 text-right whitespace-nowrap">
                           <button
+                            type="button"
                             onClick={() => handleEdit(item)}
                             className="text-brand hover:text-brand-600 mr-3 text-sm font-medium"
                           >
                             Edit
                           </button>
-
+                          <button
+                            type="button"
+                            onClick={() => handleDelete(item.id)}
+                            className="text-red-500 hover:text-red-700 text-sm font-medium"
+                          >
+                            Delete
+                          </button>
                         </td>
                       </tr>
                     ))

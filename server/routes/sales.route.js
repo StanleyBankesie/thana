@@ -9110,6 +9110,29 @@ router.post(
   }
 );
 
+router.delete(
+  "/sales-persons/:id",
+  requireAuth,
+  requireCompanyScope,
+  async (req, res, next) => {
+    try {
+      const { companyId } = req.scope || {};
+      const id = Number(req.params.id);
+      if (!Number.isFinite(id)) {
+        throw { status: 400, message: "Invalid id" };
+      }
+      await query(
+        "DELETE FROM sal_salespersons WHERE id = :id AND company_id = :companyId",
+        { id, companyId }
+      );
+      res.json({ message: "Salesperson deleted successfully" });
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+
+
 router.get(
   "/zones",
   requireAuth,
