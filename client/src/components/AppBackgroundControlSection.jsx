@@ -25,31 +25,40 @@ export const BACKGROUND_PRESETS = [
     theme: "Dark & Vibrant",
   },
   {
-    id: "amber-luster",
-    name: "Amber Luster",
-    subtitle: "Warm Gold",
-    description: "Luminous flowing golden amber waveforms on dark luxury backdrop",
-    url: "/backgrounds/Gemini_Generated_Image_hsy20ihsy20ihsy2.jfif",
-    previewUrl: "/backgrounds/Gemini_Generated_Image_hsy20ihsy20ihsy2.jfif",
-    theme: "Warm Amber",
+    id: "pastel-silk",
+    name: "Pastel Silk",
+    subtitle: "Ethereal Flow",
+    description: "Translucent frosted violet & sky blue ribbons on pearlescent backdrop",
+    url: "/backgrounds/pastel-silk-waves.jpg",
+    previewUrl: "/backgrounds/pastel-silk-waves.jpg",
+    theme: "Pastel Iridescent",
   },
   {
-    id: "slate-horizon",
-    name: "Slate Modern",
-    subtitle: "Modern 3D",
-    description: "Sophisticated frosted 3D slate sculpture with sculptural depth",
-    url: "/backgrounds/Gemini_Generated_Image_5eegyy5eegyy5eeg.jfif",
-    previewUrl: "/backgrounds/Gemini_Generated_Image_5eegyy5eegyy5eeg.jfif",
-    theme: "3D Isometric",
+    id: "amber-apricot",
+    name: "Amber Apricot",
+    subtitle: "Warm Luster",
+    description: "Luminous flowing golden apricot waveforms on warm cream backdrop",
+    url: "/backgrounds/amber-apricot-flow.jpg",
+    previewUrl: "/backgrounds/amber-apricot-flow.jpg",
+    theme: "Warm Apricot",
   },
   {
-    id: "midnight-flow",
-    name: "Midnight Flow",
-    subtitle: "Ethereal",
-    description: "Smooth deep navy flowing ripples with crystalline glow",
-    url: "/backgrounds/Gemini_Generated_Image_txb3zytxb3zytxb3.jfif",
-    previewUrl: "/backgrounds/Gemini_Generated_Image_txb3zytxb3zytxb3.jfif",
-    theme: "Midnight Blue",
+    id: "cyber-nexus",
+    name: "Cyber Nexus",
+    subtitle: "Dark Tech",
+    description: "Deep navy digital space with glowing amber network constellations & orbital rings",
+    url: "/backgrounds/cyber-nexus-dark.jpg",
+    previewUrl: "/backgrounds/cyber-nexus-dark.jpg",
+    theme: "Dark Cybernetic",
+  },
+  {
+    id: "digital-aura",
+    name: "Digital Aura",
+    subtitle: "Light Tech",
+    description: "Warm ivory background with vibrant golden cybernetic ribbons & constellation mesh",
+    url: "/backgrounds/digital-aura-light.jpg",
+    previewUrl: "/backgrounds/digital-aura-light.jpg",
+    theme: "Light Cybernetic",
   },
   {
     id: "none",
@@ -87,12 +96,15 @@ export default function AppBackgroundControlSection() {
           const d = res.data;
           let preset = d.background_preset || "silk-waves";
           let bgUrl = d.background_url || "";
-          if (preset === "geometric-cubes" || bgUrl.includes("abstract-geometric-cubes")) {
-            preset = "slate-horizon";
-            bgUrl = "/backgrounds/Gemini_Generated_Image_5eegyy5eegyy5eeg.jfif";
-          } else if (preset === "aurora-glow" || bgUrl.includes("abstract-aurora-glow")) {
-            preset = "amber-luster";
-            bgUrl = "/backgrounds/Gemini_Generated_Image_hsy20ihsy20ihsy2.jfif";
+          if (preset === "midnight-flow" || bgUrl.includes("txb3zy")) {
+            preset = "cyber-nexus";
+            bgUrl = "/backgrounds/cyber-nexus-dark.jpg";
+          } else if (preset === "amber-luster" || preset === "aurora-glow" || bgUrl.includes("hsy20i") || bgUrl.includes("abstract-aurora-glow")) {
+            preset = "amber-apricot";
+            bgUrl = "/backgrounds/amber-apricot-flow.jpg";
+          } else if (preset === "slate-horizon" || preset === "geometric-cubes" || bgUrl.includes("5eegyy") || bgUrl.includes("abstract-geometric-cubes")) {
+            preset = "digital-aura";
+            bgUrl = "/backgrounds/digital-aura-light.jpg";
           }
           setSelectedPreset(preset);
           setBackgroundUrl(bgUrl);
@@ -360,7 +372,7 @@ export default function AppBackgroundControlSection() {
               </span>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6 gap-4">
               {BACKGROUND_PRESETS.map((preset) => {
                 const isSelected = selectedPreset === preset.id;
                 return (
