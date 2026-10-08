@@ -275,6 +275,12 @@ export default function DashboardPermissions() {
         ];
         return defaultCards.includes(card_key);
       }
+
+      // Default dashboard permissions to unchecked (false) when not explicitly granted
+      if (dashboard_key) {
+        return false;
+      }
+
       return true;
     }
     const latest = match[match.length - 1];
@@ -630,13 +636,13 @@ export default function DashboardPermissions() {
                               checked={getView(m.key, "dashboard") || getView(m.key, "dashboards")}
                               onChange={(e) => {
                                 const val = e.target.checked;
-                                const handler = makeToggleHandler(m.key, "dashboard", null, null, (newVal) => {
-                                  setView(m.key, "dashboard", null, null, newVal);
-                                  setView(m.key, "dashboards", null, null, newVal);
-                                  persistPermission(m.key, "dashboard", "dashboard", newVal);
-                                  persistPermission(m.key, "dashboard", "dashboards", newVal);
-                                });
-                                handler(e);
+                                const k1 = permKey(m.key, "dashboard", null, null);
+                                const k2 = permKey(m.key, "dashboards", null, null);
+                                setUserToggles((prev) => ({ ...prev, [k1]: val, [k2]: val }));
+                                setView(m.key, "dashboard", null, null, val);
+                                setView(m.key, "dashboards", null, null, val);
+                                persistPermission(m.key, "dashboard", "dashboard", val);
+                                persistPermission(m.key, "dashboard", "dashboards", val);
                               }}
                             />
                             <span>📊 Dashboard</span>

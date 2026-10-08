@@ -1012,7 +1012,13 @@ export const PermissionProvider = ({ children }) => {
       }
     }
 
-    // 2. No explicit config for this element — fall back to module-level RBAC
+    // 2. No explicit config for this element:
+    // By default, dashboard permissions are disabled/unchecked unless explicitly granted
+    if (t === "dashboard") {
+      return false;
+    }
+
+    // Fall back to module-level RBAC for other elements
     if (mk) {
       return canAccessPath(`/${mk}`);
     }
@@ -1027,6 +1033,12 @@ export const PermissionProvider = ({ children }) => {
     const parts = p.split("/").filter(Boolean);
     const mk = String(parts[0] || "");
     const seg = String(parts[1] || "");
+
+    // If accessing a module dashboard route (e.g. /sales/dashboard or /purchase/dashboard)
+    if (mk && (seg === "dashboard" || seg === "dashboards")) {
+      return canViewDashboardElement(mk, "dashboard", "dashboard") !== false &&
+             canViewDashboardElement(mk, "dashboard", "dashboards") !== false;
+    }
 
     const moduleInfo = MODULES_REGISTRY[mk] || {};
 

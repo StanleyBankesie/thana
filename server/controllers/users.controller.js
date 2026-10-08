@@ -290,6 +290,9 @@ export const createUser = async (req, res, next) => {
       );
     }
 
+    // Default dashboard permissions to unchecked (disabled) for the new user
+    await initDefaultUserDashboardPermissions(newUserId);
+
     res.status(201).json({
       success: true,
       message: "User created",
@@ -297,6 +300,68 @@ export const createUser = async (req, res, next) => {
     });
   } catch (err) {
     next(err);
+  }
+};
+
+/**
+ * Initializes default dashboard permissions for a user as unchecked (can_view = 0).
+ *
+ * @param {number} userId - The target user's ID.
+ */
+export const initDefaultUserDashboardPermissions = async (userId) => {
+  try {
+    await query(`
+      CREATE TABLE IF NOT EXISTS adm_dashboard_permissions (
+        id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+        user_id BIGINT UNSIGNED NOT NULL,
+        module_key VARCHAR(100) NOT NULL,
+        dashboard_key VARCHAR(150) NULL,
+        card_key VARCHAR(150) NULL,
+        ticker_key VARCHAR(150) NULL,
+        can_view TINYINT(1) NOT NULL DEFAULT 0,
+        created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        PRIMARY KEY (id),
+        UNIQUE KEY uq_user_scope (user_id, module_key, dashboard_key, card_key, ticker_key),
+        INDEX idx_user (user_id),
+        INDEX idx_module (module_key)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    `);
+
+    const defaultDashboardModules = [
+      "sales",
+      "purchase",
+      "inventory",
+      "finance",
+      "human-resources",
+      "maintenance",
+      "pos",
+      "project-management",
+      "service-management",
+      "business-intelligence",
+      "executive-overview",
+      "transport",
+      "administration",
+    ];
+
+    for (const modKey of defaultDashboardModules) {
+      await query(
+        `INSERT INTO adm_dashboard_permissions (user_id, module_key, dashboard_key, card_key, ticker_key, can_view)
+         VALUES (:userId, :module_key, 'dashboard', NULL, NULL, 0)
+         ON DUPLICATE KEY UPDATE can_view = 0`,
+        { userId, module_key: modKey },
+      );
+      if (modKey === "business-intelligence") {
+        await query(
+          `INSERT INTO adm_dashboard_permissions (user_id, module_key, dashboard_key, card_key, ticker_key, can_view)
+           VALUES (:userId, :module_key, 'dashboards', NULL, NULL, 0)
+           ON DUPLICATE KEY UPDATE can_view = 0`,
+          { userId, module_key: modKey },
+        );
+      }
+    }
+  } catch (permErr) {
+    console.error("Failed to initialize default user dashboard permissions:", permErr);
   }
 };
 
