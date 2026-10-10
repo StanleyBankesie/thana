@@ -4,7 +4,7 @@
  */
 
 import React from "react";
-import { Routes, Route, Link } from "react-router-dom";
+import { Routes, Route, Link, Navigate } from "react-router-dom";
 import { usePermission } from "../../../auth/PermissionContext";
 import ModuleDashboard from "../../../components/ModuleDashboard";
 import ModuleLayout from "../../../components/ModuleLayout.jsx";
@@ -1046,6 +1046,8 @@ export default function SalesHome() {
         <Route path="/returns" element={<SalesReturnList />} />
         <Route path="/returns/new" element={<SalesReturnForm />} />
         <Route path="/returns/:id" element={<SalesReturnForm />} />
+        <Route path="/sales-entry" element={<Navigate to="/pos/sales-entry" replace />} />
+        <Route path="/sales-entry/*" element={<Navigate to="/pos/sales-entry" replace />} />
       </Routes>
     </ModuleLayout>
   );

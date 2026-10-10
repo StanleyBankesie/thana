@@ -36,7 +36,7 @@ export const MODULE_PRIMARY_PAGES = {
   ],
 
   pos: [
-    { title: "Sales Entry", path: "/pos/sales", feature_key: "sales-entry", icon: "🛒", description: "Fast barcode checkout, cash & digital sales" },
+    { title: "Sales Entry", path: "/pos/sales-entry", feature_key: "sales-entry", icon: "🛒", description: "Fast barcode checkout, cash & digital sales" },
     { title: "Receipt Reprint", path: "/pos/receipt-reprint", feature_key: "receipt-reprint", icon: "🖨️", description: "Search, preview, and reprint sales slips" },
     { title: "Day Management", path: "/pos/day-management", feature_key: "day-management", icon: "⏱️", description: "Open and close POS daily register" },
     { title: "POS Invoices", path: "/pos/invoices", feature_key: "invoices", icon: "🧾", description: "History of retail sales invoices" },

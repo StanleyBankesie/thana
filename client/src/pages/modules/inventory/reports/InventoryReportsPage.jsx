@@ -18,7 +18,8 @@ import {
   ArrowUpRight,
   ChevronRight,
   ArrowLeftRight,
-  ShieldCheck
+  ShieldCheck,
+  ShieldAlert
 } from "lucide-react";
 
 export default function InventoryReportsPage() {

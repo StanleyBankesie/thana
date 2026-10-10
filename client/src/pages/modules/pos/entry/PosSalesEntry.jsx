@@ -115,6 +115,16 @@ export default function PosSalesEntry() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { canEditDiscount, canPerformAction, canAccessPath } = usePermission();
+  const isDiscountAllowed = useMemo(() => {
+    if (typeof canEditDiscount === "function") {
+      try {
+        return canEditDiscount();
+      } catch {
+        return true;
+      }
+    }
+    return true;
+  }, [canEditDiscount]);
   const [now, setNow] = useState(new Date());
   const [search, setSearch] = useState("");
   const [cart, setCart] = useState([]);
@@ -937,7 +947,7 @@ export default function PosSalesEntry() {
   }
 
   const handleGlobalDiscountClick = async () => {
-    if (!canEditDiscount() || generalSettings.allowDiscounts === false) return;
+    if (!isDiscountAllowed || generalSettings.allowDiscounts === false) return;
     if (cart.length === 0) {
       Swal.fire(
         "Empty Cart",
@@ -1407,7 +1417,7 @@ export default function PosSalesEntry() {
       // Hard guard: ignore discount updates when user lacks exceptional permission
       if (
         field === "discount" &&
-        (!canEditDiscount() || generalSettings.allowDiscounts === false)
+        (!isDiscountAllowed || generalSettings.allowDiscounts === false)
       ) {
         return prev;
       }
@@ -2528,10 +2538,10 @@ export default function PosSalesEntry() {
                     name="discount"
                     type="text"
                     readOnly
-                    className={`input w-full cursor-pointer ${!canEditDiscount() || generalSettings.allowDiscounts === false ? "disabled-light-blue" : ""}`}
+                    className={`input w-full cursor-pointer ${!isDiscountAllowed || generalSettings.allowDiscounts === false ? "disabled-light-blue" : ""}`}
                     value={headerDiscount}
                     onClick={handleGlobalDiscountClick}
-                    disabled={!canEditDiscount() || generalSettings.allowDiscounts === false}
+                    disabled={!isDiscountAllowed || generalSettings.allowDiscounts === false}
                     placeholder="0.00"
                   />
                 </div>
@@ -2623,7 +2633,7 @@ export default function PosSalesEntry() {
                                   <input
                                     name="discount"
                                     type="number"
-                                    className={`input text-right w-24 ${!canEditDiscount() || generalSettings.allowDiscounts === false ? "disabled-light-blue" : ""}`}
+                                    className={`input text-right w-24 ${!isDiscountAllowed || generalSettings.allowDiscounts === false ? "disabled-light-blue" : ""}`}
                                     min={1}
                                     step={1}
                                     value={discount}
@@ -2634,7 +2644,7 @@ export default function PosSalesEntry() {
                                         e.target.value,
                                       )
                                     }
-                                    disabled={!canEditDiscount()}
+                                    disabled={!isDiscountAllowed}
                                   />
                                 </div>
                               </td>

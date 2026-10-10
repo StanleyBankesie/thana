@@ -209,6 +209,16 @@ export const PermissionProvider = ({ children }) => {
       if (!background) setLoading(true);
       setError(null);
 
+      if (!initialized || !token) {
+        setModules(new Set());
+        setPermissions([]);
+        setRoleFeatures(new Set());
+        setExceptionalPerms(new Set());
+        setLicensedModules(new Set());
+        setLoading(false);
+        return;
+      }
+
       // Background sync application mode & module section view
       api.get("/admin/settings/app-mode", BACKGROUND_GET_CONFIG)
         .then((res) => {
@@ -246,15 +256,6 @@ export const PermissionProvider = ({ children }) => {
           }
         })
         .catch(() => {});
-
-      if (!initialized || !token) {
-        setModules(new Set());
-        setPermissions([]);
-        setRoleFeatures(new Set());
-        setExceptionalPerms(new Set());
-        setLicensedModules(new Set());
-        return;
-      }
 
       const userId = Number(user?.id || user?.sub || 0);
       if (!Number.isFinite(userId) || !userId) {

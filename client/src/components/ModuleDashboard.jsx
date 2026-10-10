@@ -127,6 +127,13 @@ function ModuleNavDropdown({ section, location, navigate }) {
   );
 }
 
+const slug = (s) =>
+  String(s || "")
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, "-")
+    .replace(/[^a-z0-9\-]/g, "");
+
 const ModuleDashboard = ({
   title,
   description,
@@ -144,6 +151,29 @@ const ModuleDashboard = ({
   const navigate = useNavigate();
   const location = useLocation();
 
+  const {
+    canAccessPath,
+    canAccessFeatureKey,
+    canViewDashboardElement,
+    isModuleEnabled,
+    moduleSectionViewEnabled,
+    isSuper,
+    isBasicMode,
+  } = usePermission();
+
+  const shouldShowSectionCardsFirst = useMemo(() => {
+    if (isBasicMode) return false;
+    if (typeof moduleSectionViewEnabled === "boolean") return moduleSectionViewEnabled;
+    try {
+      if (typeof localStorage !== "undefined") {
+        return localStorage.getItem("omnisuite.module_section_view") === "true";
+      }
+    } catch {}
+    return false;
+  }, [isBasicMode, moduleSectionViewEnabled]);
+
+
+
   React.useEffect(() => {
     const searchParams = new URLSearchParams(location.search || "");
     const secParam = searchParams.get("section");
@@ -154,19 +184,29 @@ const ModuleDashboard = ({
           String(s.title || s.category || "").toLowerCase() === secParam.toLowerCase()
       );
       if (secIdx !== -1) {
-        setActiveSection(secIdx);
+        if (shouldShowSectionCardsFirst) {
+          setActiveSection(secIdx);
+        } else {
+          setActiveSection(null);
+          const targetSection = sections[secIdx];
+          const secTitle = targetSection?.title || targetSection?.category || "";
+          const targetId = `section-${slug(secTitle)}`;
+          setTimeout(() => {
+            const el =
+              document.getElementById(targetId) ||
+              document.querySelector(`[data-section-title="${secTitle}"]`);
+            if (el && typeof el.scrollIntoView === "function") {
+              el.scrollIntoView({ behavior: "smooth", block: "start" });
+            }
+          }, 120);
+        }
+      } else {
+        setActiveSection(null);
       }
+    } else {
+      setActiveSection(null);
     }
-  }, [location.search, sections]);
-  const {
-    canAccessPath,
-    canAccessFeatureKey,
-    canViewDashboardElement,
-    isModuleEnabled,
-    moduleSectionViewEnabled,
-    isSuper,
-    isBasicMode,
-  } = usePermission();
+  }, [location.search, sections, shouldShowSectionCardsFirst]);
 
   const isDashboardPath = (path) => {
     const parts = String(path || "").split("/").filter(Boolean);
@@ -390,16 +430,7 @@ const ModuleDashboard = ({
     }, 0);
   }, [filteredSections, canShowItem]);
 
-  const shouldShowSectionCardsFirst = useMemo(() => {
-    if (isBasicMode) return false;
-    if (typeof moduleSectionViewEnabled === "boolean") return moduleSectionViewEnabled;
-    try {
-      if (typeof localStorage !== "undefined") {
-        return localStorage.getItem("omnisuite.module_section_view") === "true";
-      }
-    } catch {}
-    return false;
-  }, [isBasicMode, moduleSectionViewEnabled]);
+  
 
   const visibleSectionsList = useMemo(() => {
     return filteredSections
@@ -525,7 +556,7 @@ const ModuleDashboard = ({
           )}
         </div>
         <div className="flex items-center gap-2">
-          {!searchTerm && activeSection !== null && (
+          {shouldShowSectionCardsFirst && !searchTerm && activeSection !== null && (
             <button 
               type="button"
               onClick={() => {
@@ -539,7 +570,7 @@ const ModuleDashboard = ({
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
               </svg>
-              <span>{shouldShowSectionCardsFirst ? "Back to Sections" : "All Sections"}</span>
+              <span>Back to Sections</span>
             </button>
           )}
           {resolvedHeaderActions.map((a, i) => (
@@ -928,7 +959,7 @@ const ModuleDashboard = ({
             )}
 
             {filteredSections.map((section, sectionIndex) => {
-              if (!searchTerm && activeSection !== null && activeSection !== sectionIndex) {
+              if (shouldShowSectionCardsFirst && !searchTerm && activeSection !== null && activeSection !== sectionIndex) {
                 return null;
               }
 

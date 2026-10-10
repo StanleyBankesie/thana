@@ -17,6 +17,30 @@ export async function ensureStockBalancesWarehouseInfrastructure(connOrPool) {
     : query;
 
   try {
+    // ── 0. Ensure table exists ──────────────────────────────────────────
+    await query(`
+      CREATE TABLE IF NOT EXISTS inv_stock_balances (
+        id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+        company_id BIGINT UNSIGNED NOT NULL,
+        branch_id BIGINT UNSIGNED NOT NULL DEFAULT 1,
+        warehouse_id BIGINT UNSIGNED NULL,
+        item_id BIGINT UNSIGNED NOT NULL,
+        qty DECIMAL(18,3) NOT NULL DEFAULT 0,
+        reserved_qty DECIMAL(18,3) NOT NULL DEFAULT 0,
+        batch_no VARCHAR(100) NULL,
+        serial_no VARCHAR(100) NULL,
+        expiry_date DATE NULL,
+        entry_date DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        source_type VARCHAR(50) NULL,
+        source_id BIGINT UNSIGNED NULL,
+        created_by BIGINT UNSIGNED NULL,
+        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        KEY idx_stock_scope (company_id, branch_id),
+        KEY idx_stock_wh_item (company_id, branch_id, warehouse_id, item_id)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+    `).catch(() => {});
+
     // ── 1. Discover existing columns ──────────────────────────────────────
     const cols = await q(
       `SELECT COLUMN_NAME

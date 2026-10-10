@@ -4,7 +4,7 @@
  */
 
 import React, { useEffect, useMemo, useState } from "react";
-import { Link, Route, Routes } from "react-router-dom";
+import { Link, Navigate, Route, Routes } from "react-router-dom";
 
 import PosReports from "./reports/PosReports.jsx";
 import PosCustomerHistory from "./reports/PosCustomerHistory.jsx";
@@ -327,22 +327,50 @@ export default function PosHome() {
       <Routes>
         <Route path="/" element={<PosLanding />} />
 
+        {/* Sales Entry routes and aliases */}
+        <Route path="/sales-entry" element={<PosSalesEntry />} />
+        <Route path="/sales-entry/new" element={<PosSalesEntry />} />
+        <Route path="/sales-entry/:id" element={<PosSalesEntry />} />
+        <Route path="/sales-entry/*" element={<PosSalesEntry />} />
+        <Route path="/sales" element={<PosSalesEntry />} />
+        <Route path="/sales/new" element={<PosSalesEntry />} />
+        <Route path="/sales/:id" element={<PosSalesEntry />} />
+        <Route path="/sales/*" element={<PosSalesEntry />} />
+        <Route path="/entry" element={<PosSalesEntry />} />
+        <Route path="/entry/new" element={<PosSalesEntry />} />
+        <Route path="/entry/*" element={<PosSalesEntry />} />
+
         <Route path="/returns" element={<PosReturnForm />} />
         <Route path="/returns/new" element={<PosReturnForm />} />
+        <Route path="/returns/:id" element={<PosReturnForm />} />
         <Route path="/register" element={<PosRegister />} />
-        <Route path="/sales-entry" element={<PosSalesEntry />} />
+        <Route path="/register/new" element={<PosRegister />} />
         <Route path="/cash-collection" element={<CashCollectionDetails />} />
+        <Route path="/cash-collection/new" element={<CashCollectionDetails />} />
         <Route path="/invoices" element={<PosInvoiceList />} />
+        <Route path="/invoices/new" element={<PosInvoiceList />} />
+        <Route path="/receipt-reprint" element={<PosInvoiceList />} />
         <Route path="/post-to-finance" element={<PosPostToFinance />} />
+        <Route path="/post-to-finance/new" element={<PosPostToFinance />} />
         <Route path="/day-management" element={<PosDayManagement />} />
+        <Route path="/day-management/new" element={<PosDayManagement />} />
         <Route path="/day" element={<PosDayManagement />} />
+        <Route path="/day/new" element={<PosDayManagement />} />
 
         <Route path="/reports" element={<PosReports />} />
+        <Route path="/reports/*" element={<PosReports />} />
         <Route path="/customer-history" element={<PosCustomerHistory />} />
+        <Route path="/customer-history/new" element={<PosCustomerHistory />} />
         <Route path="/holds" element={<PosOnHold />} />
+        <Route path="/holds/new" element={<PosOnHold />} />
         <Route path="/setup" element={<PosSetup />} />
+        <Route path="/setup/*" element={<PosSetup />} />
         <Route path="/dashboard" element={<PosDashboard />} />
         <Route path="/reconciliation" element={<PosReconciliation />} />
+        <Route path="/reconciliation/new" element={<PosReconciliation />} />
+
+        {/* Catch-all fallback */}
+        <Route path="*" element={<Navigate to="/pos" replace />} />
       </Routes>
     </ModuleLayout>
   );

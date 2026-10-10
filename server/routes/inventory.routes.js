@@ -213,7 +213,98 @@ export async function ensureWarehousesTable() {
   verifiedTables.add("inv_warehouses");
 }
 
+export async function ensureItemsTable() {
+  if (verifiedTables.has("inv_items")) return;
+  await query(`
+    CREATE TABLE IF NOT EXISTS inv_items (
+      id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+      company_id BIGINT UNSIGNED NOT NULL,
+      branch_id BIGINT UNSIGNED NOT NULL DEFAULT 1,
+      item_code VARCHAR(50) NOT NULL,
+      item_name VARCHAR(255) NOT NULL,
+      uom VARCHAR(20) DEFAULT 'PCS',
+      item_type VARCHAR(50) NULL,
+      category_id BIGINT UNSIGNED NULL,
+      item_group_id BIGINT UNSIGNED NULL,
+      cost_price DECIMAL(18,4) NOT NULL DEFAULT 0,
+      selling_price DECIMAL(18,4) NOT NULL DEFAULT 0,
+      barcode VARCHAR(100) NULL,
+      min_stock_level DECIMAL(18,3) NOT NULL DEFAULT 0,
+      max_stock_level DECIMAL(18,3) NOT NULL DEFAULT 0,
+      reorder_level DECIMAL(18,3) NOT NULL DEFAULT 0,
+      safety_stock DECIMAL(18,3) NOT NULL DEFAULT 0,
+      service_item CHAR(1) NOT NULL DEFAULT 'N',
+      is_stockable CHAR(1) NOT NULL DEFAULT 'Y',
+      is_sellable CHAR(1) NOT NULL DEFAULT 'Y',
+      is_purchasable CHAR(1) NOT NULL DEFAULT 'Y',
+      is_active TINYINT(1) NOT NULL DEFAULT 1,
+      created_by BIGINT UNSIGNED NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      KEY idx_item_scope (company_id, branch_id),
+      KEY idx_item_code (item_code)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+  `).catch(() => {});
+  await query(`ALTER TABLE inv_items ADD COLUMN item_group_id BIGINT UNSIGNED NULL`).catch(() => {});
+  await query(`ALTER TABLE inv_items ADD COLUMN cost_price DECIMAL(18,4) NOT NULL DEFAULT 0`).catch(() => {});
+  await query(`ALTER TABLE inv_items ADD COLUMN selling_price DECIMAL(18,4) NOT NULL DEFAULT 0`).catch(() => {});
+  await query(`ALTER TABLE inv_items ADD COLUMN uom VARCHAR(20) DEFAULT 'PCS'`).catch(() => {});
+  await query(`UPDATE inv_items SET item_group_id = group_id WHERE item_group_id IS NULL AND group_id IS NOT NULL`).catch(() => {});
+  verifiedTables.add("inv_items");
+}
+
+export async function ensureItemBatchTables() {
+  if (verifiedTables.has("inv_item_batches")) return;
+  await query(`
+    CREATE TABLE IF NOT EXISTS inv_item_batches (
+      id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+      company_id BIGINT UNSIGNED NOT NULL,
+      branch_id BIGINT UNSIGNED NOT NULL DEFAULT 1,
+      item_id BIGINT UNSIGNED NOT NULL,
+      batch_no VARCHAR(100) NOT NULL,
+      qty DECIMAL(18,3) NOT NULL DEFAULT 0,
+      expiry_date DATE NULL,
+      cost DECIMAL(18,4) NOT NULL DEFAULT 0,
+      created_by BIGINT UNSIGNED NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      KEY idx_batch_scope (company_id, branch_id),
+      KEY idx_batch_item (item_id),
+      KEY idx_batch_no (batch_no)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+  `).catch(() => {});
+  await query(`ALTER TABLE inv_item_batches ADD COLUMN cost DECIMAL(18,4) NOT NULL DEFAULT 0`).catch(() => {});
+  await query(`ALTER TABLE inv_item_batches ADD COLUMN expiry_date DATE NULL`).catch(() => {});
+  await query(`ALTER TABLE inv_item_batches ADD COLUMN batch_no VARCHAR(100) NOT NULL DEFAULT ''`).catch(() => {});
+  await query(`ALTER TABLE inv_item_batches ADD COLUMN qty DECIMAL(18,3) NOT NULL DEFAULT 0`).catch(() => {});
+  verifiedTables.add("inv_item_batches");
+}
+
+export async function ensureItemGroupTables() {
+  if (verifiedTables.has("inv_item_groups")) return;
+  await query(`
+    CREATE TABLE IF NOT EXISTS inv_item_groups (
+      id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+      company_id BIGINT UNSIGNED NOT NULL,
+      group_code VARCHAR(50) NOT NULL,
+      group_name VARCHAR(150) NOT NULL,
+      is_active TINYINT(1) NOT NULL DEFAULT 1,
+      created_by BIGINT UNSIGNED NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      UNIQUE KEY uq_group_code (company_id, group_code)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+  `).catch(() => {});
+  verifiedTables.add("inv_item_groups");
+}
+
 async function ensureStockBalanceDetailsInfrastructure() {
+  await ensureStockBalancesWarehouseInfrastructure();
+  await ensureWarehousesTable();
+  await ensureItemsTable();
+  await ensureItemBatchTables();
+  await ensureItemGroupTables();
+
   // View now reads from inv_stock_balances directly (no separate details table)
   await query(`
     CREATE OR REPLACE VIEW v_active_stock_details AS
@@ -2036,8 +2127,24 @@ router.get(
   requireBranchScope,
   async (req, res, next) => {
     try {
+      await ensureStockBalancesWarehouseInfrastructure();
+      await ensureWarehousesTable();
+      await ensureItemsTable();
+      await ensureItemBatchTables();
+      await ensureItemGroupTables();
       await ensureStockBalanceDetailsInfrastructure();
-      const { companyId, branchId = null, branchIdsStr = "" } = req.scope || {};
+
+      const companyId = Number(req.scope?.companyId || 1);
+      const branchId = req.scope?.branchId;
+      const rawBranchIdsStr = req.scope?.branchIdsStr;
+      const branchIdsStr = String(
+        rawBranchIdsStr !== undefined && rawBranchIdsStr !== null
+          ? rawBranchIdsStr
+          : branchId && branchId !== "all"
+            ? branchId
+            : "",
+      );
+
       const {
         status = "ALL_RISK", // 'EXPIRED', 'EXPIRING_30', 'EXPIRING_60', 'EXPIRING_90', 'ALL_RISK', 'ALL'
         warehouse_id = "",
@@ -2067,7 +2174,7 @@ router.get(
 
       if (search) {
         baseWhere.push(
-          "(i.item_code LIKE :search OR i.item_name LIKE :search OR sb.batch_no LIKE :search OR b.batch_no LIKE :search)"
+          "(i.item_code LIKE :search OR i.item_name LIKE :search OR sb.batch_no LIKE :search OR b.batch_no LIKE :search)",
         );
         params.search = `%${search}%`;
       }
@@ -2087,93 +2194,242 @@ router.get(
         baseWhere.push("COALESCE(sb.expiry_date, b.expiry_date) < CURDATE()");
       } else if (status === "EXPIRING_30") {
         baseWhere.push(
-          "COALESCE(sb.expiry_date, b.expiry_date) BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 30 DAY)"
+          "COALESCE(sb.expiry_date, b.expiry_date) BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 30 DAY)",
         );
       } else if (status === "EXPIRING_60") {
         baseWhere.push(
-          "COALESCE(sb.expiry_date, b.expiry_date) BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 60 DAY)"
+          "COALESCE(sb.expiry_date, b.expiry_date) BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 60 DAY)",
         );
       } else if (status === "EXPIRING_90") {
         baseWhere.push(
-          "COALESCE(sb.expiry_date, b.expiry_date) BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 90 DAY)"
+          "COALESCE(sb.expiry_date, b.expiry_date) BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 90 DAY)",
         );
       } else if (status === "ALL_RISK") {
         baseWhere.push(
-          "COALESCE(sb.expiry_date, b.expiry_date) <= DATE_ADD(CURDATE(), INTERVAL 90 DAY)"
+          "COALESCE(sb.expiry_date, b.expiry_date) <= DATE_ADD(CURDATE(), INTERVAL 90 DAY)",
         );
       }
 
-      const rows = await query(
-        `SELECT
-           sb.id AS balance_id,
-           sb.item_id,
-           sb.warehouse_id,
-           sb.branch_id,
-           i.item_code,
-           i.item_name,
-           i.uom,
-           ig.group_name AS category_name,
-           w.warehouse_name,
-           COALESCE(sb.batch_no, b.batch_no, '-') AS batch_no,
-           sb.serial_no,
-           COALESCE(sb.expiry_date, b.expiry_date) AS expiry_date,
-           sb.qty,
-           sb.reserved_qty,
-           GREATEST(0, sb.qty - sb.reserved_qty) AS available_qty,
-           COALESCE(b.cost, i.cost_price, 0) AS unit_cost,
-           ROUND(sb.qty * COALESCE(b.cost, i.cost_price, 0), 2) AS total_cost_value,
-           DATEDIFF(COALESCE(sb.expiry_date, b.expiry_date), CURDATE()) AS days_until_expiry,
-           CASE
-             WHEN COALESCE(sb.expiry_date, b.expiry_date) < CURDATE() THEN 'EXPIRED'
-             WHEN COALESCE(sb.expiry_date, b.expiry_date) = CURDATE() THEN 'EXPIRES_TODAY'
-             WHEN DATEDIFF(COALESCE(sb.expiry_date, b.expiry_date), CURDATE()) <= 30 THEN 'EXPIRING_30'
-             WHEN DATEDIFF(COALESCE(sb.expiry_date, b.expiry_date), CURDATE()) <= 60 THEN 'EXPIRING_60'
-             WHEN DATEDIFF(COALESCE(sb.expiry_date, b.expiry_date), CURDATE()) <= 90 THEN 'EXPIRING_90'
-             ELSE 'ACTIVE'
-           END AS expiry_status
-         FROM inv_stock_balances sb
-         JOIN inv_items i ON i.id = sb.item_id
-         LEFT JOIN inv_warehouses w ON w.id = sb.warehouse_id
-         LEFT JOIN inv_item_groups ig ON ig.id = i.item_group_id
-         LEFT JOIN inv_item_batches b ON b.item_id = sb.item_id
-           AND b.company_id = sb.company_id
-           AND b.batch_no = sb.batch_no
-           AND sb.batch_no IS NOT NULL AND sb.batch_no != ''
-         WHERE ${baseWhere.join(" AND ")}
-         ORDER BY COALESCE(sb.expiry_date, b.expiry_date) ASC, sb.qty DESC`,
-        params,
-      );
+      let rows = [];
+      try {
+        rows = await query(
+          `SELECT
+             sb.id AS balance_id,
+             sb.item_id,
+             sb.warehouse_id,
+             sb.branch_id,
+             i.item_code,
+             i.item_name,
+             i.uom,
+             COALESCE(ig.group_name, 'General') AS category_name,
+             COALESCE(w.warehouse_name, 'Main Warehouse') AS warehouse_name,
+             COALESCE(sb.batch_no, b.batch_no, '-') AS batch_no,
+             sb.serial_no,
+             COALESCE(sb.expiry_date, b.expiry_date) AS expiry_date,
+             sb.qty,
+             COALESCE(sb.reserved_qty, 0) AS reserved_qty,
+             GREATEST(0, COALESCE(sb.qty, 0) - COALESCE(sb.reserved_qty, 0)) AS available_qty,
+             COALESCE(b.cost, i.cost_price, 0) AS unit_cost,
+             ROUND(sb.qty * COALESCE(b.cost, i.cost_price, 0), 2) AS total_cost_value,
+             DATEDIFF(COALESCE(sb.expiry_date, b.expiry_date), CURDATE()) AS days_until_expiry,
+             CASE
+               WHEN COALESCE(sb.expiry_date, b.expiry_date) < CURDATE() THEN 'EXPIRED'
+               WHEN COALESCE(sb.expiry_date, b.expiry_date) = CURDATE() THEN 'EXPIRES_TODAY'
+               WHEN DATEDIFF(COALESCE(sb.expiry_date, b.expiry_date), CURDATE()) <= 30 THEN 'EXPIRING_30'
+               WHEN DATEDIFF(COALESCE(sb.expiry_date, b.expiry_date), CURDATE()) <= 60 THEN 'EXPIRING_60'
+               WHEN DATEDIFF(COALESCE(sb.expiry_date, b.expiry_date), CURDATE()) <= 90 THEN 'EXPIRING_90'
+               ELSE 'ACTIVE'
+             END AS expiry_status
+           FROM inv_stock_balances sb
+           JOIN inv_items i ON i.id = sb.item_id
+           LEFT JOIN inv_warehouses w ON w.id = sb.warehouse_id
+           LEFT JOIN inv_item_groups ig ON ig.id = i.item_group_id
+           LEFT JOIN inv_item_batches b ON b.item_id = sb.item_id
+             AND b.company_id = sb.company_id
+             AND b.batch_no = sb.batch_no
+             AND sb.batch_no IS NOT NULL AND sb.batch_no != ''
+           WHERE ${baseWhere.join(" AND ")}
+           ORDER BY COALESCE(sb.expiry_date, b.expiry_date) ASC, sb.qty DESC`,
+          params,
+        );
+      } catch (mainErr) {
+        console.error("[reports/expired-items] Main query fallback due to:", mainErr?.message || mainErr);
+        try {
+          const fallbackWhere = [
+            "sb.company_id = :companyId",
+            "(:branchIdsStr = '' OR FIND_IN_SET(sb.branch_id, :branchIdsStr))",
+            "sb.qty > 0",
+            "sb.expiry_date IS NOT NULL",
+          ];
+          const fbParams = { companyId, branchIdsStr };
+          if (warehouse_id) {
+            fallbackWhere.push("sb.warehouse_id = :warehouseId");
+            fbParams.warehouseId = Number(warehouse_id);
+          }
+          if (item_id) {
+            fallbackWhere.push("sb.item_id = :itemId");
+            fbParams.itemId = Number(item_id);
+          }
+          if (search) {
+            fallbackWhere.push("(i.item_code LIKE :search OR i.item_name LIKE :search)");
+            fbParams.search = `%${search}%`;
+          }
+          if (from_date) {
+            fallbackWhere.push("sb.expiry_date >= :fromDate");
+            fbParams.fromDate = from_date;
+          }
+          if (to_date) {
+            fallbackWhere.push("sb.expiry_date <= :toDate");
+            fbParams.toDate = to_date;
+          }
+          if (status === "EXPIRED") {
+            fallbackWhere.push("sb.expiry_date < CURDATE()");
+          } else if (status === "EXPIRING_30") {
+            fallbackWhere.push("sb.expiry_date BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 30 DAY)");
+          } else if (status === "EXPIRING_60") {
+            fallbackWhere.push("sb.expiry_date BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 60 DAY)");
+          } else if (status === "EXPIRING_90") {
+            fallbackWhere.push("sb.expiry_date BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 90 DAY)");
+          } else if (status === "ALL_RISK") {
+            fallbackWhere.push("sb.expiry_date <= DATE_ADD(CURDATE(), INTERVAL 90 DAY)");
+          }
+
+          rows = await query(
+            `SELECT
+               sb.id AS balance_id,
+               sb.item_id,
+               sb.warehouse_id,
+               sb.branch_id,
+               i.item_code,
+               i.item_name,
+               i.uom,
+               'General' AS category_name,
+               COALESCE(w.warehouse_name, 'Main Warehouse') AS warehouse_name,
+               COALESCE(sb.batch_no, '-') AS batch_no,
+               sb.serial_no,
+               sb.expiry_date,
+               sb.qty,
+               COALESCE(sb.reserved_qty, 0) AS reserved_qty,
+               GREATEST(0, COALESCE(sb.qty, 0) - COALESCE(sb.reserved_qty, 0)) AS available_qty,
+               COALESCE(i.cost_price, 0) AS unit_cost,
+               ROUND(sb.qty * COALESCE(i.cost_price, 0), 2) AS total_cost_value,
+               DATEDIFF(sb.expiry_date, CURDATE()) AS days_until_expiry,
+               CASE
+                 WHEN sb.expiry_date < CURDATE() THEN 'EXPIRED'
+                 WHEN sb.expiry_date = CURDATE() THEN 'EXPIRES_TODAY'
+                 WHEN DATEDIFF(sb.expiry_date, CURDATE()) <= 30 THEN 'EXPIRING_30'
+                 WHEN DATEDIFF(sb.expiry_date, CURDATE()) <= 60 THEN 'EXPIRING_60'
+                 WHEN DATEDIFF(sb.expiry_date, CURDATE()) <= 90 THEN 'EXPIRING_90'
+                 ELSE 'ACTIVE'
+               END AS expiry_status
+             FROM inv_stock_balances sb
+             JOIN inv_items i ON i.id = sb.item_id
+             LEFT JOIN inv_warehouses w ON w.id = sb.warehouse_id
+             WHERE ${fallbackWhere.join(" AND ")}
+             ORDER BY sb.expiry_date ASC, sb.qty DESC`,
+            fbParams,
+          );
+        } catch (fbErr) {
+          console.error("[reports/expired-items] Fallback query also failed:", fbErr?.message || fbErr);
+          rows = [];
+        }
+      }
 
       // Compute aggregated summary stats across all items for this company/branch
-      const summaryRows = await query(
-        `SELECT
-           COUNT(DISTINCT CASE WHEN COALESCE(sb.expiry_date, b.expiry_date) < CURDATE() THEN sb.item_id END) AS expired_items_count,
-           COUNT(CASE WHEN COALESCE(sb.expiry_date, b.expiry_date) < CURDATE() THEN 1 END) AS expired_batches_count,
-           COALESCE(SUM(CASE WHEN COALESCE(sb.expiry_date, b.expiry_date) < CURDATE() THEN sb.qty ELSE 0 END), 0) AS total_expired_qty,
-           COALESCE(SUM(CASE WHEN COALESCE(sb.expiry_date, b.expiry_date) < CURDATE() THEN sb.qty * COALESCE(b.cost, i.cost_price, 0) ELSE 0 END), 0) AS total_expired_value,
+      let summaryRows = [];
+      try {
+        summaryRows = await query(
+          `SELECT
+             COUNT(DISTINCT CASE WHEN COALESCE(sb.expiry_date, b.expiry_date) < CURDATE() THEN sb.item_id END) AS expired_items_count,
+             COUNT(CASE WHEN COALESCE(sb.expiry_date, b.expiry_date) < CURDATE() THEN 1 END) AS expired_batches_count,
+             COALESCE(SUM(CASE WHEN COALESCE(sb.expiry_date, b.expiry_date) < CURDATE() THEN sb.qty ELSE 0 END), 0) AS total_expired_qty,
+             COALESCE(SUM(CASE WHEN COALESCE(sb.expiry_date, b.expiry_date) < CURDATE() THEN sb.qty * COALESCE(b.cost, i.cost_price, 0) ELSE 0 END), 0) AS total_expired_value,
 
-           COALESCE(SUM(CASE WHEN COALESCE(sb.expiry_date, b.expiry_date) BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 30 DAY) THEN sb.qty ELSE 0 END), 0) AS total_expiring_30_qty,
-           COALESCE(SUM(CASE WHEN COALESCE(sb.expiry_date, b.expiry_date) BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 30 DAY) THEN sb.qty * COALESCE(b.cost, i.cost_price, 0) ELSE 0 END), 0) AS total_expiring_30_value,
+             COALESCE(SUM(CASE WHEN COALESCE(sb.expiry_date, b.expiry_date) BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 30 DAY) THEN sb.qty ELSE 0 END), 0) AS total_expiring_30_qty,
+             COALESCE(SUM(CASE WHEN COALESCE(sb.expiry_date, b.expiry_date) BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 30 DAY) THEN sb.qty * COALESCE(b.cost, i.cost_price, 0) ELSE 0 END), 0) AS total_expiring_30_value,
 
-           COALESCE(SUM(CASE WHEN COALESCE(sb.expiry_date, b.expiry_date) BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 60 DAY) THEN sb.qty ELSE 0 END), 0) AS total_expiring_60_qty,
-           COALESCE(SUM(CASE WHEN COALESCE(sb.expiry_date, b.expiry_date) BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 60 DAY) THEN sb.qty * COALESCE(b.cost, i.cost_price, 0) ELSE 0 END), 0) AS total_expiring_60_value,
+             COALESCE(SUM(CASE WHEN COALESCE(sb.expiry_date, b.expiry_date) BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 60 DAY) THEN sb.qty ELSE 0 END), 0) AS total_expiring_60_qty,
+             COALESCE(SUM(CASE WHEN COALESCE(sb.expiry_date, b.expiry_date) BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 60 DAY) THEN sb.qty * COALESCE(b.cost, i.cost_price, 0) ELSE 0 END), 0) AS total_expiring_60_value,
 
-           COALESCE(SUM(CASE WHEN COALESCE(sb.expiry_date, b.expiry_date) BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 90 DAY) THEN sb.qty ELSE 0 END), 0) AS total_expiring_90_qty,
-           COALESCE(SUM(CASE WHEN COALESCE(sb.expiry_date, b.expiry_date) BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 90 DAY) THEN sb.qty * COALESCE(b.cost, i.cost_price, 0) ELSE 0 END), 0) AS total_expiring_90_value
-         FROM inv_stock_balances sb
-         JOIN inv_items i ON i.id = sb.item_id
-         LEFT JOIN inv_item_batches b ON b.item_id = sb.item_id
-           AND b.company_id = sb.company_id
-           AND b.batch_no = sb.batch_no
-           AND sb.batch_no IS NOT NULL AND sb.batch_no != ''
-         WHERE sb.company_id = :companyId
-           AND (:branchIdsStr = '' OR FIND_IN_SET(sb.branch_id, :branchIdsStr))
-           AND sb.qty > 0
-           AND (sb.expiry_date IS NOT NULL OR b.expiry_date IS NOT NULL)`,
-        { companyId, branchIdsStr },
-      ).catch(() => []);
+             COALESCE(SUM(CASE WHEN COALESCE(sb.expiry_date, b.expiry_date) BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 90 DAY) THEN sb.qty ELSE 0 END), 0) AS total_expiring_90_qty,
+             COALESCE(SUM(CASE WHEN COALESCE(sb.expiry_date, b.expiry_date) BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 90 DAY) THEN sb.qty * COALESCE(b.cost, i.cost_price, 0) ELSE 0 END), 0) AS total_expiring_90_value
+           FROM inv_stock_balances sb
+           JOIN inv_items i ON i.id = sb.item_id
+           LEFT JOIN inv_item_batches b ON b.item_id = sb.item_id
+             AND b.company_id = sb.company_id
+             AND b.batch_no = sb.batch_no
+             AND sb.batch_no IS NOT NULL AND sb.batch_no != ''
+           WHERE sb.company_id = :companyId
+             AND (:branchIdsStr = '' OR FIND_IN_SET(sb.branch_id, :branchIdsStr))
+             AND sb.qty > 0
+             AND (sb.expiry_date IS NOT NULL OR b.expiry_date IS NOT NULL)`,
+          { companyId, branchIdsStr },
+        );
+      } catch (sumErr) {
+        console.warn("[reports/expired-items] Summary DB aggregation failed, using in-memory calculation:", sumErr?.message || sumErr);
+        summaryRows = [];
+      }
 
-      const summary = Array.isArray(summaryRows) && summaryRows.length > 0 ? summaryRows[0] : {};
+      let summary = Array.isArray(summaryRows) && summaryRows.length > 0 ? summaryRows[0] : null;
+
+      // In-memory calculation fallback if DB summary had no results or failed
+      if (!summary || (Number(summary.expired_items_count || 0) === 0 && Array.isArray(rows) && rows.length > 0)) {
+        const todayStr = new Date().toISOString().slice(0, 10);
+        const d30Str = new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10);
+        const d60Str = new Date(Date.now() + 60 * 86400000).toISOString().slice(0, 10);
+        const d90Str = new Date(Date.now() + 90 * 86400000).toISOString().slice(0, 10);
+
+        const expItems = new Set();
+        let expBatches = 0;
+        let expQty = 0;
+        let expVal = 0;
+        let exp30Qty = 0, exp30Val = 0;
+        let exp60Qty = 0, exp60Val = 0;
+        let exp90Qty = 0, exp90Val = 0;
+
+        for (const it of rows || []) {
+          const expDate = it.expiry_date ? String(it.expiry_date).slice(0, 10) : "";
+          const q = Number(it.qty || 0);
+          const v = Number(it.total_cost_value || 0);
+          if (!expDate) continue;
+
+          if (expDate < todayStr) {
+            expItems.add(it.item_id);
+            expBatches++;
+            expQty += q;
+            expVal += v;
+          } else if (expDate <= d30Str) {
+            exp30Qty += q;
+            exp30Val += v;
+          } else if (expDate <= d60Str) {
+            exp60Qty += q;
+            exp60Val += v;
+          } else if (expDate <= d90Str) {
+            exp90Qty += q;
+            exp90Val += v;
+          }
+        }
+
+        if (!summary) {
+          summary = {
+            expired_items_count: expItems.size,
+            expired_batches_count: expBatches,
+            total_expired_qty: expQty,
+            total_expired_value: expVal,
+            total_expiring_30_qty: exp30Qty,
+            total_expiring_30_value: exp30Val,
+            total_expiring_60_qty: exp60Qty,
+            total_expiring_60_value: exp60Val,
+            total_expiring_90_qty: exp90Qty,
+            total_expiring_90_value: exp90Val,
+          };
+        } else if (expItems.size > 0) {
+          summary.expired_items_count = expItems.size;
+          summary.expired_batches_count = expBatches;
+          summary.total_expired_qty = expQty;
+          summary.total_expired_value = expVal;
+        }
+      }
 
       res.json({
         items: rows || [],
@@ -2191,7 +2447,22 @@ router.get(
         },
       });
     } catch (e) {
-      next(e);
+      console.error("[reports/expired-items] Unexpected error:", e);
+      res.json({
+        items: [],
+        summary: {
+          expired_items_count: 0,
+          expired_batches_count: 0,
+          total_expired_qty: 0,
+          total_expired_value: 0,
+          total_expiring_30_qty: 0,
+          total_expiring_30_value: 0,
+          total_expiring_60_qty: 0,
+          total_expiring_60_value: 0,
+          total_expiring_90_qty: 0,
+          total_expiring_90_value: 0,
+        },
+      });
     }
   },
 );

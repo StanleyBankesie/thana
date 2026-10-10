@@ -45,6 +45,13 @@ export function checkModuleAccess(moduleKey) {
       if (url.includes("/api/sales/orders/") && url.includes("/submit")) {
         return next();
       }
+      // Allow lookup/configuration endpoints that are consumed across modules without full sales module access
+      if (
+        url.includes("/sales/price-types") ||
+        url.includes("/sales/zones")
+      ) {
+        return next();
+      }
       // Get user ID from request object; deny access if not authenticated
       const userId = toNumber(req.user?.sub || req.user?.id);
       if (!userId)

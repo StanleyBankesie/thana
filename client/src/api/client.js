@@ -124,6 +124,8 @@ const NON_FATAL_401_PREFIXES = [
   // contexts (e.g. user lacks a role, superadmin-only) and should NEVER
   // trigger a logout.
   "/subscription-plans",
+  "/admin/settings/",
+  "/admin/settings",
   "/admin/user-permissions",
   "/admin/users/",
   "/admin/page-permissions",
@@ -412,7 +414,10 @@ api.interceptors.response.use(
     const requestUrl = normalizeUrl(originalRequest.url);
 
     if (error?.response?.status === 401) {
+      const stored = readStoredAuth();
+      const hasStoredSession = Boolean(stored?.token);
       const canAttemptRefresh =
+        hasStoredSession &&
         !originalRequest.__isRetryAfterRefresh &&
         requestUrl !== "/auth/refresh" &&
         !isUnauthenticatedEndpoint(requestUrl);
@@ -439,9 +444,12 @@ api.interceptors.response.use(
         // etc.). We validate the real session via GET /auth/me in AuthContext;
         // that is the authoritative check. Transient 401s on data endpoints
         // during the first few seconds after login should not trigger logout.
+        const stored = readStoredAuth();
+        const hasStoredSession = Boolean(stored?.token);
         const isInGraceWindow = _postLoginGraceUntil > Date.now();
 
         if (
+          hasStoredSession &&
           !isInGraceWindow &&
           typeof window !== "undefined" &&
           window.location.pathname !== "/login"
@@ -449,7 +457,7 @@ api.interceptors.response.use(
           window.dispatchEvent(new CustomEvent("omnisuite:auth-expired"));
         }
 
-        if (!isUnauthenticatedEndpoint(requestUrl)) {
+        if (hasStoredSession && !isUnauthenticatedEndpoint(requestUrl)) {
           clearStoredAuth();
         }
       }

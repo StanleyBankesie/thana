@@ -37,6 +37,97 @@ import { allocateFromBatchesTx } from "./inventory.routes.js";
 
 const router = express.Router();
 
+// Reference / lookup routes accessible to all authenticated company users (before module gate)
+router.get(
+  "/price-types",
+  requireAuth,
+  requireCompanyScope,
+  async (req, res, next) => {
+    try {
+      await ensurePriceTables();
+      const companyId = req.scope?.companyId || req.user?.companyId || req.user?.company_id || 1;
+      await seedDefaultPriceTypes(companyId);
+      const items = await query(
+        `SELECT id, name, code, description, is_active FROM sal_price_types WHERE company_id = :companyId ORDER BY name ASC`,
+        { companyId },
+      );
+      res.json({ items: items || [] });
+    } catch (e) {
+      next(e);
+    }
+  },
+);
+
+router.post(
+  "/price-types",
+  requireAuth,
+  requireCompanyScope,
+  async (req, res, next) => {
+    try {
+      await ensurePriceTables();
+      const companyId = req.scope?.companyId || req.user?.companyId || req.user?.company_id || 1;
+      const list = Array.isArray(req.body?.priceTypes)
+        ? req.body.priceTypes
+        : Array.isArray(req.body?.items)
+          ? req.body.items
+          : req.body?.name
+            ? [req.body]
+            : [];
+      if (!list.length) {
+        return res.status(400).json({ message: "No price types provided" });
+      }
+      for (const pt of list) {
+        if (!pt.name?.trim()) continue;
+        const name = pt.name.trim();
+        const code = (pt.code || name).toUpperCase().replace(/\s+/g, "_");
+        const description = pt.description || null;
+        const isActive = pt.is_active === 0 || pt.is_active === false || pt.is_active === "0" ? 0 : 1;
+        if (pt.id && /^\d+$/.test(String(pt.id))) {
+          await query(
+            `UPDATE sal_price_types 
+             SET name = :name, code = :code, description = :description, is_active = :isActive
+             WHERE id = :id AND company_id = :companyId`,
+            { id: Number(pt.id), companyId, name, code, description, isActive },
+          );
+        } else {
+          await query(
+            `INSERT INTO sal_price_types (company_id, name, code, description, is_active)
+             VALUES (:companyId, :name, :code, :description, :isActive)
+             ON DUPLICATE KEY UPDATE name = :name, description = :description, is_active = :isActive`,
+            { companyId, name, code, description, isActive },
+          );
+        }
+      }
+      res.json({ message: "Price types saved successfully", status: "SUCCESS" });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
+router.delete(
+  "/price-types/:id",
+  requireAuth,
+  requireCompanyScope,
+  async (req, res, next) => {
+    try {
+      await ensurePriceTables();
+      const companyId = req.scope?.companyId || req.user?.companyId || req.user?.company_id || 1;
+      const id = Number(req.params.id);
+      if (!Number.isFinite(id)) {
+        throw httpError(400, "VALIDATION_ERROR", "Invalid id");
+      }
+      await query(
+        `DELETE FROM sal_price_types WHERE id = :id AND company_id = :companyId`,
+        { id, companyId },
+      );
+      res.json({ message: "Price type deleted successfully" });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
 // Enforce module-level access for all Sales endpoints
 router.use(
   requireAuth,
@@ -86,10 +177,101 @@ async function hasColumn(tableName, columnName) {
     }
     await ensureCustomersTableColumns();
     await ensureInvoiceTables();
+    await ensurePriceTables();
   } catch (err) {
     console.error("Failed to update sales schema on startup:", err);
   }
 })();
+
+// Ensure price tables exist
+async function ensurePriceTables() {
+  await query(`
+    CREATE TABLE IF NOT EXISTS sal_price_types (
+      id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+      company_id BIGINT UNSIGNED NOT NULL,
+      name VARCHAR(100) NOT NULL,
+      code VARCHAR(50) NULL,
+      description VARCHAR(255) NULL,
+      is_active TINYINT(1) NOT NULL DEFAULT 1,
+      created_by BIGINT UNSIGNED NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      KEY idx_pt_company (company_id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  `).catch(() => null);
+
+  if (!(await hasColumn("sal_price_types", "description"))) {
+    await query("ALTER TABLE sal_price_types ADD COLUMN description VARCHAR(255) NULL").catch(() => null);
+  }
+  if (!(await hasColumn("sal_price_types", "code"))) {
+    await query("ALTER TABLE sal_price_types ADD COLUMN code VARCHAR(50) NULL").catch(() => null);
+  }
+  if (!(await hasColumn("sal_price_types", "is_active"))) {
+    await query("ALTER TABLE sal_price_types ADD COLUMN is_active TINYINT(1) NOT NULL DEFAULT 1").catch(() => null);
+  }
+
+  await query(`
+    CREATE TABLE IF NOT EXISTS sal_standard_prices (
+      id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+      company_id BIGINT UNSIGNED NOT NULL,
+      product_id BIGINT UNSIGNED NOT NULL,
+      price_type_id BIGINT UNSIGNED NULL,
+      currency_id BIGINT UNSIGNED NULL,
+      cost_price DECIMAL(18,4) NOT NULL DEFAULT 0,
+      selling_price DECIMAL(18,4) NOT NULL DEFAULT 0,
+      margin_percent DECIMAL(8,2) NOT NULL DEFAULT 0,
+      effective_date DATE NOT NULL,
+      uom VARCHAR(50) NULL,
+      created_by BIGINT UNSIGNED NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      KEY idx_sp_company_product (company_id, product_id),
+      KEY idx_sp_price_type (price_type_id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  `).catch(() => null);
+
+  await query(`
+    CREATE TABLE IF NOT EXISTS sal_customer_prices (
+      id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+      company_id BIGINT UNSIGNED NOT NULL,
+      customer_id BIGINT UNSIGNED NOT NULL,
+      product_id BIGINT UNSIGNED NOT NULL,
+      price_type_id BIGINT UNSIGNED NULL,
+      currency_id BIGINT UNSIGNED NULL,
+      standard_price DECIMAL(18,4) NOT NULL DEFAULT 0,
+      customer_price DECIMAL(18,4) NOT NULL DEFAULT 0,
+      discount_percent DECIMAL(8,2) NOT NULL DEFAULT 0,
+      min_quantity DECIMAL(18,4) NOT NULL DEFAULT 1,
+      max_quantity DECIMAL(18,4) NULL,
+      effective_from DATE NULL,
+      effective_to DATE NULL,
+      uom VARCHAR(50) NULL,
+      created_by BIGINT UNSIGNED NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      KEY idx_cp_company_customer (company_id, customer_id),
+      KEY idx_cp_product (product_id),
+      KEY idx_cp_price_type (price_type_id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  `).catch(() => null);
+}
+
+async function seedDefaultPriceTypes(companyId) {
+  if (!companyId) return;
+  const existing = await query(
+    `SELECT COUNT(*) AS c FROM sal_price_types WHERE company_id = :companyId`,
+    { companyId },
+  ).catch(() => [{ c: 0 }]);
+  if (Number(existing?.[0]?.c || 0) === 0) {
+    await query(
+      `INSERT INTO sal_price_types (company_id, name, code, description, is_active) VALUES
+       (:companyId, 'Retail', 'RETAIL', 'Standard Retail Price', 1),
+       (:companyId, 'Wholesale', 'WHOLESALE', 'Standard Wholesale Price', 1)
+      `,
+      { companyId },
+    ).catch(() => null);
+  }
+}
 
 // Ensure prospective customers table exists
 // Major Logical Block: Ensure 'sal_prospect_customers' table and columns exist
@@ -10083,6 +10265,7 @@ router.get(
   requireBranchScope,
   async (req, res, next) => {
     try {
+      await ensurePriceTables();
       const { companyId = null } = req.scope || {};
       const rows = await query(
         `SELECT sp.*, i.item_code, i.item_name,
@@ -10091,7 +10274,7 @@ router.get(
           sp.created_at,
           u.username AS created_by_name
          FROM sal_standard_prices sp
-         JOIN inv_items i ON i.id = sp.product_id AND i.company_id = sp.company_id
+         LEFT JOIN inv_items i ON i.id = sp.product_id AND i.company_id = sp.company_id
          LEFT JOIN sal_price_types pt
            ON pt.id = sp.price_type_id AND pt.company_id = sp.company_id
         LEFT JOIN adm_users u ON u.id = sp.created_by
@@ -10100,6 +10283,408 @@ router.get(
         { companyId },
       );
       res.json({ items: rows || [] });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
+router.post(
+  "/prices/standard",
+  requireAuth,
+  requireCompanyScope,
+  requireBranchScope,
+  async (req, res, next) => {
+    try {
+      await ensurePriceTables();
+      const { companyId = null } = req.scope || {};
+      const userId = req.user?.id || req.user?.sub || null;
+      const {
+        id,
+        product_id,
+        price_type_id,
+        currency_id,
+        cost_price,
+        selling_price,
+        margin_percent,
+        effective_date,
+        uom,
+      } = req.body || {};
+
+      if (!product_id || !effective_date) {
+        throw httpError(400, "VALIDATION_ERROR", "Product and effective date are required");
+      }
+
+      const cost = Number(cost_price || 0) || 0;
+      const selling = Number(selling_price || 0) || 0;
+      const margin = Number(margin_percent || 0) || (selling > 0 ? Number((((selling - cost) / selling) * 100).toFixed(2)) : 0);
+      const effDate = String(effective_date).slice(0, 10);
+
+      if (id && /^\d+$/.test(String(id))) {
+        await query(
+          `UPDATE sal_standard_prices
+           SET product_id = :productId,
+               price_type_id = :priceTypeId,
+               currency_id = :currencyId,
+               cost_price = :cost,
+               selling_price = :selling,
+               margin_percent = :margin,
+               effective_date = :effDate,
+               uom = :uom
+           WHERE id = :id AND company_id = :companyId`,
+          {
+            id: Number(id),
+            companyId,
+            productId: Number(product_id),
+            priceTypeId: price_type_id ? Number(price_type_id) : null,
+            currencyId: currency_id ? Number(currency_id) : null,
+            cost,
+            selling,
+            margin,
+            effDate,
+            uom: uom || null,
+          },
+        );
+        res.json({ success: true, id: Number(id), message: "Standard price updated" });
+      } else {
+        const ins = await query(
+          `INSERT INTO sal_standard_prices
+           (company_id, product_id, price_type_id, currency_id, cost_price, selling_price, margin_percent, effective_date, uom, created_by)
+           VALUES
+           (:companyId, :productId, :priceTypeId, :currencyId, :cost, :selling, :margin, :effDate, :uom, :userId)`,
+          {
+            companyId,
+            productId: Number(product_id),
+            priceTypeId: price_type_id ? Number(price_type_id) : null,
+            currencyId: currency_id ? Number(currency_id) : null,
+            cost,
+            selling,
+            margin,
+            effDate,
+            uom: uom || null,
+            userId,
+          },
+        );
+        res.status(201).json({ success: true, id: ins.insertId, message: "Standard price created" });
+      }
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
+router.get(
+  "/prices/customer",
+  requireAuth,
+  requireCompanyScope,
+  requireBranchScope,
+  async (req, res, next) => {
+    try {
+      await ensurePriceTables();
+      const { companyId = null } = req.scope || {};
+      const customerId = req.query.customer_id ? Number(req.query.customer_id) : null;
+      let sql = `
+        SELECT cp.*, 
+               c.customer_name, c.customer_code,
+               i.item_code, i.item_name,
+               pt.id AS price_type_lookup_id,
+               pt.name AS price_type_name,
+               cp.created_at,
+               u.username AS created_by_name
+        FROM sal_customer_prices cp
+        LEFT JOIN sal_customers c ON c.id = cp.customer_id AND c.company_id = cp.company_id
+        LEFT JOIN inv_items i ON i.id = cp.product_id AND i.company_id = cp.company_id
+        LEFT JOIN sal_price_types pt ON pt.id = cp.price_type_id AND pt.company_id = cp.company_id
+        LEFT JOIN adm_users u ON u.id = cp.created_by
+        WHERE cp.company_id = :companyId
+      `;
+      const params = { companyId };
+      if (customerId) {
+        sql += " AND cp.customer_id = :customerId ";
+        params.customerId = customerId;
+      }
+      sql += " ORDER BY c.customer_name ASC, i.item_name ASC, cp.id DESC";
+
+      const rows = await query(sql, params).catch(() => []);
+      res.json({ items: rows || [] });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
+router.post(
+  "/prices/customer",
+  requireAuth,
+  requireCompanyScope,
+  requireBranchScope,
+  async (req, res, next) => {
+    try {
+      await ensurePriceTables();
+      const { companyId = null } = req.scope || {};
+      const userId = req.user?.id || req.user?.sub || null;
+      const {
+        id,
+        customer_id,
+        product_id,
+        price_type_id,
+        currency_id,
+        standard_price,
+        customer_price,
+        discount_percent,
+        min_quantity,
+        max_quantity,
+        effective_from,
+        effective_to,
+        uom,
+      } = req.body || {};
+
+      if (!customer_id || !product_id) {
+        throw httpError(400, "VALIDATION_ERROR", "Customer and product are required");
+      }
+
+      const stdPrice = Number(standard_price || 0) || 0;
+      const custPrice = Number(customer_price || 0) || 0;
+      const disc = Number(discount_percent || 0) || (stdPrice > 0 ? Number((((stdPrice - custPrice) / stdPrice) * 100).toFixed(2)) : 0);
+      const minQty = Math.max(1, Number(min_quantity || 1));
+      const maxQty = max_quantity != null && max_quantity !== "" ? Number(max_quantity) : null;
+      const effFrom = effective_from ? String(effective_from).slice(0, 10) : null;
+      const effTo = effective_to ? String(effective_to).slice(0, 10) : null;
+
+      if (id && /^\d+$/.test(String(id))) {
+        await query(
+          `UPDATE sal_customer_prices
+           SET customer_id = :customerId,
+               product_id = :productId,
+               price_type_id = :priceTypeId,
+               currency_id = :currencyId,
+               standard_price = :stdPrice,
+               customer_price = :custPrice,
+               discount_percent = :disc,
+               min_quantity = :minQty,
+               max_quantity = :maxQty,
+               effective_from = :effFrom,
+               effective_to = :effTo,
+               uom = :uom
+           WHERE id = :id AND company_id = :companyId`,
+          {
+            id: Number(id),
+            companyId,
+            customerId: Number(customer_id),
+            productId: Number(product_id),
+            priceTypeId: price_type_id ? Number(price_type_id) : null,
+            currencyId: currency_id ? Number(currency_id) : null,
+            stdPrice,
+            custPrice,
+            disc,
+            minQty,
+            maxQty,
+            effFrom,
+            effTo,
+            uom: uom || null,
+          },
+        );
+        res.json({ success: true, id: Number(id), message: "Customer price updated" });
+      } else {
+        const ins = await query(
+          `INSERT INTO sal_customer_prices
+           (company_id, customer_id, product_id, price_type_id, currency_id, standard_price, customer_price, discount_percent, min_quantity, max_quantity, effective_from, effective_to, uom, created_by)
+           VALUES
+           (:companyId, :customerId, :productId, :priceTypeId, :currencyId, :stdPrice, :custPrice, :disc, :minQty, :maxQty, :effFrom, :effTo, :uom, :userId)`,
+          {
+            companyId,
+            customerId: Number(customer_id),
+            productId: Number(product_id),
+            priceTypeId: price_type_id ? Number(price_type_id) : null,
+            currencyId: currency_id ? Number(currency_id) : null,
+            stdPrice,
+            custPrice,
+            disc,
+            minQty,
+            maxQty,
+            effFrom,
+            effTo,
+            uom: uom || null,
+            userId,
+          },
+        );
+        res.status(201).json({ success: true, id: ins.insertId, message: "Customer price created" });
+      }
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
+router.post(
+  "/prices/customer/bulk-percentage",
+  requireAuth,
+  requireCompanyScope,
+  requireBranchScope,
+  async (req, res, next) => {
+    try {
+      await ensurePriceTables();
+      const { companyId = null } = req.scope || {};
+      const userId = req.user?.id || req.user?.sub || null;
+      const {
+        customer_id,
+        price_type_id,
+        item_ids = [],
+        percentage = 0,
+        operator = "+",
+      } = req.body || {};
+
+      const custId = Number(customer_id);
+      const pct = Number(percentage);
+      if (!custId || !Array.isArray(item_ids) || !item_ids.length || !pct) {
+        throw httpError(400, "VALIDATION_ERROR", "Customer, valid percentage, and item IDs are required");
+      }
+
+      for (const rawItemId of item_ids) {
+        const itemId = Number(rawItemId);
+        if (!itemId) continue;
+
+        const [stdRow] = await query(
+          `SELECT selling_price, cost_price, currency_id, uom 
+           FROM sal_standard_prices 
+           WHERE company_id = :companyId AND product_id = :itemId
+             AND (:priceTypeId IS NULL OR price_type_id = :priceTypeId)
+           ORDER BY effective_date DESC, id DESC LIMIT 1`,
+          { companyId, itemId, priceTypeId: price_type_id ? Number(price_type_id) : null },
+        );
+
+        const basePrice = Number(stdRow?.selling_price || 0);
+        let custPrice = basePrice;
+        if (operator === "-") {
+          custPrice = basePrice * (1 - pct / 100);
+        } else {
+          custPrice = basePrice * (1 + pct / 100);
+        }
+        custPrice = Math.max(0, Number(custPrice.toFixed(2)));
+        const discPct = basePrice > 0 ? Number((((basePrice - custPrice) / basePrice) * 100).toFixed(2)) : 0;
+
+        await query(
+          `INSERT INTO sal_customer_prices
+           (company_id, customer_id, product_id, price_type_id, currency_id, standard_price, customer_price, discount_percent, min_quantity, uom, created_by)
+           VALUES
+           (:companyId, :custId, :itemId, :priceTypeId, :currencyId, :basePrice, :custPrice, :discPct, 1, :uom, :userId)
+           ON DUPLICATE KEY UPDATE customer_price = :custPrice, discount_percent = :discPct`,
+          {
+            companyId,
+            custId,
+            itemId,
+            priceTypeId: price_type_id ? Number(price_type_id) : null,
+            currencyId: stdRow?.currency_id || null,
+            basePrice,
+            custPrice,
+            discPct,
+            uom: stdRow?.uom || null,
+            userId,
+          },
+        );
+      }
+
+      res.json({ success: true, message: "Bulk customer prices applied" });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
+router.post(
+  "/prices/bulk/standard",
+  requireAuth,
+  requireCompanyScope,
+  requireBranchScope,
+  async (req, res, next) => {
+    try {
+      await ensurePriceTables();
+      const { companyId = null } = req.scope || {};
+      const userId = req.user?.id || req.user?.sub || null;
+      const items = Array.isArray(req.body?.items) ? req.body.items : [];
+      let count = 0;
+      for (const row of items) {
+        const itemCode = row["Item Code"] || row.item_code;
+        const itemName = row["Item Name"] || row.item_name;
+        if (!itemCode && !itemName) continue;
+
+        const [prodRows] = await query(
+          `SELECT id FROM inv_items WHERE company_id = :companyId AND (item_code = :code OR LOWER(item_name) = LOWER(:name)) LIMIT 1`,
+          { companyId, code: String(itemCode || ""), name: String(itemName || "") },
+        );
+        const productId = prodRows?.[0]?.id;
+        if (!productId) continue;
+
+        const cost = Number(row["Cost Price"] || row.cost_price || 0) || 0;
+        const selling = Number(row["Selling Price"] || row.selling_price || 0) || 0;
+        const margin = Number(row["Margin %"] || row.margin_percent || 0) || (selling > 0 ? Number((((selling - cost) / selling) * 100).toFixed(2)) : 0);
+        const effDate = row["Effective Date (YYYY-MM-DD)"] || row.effective_date || new Date().toISOString().slice(0, 10);
+        const uom = row["UOM"] || row.uom || null;
+
+        await query(
+          `INSERT INTO sal_standard_prices
+           (company_id, product_id, cost_price, selling_price, margin_percent, effective_date, uom, created_by)
+           VALUES (:companyId, :productId, :cost, :selling, :margin, :effDate, :uom, :userId)`,
+          { companyId, productId, cost, selling, margin, effDate, uom, userId },
+        );
+        count++;
+      }
+      res.json({ success: true, count, message: `${count} standard prices uploaded` });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
+router.post(
+  "/prices/bulk/customer",
+  requireAuth,
+  requireCompanyScope,
+  requireBranchScope,
+  async (req, res, next) => {
+    try {
+      await ensurePriceTables();
+      const { companyId = null } = req.scope || {};
+      const userId = req.user?.id || req.user?.sub || null;
+      const items = Array.isArray(req.body?.items) ? req.body.items : [];
+      let count = 0;
+      for (const row of items) {
+        const custName = row["Customer Name"] || row.customer_name;
+        const itemCode = row["Item Code"] || row.item_code;
+        const itemName = row["Item Name"] || row.item_name;
+        if (!custName || (!itemCode && !itemName)) continue;
+
+        const [cRows] = await query(
+          `SELECT id FROM sal_customers WHERE company_id = :companyId AND (LOWER(customer_name) = LOWER(:cname) OR customer_code = :cname) LIMIT 1`,
+          { companyId, cname: String(custName).trim() },
+        );
+        const custId = cRows?.[0]?.id;
+        if (!custId) continue;
+
+        const [prodRows] = await query(
+          `SELECT id FROM inv_items WHERE company_id = :companyId AND (item_code = :code OR LOWER(item_name) = LOWER(:name)) LIMIT 1`,
+          { companyId, code: String(itemCode || ""), name: String(itemName || "") },
+        );
+        const productId = prodRows?.[0]?.id;
+        if (!productId) continue;
+
+        const stdPrice = Number(row["Standard Price"] || row.standard_price || 0) || 0;
+        const custPrice = Number(row["Customer Price"] || row.customer_price || 0) || 0;
+        const disc = Number(row["Discount %"] || row.discount_percent || 0) || (stdPrice > 0 ? Number((((stdPrice - custPrice) / stdPrice) * 100).toFixed(2)) : 0);
+        const minQty = Number(row["Min Quantity"] || row.min_quantity || 1) || 1;
+        const effFrom = row["Effective From (YYYY-MM-DD)"] || row.effective_from || null;
+        const effTo = row["Effective To (YYYY-MM-DD)"] || row.effective_to || null;
+        const uom = row["UOM"] || row.uom || null;
+
+        await query(
+          `INSERT INTO sal_customer_prices
+           (company_id, customer_id, product_id, standard_price, customer_price, discount_percent, min_quantity, effective_from, effective_to, uom, created_by)
+           VALUES (:companyId, :custId, :productId, :stdPrice, :custPrice, :disc, :minQty, :effFrom, :effTo, :uom, :userId)`,
+          { companyId, custId, productId, stdPrice, custPrice, disc, minQty, effFrom, effTo, uom, userId },
+        );
+        count++;
+      }
+      res.json({ success: true, count, message: `${count} customer prices uploaded` });
     } catch (err) {
       next(err);
     }

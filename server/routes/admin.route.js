@@ -3288,12 +3288,31 @@ router.post(
 
 router.get(
   "/settings/app-mode",
-  requireAuth,
-  requireCompanyScope,
   async (req, res, next) => {
     try {
       await ensureSystemSettingsTable();
-      const { companyId } = req.scope || {};
+      let companyId = req.scope?.companyId ?? null;
+      if (!companyId) {
+        try {
+          const authHeader = String(req.headers.authorization || "");
+          const customHeader = String(req.headers["x-access-token"] || "");
+          const token = authHeader.startsWith("Bearer ")
+            ? authHeader.slice(7).trim()
+            : customHeader.trim();
+          if (token) {
+            const payload = verifyAccessToken(token);
+            if (payload) {
+              companyId =
+                Number(
+                  req.headers["x-company-id"] ||
+                    payload.companyId ||
+                    payload.company_id ||
+                    payload.companyIds?.[0],
+                ) || null;
+            }
+          }
+        } catch {}
+      }
       const rows = await query(
         `SELECT setting_key, setting_value
          FROM adm_system_settings
