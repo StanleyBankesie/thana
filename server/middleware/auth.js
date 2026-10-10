@@ -171,11 +171,26 @@ export async function requireCompanyScope(req, res, next) {
 
     const rawId = process.env.LICENSE_SUPER_ADMIN_ID;
     const superAdminId = rawId ? parseInt(String(rawId).trim(), 10) : 1;
+    const userId = Number(req.user.id || req.user.sub || 0);
+    const userRole = String(req.user.role || req.user.role_name || "").toLowerCase();
 
-    // Admin (ID 1 or Super Admin ID) can access any requested company
-    if (Number(req.user.id) === superAdminId) {
+    const isSuper =
+      userId === superAdminId ||
+      userId === 1 ||
+      Boolean(req.user?.isSuperAdmin) ||
+      Boolean(req.user?.is_super_admin) ||
+      Number(req.user?.roleId || req.user?.role_id) === 1 ||
+      (Array.isArray(req.user?.permissions) && req.user.permissions.includes("*")) ||
+      ["admin", "superadmin", "super_admin"].includes(userRole);
+
+    // Super user can access any requested company
+    if (isSuper) {
       const companyId = Number(
-        req.headers["x-company-id"] || req.query.companyId || req.user?.company_id || 1,
+        req.headers["x-company-id"] ||
+        req.query.companyId ||
+        req.user?.companyId ||
+        req.user?.company_id ||
+        1,
       );
       req.scope.companyId = companyId;
       return next();
@@ -184,32 +199,72 @@ export async function requireCompanyScope(req, res, next) {
     // Determine allowed company IDs for non-admin user
     const allowedCompanies = Array.isArray(req.user?.companyIds) && req.user.companyIds.length > 0
       ? req.user.companyIds.map(Number)
-      : req.user?.company_id ? [Number(req.user.company_id)] : [];
+      : (req.user?.companyId || req.user?.company_id)
+        ? [Number(req.user.companyId || req.user.company_id)]
+        : [];
 
     // Default company ID fallback
-    const defaultCompanyId = allowedCompanies[0] || 1;
+    const defaultCompanyId =
+      allowedCompanies[0] ||
+      Number(req.user?.companyId || req.user?.company_id) ||
+      1;
+
     const requestedCompanyId = Number(
-      req.headers["x-company-id"] || req.query.companyId || defaultCompanyId
+      req.headers["x-company-id"] || req.query.companyId || defaultCompanyId,
     );
 
-    // Validate that user has access to the requested company
-    if (allowedCompanies.length > 0 && !allowedCompanies.includes(requestedCompanyId)) {
-      // Fallback: Check database dynamically in case the JWT payload is stale
-      try {
-        const [rows] = await query(
-          "SELECT 1 FROM adm_user_branches WHERE user_id = :userId AND company_id = :companyId LIMIT 1",
-          { userId: req.user.id || req.user.sub, companyId: requestedCompanyId }
-        );
-        if (!rows || !rows.length) {
-          return next(httpError(403, "FORBIDDEN", "Company access denied"));
-        }
-      } catch (err) {
-        if (err?.status === 403) return next(err);
-      }
+    // If allowedCompanies contains requestedCompanyId, grant access immediately
+    if (allowedCompanies.length > 0 && allowedCompanies.includes(requestedCompanyId)) {
+      req.scope.companyId = requestedCompanyId;
+      return next();
     }
 
-    req.scope.companyId = requestedCompanyId;
-    return next();
+    // Dynamic database check in case token payload is missing/stale
+    try {
+      const rows = await query(
+        `SELECT 1 FROM adm_user_branches WHERE user_id = :userId AND company_id = :companyId
+         UNION
+         SELECT 1 FROM adm_users WHERE id = :userId AND company_id = :companyId
+         LIMIT 1`,
+        { userId, companyId: requestedCompanyId },
+      );
+      if (rows && rows.length > 0) {
+        req.scope.companyId = requestedCompanyId;
+        return next();
+      }
+
+      // Check if user has an admin role in the DB
+      const roleRows = await query(
+        `SELECT u.role_id, r.code, r.name 
+         FROM adm_users u 
+         LEFT JOIN adm_roles r ON u.role_id = r.id 
+         WHERE u.id = :userId LIMIT 1`,
+        { userId },
+      ).catch(() => []);
+      const rId = Number(roleRows?.[0]?.role_id || 0);
+      const rCode = String(roleRows?.[0]?.code || "").toUpperCase();
+      const rName = String(roleRows?.[0]?.name || "").toLowerCase();
+      if (rId === 1 || rCode === "SUPER_ADMIN" || rCode === "ADMIN" || rName.includes("admin")) {
+        req.scope.companyId = requestedCompanyId;
+        return next();
+      }
+
+      // If user has no company assignments configured, allow default company 1
+      if (allowedCompanies.length === 0 && requestedCompanyId === 1) {
+        req.scope.companyId = 1;
+        return next();
+      }
+
+      return next(httpError(403, "FORBIDDEN", "Company access denied"));
+    } catch (err) {
+      if (err?.status === 403) return next(err);
+      console.error("[requireCompanyScope] Error checking company scope:", err);
+      if (requestedCompanyId === defaultCompanyId) {
+        req.scope.companyId = requestedCompanyId;
+        return next();
+      }
+      return next(httpError(403, "FORBIDDEN", "Company access denied"));
+    }
   } catch (err) {
     return next(err);
   }
@@ -221,32 +276,64 @@ export async function requireBranchScope(req, res, next) {
       return next(httpError(401, "UNAUTHORIZED", "Authentication required"));
     }
 
-    // Get branch ID from headers, query, or user's allowed branches
     const rawBranchId = req.headers["x-branch-id"] || req.query.branchId;
     req.scope = req.scope || {};
 
-    const branchId = Number(rawBranchId || req.user?.branchIds?.[0] || 1);
-    req.scope.branchId = branchId;
-
     const rawId = process.env.LICENSE_SUPER_ADMIN_ID;
     const superAdminId = rawId ? parseInt(String(rawId).trim(), 10) : 1;
+    const userId = Number(req.user.id || req.user.sub || 0);
+    const userRole = String(req.user.role || req.user.role_name || "").toLowerCase();
 
-    // Admin bypass: allow 'all' branches or fetch superbranch hierarchy dynamically
-    if (Number(req.user.id) === superAdminId) {
-      if (rawBranchId === "all") {
-        req.scope.branchId = "all";
+    const isSuper =
+      userId === superAdminId ||
+      userId === 1 ||
+      Boolean(req.user?.isSuperAdmin) ||
+      Boolean(req.user?.is_super_admin) ||
+      Number(req.user?.roleId || req.user?.role_id) === 1 ||
+      (Array.isArray(req.user?.permissions) && req.user.permissions.includes("*")) ||
+      ["admin", "superadmin", "super_admin"].includes(userRole);
+
+    // If 'all' branches requested
+    if (rawBranchId === "all") {
+      req.scope.branchId = "all";
+      if (isSuper) {
         req.scope.branchIdsStr = "";
-        return next();
+      } else {
+        const allowed = Array.isArray(req.user?.branchIds) && req.user.branchIds.length > 0
+          ? req.user.branchIds.map(Number)
+          : (req.user?.branchId || req.user?.branch_id)
+            ? [Number(req.user.branchId || req.user.branch_id)]
+            : [];
+        req.scope.branchIdsStr = allowed.join(",");
       }
-      req.scope.branchIdsStr = String(branchId);
+      return next();
+    }
 
-      // Support superbranch for admin dynamically
+    const allowedBranches = Array.isArray(req.user?.branchIds) && req.user.branchIds.length > 0
+      ? req.user.branchIds.map(Number)
+      : (req.user?.branchId || req.user?.branch_id)
+        ? [Number(req.user.branchId || req.user.branch_id)]
+        : [];
+
+    const defaultBranchId =
+      allowedBranches[0] ||
+      Number(req.user?.branchId || req.user?.branch_id) ||
+      1;
+
+    const branchId = Number(
+      (rawBranchId && rawBranchId !== "all") ? rawBranchId : defaultBranchId,
+    );
+    req.scope.branchId = branchId;
+
+    // Super user bypass
+    if (isSuper) {
+      req.scope.branchIdsStr = String(branchId);
       try {
-        const [b] = await query(
+        const branchRows = await query(
           "SELECT is_superbranch FROM adm_branches WHERE id = :branchId",
           { branchId },
         );
-        if (b?.is_superbranch) {
+        if (branchRows?.[0]?.is_superbranch) {
           const childBranches = await query(
             "SELECT id FROM adm_branches WHERE parent_branch_id = :branchId",
             { branchId },
@@ -255,52 +342,70 @@ export async function requireBranchScope(req, res, next) {
           req.scope.branchIdsStr = allRelated.join(",");
         }
       } catch (err) {
-        // Fallback: continue with current branchId if column is missing or query fails
         req.scope.branchIdsStr = String(branchId);
       }
       return next();
     }
 
-    // Validate that the user's allowed branches include the requested branch ID
-    const allowedBranches = Array.isArray(req.user?.branchIds)
-      ? req.user.branchIds.map(Number)
-      : [];
-
-    if (allowedBranches.length && !allowedBranches.includes(Number(branchId))) {
-      // Fallback: Check database dynamically in case the JWT payload is stale
+    // Non-super user validation
+    let branchAccessGranted = false;
+    if (allowedBranches.length > 0 && allowedBranches.includes(branchId)) {
+      branchAccessGranted = true;
+    } else {
       try {
-        const [rows] = await query(
-          "SELECT 1 FROM adm_user_branches WHERE user_id = :userId AND branch_id = :branchId LIMIT 1",
-          { userId: req.user.id || req.user.sub, branchId: Number(branchId) }
+        const rows = await query(
+          `SELECT 1 FROM adm_user_branches WHERE user_id = :userId AND branch_id = :branchId
+           UNION
+           SELECT 1 FROM adm_users WHERE id = :userId AND branch_id = :branchId
+           LIMIT 1`,
+          { userId, branchId },
         );
-        if (!rows || !rows.length) {
-          return next(httpError(403, "FORBIDDEN", "Branch access denied"));
+        if (rows && rows.length > 0) {
+          branchAccessGranted = true;
+        } else {
+          const roleRows = await query(
+            `SELECT u.role_id, r.code, r.name 
+             FROM adm_users u 
+             LEFT JOIN adm_roles r ON u.role_id = r.id 
+             WHERE u.id = :userId LIMIT 1`,
+            { userId },
+          ).catch(() => []);
+          const rId = Number(roleRows?.[0]?.role_id || 0);
+          const rCode = String(roleRows?.[0]?.code || "").toUpperCase();
+          const rName = String(roleRows?.[0]?.name || "").toLowerCase();
+          if (rId === 1 || rCode === "SUPER_ADMIN" || rCode === "ADMIN" || rName.includes("admin")) {
+            branchAccessGranted = true;
+          }
         }
       } catch (err) {
-        if (err?.status === 403) return next(err);
-        if (Number(req.user.branch_id) !== Number(branchId)) {
-          return next(httpError(403, "FORBIDDEN", "Branch access denied"));
-        }
+        console.error("[requireBranchScope] Error checking branch scope:", err);
+      }
+    }
+
+    if (!branchAccessGranted) {
+      if (allowedBranches.length === 0 && branchId === 1) {
+        branchAccessGranted = true;
+      } else {
+        return next(httpError(403, "FORBIDDEN", "Branch access denied"));
       }
     }
 
     req.scope.branchIdsStr = String(branchId);
 
-    // Superbranch logic: if requested branch is a superbranch, allow access to its children
+    // Superbranch logic for non-super user
     try {
-      const [b] = await query(
+      const branchRows = await query(
         "SELECT is_superbranch FROM adm_branches WHERE id = :branchId",
         { branchId },
       );
-      if (b?.is_superbranch) {
+      if (branchRows?.[0]?.is_superbranch) {
         const childBranches = await query(
           "SELECT id FROM adm_branches WHERE parent_branch_id = :branchId",
           { branchId },
         );
         const childIds = childBranches.map((x) => Number(x.id));
-        // Intersection: user's allowed branches that are either the superbranch or its children
         const validIds = [branchId, ...childIds].filter((id) =>
-          allowedBranches.includes(id),
+          allowedBranches.length === 0 || allowedBranches.includes(id),
         );
         req.scope.branchIdsStr = validIds.join(",");
       }

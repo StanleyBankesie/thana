@@ -253,7 +253,12 @@ export function verifyAccessToken(token) {
 export function signAccessToken(payload) {
   const tokenPayload = { ...payload };
   delete tokenPayload.profile_picture_url;
-  delete tokenPayload.permissions; // PREVENT NGINX 400 BAD REQUEST HEADER TOO LARGE
+  // If user has wildcard permissions, retain it; otherwise omit large array to prevent NGINX 400
+  if (Array.isArray(tokenPayload.permissions) && tokenPayload.permissions.includes("*")) {
+    tokenPayload.permissions = ["*"];
+  } else {
+    delete tokenPayload.permissions;
+  }
   return jwt.sign(
     {
       ...tokenPayload,
@@ -441,6 +446,7 @@ export async function getUserForAuth(userId) {
       u.id,
       u.company_id,
       u.branch_id,
+      u.role_id,
       u.username,
       u.email,
       u.full_name,
@@ -492,17 +498,28 @@ export async function buildAuthUserPayload(user, permissions = []) {
     allCompanyIds = [Number(user.company_id)];
   }
 
+  const roleId = Number(user.role_id || 0) || null;
+  const isSuper =
+    Number(user.id) === 1 ||
+    roleId === 1 ||
+    (Array.isArray(permissions) && permissions.includes("*"));
+
   const payload = {
     sub: Number(user.id),
     id: Number(user.id),
     username: user.username,
     email: user.email,
     full_name: user.full_name || "",
+    role_id: roleId,
+    roleId: roleId,
+    isSuperAdmin: isSuper,
     permissions: (Array.isArray(permissions) && permissions.includes("*")) ? ["*"] : (Array.isArray(permissions) ? permissions : []),
     companyIds: allCompanyIds,
     branchIds: allBranchIds,
     companyId: Number(user.company_id) || (allCompanyIds[0] ?? null),
     branchId: Number(user.branch_id) || (allBranchIds[0] ?? null),
+    company_id: Number(user.company_id) || (allCompanyIds[0] ?? null),
+    branch_id: Number(user.branch_id) || (allBranchIds[0] ?? null),
     companyName: user.company_name || "",
     branchName: user.branch_name || "",
     profile_picture_url: profilePictureToDataUrl(user.profile_picture),

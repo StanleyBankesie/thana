@@ -40,8 +40,17 @@ export function requireModule(moduleKey) {
   return function composedModule(req, res, next) {
     const rawId = process.env.LICENSE_SUPER_ADMIN_ID;
     const superAdminId = rawId ? parseInt(String(rawId).trim(), 10) : 1;
-    const userId = req.user?.sub || req.user?.id;
-    if (userId && Number(userId) === Number(superAdminId)) {
+    const userId = Number(req.user?.sub || req.user?.id || 0);
+    const userRole = String(req.user?.role || req.user?.role_name || "").toLowerCase();
+    if (
+      userId === superAdminId ||
+      userId === 1 ||
+      Boolean(req.user?.isSuperAdmin) ||
+      Boolean(req.user?.is_super_admin) ||
+      Number(req.user?.roleId || req.user?.role_id) === 1 ||
+      (Array.isArray(req.user?.permissions) && req.user.permissions.includes("*")) ||
+      ["admin", "superadmin", "super_admin"].includes(userRole)
+    ) {
       return next();
     }
 
@@ -64,8 +73,17 @@ export function requirePermission(permissionKey) {
   return function composedMiddleware(req, res, next) {
     const rawId = process.env.LICENSE_SUPER_ADMIN_ID;
     const superAdminId = rawId ? parseInt(String(rawId).trim(), 10) : 1;
-    const userId = req.user?.sub || req.user?.id;
-    if (userId && Number(userId) === Number(superAdminId)) {
+    const userId = Number(req.user?.sub || req.user?.id || 0);
+    const userRole = String(req.user?.role || req.user?.role_name || "").toLowerCase();
+    if (
+      userId === superAdminId ||
+      userId === 1 ||
+      Boolean(req.user?.isSuperAdmin) ||
+      Boolean(req.user?.is_super_admin) ||
+      Number(req.user?.roleId || req.user?.role_id) === 1 ||
+      (Array.isArray(req.user?.permissions) && req.user.permissions.includes("*")) ||
+      ["admin", "superadmin", "super_admin"].includes(userRole)
+    ) {
       return next();
     }
 
@@ -92,8 +110,17 @@ export function requireAnyPermission(permissionKeys) {
   return async function composedAnyMiddleware(req, res, next) {
     const rawId = process.env.LICENSE_SUPER_ADMIN_ID;
     const superAdminId = rawId ? parseInt(String(rawId).trim(), 10) : 1;
-    const userId = req.user?.sub || req.user?.id;
-    if (userId && Number(userId) === Number(superAdminId)) {
+    const userId = Number(req.user?.sub || req.user?.id || 0);
+    const userRole = String(req.user?.role || req.user?.role_name || "").toLowerCase();
+    if (
+      userId === superAdminId ||
+      userId === 1 ||
+      Boolean(req.user?.isSuperAdmin) ||
+      Boolean(req.user?.is_super_admin) ||
+      Number(req.user?.roleId || req.user?.role_id) === 1 ||
+      (Array.isArray(req.user?.permissions) && req.user.permissions.includes("*")) ||
+      ["admin", "superadmin", "super_admin"].includes(userRole)
+    ) {
       return next();
     }
 

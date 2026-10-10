@@ -48,7 +48,9 @@ export function checkModuleAccess(moduleKey) {
       // Allow lookup/configuration endpoints that are consumed across modules without full sales module access
       if (
         url.includes("/sales/price-types") ||
-        url.includes("/sales/zones")
+        url.includes("/sales/zones") ||
+        url.includes("/sales/return-reasons") ||
+        url.includes("/sales/sales-persons")
       ) {
         return next();
       }
@@ -56,18 +58,43 @@ export function checkModuleAccess(moduleKey) {
       const userId = toNumber(req.user?.sub || req.user?.id);
       if (!userId)
         return next(httpError(401, "UNAUTHORIZED", "Login required"));
-      // Grant full access if user has a wildcard permission
+
+      const rawId = process.env.LICENSE_SUPER_ADMIN_ID;
+      const superAdminId = rawId ? parseInt(String(rawId).trim(), 10) : 1;
+      const userRole = String(req.user?.role || req.user?.role_name || "").toLowerCase();
+
+      // Grant full access if user is super admin or has wildcard permission
       if (
-        Array.isArray(req.user?.permissions) &&
-        req.user.permissions.includes("*")
+        userId === 1 ||
+        userId === superAdminId ||
+        Boolean(req.user?.isSuperAdmin) ||
+        Boolean(req.user?.is_super_admin) ||
+        (Array.isArray(req.user?.permissions) && req.user.permissions.includes("*")) ||
+        ["admin", "superadmin", "super_admin"].includes(userRole)
       ) {
         return next();
       }
+
       // Fetch user role; deny if no role assigned
       const roleId = await getUserRoleId(userId);
       if (!roleId) {
         return next(httpError(403, "FORBIDDEN", "No role assigned"));
       }
+      if (roleId === 1) {
+        return next();
+      }
+
+      // Check if role in DB is super admin or admin
+      const roleInfo = await query(
+        "SELECT code, name FROM adm_roles WHERE id = :roleId LIMIT 1",
+        { roleId }
+      ).catch(() => []);
+      const roleCode = String(roleInfo?.[0]?.code || "").toUpperCase();
+      const roleName = String(roleInfo?.[0]?.name || "").toLowerCase();
+      if (roleCode === "SUPER_ADMIN" || roleCode === "ADMIN" || roleName.includes("super admin")) {
+        return next();
+      }
+
       // Check for module-level access or wildcard access in adm_role_modules
       const rows = await query(
         `SELECT 1 
@@ -124,14 +151,24 @@ export function checkFeatureAccess(featureKey) {
       const userId = toNumber(req.user?.sub || req.user?.id);
       if (!userId)
         return next(httpError(401, "UNAUTHORIZED", "Login required"));
+
+      const rawId = process.env.LICENSE_SUPER_ADMIN_ID;
+      const superAdminId = rawId ? parseInt(String(rawId).trim(), 10) : 1;
+      const userRole = String(req.user?.role || req.user?.role_name || "").toLowerCase();
+
+      const [moduleKey] = String(featureKey || "").split(":");
+      req.userPermissions = null;
+      req.featureKey = featureKey;
+      req.moduleKey = moduleKey;
+
       if (
-        Array.isArray(req.user?.permissions) &&
-        req.user.permissions.includes("*")
+        userId === 1 ||
+        userId === superAdminId ||
+        Boolean(req.user?.isSuperAdmin) ||
+        Boolean(req.user?.is_super_admin) ||
+        (Array.isArray(req.user?.permissions) && req.user.permissions.includes("*")) ||
+        ["admin", "superadmin", "super_admin"].includes(userRole)
       ) {
-        req.userPermissions = null;
-        const [moduleKey] = String(featureKey || "").split(":");
-        req.featureKey = featureKey;
-        req.moduleKey = moduleKey;
         return next();
       }
 
@@ -140,9 +177,21 @@ export function checkFeatureAccess(featureKey) {
       if (!roleId) {
         return next(httpError(403, "FORBIDDEN", "No role assigned"));
       }
+      if (roleId === 1) {
+        return next();
+      }
+
+      const roleInfo = await query(
+        "SELECT code, name FROM adm_roles WHERE id = :roleId LIMIT 1",
+        { roleId }
+      ).catch(() => []);
+      const roleCode = String(roleInfo?.[0]?.code || "").toUpperCase();
+      const roleName = String(roleInfo?.[0]?.name || "").toLowerCase();
+      if (roleCode === "SUPER_ADMIN" || roleCode === "ADMIN" || roleName.includes("super admin")) {
+        return next();
+      }
 
       // Check if user has module access
-      const [moduleKey] = String(featureKey || "").split(":");
       if (!moduleKey) {
         return next(httpError(403, "FORBIDDEN", "Invalid feature key"));
       }
@@ -159,15 +208,7 @@ export function checkFeatureAccess(featureKey) {
         return next(httpError(403, "FORBIDDEN", "Module access denied"));
       }
 
-      // Deprecated: feature-level permission and user feature overrides
-
-      // Feature allowlist removed: any feature under an enabled module is allowed
-
       // Attach basic info to request for later use
-      req.userPermissions = null;
-      req.featureKey = featureKey;
-      req.moduleKey = moduleKey;
-
       return next();
     } catch (err) {
       return next(err);
@@ -179,14 +220,31 @@ export function checkFeatureAccess(featureKey) {
 export function checkFeatureAction(featureKey, action) {
   return async function (req, res, next) {
     try {
+      const rawId = process.env.LICENSE_SUPER_ADMIN_ID;
+      const superAdminId = rawId ? parseInt(String(rawId).trim(), 10) : 1;
+      const userId = toNumber(req.user?.sub || req.user?.id);
+      const userRole = String(req.user?.role || req.user?.role_name || "").toLowerCase();
+
+      if (
+        userId === 1 ||
+        userId === superAdminId ||
+        Boolean(req.user?.isSuperAdmin) ||
+        Boolean(req.user?.is_super_admin) ||
+        (Array.isArray(req.user?.permissions) && req.user.permissions.includes("*")) ||
+        ["admin", "superadmin", "super_admin"].includes(userRole)
+      ) {
+        return next();
+      }
+
       // First check basic feature access
       const basicCheck = checkFeatureAccess(featureKey);
       await basicCheck(req, res, async (err) => {
         if (err) return next(err);
 
         // Then check specific action at module level
-        const userId = toNumber(req.user?.sub || req.user?.id);
         const roleId = await getUserRoleId(userId);
+        if (roleId === 1) return next();
+
         const moduleKey = req.moduleKey;
         const actionKey = String(action || "view").toLowerCase();
         // Check for specific action permission (view, create, edit, delete) on the feature
@@ -238,10 +296,19 @@ export function checkFeatureAction(featureKey, action) {
 export function checkModuleAction(moduleKey, action) {
   return async function (req, res, next) {
     try {
-      // Grant full access if user has a wildcard permission
+      const rawId = process.env.LICENSE_SUPER_ADMIN_ID;
+      const superAdminId = rawId ? parseInt(String(rawId).trim(), 10) : 1;
+      const userId = toNumber(req.user?.sub || req.user?.id);
+      const userRole = String(req.user?.role || req.user?.role_name || "").toLowerCase();
+
+      // Grant full access if user has a wildcard permission or is super admin
       if (
-        Array.isArray(req.user?.permissions) &&
-        req.user.permissions.includes("*")
+        userId === 1 ||
+        userId === superAdminId ||
+        Boolean(req.user?.isSuperAdmin) ||
+        Boolean(req.user?.is_super_admin) ||
+        (Array.isArray(req.user?.permissions) && req.user.permissions.includes("*")) ||
+        ["admin", "superadmin", "super_admin"].includes(userRole)
       ) {
         return next();
       }
@@ -250,8 +317,9 @@ export function checkModuleAction(moduleKey, action) {
       await m1(req, res, async (err) => {
         if (err) return next(err);
         // Retrieve user and role ID for permission check
-        const userId = toNumber(req.user?.sub || req.user?.id);
         const roleId = await getUserRoleId(userId);
+        if (roleId === 1) return next();
+
         const actionKey = String(action || "view").toLowerCase();
         // Check if the specific action is allowed at the module level based on adm_role_permissions
         const row = await query(
