@@ -240,6 +240,7 @@ export default function PosSalesEntry() {
       value: String(p.id),
       label: String(p.name || ""),
       sellingPrice: Number(p.price || 0),
+      availQty: Number(p.availQty || 0),
     }));
   }, [products]);
   const itemSearchResults = useMemo(() => {
@@ -2487,9 +2488,14 @@ export default function PosSalesEntry() {
                           >
                             <div className="flex justify-between items-center">
                               <span>{o.label}</span>
-                              <span className="font-semibold text-brand-700 whitespace-nowrap ml-2">
-                                GH₵ {Number(o.sellingPrice || 0).toFixed(2)}
-                              </span>
+                              <div className="flex items-center gap-3">
+                                <span className="text-xs text-slate-500 font-medium">
+                                  Avail: {Number(o.availQty || 0)}
+                                </span>
+                                <span className="font-semibold text-brand-700 whitespace-nowrap">
+                                  GH₵ {Number(o.sellingPrice || 0).toFixed(2)}
+                                </span>
+                              </div>
                             </div>
                           </button>
                         ))}
@@ -2578,7 +2584,7 @@ export default function PosSalesEntry() {
                         <tr className="bg-slate-50 text-slate-700">
                           <th className="px-3 py-2 text-left sticky top-0 bg-slate-50 shadow-sm z-10">Item Code</th>
                           <th className="px-3 py-2 text-left sticky top-0 bg-slate-50 shadow-sm z-10">Item Name</th>
-                          
+                          <th className="px-3 py-2 text-right sticky top-0 bg-slate-50 shadow-sm z-10">Available Qty</th>
                           <th className="px-3 py-2 text-right sticky top-0 bg-slate-50 shadow-sm z-10">Price</th>
                           <th className="px-3 py-2 text-center sticky top-0 bg-slate-50 shadow-sm z-10 min-w-[130px]">QTY</th>
                           <th className="px-3 py-2 text-right sticky top-0 bg-slate-50 shadow-sm z-10">Discount</th>
@@ -2590,6 +2596,11 @@ export default function PosSalesEntry() {
                         {[...selectedItems].reverse().map((it) => {
                           const cartItem =
                             cart.find((c) => c.id === it.id) || null;
+                          const productObj =
+                            products.find((p) => p.id === it.id) || null;
+                          const availQty = Number(
+                            productObj?.availQty ?? it.availQty ?? 0,
+                          );
                           const qty = Number(cartItem?.quantity || 0);
                           const unitPrice = Number(cartItem?.price || 0);
                           const discount = Number(cartItem?.discount || 0);
@@ -2601,7 +2612,9 @@ export default function PosSalesEntry() {
                             <tr key={it.id}>
                               <td className="px-3 py-2">{it.code}</td>
                               <td className="px-3 py-2">{it.name}</td>
-                              
+                              <td className="px-3 py-2 text-right font-medium">
+                                {availQty}
+                              </td>
                               <td className="px-3 py-2 text-right">
                                 {`GH₵ ${unitPrice.toFixed(2)}`}
                               </td>
