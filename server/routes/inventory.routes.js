@@ -223,16 +223,23 @@ export async function ensureItemsTable() {
       item_code VARCHAR(50) NOT NULL,
       item_name VARCHAR(255) NOT NULL,
       uom VARCHAR(20) DEFAULT 'PCS',
-      item_type VARCHAR(50) NULL,
+      item_type VARCHAR(50) DEFAULT 'INVENTORY',
+      category VARCHAR(100) NULL,
       category_id BIGINT UNSIGNED NULL,
       item_group_id BIGINT UNSIGNED NULL,
+      description TEXT NULL,
       cost_price DECIMAL(18,4) NOT NULL DEFAULT 0,
       selling_price DECIMAL(18,4) NOT NULL DEFAULT 0,
-      barcode VARCHAR(100) NULL,
+      currency_id BIGINT UNSIGNED NULL,
+      barcode VARCHAR(120) NULL,
       min_stock_level DECIMAL(18,3) NOT NULL DEFAULT 0,
       max_stock_level DECIMAL(18,3) NOT NULL DEFAULT 0,
       reorder_level DECIMAL(18,3) NOT NULL DEFAULT 0,
       safety_stock DECIMAL(18,3) NOT NULL DEFAULT 0,
+      vat_on_purchase_id BIGINT UNSIGNED NULL,
+      vat_on_sales_id BIGINT UNSIGNED NULL,
+      purchase_account_id BIGINT UNSIGNED NULL,
+      sales_account_id BIGINT UNSIGNED NULL,
       service_item CHAR(1) NOT NULL DEFAULT 'N',
       is_stockable CHAR(1) NOT NULL DEFAULT 'Y',
       is_sellable CHAR(1) NOT NULL DEFAULT 'Y',
@@ -249,7 +256,24 @@ export async function ensureItemsTable() {
   await query(`ALTER TABLE inv_items ADD COLUMN cost_price DECIMAL(18,4) NOT NULL DEFAULT 0`).catch(() => {});
   await query(`ALTER TABLE inv_items ADD COLUMN selling_price DECIMAL(18,4) NOT NULL DEFAULT 0`).catch(() => {});
   await query(`ALTER TABLE inv_items ADD COLUMN uom VARCHAR(20) DEFAULT 'PCS'`).catch(() => {});
+  await query(`ALTER TABLE inv_items ADD COLUMN min_stock_level DECIMAL(18,3) DEFAULT 0`).catch(() => {});
+  await query(`ALTER TABLE inv_items ADD COLUMN max_stock_level DECIMAL(18,3) DEFAULT 0`).catch(() => {});
+  await query(`ALTER TABLE inv_items ADD COLUMN reorder_level DECIMAL(18,3) DEFAULT 0`).catch(() => {});
+  await query(`ALTER TABLE inv_items ADD COLUMN category_id BIGINT UNSIGNED NULL`).catch(() => {});
+  await query(`ALTER TABLE inv_items ADD COLUMN barcode VARCHAR(120) NULL`).catch(() => {});
+  await query(`ALTER TABLE inv_items ADD COLUMN currency_id BIGINT UNSIGNED NULL`).catch(() => {});
+  await query(`ALTER TABLE inv_items ADD COLUMN safety_stock DECIMAL(18,3) DEFAULT 0`).catch(() => {});
+  await query(`ALTER TABLE inv_items ADD COLUMN created_by BIGINT UNSIGNED NULL`).catch(() => {});
+  await query(`ALTER TABLE inv_items ADD COLUMN vat_on_purchase_id BIGINT UNSIGNED NULL`).catch(() => {});
+  await query(`ALTER TABLE inv_items ADD COLUMN vat_on_sales_id BIGINT UNSIGNED NULL`).catch(() => {});
+  await query(`ALTER TABLE inv_items ADD COLUMN purchase_account_id BIGINT UNSIGNED NULL`).catch(() => {});
+  await query(`ALTER TABLE inv_items ADD COLUMN sales_account_id BIGINT UNSIGNED NULL`).catch(() => {});
+  await query(`ALTER TABLE inv_items ADD COLUMN service_item CHAR(1) NOT NULL DEFAULT 'N'`).catch(() => {});
+  await query(`ALTER TABLE inv_items ADD COLUMN is_stockable CHAR(1) NOT NULL DEFAULT 'Y'`).catch(() => {});
+  await query(`ALTER TABLE inv_items ADD COLUMN is_sellable CHAR(1) NOT NULL DEFAULT 'Y'`).catch(() => {});
+  await query(`ALTER TABLE inv_items ADD COLUMN is_purchasable CHAR(1) NOT NULL DEFAULT 'Y'`).catch(() => {});
   await query(`UPDATE inv_items SET item_group_id = group_id WHERE item_group_id IS NULL AND group_id IS NOT NULL`).catch(() => {});
+  await query(`UPDATE inv_items SET uom = 'PCS' WHERE uom IS NULL OR uom = ''`).catch(() => {});
   verifiedTables.add("inv_items");
 }
 
@@ -263,8 +287,12 @@ export async function ensureItemBatchTables() {
       item_id BIGINT UNSIGNED NOT NULL,
       batch_no VARCHAR(100) NOT NULL,
       qty DECIMAL(18,3) NOT NULL DEFAULT 0,
+      qty_reserved DECIMAL(18,3) NOT NULL DEFAULT 0,
       expiry_date DATE NULL,
       cost DECIMAL(18,4) NOT NULL DEFAULT 0,
+      source_type ENUM('GRN','DIRECT_PURCHASE','ADJUSTMENT','SALE') NULL,
+      source_id BIGINT UNSIGNED NULL,
+      source_date DATE NULL,
       created_by BIGINT UNSIGNED NULL,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -277,6 +305,25 @@ export async function ensureItemBatchTables() {
   await query(`ALTER TABLE inv_item_batches ADD COLUMN expiry_date DATE NULL`).catch(() => {});
   await query(`ALTER TABLE inv_item_batches ADD COLUMN batch_no VARCHAR(100) NOT NULL DEFAULT ''`).catch(() => {});
   await query(`ALTER TABLE inv_item_batches ADD COLUMN qty DECIMAL(18,3) NOT NULL DEFAULT 0`).catch(() => {});
+  await query(`ALTER TABLE inv_item_batches ADD COLUMN qty_reserved DECIMAL(18,3) NOT NULL DEFAULT 0`).catch(() => {});
+  await query(`
+    CREATE TABLE IF NOT EXISTS inv_batch_movements (
+      id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+      company_id BIGINT UNSIGNED NOT NULL,
+      branch_id BIGINT UNSIGNED NOT NULL,
+      item_id BIGINT UNSIGNED NOT NULL,
+      batch_id BIGINT UNSIGNED NOT NULL,
+      movement_type ENUM('IN','OUT') NOT NULL,
+      qty DECIMAL(18,3) NOT NULL DEFAULT 0,
+      ref_type VARCHAR(40) NULL,
+      ref_id BIGINT UNSIGNED NULL,
+      ref_date DATE NULL,
+      remarks VARCHAR(255) NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      KEY idx_batch (batch_id),
+      KEY idx_item (item_id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+  `).catch(() => {});
   verifiedTables.add("inv_item_batches");
 }
 
@@ -286,13 +333,29 @@ export async function ensureItemGroupTables() {
     CREATE TABLE IF NOT EXISTS inv_item_groups (
       id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
       company_id BIGINT UNSIGNED NOT NULL,
+      branch_id BIGINT UNSIGNED NOT NULL DEFAULT 1,
       group_code VARCHAR(50) NOT NULL,
       group_name VARCHAR(150) NOT NULL,
+      parent_group_id BIGINT UNSIGNED NULL,
       is_active TINYINT(1) NOT NULL DEFAULT 1,
       created_by BIGINT UNSIGNED NULL,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
       UNIQUE KEY uq_group_code (company_id, group_code)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+  `).catch(() => {});
+  await query(`
+    CREATE TABLE IF NOT EXISTS inv_item_categories (
+      id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+      company_id BIGINT UNSIGNED NOT NULL,
+      branch_id BIGINT UNSIGNED NOT NULL DEFAULT 1,
+      category_code VARCHAR(50) NOT NULL,
+      category_name VARCHAR(120) NOT NULL,
+      parent_category_id BIGINT UNSIGNED NULL,
+      is_active TINYINT(1) NOT NULL DEFAULT 1,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      UNIQUE KEY uq_cat_code (company_id, branch_id, category_code)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
   `).catch(() => {});
   verifiedTables.add("inv_item_groups");
@@ -3645,84 +3708,6 @@ router.get(
     }
   },
 );
-
-// Item groups and categories (lookups for UI)
-async function ensureItemGroupTables() {
-  await query(`
-    CREATE TABLE IF NOT EXISTS inv_item_groups (
-      id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-      company_id BIGINT UNSIGNED NOT NULL,
-      branch_id BIGINT UNSIGNED NOT NULL,
-      group_code VARCHAR(50) NOT NULL,
-      group_name VARCHAR(120) NOT NULL,
-      parent_group_id BIGINT UNSIGNED NULL,
-      is_active TINYINT(1) NOT NULL DEFAULT 1,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-      PRIMARY KEY (id),
-      UNIQUE KEY uq_group_code (company_id, branch_id, group_code)
-    )
-  `).catch(() => {});
-  await query(`
-    CREATE TABLE IF NOT EXISTS inv_item_categories (
-      id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-      company_id BIGINT UNSIGNED NOT NULL,
-      branch_id BIGINT UNSIGNED NOT NULL,
-      category_code VARCHAR(50) NOT NULL,
-      category_name VARCHAR(120) NOT NULL,
-      parent_category_id BIGINT UNSIGNED NULL,
-      is_active TINYINT(1) NOT NULL DEFAULT 1,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-      PRIMARY KEY (id),
-      UNIQUE KEY uq_cat_code (company_id, branch_id, category_code)
-    )
-  `).catch(() => {});
-}
-
-async function ensureItemBatchTables() {
-  await query(`
-    CREATE TABLE IF NOT EXISTS inv_item_batches (
-      id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-      company_id BIGINT UNSIGNED NOT NULL,
-      branch_id BIGINT UNSIGNED NOT NULL,
-      item_id BIGINT UNSIGNED NOT NULL,
-      batch_no VARCHAR(50) NOT NULL,
-      expiry_date DATE NULL,
-      cost DECIMAL(18,4) NOT NULL DEFAULT 0,
-      qty DECIMAL(18,3) NOT NULL DEFAULT 0,
-      qty_reserved DECIMAL(18,3) NOT NULL DEFAULT 0,
-      source_type ENUM('GRN','DIRECT_PURCHASE','ADJUSTMENT','SALE') NOT NULL,
-      source_id BIGINT UNSIGNED NULL,
-      source_date DATE NULL,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-      PRIMARY KEY (id),
-      UNIQUE KEY uq_company_batch (company_id, branch_id, item_id, batch_no),
-      KEY idx_item (item_id),
-      KEY idx_exp (expiry_date)
-    )
-  `).catch(() => {});
-  await query(`
-    CREATE TABLE IF NOT EXISTS inv_batch_movements (
-      id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-      company_id BIGINT UNSIGNED NOT NULL,
-      branch_id BIGINT UNSIGNED NOT NULL,
-      item_id BIGINT UNSIGNED NOT NULL,
-      batch_id BIGINT UNSIGNED NOT NULL,
-      movement_type ENUM('IN','OUT') NOT NULL,
-      qty DECIMAL(18,3) NOT NULL DEFAULT 0,
-      ref_type VARCHAR(40) NULL,
-      ref_id BIGINT UNSIGNED NULL,
-      ref_date DATE NULL,
-      remarks VARCHAR(255) NULL,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      PRIMARY KEY (id),
-      KEY idx_batch (batch_id),
-      KEY idx_item (item_id)
-    )
-  `).catch(() => {});
-}
 
 // ─── Reporting Views ──────────────────────────────────────────────────────────
 async function ensureReportingViews() {
@@ -9841,100 +9826,6 @@ router.get(
 );
 
 // Items endpoints
-let _itemsTableEnsured = false;
-async function ensureItemsTable() {
-  if (_itemsTableEnsured) return;
-  _itemsTableEnsured = true;
-  await query(`
-    CREATE TABLE IF NOT EXISTS inv_items (
-      id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-      company_id BIGINT UNSIGNED NOT NULL,
-      item_code VARCHAR(50) NOT NULL,
-      item_name VARCHAR(255) NOT NULL,
-      uom VARCHAR(20) DEFAULT 'PCS',
-      item_type VARCHAR(50) DEFAULT 'INVENTORY',
-      category VARCHAR(100),
-      category_id BIGINT UNSIGNED NULL,
-      description TEXT,
-      is_active TINYINT(1) DEFAULT 1,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-      UNIQUE KEY uq_item_code (company_id, item_code),
-      KEY idx_item_name (item_name)
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
-  `).catch(() => {});
-  // Ensure UOM column exists and update any null/empty values
-  await query(`
-    ALTER TABLE inv_items ADD COLUMN IF NOT EXISTS uom VARCHAR(20) DEFAULT 'PCS'
-  `).catch(() => {});
-  // Ensure stock level columns exist
-  await query(`
-    ALTER TABLE inv_items ADD COLUMN IF NOT EXISTS min_stock_level DECIMAL(18,3) DEFAULT 0
-  `).catch(() => {});
-  await query(`
-    ALTER TABLE inv_items ADD COLUMN IF NOT EXISTS max_stock_level DECIMAL(18,3) DEFAULT 0
-  `).catch(() => {});
-  await query(`
-    ALTER TABLE inv_items ADD COLUMN IF NOT EXISTS reorder_level DECIMAL(18,3) DEFAULT 0
-  `).catch(() => {});
-  await query(`
-    ALTER TABLE inv_items ADD COLUMN IF NOT EXISTS category_id BIGINT UNSIGNED NULL
-  `).catch(() => {});
-  await query(`
-    ALTER TABLE inv_items ADD COLUMN IF NOT EXISTS barcode VARCHAR(120) NULL
-  `).catch(() => {});
-  await query(`
-    ALTER TABLE inv_items ADD COLUMN IF NOT EXISTS cost_price DECIMAL(18,3) DEFAULT 0
-  `).catch(() => {});
-  await query(`
-    ALTER TABLE inv_items ADD COLUMN IF NOT EXISTS selling_price DECIMAL(18,3) DEFAULT 0
-  `).catch(() => {});
-  await query(`
-    ALTER TABLE inv_items ADD COLUMN IF NOT EXISTS currency_id BIGINT UNSIGNED NULL
-  `).catch(() => {});
-  await query(`
-    ALTER TABLE inv_items ADD COLUMN IF NOT EXISTS item_group_id BIGINT UNSIGNED NULL
-  `).catch(() => {});
-  await query(`
-    ALTER TABLE inv_items ADD COLUMN IF NOT EXISTS safety_stock DECIMAL(18,3) DEFAULT 0
-  `).catch(() => {});
-  await query(`
-    ALTER TABLE inv_items ADD COLUMN IF NOT EXISTS created_by BIGINT UNSIGNED NULL
-  `).catch(() => {});
-  await query(`
-    ALTER TABLE inv_items ADD COLUMN IF NOT EXISTS vat_on_purchase_id BIGINT UNSIGNED NULL
-  `).catch(() => {});
-  await query(`
-    ALTER TABLE inv_items ADD COLUMN IF NOT EXISTS vat_on_sales_id BIGINT UNSIGNED NULL
-  `).catch(() => {});
-  await query(`
-    ALTER TABLE inv_items ADD COLUMN IF NOT EXISTS purchase_account_id BIGINT UNSIGNED NULL
-  `).catch(() => {});
-  await query(`
-    ALTER TABLE inv_items ADD COLUMN IF NOT EXISTS sales_account_id BIGINT UNSIGNED NULL
-  `).catch(() => {});
-  await query(`
-    ALTER TABLE inv_items ADD COLUMN IF NOT EXISTS service_item CHAR(1) NOT NULL DEFAULT 'N'
-  `).catch(() => {});
-  await query(`
-    ALTER TABLE inv_items ADD COLUMN IF NOT EXISTS is_stockable CHAR(1) NOT NULL DEFAULT 'Y'
-  `).catch(() => {});
-  await query(`
-    ALTER TABLE inv_items ADD COLUMN IF NOT EXISTS is_sellable CHAR(1) NOT NULL DEFAULT 'Y'
-  `).catch(() => {});
-  await query(`
-    ALTER TABLE inv_items ADD COLUMN IF NOT EXISTS is_purchasable CHAR(1) NOT NULL DEFAULT 'Y'
-  `).catch(() => {});
-  // Add unique constraint on item_name per company to detect and reject duplicates
-  await query(`
-    ALTER TABLE inv_items ADD UNIQUE KEY uq_item_name (company_id, item_name)
-  `).catch(() => {});
-  // Update any items with NULL or empty UOM to default 'PCS'
-  await query(`
-    UPDATE inv_items SET uom = 'PCS' WHERE uom IS NULL OR uom = ''
-  `).catch(() => {});
-}
-
 router.get("/items/:id", requireAuth, async (req, res, next) => {
   try {
     await ensureItemsTable();
