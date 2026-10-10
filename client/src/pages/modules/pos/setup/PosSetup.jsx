@@ -2260,6 +2260,7 @@ function GeneralSettingsTab() {
   const [autoLogoutAfterShiftClose, setAutoLogoutAfterShiftClose] =
     useState(false);
   const [autoPrintReceipt, setAutoPrintReceipt] = useState(false);
+  const [showAvailableQty, setShowAvailableQty] = useState(true);
   const [returnReasons, setReturnReasons] = useState([]);
   const [returnReasonsLoading, setReturnReasonsLoading] = useState(false);
   const [newReturnReason, setNewReturnReason] = useState("");
@@ -2284,6 +2285,8 @@ function GeneralSettingsTab() {
         setAutoLogoutAfterShiftClose(parsed.autoLogoutAfterShiftClose);
       if (typeof parsed.autoPrintReceipt === "boolean")
         setAutoPrintReceipt(parsed.autoPrintReceipt);
+      if (typeof parsed.showAvailableQty === "boolean")
+        setShowAvailableQty(parsed.showAvailableQty);
     } catch {}
   }, []);
 
@@ -2323,6 +2326,7 @@ function GeneralSettingsTab() {
       requireCustomer: !!requireCustomer,
       autoLogoutAfterShiftClose: !!autoLogoutAfterShiftClose,
       autoPrintReceipt: !!autoPrintReceipt,
+      showAvailableQty: !!showAvailableQty,
     };
     try {
       localStorage.setItem(POS_GENERAL_SETTINGS_KEY, JSON.stringify(payload));
@@ -2461,6 +2465,14 @@ function GeneralSettingsTab() {
                 onChange={(e) => setAutoPrintReceipt(e.target.checked)}
               />
               <span className="text-sm">Auto Print Receipt</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={showAvailableQty}
+                onChange={(e) => setShowAvailableQty(e.target.checked)}
+              />
+              <span className="text-sm">Show Available Qty in Sales Entry</span>
             </div>
           </div>
           <div>

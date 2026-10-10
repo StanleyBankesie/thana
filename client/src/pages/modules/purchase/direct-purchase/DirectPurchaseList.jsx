@@ -117,7 +117,7 @@ export default function DirectPurchaseList() {
                     <SortableHeader label="Supplier" sortKey="supplier_name" currentKey={sortKey} direction={sortDir} onToggle={toggle} />
                     <SortableHeader label="Amount" sortKey="grand_total" currentKey={sortKey} direction={sortDir} onToggle={toggle} className="text-right" />
                     <SortableHeader label="Status" sortKey="status" currentKey={sortKey} direction={sortDir} onToggle={toggle} />
-                     <th className="text-right" style={{ width: '320px' }}>Actions</th>
+                     <th className="text-right whitespace-nowrap min-w-[360px]">Actions</th>
                     <SortableHeader label="Created By" sortKey="created_by_username" currentKey={sortKey} direction={sortDir} onToggle={toggle} />
                     <SortableHeader label="Created Date" sortKey="created_at" currentKey={sortKey} direction={sortDir} onToggle={toggle} />
                   </tr>
@@ -148,29 +148,29 @@ export default function DirectPurchaseList() {
                           {it.status || "DRAFT"}
                         </span>
                       </td>
-                     <td className="px-6 py-4 text-right">
-                       <div className="flex items-center justify-end gap-2">
+                     <td className="px-6 py-4 text-right actions-cell whitespace-nowrap">
+                       <div className="flex items-center justify-end gap-2 flex-nowrap">
                          {/* Slot 1: View */}
-                         <div className="min-w-[60px]">
-                           <button
-                             type="button"
+                         <div className="min-w-[70px] shrink-0">
+                           <Link
+                             to={`/purchase/direct-purchase/${it.id}?mode=view`}
+                             data-rbac-exempt="true"
                              className="w-full inline-flex items-center justify-center px-3 py-1.5 text-xs font-medium text-slate-700 bg-slate-100 border border-slate-200 rounded-lg hover:bg-slate-200 transition-colors h-8"
-                             onClick={() => navigate(`/purchase/direct-purchase/${it.id}?mode=view`)}
                            >
                              View
-                           </button>
+                           </Link>
                          </div>
 
                          {/* Slot 2: Edit */}
-                         <div className="min-w-[60px]">
+                         <div className="min-w-[70px] shrink-0">
                            {!["POST", "POSTED"].includes(String(it.status).toUpperCase()) ? (
-                             <button
-                               type="button"
+                             <Link
+                               to={`/purchase/direct-purchase/${it.id}?mode=edit`}
+                               data-rbac-exempt="true"
                                className="w-full inline-flex items-center justify-center px-3 py-1.5 text-xs font-medium text-slate-700 bg-slate-100 border border-slate-200 rounded-lg hover:bg-slate-200 transition-colors h-8"
-                               onClick={() => navigate(`/purchase/direct-purchase/${it.id}?mode=edit`)}
                              >
                                Edit
-                             </button>
+                             </Link>
                            ) : (
                              <div className="w-full h-8" />
                            )}
