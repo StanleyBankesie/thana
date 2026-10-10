@@ -8,6 +8,33 @@ import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { toast } from "react-toastify";
 import { api } from "api/client";
 
+function findTaxExemptId(taxList) {
+  if (!Array.isArray(taxList) || taxList.length === 0) return "";
+  const found =
+    taxList.find((t) => {
+      const code = String(t.code || "").toUpperCase();
+      const name = String(t.name || "").toUpperCase();
+      return code.includes("EXEMPT") || name.includes("EXEMPT");
+    }) ||
+    taxList.find((t) => {
+      const code = String(t.code || "").toUpperCase();
+      const name = String(t.name || "").toUpperCase();
+      return code.includes("ZERO") || name.includes("ZERO") || code.includes("NO TAX") || name.includes("NO TAX");
+    }) ||
+    taxList.find((t) => Number(t.rate_percent) === 0);
+  return found ? String(found.id) : "";
+}
+
+function findInventoryTypeCode(typesList) {
+  if (!Array.isArray(typesList) || typesList.length === 0) return "INVENTORY";
+  const found = typesList.find((t) => {
+    const code = String(t.type_code || t.code || t.item_type || "").toUpperCase();
+    const name = String(t.type_name || t.name || "").toUpperCase();
+    return code === "INVENTORY" || name.includes("INVENTORY") || code.includes("INVENTORY");
+  });
+  return found ? (found.type_code || found.code || found.type_name || found.item_type || "INVENTORY") : "INVENTORY";
+}
+
 /**
  * ItemForm component
  * Manages the data entry for a single item, resolving lookups (categories, groups, UOMs)
@@ -47,7 +74,7 @@ export default function ItemForm({ isModal = false, modalItemId, onClose, onSave
     currency_id: "1",
     image_url: "",
     is_active: true,
-    item_type: "",
+    item_type: "INVENTORY",
     category_id: "",
     item_group_id: "",
     description: "",
@@ -108,7 +135,18 @@ export default function ItemForm({ isModal = false, modalItemId, onClose, onSave
             sales_account_id: "123",
           }));
         }
-        setTaxes(Array.isArray(d.taxes) ? d.taxes : []);
+        const taxList = Array.isArray(d.taxes) ? d.taxes : [];
+        setTaxes(taxList);
+        if (isNew) {
+          const exemptTaxId = findTaxExemptId(taxList);
+          if (exemptTaxId) {
+            setFormData((prev) => ({
+              ...prev,
+              vat_on_purchase_id: prev.vat_on_purchase_id || exemptTaxId,
+              vat_on_sales_id: prev.vat_on_sales_id || exemptTaxId,
+            }));
+          }
+        }
         const curList = Array.isArray(d.currencies) ? d.currencies : [];
         setCurrencies(curList);
         const ghsCur =
@@ -137,6 +175,15 @@ export default function ItemForm({ isModal = false, modalItemId, onClose, onSave
         }
         setCategories(loadedCategories);
         setItemTypes(loadedItemTypes);
+        if (isNew) {
+          const invTypeCode = findInventoryTypeCode(loadedItemTypes);
+          if (invTypeCode) {
+            setFormData((prev) => ({
+              ...prev,
+              item_type: prev.item_type && prev.item_type !== "INVENTORY" ? prev.item_type : invTypeCode,
+            }));
+          }
+        }
 
         // Hard fallback for environments where consolidated lookups return empty
         if (
@@ -176,7 +223,18 @@ export default function ItemForm({ isModal = false, modalItemId, onClose, onSave
           if (fallbackGroups.length > 0) setItemGroups(fallbackGroups);
           if (fallbackCategories.length > 0) setCategories(fallbackCategories);
           if (fallbackUoms.length > 0) setUoms(fallbackUoms);
-          if (fallbackItemTypes.length > 0) setItemTypes(fallbackItemTypes);
+          if (fallbackItemTypes.length > 0) {
+            setItemTypes(fallbackItemTypes);
+            if (isNew) {
+              const invTypeCode = findInventoryTypeCode(fallbackItemTypes);
+              if (invTypeCode) {
+                setFormData((prev) => ({
+                  ...prev,
+                  item_type: prev.item_type && prev.item_type !== "INVENTORY" ? prev.item_type : invTypeCode,
+                }));
+              }
+            }
+          }
         }
       } catch {
         // Full fallback path when consolidated endpoint fails
@@ -223,9 +281,18 @@ export default function ItemForm({ isModal = false, modalItemId, onClose, onSave
             sales_account_id: "123",
           }));
         }
-        setTaxes(
-          Array.isArray(taxesRes.data?.items) ? taxesRes.data.items : [],
-        );
+        const fallbackTaxes = Array.isArray(taxesRes.data?.items) ? taxesRes.data.items : [];
+        setTaxes(fallbackTaxes);
+        if (isNew) {
+          const exemptTaxId = findTaxExemptId(fallbackTaxes);
+          if (exemptTaxId) {
+            setFormData((prev) => ({
+              ...prev,
+              vat_on_purchase_id: prev.vat_on_purchase_id || exemptTaxId,
+              vat_on_sales_id: prev.vat_on_sales_id || exemptTaxId,
+            }));
+          }
+        }
         const curList = Array.isArray(currenciesRes.data?.items) ? currenciesRes.data.items : [];
         setCurrencies(curList);
         const ghsCur =
@@ -253,11 +320,19 @@ export default function ItemForm({ isModal = false, modalItemId, onClose, onSave
             }));
           }
         }
-        setItemTypes(
-          Array.isArray(itemTypesRes.data?.items)
-            ? itemTypesRes.data.items
-            : [],
-        );
+        const fallbackItemTypesList = Array.isArray(itemTypesRes.data?.items)
+          ? itemTypesRes.data.items
+          : [];
+        setItemTypes(fallbackItemTypesList);
+        if (isNew) {
+          const invTypeCode = findInventoryTypeCode(fallbackItemTypesList);
+          if (invTypeCode) {
+            setFormData((prev) => ({
+              ...prev,
+              item_type: prev.item_type && prev.item_type !== "INVENTORY" ? prev.item_type : invTypeCode,
+            }));
+          }
+        }
       } finally {
         if (!cancelled) setLookupLoading(false);
       }
@@ -912,16 +987,6 @@ export default function ItemForm({ isModal = false, modalItemId, onClose, onSave
               </div>
             )}
 
-            <div>
-              <label className="label">Description</label>
-              <textarea
-                className="input w-1/2 h-48"
-                value={formData.description}
-                onChange={(e) =>
-                  setFormData({ ...formData, description: e.target.value })
-                }
-              />
-            </div>
 
             {!isProductionMode && (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -982,73 +1047,6 @@ export default function ItemForm({ isModal = false, modalItemId, onClose, onSave
               </div>
             )}
 
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {!isProductionMode && (
-                <>
-                  <label className="flex items-center gap-2 p-2 border rounded cursor-pointer select-none hover:bg-slate-50 dark:hover:bg-slate-800/50">
-                    <input
-                      type="checkbox"
-                      className="checkbox cursor-pointer"
-                      checked={Boolean(formData.service_item)}
-                      onChange={(e) =>
-                        setFormData({ ...formData, service_item: e.target.checked })
-                      }
-                    />
-                    <span className="font-medium text-sm">Service Item</span>
-                  </label>
-                  <label className="flex items-center gap-2 p-2 border rounded cursor-pointer select-none hover:bg-slate-50 dark:hover:bg-slate-800/50">
-                    <input
-                      type="checkbox"
-                      className="checkbox cursor-pointer"
-                      checked={Boolean(formData.is_stockable)}
-                      onChange={(e) =>
-                        setFormData({ ...formData, is_stockable: e.target.checked })
-                      }
-                    />
-                    <span className="font-medium text-sm">Is Stockable</span>
-                  </label>
-                  <label className="flex items-center gap-2 p-2 border rounded cursor-pointer select-none hover:bg-slate-50 dark:hover:bg-slate-800/50">
-                    <input
-                      type="checkbox"
-                      className="checkbox cursor-pointer"
-                      checked={Boolean(formData.is_sellable)}
-                      onChange={(e) =>
-                        setFormData({ ...formData, is_sellable: e.target.checked })
-                      }
-                    />
-                    <span className="font-medium text-sm">Is Sellable</span>
-                  </label>
-                  <label className="flex items-center gap-2 p-2 border rounded cursor-pointer select-none hover:bg-slate-50 dark:hover:bg-slate-800/50">
-                    <input
-                      type="checkbox"
-                      className="checkbox cursor-pointer"
-                      checked={Boolean(formData.is_purchasable)}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          is_purchasable: e.target.checked,
-                        })
-                      }
-                    />
-                    <span className="font-medium text-sm">Is Purchasable</span>
-                  </label>
-                </>
-              )}
-              <div className="flex items-center gap-2 p-2 border rounded bg-indigo-50/50 dark:bg-indigo-950/30 border-indigo-200 dark:border-indigo-800">
-                <input
-                  type="checkbox"
-                  checked={formData.is_production_item}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      is_production_item: e.target.checked,
-                    })
-                  }
-                  className="rounded text-brand-600"
-                />
-                <span className="font-bold text-brand-900 dark:text-brand-300">Production Item</span>
-              </div>
-            </div>
 
             <div className="flex flex-col-reverse md:flex-row justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-700">
               {isModal ? (
