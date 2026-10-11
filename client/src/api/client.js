@@ -345,6 +345,94 @@ api.interceptors.request.use(
   (error) => Promise.reject(error),
 );
 
+export function isUnreachableOrOffline(error) {
+  if (typeof navigator !== "undefined" && navigator.onLine === false) {
+    return true;
+  }
+  if (!error) return false;
+  if (!error.response) {
+    return true;
+  }
+  const status = Number(error.response.status) || 0;
+  if (status === 0 || status === 502 || status === 503 || status === 504) {
+    return true;
+  }
+  const code = String(error.code || "").toUpperCase();
+  if (
+    code === "ERR_NETWORK" ||
+    code === "ECONNREFUSED" ||
+    code === "ENOTFOUND" ||
+    code === "ETIMEDOUT" ||
+    code === "ECONNABORTED" ||
+    code === "EHOSTUNREACH" ||
+    code === "ENETUNREACH"
+  ) {
+    return true;
+  }
+  const msg = String(error.message || "");
+  if (
+    /network\s*error/i.test(msg) ||
+    /failed\s*to\s*fetch/i.test(msg) ||
+    /load\s*failed/i.test(msg) ||
+    /connection\s*refused/i.test(msg)
+  ) {
+    return true;
+  }
+  const data = error.response.data;
+  if (typeof data === "string") {
+    if (
+      /502\s*bad\s*gateway/i.test(data) ||
+      /503\s*service\s*unavailable/i.test(data) ||
+      /504\s*gateway\s*time-?out/i.test(data) ||
+      /web\s*server\s*is\s*down/i.test(data) ||
+      /backend\s*connection\s*failed/i.test(data)
+    ) {
+      return true;
+    }
+  }
+  return false;
+}
+
+export function resolveMeaningfulErrorMessage(data, status) {
+  if (!data) {
+    return "An error occurred while processing your request. Please try again.";
+  }
+
+  if (typeof data === "string") {
+    if (/internal\s*server\s*error/i.test(data)) {
+      return "An error occurred while processing your request. Please try again.";
+    }
+    if (/<[a-z][\s\S]*>/i.test(data)) {
+      const clean = data.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+      if (clean && !/internal\s*server\s*error/i.test(clean)) {
+        return clean.slice(0, 200);
+      }
+      return "An error occurred while processing your request. Please try again.";
+    }
+    return data.trim() || "An error occurred while processing your request. Please try again.";
+  }
+
+  if (typeof data === "object") {
+    const candidate = data.message || data.error || data.detail || data.sqlMessage;
+    if (typeof candidate === "string" && candidate.trim()) {
+      if (!/internal\s*server\s*error/i.test(candidate)) {
+        return candidate.trim();
+      }
+    }
+    if (typeof data.detail === "string" && data.detail.trim() && !/internal\s*server\s*error/i.test(data.detail)) {
+      return data.detail.trim();
+    }
+    if (typeof data.sqlMessage === "string" && data.sqlMessage.trim()) {
+      return data.sqlMessage.trim();
+    }
+    if (typeof data.error === "string" && data.error.trim() && !/internal\s*server\s*error/i.test(data.error) && data.error !== "SERVER_ERROR") {
+      return data.error.trim();
+    }
+  }
+
+  return "An error occurred while processing your request. Please try again.";
+}
+
 api.interceptors.response.use(
   (response) => {
     // Cache GET responses for offline usage (skip for blob/non-JSON data)
@@ -463,10 +551,76 @@ api.interceptors.response.use(
       }
     }
 
+    // 1. Detect if the system is offline or unable to access the backend/server
+    if (isUnreachableOrOffline(error)) {
+      const offlineMessage = "No internet access";
+      const normalizedResponse = error?.response
+        ? {
+            ...error.response,
+            data:
+              typeof error.response.data === "object" && error.response.data !== null
+                ? {
+                    ...error.response.data,
+                    message: offlineMessage,
+                    error: offlineMessage,
+                  }
+                : { message: offlineMessage, error: offlineMessage },
+          }
+        : {
+            status: 0,
+            statusText: "Network Offline",
+            data: { message: offlineMessage, error: offlineMessage },
+            headers: {},
+            config: error?.config,
+          };
+
+      return Promise.reject({
+        ...(error || {}),
+        message: offlineMessage,
+        response: normalizedResponse,
+        config: error?.config,
+        isAxiosError: true,
+        code: error?.code || "ERR_NETWORK",
+      });
+    }
+
+    // 2. Server responded: resolve meaningful error message and prevent generic "Internal server error"
+    const resolvedMessage = resolveMeaningfulErrorMessage(
+      error?.response?.data,
+      error?.response?.status,
+    );
+
+    const normalizedResponse = error?.response
+      ? {
+          ...error.response,
+          data:
+            typeof error.response.data === "object" && error.response.data !== null
+              ? {
+                  ...error.response.data,
+                  message:
+                    !error.response.data.message ||
+                    /internal\s*server\s*error/i.test(String(error.response.data.message))
+                      ? resolvedMessage
+                      : error.response.data.message,
+                }
+              : { message: resolvedMessage },
+        }
+      : error?.response;
+
+    let finalMessage = error?.message || "";
+    if (
+      !finalMessage ||
+      /internal\s*server\s*error/i.test(finalMessage) ||
+      /request failed with status code/i.test(finalMessage)
+    ) {
+      finalMessage = resolvedMessage;
+    }
+
     return Promise.reject({
-      message: error.message,
-      response: error.response,
-      config: error.config,
+      ...(error || {}),
+      message: finalMessage,
+      response: normalizedResponse,
+      config: error?.config,
       isAxiosError: true,
     });
   },
@@ -650,6 +804,7 @@ function delay(ms) {
 }
 
 function shouldRetryGet(error, attempt) {
+  if (typeof navigator !== "undefined" && navigator.onLine === false) return false;
   if (attempt >= Math.max(GET_RETRY_LIMIT, 3)) return false; // Ensure we retry at least 3 times
   if (
     error?.response?.status === 500 ||

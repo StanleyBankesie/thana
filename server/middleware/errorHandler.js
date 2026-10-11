@@ -64,12 +64,34 @@ export function errorHandler(err, req, res, next) {
   });
 
   const isProd = String(process.env.NODE_ENV || "").toLowerCase() === "production";
+
+  // Resolve the actual meaningful error message to avoid vague "Internal server error"
+  let resolvedMessage = err.message || "";
+  if (!resolvedMessage || /internal\s*server\s*error/i.test(resolvedMessage)) {
+    if (err.sqlMessage) {
+      resolvedMessage = err.sqlMessage;
+    } else if (err.code) {
+      resolvedMessage = `Error: ${err.code}`;
+    } else {
+      resolvedMessage = "An error occurred while processing the request. Please try again.";
+    }
+  }
+
+  // Friendly translations for common database constraints so the user gets clear actionable feedback
+  if (/ER_DUP_ENTRY/i.test(resolvedMessage) || /duplicate entry/i.test(resolvedMessage)) {
+    const match = resolvedMessage.match(/Duplicate entry '([^']+)'/i);
+    resolvedMessage = match
+      ? `A record with the value "${match[1]}" already exists.`
+      : "A duplicate record already exists.";
+  } else if (/a foreign key constraint fails/i.test(resolvedMessage)) {
+    resolvedMessage = "This record cannot be modified or deleted because it is linked to other data.";
+  }
+
   const payload = {
-    error: err.code || "INTERNAL_ERROR",
-    message: isProd && status === 500 ? "Internal server error" : (err.message || "Internal server error"),
+    error: err.code || "SERVER_ERROR",
+    message: resolvedMessage,
     companyId: err.companyId,
     canRenew: err.canRenew,
-    // SECURITY: Never expose stack traces or SQL errors to clients in production
     ...(isProd ? {} : { stack: err.stack, sqlMessage: err.sqlMessage }),
   };
   res.status(status).json(payload);

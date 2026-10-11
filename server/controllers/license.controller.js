@@ -24,7 +24,7 @@ export async function getLicense(req, res) {
     res.json(license);
   } catch (error) {
     console.error("[License Controller] getLicense Error:", error);
-    res.status(500).json({ error: "Internal server error" });
+    res.status(500).json({ error: error?.code || "LICENSE_ERROR", message: error?.message || "License operation failed" });
   }
 }
 
@@ -60,7 +60,7 @@ export async function getCompaniesForLicense(req, res) {
     res.json({ success: true, data: companies });
   } catch (error) {
     console.error("[License Controller] getCompaniesForLicense Error:", error);
-    res.status(500).json({ error: "Internal server error" });
+    res.status(500).json({ error: error?.code || "LICENSE_ERROR", message: error?.message || "License operation failed" });
   }
 }
 
@@ -141,7 +141,7 @@ export async function saveLicense(req, res) {
     res.json({ success: true, message: "License saved successfully." });
   } catch (error) {
     console.error("[License Controller] saveLicense Error:", error);
-    res.status(500).json({ error: "Internal server error" });
+    res.status(500).json({ error: error?.code || "LICENSE_ERROR", message: error?.message || "License operation failed" });
   }
 }
 
@@ -204,7 +204,7 @@ export async function saveModules(req, res) {
     res.json({ success: true, message: "Modules updated successfully." });
   } catch (error) {
     console.error("[License Controller] saveModules Error:", error);
-    res.status(500).json({ error: "Internal server error" });
+    res.status(500).json({ error: error?.code || "LICENSE_ERROR", message: error?.message || "License operation failed" });
   }
 }
 
@@ -291,7 +291,7 @@ export async function initializePaystackPayment(req, res) {
       "[License Controller] initializePaystackPayment Error:",
       error,
     );
-    res.status(500).json({ error: "Internal server error" });
+    res.status(500).json({ error: error?.code || "LICENSE_ERROR", message: error?.message || "License operation failed" });
   }
 }
 
@@ -629,7 +629,7 @@ export async function verifyPaystackPayment(req, res) {
     });
   } catch (error) {
     console.error("[License Controller] verifyPaystackPayment Error:", error);
-    res.status(500).json({ error: "Internal server error" });
+    res.status(500).json({ error: error?.code || "LICENSE_ERROR", message: error?.message || "License operation failed" });
   }
 }
 
@@ -643,7 +643,7 @@ export async function getInvoiceTemplate(req, res) {
     }
   } catch (error) {
     console.error("[License Controller] getInvoiceTemplate Error:", error);
-    res.status(500).json({ error: "Internal server error" });
+    res.status(500).json({ error: error?.code || "LICENSE_ERROR", message: error?.message || "License operation failed" });
   }
 }
 
@@ -659,7 +659,7 @@ export async function saveInvoiceTemplate(req, res) {
     res.json({ success: true, message: "Template saved successfully" });
   } catch (error) {
     console.error("[License Controller] saveInvoiceTemplate Error:", error);
-    res.status(500).json({ error: "Internal server error" });
+    res.status(500).json({ error: error?.code || "LICENSE_ERROR", message: error?.message || "License operation failed" });
   }
 }
 
@@ -673,7 +673,7 @@ export async function getReceiptTemplate(req, res) {
     }
   } catch (error) {
     console.error("[License Controller] getReceiptTemplate Error:", error);
-    res.status(500).json({ error: "Internal server error" });
+    res.status(500).json({ error: error?.code || "LICENSE_ERROR", message: error?.message || "License operation failed" });
   }
 }
 
@@ -689,7 +689,7 @@ export async function saveReceiptTemplate(req, res) {
     res.json({ success: true, message: "Template saved successfully" });
   } catch (error) {
     console.error("[License Controller] saveReceiptTemplate Error:", error);
-    res.status(500).json({ error: "Internal server error" });
+    res.status(500).json({ error: error?.code || "LICENSE_ERROR", message: error?.message || "License operation failed" });
   }
 }
 
