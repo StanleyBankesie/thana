@@ -1586,12 +1586,12 @@ router.get(
       }
 
       const shareItems = await isBranchSharingEnabled(companyId, "BRANCH_SHARE_ITEMS");
-      const shouldFilterByBranch = Boolean(branchFilterStr) && (isSalesEntry || !shareItems);
+      const shouldFilterByBranch = Boolean(branchFilterStr) && !shareItems;
 
       let sbWhere = "WHERE company_id = :companyId";
       if (warehouseId) {
         sbWhere += " AND warehouse_id = :warehouseId";
-      } else if (shouldFilterByBranch && branchFilterStr) {
+      } else if (branchFilterStr) {
         sbWhere += " AND (FIND_IN_SET(branch_id, :branchFilterStr) OR warehouse_id IN (SELECT id FROM inv_warehouses WHERE company_id = :companyId AND FIND_IN_SET(branch_id, :branchFilterStr)))";
       }
 
