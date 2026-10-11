@@ -272,6 +272,8 @@ export async function ensureItemsTable() {
   await query(`ALTER TABLE inv_items ADD COLUMN is_stockable CHAR(1) NOT NULL DEFAULT 'Y'`).catch(() => {});
   await query(`ALTER TABLE inv_items ADD COLUMN is_sellable CHAR(1) NOT NULL DEFAULT 'Y'`).catch(() => {});
   await query(`ALTER TABLE inv_items ADD COLUMN is_purchasable CHAR(1) NOT NULL DEFAULT 'Y'`).catch(() => {});
+  await query(`ALTER TABLE inv_items ADD COLUMN branch_id BIGINT UNSIGNED NULL DEFAULT 1`).catch(() => {});
+  await query(`ALTER TABLE inv_items ADD KEY idx_item_branch (company_id, branch_id)`).catch(() => {});
   await query(`UPDATE inv_items SET item_group_id = group_id WHERE item_group_id IS NULL AND group_id IS NOT NULL`).catch(() => {});
   await query(`UPDATE inv_items SET uom = 'PCS' WHERE uom IS NULL OR uom = ''`).catch(() => {});
   verifiedTables.add("inv_items");
@@ -1317,6 +1319,10 @@ router.get(
       const currencies = await query(
         "SELECT id, code, name FROM fin_currencies WHERE is_active = 1",
       ).catch(() => []);
+      const branches = await query(
+        "SELECT id, name, code FROM adm_branches WHERE company_id = :companyId AND is_active = 1 ORDER BY name ASC",
+        { companyId },
+      ).catch(() => []);
 
       res.json({
         uoms,
@@ -1326,6 +1332,7 @@ router.get(
         taxes,
         accounts,
         currencies,
+        branches,
       });
     } catch (err) {
       next(err);
@@ -1538,17 +1545,61 @@ router.get(
   "/items",
   requireAuth,
   requireCompanyScope,
+  requireBranchScope,
   async (req, res, next) => {
     try {
       const { companyId = null } = req.scope || {};
       const warehouseId = toNumber(req.query.warehouse_id) || null;
+      const isSalesEntry = req.query.sales_entry === "1" || req.query.sales_entry === "true";
       // Ensure table and UOM column exists with proper defaults
       await ensureItemsTable();
-      const sbWhere = warehouseId ? "WHERE warehouse_id = :warehouseId" : "";
+
+      const rawBranchId = req.headers["x-branch-id"] || req.query.branchId || req.query.branch_id;
+      const isAllBranches = rawBranchId === "all" || req.scope?.branchId === "all";
+
+      let effectiveBranchId = toNumber(req.query.branch_id || req.query.branchId) || toNumber(req.scope?.branchId) || null;
+
+      if (warehouseId) {
+        try {
+          const [wh] = await query(
+            "SELECT branch_id FROM inv_warehouses WHERE id = :warehouseId AND company_id = :companyId LIMIT 1",
+            { warehouseId, companyId },
+          );
+          if (wh?.branch_id) {
+            const whBranchId = Number(wh.branch_id);
+            if (!effectiveBranchId) effectiveBranchId = whBranchId;
+          }
+        } catch {}
+      }
+
+      let branchFilterStr = "";
+      if (!isAllBranches) {
+        if (req.scope?.branchIdsStr && req.scope.branchIdsStr !== "") {
+          branchFilterStr = String(req.scope.branchIdsStr);
+        } else if (effectiveBranchId) {
+          branchFilterStr = String(effectiveBranchId);
+        }
+      }
+
+      if (effectiveBranchId && branchFilterStr && !branchFilterStr.split(",").includes(String(effectiveBranchId))) {
+        branchFilterStr = `${branchFilterStr},${effectiveBranchId}`;
+      }
+
+      const shareItems = await isBranchSharingEnabled(companyId, "BRANCH_SHARE_ITEMS");
+      const shouldFilterByBranch = Boolean(branchFilterStr) && (isSalesEntry || !shareItems);
+
+      let sbWhere = "WHERE company_id = :companyId";
+      if (warehouseId) {
+        sbWhere += " AND warehouse_id = :warehouseId";
+      } else if (shouldFilterByBranch && branchFilterStr) {
+        sbWhere += " AND (FIND_IN_SET(branch_id, :branchFilterStr) OR warehouse_id IN (SELECT id FROM inv_warehouses WHERE company_id = :companyId AND FIND_IN_SET(branch_id, :branchFilterStr)))";
+      }
+
       const rows = await query(
         `
         SELECT
           i.id,
+          i.branch_id,
           i.item_code,
           i.item_name,
           i.uom,
@@ -1564,6 +1615,7 @@ router.get(
           i.currency_id,
           cur.code AS currency_code,
           cur.name AS currency_name,
+          i.image_url,
           i.vat_on_purchase_id,
           tpur.code AS vat_on_purchase_code,
           i.vat_on_sales_id,
@@ -1606,11 +1658,30 @@ router.get(
            ON sb.company_id = i.company_id
           AND sb.item_id = i.id
           WHERE i.company_id = :companyId
+          ${
+            shouldFilterByBranch
+              ? `AND (
+                  FIND_IN_SET(i.branch_id, :branchFilterStr)
+                  OR i.id IN (
+                    SELECT DISTINCT sb_sub.item_id
+                    FROM inv_stock_balances sb_sub
+                    WHERE sb_sub.company_id = :companyId
+                      AND (
+                        FIND_IN_SET(sb_sub.branch_id, :branchFilterStr)
+                        OR sb_sub.warehouse_id IN (
+                          SELECT w_sub.id FROM inv_warehouses w_sub
+                          WHERE w_sub.company_id = :companyId AND FIND_IN_SET(w_sub.branch_id, :branchFilterStr)
+                        )
+                      )
+                  )
+                )`
+              : ""
+          }
           ${req.query.all !== '1' && req.query.all !== 'true' ? "AND i.is_active = 1" : ""}
          ORDER BY i.item_name ASC
          LIMIT 2000
         `,
-        { companyId: companyId || null, warehouseId },
+        { companyId: companyId || null, warehouseId, branchFilterStr: branchFilterStr || "" },
       );
       res.json({ items: rows });
     } catch (err) {
@@ -10061,10 +10132,12 @@ router.post(
   "/items",
   requireAuth,
   requireCompanyScope,
+  requireBranchScope,
   async (req, res, next) => {
     try {
       await ensureItemsTable();
-      const { companyId = null, branchId = null } = req.scope || {};
+      const { companyId = null } = req.scope || {};
+      const branchId = toNumber(req.body?.branch_id || req.scope?.branchId) || 1;
       const userId = toNumber(req.scope?.userId ?? req.user?.sub) || null;
       const body = req.body || {};
       let itemCode = body.item_code ? String(body.item_code).trim() : null;
@@ -10095,6 +10168,7 @@ router.post(
       const categoryId = toNumber(body.category_id || body.category);
       const itemGroupId = toNumber(body.item_group_id || body.group_id);
       const barcode = body.barcode ? String(body.barcode).trim() || null : null;
+      const imageUrl = body.image_url ? String(body.image_url).trim() : null;
       const costPrice = Number(body.cost_price || 0);
       const sellingPrice = Number(body.selling_price || 0);
       const currencyId = toNumber(body.currency_id);
@@ -10133,16 +10207,16 @@ router.post(
         `
         INSERT INTO inv_items
         (
-          company_id, item_code, item_name, uom, item_type, category_id, item_group_id,
-          barcode, cost_price, selling_price, currency_id,
+          company_id, branch_id, item_code, item_name, uom, item_type, category_id, item_group_id,
+          barcode, image_url, cost_price, selling_price, currency_id,
           vat_on_purchase_id, vat_on_sales_id, purchase_account_id, sales_account_id,
           description, min_stock_level, max_stock_level, reorder_level, safety_stock,
           service_item, is_stockable, is_sellable, is_purchasable, is_active
           , created_by
         )
         VALUES (
-          :companyId, :itemCode, :itemName, :uom, :itemType, :categoryId, :itemGroupId,
-          :barcode, :costPrice, :sellingPrice, :currencyId,
+          :companyId, :branchId, :itemCode, :itemName, :uom, :itemType, :categoryId, :itemGroupId,
+          :barcode, :imageUrl, :costPrice, :sellingPrice, :currencyId,
           :vatOnPurchaseId, :vatOnSalesId, :purchaseAccountId, :salesAccountId,
           :description, :minStockLevel, :maxStockLevel, :reorderLevel, :safetyStock,
           :serviceItem, :isStockable, :isSellable, :isPurchasable, :isActive
@@ -10151,6 +10225,7 @@ router.post(
         `,
         {
           companyId: companyId || null,
+          branchId: branchId || null,
           itemCode: itemCode || null,
           itemName: itemName || null,
           uom: uom || "PCS",
@@ -10158,6 +10233,7 @@ router.post(
           categoryId: categoryId || null,
           itemGroupId: itemGroupId || null,
           barcode: barcode || null,
+          imageUrl: imageUrl || null,
           costPrice: Number.isFinite(costPrice) ? costPrice : 0,
           sellingPrice: Number.isFinite(sellingPrice) ? sellingPrice : 0,
           currencyId: currencyId || null,
@@ -10278,6 +10354,7 @@ router.put(
   "/items/:id",
   requireAuth,
   requireCompanyScope,
+  requireBranchScope,
   async (req, res, next) => {
     try {
       await ensureItemsTable();
@@ -10285,6 +10362,9 @@ router.put(
       const id = toNumber(req.params.id);
       if (!id) throw httpError(400, "VALIDATION_ERROR", "Invalid id");
       const body = req.body || {};
+      const branchId = toNumber(body.branch_id);
+      const hasImageUrl = body.image_url !== undefined ? 1 : 0;
+      const imageUrl = body.image_url ? String(body.image_url).trim() : null;
       const itemCode = body.item_code ? String(body.item_code).trim() : null;
       const itemName = body.item_name ? String(body.item_name).trim() : null;
       const uom = body.uom ? String(body.uom).trim() : "PCS";
@@ -10331,11 +10411,13 @@ router.put(
         UPDATE inv_items
         SET item_code = :itemCode,
             item_name = :itemName,
+            branch_id = COALESCE(:branchId, branch_id),
             uom = :uom,
             item_type = :itemType,
             category_id = :categoryId,
             item_group_id = :itemGroupId,
             barcode = :barcode,
+            image_url = CASE WHEN :hasImageUrl = 1 THEN :imageUrl ELSE image_url END,
             cost_price = :costPrice,
             selling_price = :sellingPrice,
             currency_id = :currencyId,
@@ -10358,6 +10440,9 @@ router.put(
         {
           id: id || null,
           companyId: companyId || null,
+          branchId: branchId || null,
+          hasImageUrl,
+          imageUrl: imageUrl || null,
           itemCode: itemCode || null,
           itemName: itemName || null,
           uom: uom || "PCS",

@@ -113,7 +113,7 @@ function FilterableSelect({
 
 export default function PosSalesEntry() {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, scope } = useAuth();
   const { canEditDiscount, canPerformAction, canAccessPath } = usePermission();
   const isDiscountAllowed = useMemo(() => {
     if (typeof canEditDiscount === "function") {
@@ -196,6 +196,16 @@ export default function PosSalesEntry() {
   });
   const [terminalCode, setTerminalCode] = useState("");
   const [terminalWarehouseId, setTerminalWarehouseId] = useState("");
+  const [terminalBranchId, setTerminalBranchId] = useState("");
+  const effectiveBranchId = useMemo(() => {
+    return (
+      terminalBranchId ||
+      scope?.branchId ||
+      user?.branchId ||
+      user?.branch_id ||
+      null
+    );
+  }, [terminalBranchId, scope?.branchId, user?.branchId, user?.branch_id]);
   const [amountPaid, setAmountPaid] = useState("");
   const [customers, setCustomers] = useState([]);
   const [selectedCustomerId, setSelectedCustomerId] = useState("");
@@ -383,8 +393,12 @@ export default function PosSalesEntry() {
         const wId =
           (assigned.length ? String(assigned[0]?.warehouse_id || "") : "") ||
           "";
+        const bId =
+          (assigned.length ? String(assigned[0]?.branch_id || "") : "") ||
+          "";
         setTerminalCode(code);
         setTerminalWarehouseId(wId);
+        setTerminalBranchId(bId);
 
         // Query server for authoritative day status for the current user
         try {
@@ -782,9 +796,22 @@ export default function PosSalesEntry() {
     let mounted = true;
     setItemsLoading(true);
     setItemsError("");
-    const params = terminalWarehouseId
-      ? { warehouse_id: terminalWarehouseId }
-      : {};
+    const branchKey = effectiveBranchId ? String(effectiveBranchId) : "global";
+    const cacheKey = `omnisuite.pos.products.${branchKey}`;
+
+    // Seed from branch cache immediately if branch changed
+    try {
+      const branchCached = localStorage.getItem(cacheKey);
+      if (branchCached) {
+        setProducts(JSON.parse(branchCached));
+      }
+    } catch {}
+
+    const params = {
+      sales_entry: 1,
+      ...(effectiveBranchId ? { branch_id: effectiveBranchId } : {}),
+      ...(terminalWarehouseId ? { warehouse_id: terminalWarehouseId } : {}),
+    };
     api
       .get("/inventory/items", { params })
       .then((res) => {
@@ -801,27 +828,30 @@ export default function PosSalesEntry() {
               availQty: Number(it.stock_level ?? 0),
               image_url: it.image_url || "",
               barcode: it.barcode || "",
+              branch_id: it.branch_id,
             }));
           setProducts(mapped);
           try {
+            localStorage.setItem(cacheKey, JSON.stringify(mapped));
             localStorage.setItem(
               "omnisuite.pos.products",
               JSON.stringify(mapped),
             );
           } catch {}
         } else {
-          // Offline fallback: use cached products from localStorage
+          // Offline fallback: use cached products from localStorage for this branch
           try {
-            const cached = localStorage.getItem("omnisuite.pos.products");
+            const cached = localStorage.getItem(cacheKey);
             if (cached) setProducts(JSON.parse(cached));
+            else setProducts([]);
           } catch {}
         }
       })
       .catch(() => {
         if (!mounted) return;
-        // Offline fallback: use cached products from localStorage
+        // Offline fallback: use cached products from localStorage for this branch
         try {
-          const cached = localStorage.getItem("omnisuite.pos.products");
+          const cached = localStorage.getItem(cacheKey);
           if (cached) setProducts(JSON.parse(cached));
         } catch {}
       })
@@ -832,7 +862,7 @@ export default function PosSalesEntry() {
     return () => {
       mounted = false;
     };
-  }, [terminalWarehouseId]);
+  }, [terminalWarehouseId, effectiveBranchId]);
 
   useEffect(() => {
     let mounted = true;

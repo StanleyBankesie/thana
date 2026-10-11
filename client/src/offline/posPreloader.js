@@ -145,7 +145,13 @@ export async function preloadPosData(force = false) {
 
     // 10. Products — stored in both localStorage (for speed) and IndexedDB
     try {
-      const res = await api.get("/inventory/items");
+      const branchId = api.defaults.headers.common["x-branch-id"] || null;
+      const res = await api.get("/inventory/items", {
+        params: {
+          sales_entry: 1,
+          ...(branchId ? { branch_id: branchId } : {}),
+        },
+      });
       const raw = Array.isArray(res.data?.items) ? res.data.items : [];
       if (raw.length) {
         const mapped = raw
@@ -158,8 +164,11 @@ export async function preloadPosData(force = false) {
             availQty: Number(it.stock_level ?? 0),
             image_url: it.image_url || "",
             barcode: it.barcode || "",
+            branch_id: it.branch_id,
           }));
         try {
+          const branchKey = branchId ? String(branchId) : "global";
+          localStorage.setItem(`omnisuite.pos.products.${branchKey}`, JSON.stringify(mapped));
           localStorage.setItem("omnisuite.pos.products", JSON.stringify(mapped));
         } catch {}
       }

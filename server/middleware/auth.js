@@ -276,7 +276,7 @@ export async function requireBranchScope(req, res, next) {
       return next(httpError(401, "UNAUTHORIZED", "Authentication required"));
     }
 
-    const rawBranchId = req.headers["x-branch-id"] || req.query.branchId;
+    const rawBranchId = req.headers["x-branch-id"] || req.query.branchId || req.query.branch_id;
     req.scope = req.scope || {};
 
     const rawId = process.env.LICENSE_SUPER_ADMIN_ID;

@@ -7,6 +7,7 @@ import React, { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { toast } from "react-toastify";
 import { api } from "api/client";
+import { useAuth } from "../../../auth/AuthContext.jsx";
 
 function findTaxExemptId(taxList) {
   if (!Array.isArray(taxList) || taxList.length === 0) return "";
@@ -43,6 +44,8 @@ function findInventoryTypeCode(typesList) {
  * @returns {JSX.Element} The item form view.
  */
 export default function ItemForm({ isModal = false, modalItemId, onClose, onSaveSuccess, isProductionMode = false }) {
+  const { user, scope } = useAuth() || {};
+  const activeBranchId = scope?.branchId || user?.branchId || user?.branch_id || "";
   const params = useParams();
   const navigate = useNavigate();
   const location = useLocation();
@@ -54,6 +57,7 @@ export default function ItemForm({ isModal = false, modalItemId, onClose, onSave
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
+  const [branches, setBranches] = useState([]);
   const [itemGroups, setItemGroups] = useState([]);
   const [accounts, setAccounts] = useState([]);
   const [taxes, setTaxes] = useState([]);
@@ -67,6 +71,7 @@ export default function ItemForm({ isModal = false, modalItemId, onClose, onSave
   const [formData, setFormData] = useState({
     item_code: "",
     item_name: "",
+    branch_id: "",
     uom: "PCS",
     barcode: "",
     cost_price: 0,
@@ -126,6 +131,19 @@ export default function ItemForm({ isModal = false, modalItemId, onClose, onSave
             ? d.item_types
             : [];
         setItemGroups(loadedItemGroups);
+        const loadedBranches = Array.isArray(d.branches) ? d.branches : [];
+        setBranches(loadedBranches);
+        if (isNew && loadedBranches.length) {
+          const defaultBranch =
+            loadedBranches.find((b) => Number(b.id) === Number(activeBranchId)) ||
+            loadedBranches[0];
+          if (defaultBranch) {
+            setFormData((prev) => ({
+              ...prev,
+              branch_id: prev.branch_id || String(defaultBranch.id),
+            }));
+          }
+        }
         const accs = Array.isArray(d.accounts) ? d.accounts : [];
         setAccounts(accs);
         if (isNew) {
@@ -246,6 +264,7 @@ export default function ItemForm({ isModal = false, modalItemId, onClose, onSave
           currenciesRes,
           uomsRes,
           itemTypesRes,
+          branchesRes,
         ] = await Promise.all([
           api
             .get("/inventory/item-groups")
@@ -260,8 +279,24 @@ export default function ItemForm({ isModal = false, modalItemId, onClose, onSave
           api
             .get("/inventory/item-types")
             .catch(() => ({ data: { items: [] } })),
+          api.get("/admin/branches").catch(() => ({ data: { items: [] } })),
         ]);
         if (cancelled) return;
+        const fallbackBranches = Array.isArray(branchesRes.data?.items) ? branchesRes.data.items : [];
+        if (fallbackBranches.length) {
+          setBranches(fallbackBranches);
+          if (isNew) {
+            const defaultBranch =
+              fallbackBranches.find((b) => Number(b.id) === Number(activeBranchId)) ||
+              fallbackBranches[0];
+            if (defaultBranch) {
+              setFormData((prev) => ({
+                ...prev,
+                branch_id: prev.branch_id || String(defaultBranch.id),
+              }));
+            }
+          }
+        }
         setItemGroups(
           Array.isArray(groupsRes.data?.items) ? groupsRes.data.items : [],
         );
@@ -372,6 +407,7 @@ export default function ItemForm({ isModal = false, modalItemId, onClose, onSave
         setFormData({
           item_code: it.item_code || "",
           item_name: it.item_name || "",
+          branch_id: it.branch_id ? String(it.branch_id) : "",
           uom: it.uom || "PCS",
           barcode: it.barcode || "",
           cost_price: Number(it.cost_price || 0),
@@ -475,6 +511,7 @@ export default function ItemForm({ isModal = false, modalItemId, onClose, onSave
       const payload = {
         item_code: formData.item_code,
         item_name: formData.item_name,
+        branch_id: formData.branch_id ? Number(formData.branch_id) : null,
         uom: formData.uom || "PCS",
         barcode: formData.barcode || null,
         cost_price: Number(formData.cost_price) || 0,
@@ -761,6 +798,25 @@ export default function ItemForm({ isModal = false, modalItemId, onClose, onSave
                 </select>
               </div>
               <div>
+                <label className="label">Branch</label>
+                <select
+                  className="input"
+                  value={formData.branch_id || ""}
+                  onChange={(e) =>
+                    setFormData({ ...formData, branch_id: e.target.value })
+                  }
+                >
+                  <option value="">-- Select Branch --</option>
+                  {branches.map((b) =>
+                    b ? (
+                      <option key={b.id} value={String(b.id)}>
+                        {b.name} ({b.code || b.id})
+                      </option>
+                    ) : null,
+                  )}
+                </select>
+              </div>
+              <div>
                 <label className="label">Status</label>
                 <select
                   className="input"
@@ -977,7 +1033,9 @@ export default function ItemForm({ isModal = false, modalItemId, onClose, onSave
                     required={Number(formData.opening_quantity) > 0}
                   >
                     <option value="">-- Select Warehouse --</option>
-                    {warehouses.map((w) => (
+                    {warehouses
+                      .filter((w) => !formData.branch_id || !w.branch_id || String(w.branch_id) === String(formData.branch_id))
+                      .map((w) => (
                       <option key={w.id} value={w.id}>
                         {w.warehouse_name}
                       </option>
