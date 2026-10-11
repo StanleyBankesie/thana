@@ -39,6 +39,7 @@ import {
   linkWarehouseBranch,
 } from "../controllers/inventory.controller.js";
 import { verifiedTables } from "../utils/dbUtils.js";
+import { isBranchSharingEnabled } from "../utils/branchSharing.js";
 
 const router = express.Router();
 
