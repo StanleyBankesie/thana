@@ -705,35 +705,40 @@ router.get(
   "/reports/employees",
   requireAuth,
   requireCompanyScope,
+  requireBranchScope,
   hrController.reportEmployees,
 );
 router.get(
   "/reports/ssf",
   requireAuth,
   requireCompanyScope,
+  requireBranchScope,
   hrController.reportSSF,
 );
 router.get(
   "/reports/paye",
   requireAuth,
   requireCompanyScope,
+  requireBranchScope,
   hrController.reportPAYE,
 );
 router.get(
   "/reports/loans",
   requireAuth,
   requireCompanyScope,
+  requireBranchScope,
   hrController.reportEmployeeLoans,
 );
 router.get(
   "/reports/allowances",
   requireAuth,
   requireCompanyScope,
+  requireBranchScope,
   hrController.reportEmployeeAllowances,
 );
 
 // ===== DASHBOARD METRICS (detailed dashboard page) =====
-router.get("/dashboard/metrics", requireAuth, requireCompanyScope, async (req, res, next) => {
+router.get("/dashboard/metrics", requireAuth, requireCompanyScope, requireBranchScope, async (req, res, next) => {
   try {
     const { companyId = null } = req.scope || {};
     const year = Number(req.query.year) || new Date().getFullYear();

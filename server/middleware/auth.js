@@ -6,6 +6,7 @@ import {
 import { query } from "../db/pool.js";
 import { parseCookieHeader } from "../services/token.service.js";
 import { cacheGet, cacheSet } from "../utils/redis.js";
+import { isBranchIsolationEnabled } from "../utils/branchSharing.js";
 import "../utils/loadServerEnv.js";
 
 // Utility function to check if authentication bypass is allowed in development environment
@@ -292,6 +293,46 @@ export async function requireBranchScope(req, res, next) {
       Number(req.user?.roleId || req.user?.role_id) === 1 ||
       (Array.isArray(req.user?.permissions) && req.user.permissions.includes("*")) ||
       ["admin", "superadmin", "super_admin"].includes(userRole);
+
+    const url = String(req.originalUrl || req.url || req.baseUrl || "").toLowerCase();
+    const isExecOverview = url.includes("executive-overview");
+    const isBi = url.includes("/bi/") || url.includes("/api/bi") || url.endsWith("/bi");
+    const isReport = url.includes("/reports") || url.includes("-report") || url.includes("/analytics") || url.includes("/kpi-reports");
+
+    const companyId = req.scope?.companyId || Number(req.headers["x-company-id"]) || Number(req.query.companyId) || 1;
+
+    let enforceIsolation = false;
+    if (isExecOverview) {
+      enforceIsolation = await isBranchIsolationEnabled(companyId, "BRANCH_ISOLATE_EXEC_OVERVIEW", false);
+    } else if (isBi) {
+      enforceIsolation = await isBranchIsolationEnabled(companyId, "BRANCH_ISOLATE_BI", false);
+    } else if (isReport) {
+      enforceIsolation = await isBranchIsolationEnabled(companyId, "BRANCH_ISOLATE_REPORTS", false);
+    }
+
+    if (enforceIsolation) {
+      const allowedBranches = Array.isArray(req.user?.branchIds) && req.user.branchIds.length > 0
+        ? req.user.branchIds.map(Number)
+        : (req.user?.branchId || req.user?.branch_id)
+          ? [Number(req.user.branchId || req.user.branch_id)]
+          : [];
+
+      let targetBranchId = null;
+      if (rawBranchId && rawBranchId !== "all" && Number(rawBranchId)) {
+        targetBranchId = Number(rawBranchId);
+      } else if (allowedBranches.length > 0) {
+        targetBranchId = allowedBranches[0];
+      } else {
+        targetBranchId = Number(req.user?.branchId || req.user?.branch_id) || 1;
+      }
+
+      req.scope.branchId = targetBranchId;
+      req.scope.branchIdsStr = String(targetBranchId);
+      req.query.branchId = String(targetBranchId);
+      req.query.branch_id = String(targetBranchId);
+      req.scope.isBranchIsolated = true;
+      return next();
+    }
 
     // If 'all' branches requested
     if (rawBranchId === "all") {

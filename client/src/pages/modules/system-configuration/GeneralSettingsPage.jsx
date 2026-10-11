@@ -5,6 +5,8 @@ import { toast } from "react-toastify";
 import { useAuth } from "../../../auth/AuthContext.jsx";
 import { Brain, Sparkles, CheckCircle, ShieldCheck } from "lucide-react";
 import BranchDataSharingSection from "../../../components/BranchDataSharingSection.jsx";
+import ExecutiveOverviewIsolationSection from "../../../components/ExecutiveOverviewIsolationSection.jsx";
+import BiIsolationSection from "../../../components/BiIsolationSection.jsx";
 import PosDayControlSection from "../../../components/PosDayControlSection.jsx";
 import AppModeControlSection from "../../../components/AppModeControlSection.jsx";
 import AppBackgroundControlSection from "../../../components/AppBackgroundControlSection.jsx";
@@ -1080,6 +1082,10 @@ export default function GeneralSettingsPage() {
         <AppBackgroundControlSection />
 
         <BranchDataSharingSection />
+
+        <ExecutiveOverviewIsolationSection />
+
+        <BiIsolationSection />
 
         <PosDayControlSection />
 

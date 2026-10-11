@@ -208,7 +208,8 @@ export default function InventoryDashboardPage() {
             minimumFractionDigits: 2,
             maximumFractionDigits: 2,
           })}`;
-        const c = resp?.data?.cards || {};
+        const payload = resp?.data?.data || resp?.data || {};
+        const c = payload.cards || {};
         if (mounted) {
           setCards((prev) => {
             const next = [...prev];
@@ -220,24 +221,24 @@ export default function InventoryDashboardPage() {
             return next;
           });
           setTopItems(
-            Array.isArray(resp?.data?.top_items) ? resp.data.top_items : [],
+            Array.isArray(payload.top_items) ? payload.top_items : [],
           );
           setTopGroups(
-            Array.isArray(resp?.data?.top_groups) ? resp.data.top_groups : [],
+            Array.isArray(payload.top_groups) ? payload.top_groups : [],
           );
           setWarehousePie(
-            Array.isArray(resp?.data?.warehouse_pie)
-              ? resp.data.warehouse_pie
-              : [],
+            Array.isArray(payload.warehouse_pie) ? payload.warehouse_pie : [],
           );
           setTypePie(
-            Array.isArray(resp?.data?.type_pie) ? resp.data.type_pie : [],
+            Array.isArray(payload.type_pie) ? payload.type_pie : [],
           );
           setGroupPie(
-            Array.isArray(resp?.data?.group_pie) ? resp.data.group_pie : [],
+            Array.isArray(payload.group_pie) ? payload.group_pie : [],
           );
         }
-      } catch {}
+      } catch (err) {
+        console.error("Failed to load inventory dashboard metrics:", err);
+      }
     })();
     return () => {
       mounted = false;

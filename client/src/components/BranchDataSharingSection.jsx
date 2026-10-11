@@ -1,13 +1,14 @@
 import React, { useEffect, useState } from "react";
 import { api } from "../api/client.js";
 import { toast } from "react-toastify";
-import { Building2, Users, Truck, Package } from "lucide-react";
+import { Building2, Users, Truck, Package, BarChart3 } from "lucide-react";
 
 export default function BranchDataSharingSection() {
   const [sharing, setSharing] = useState({
     share_customers: false,
     share_suppliers: false,
     share_items: false,
+    isolate_reports: false,
   });
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -23,6 +24,7 @@ export default function BranchDataSharingSection() {
             share_customers: Boolean(res.data.data.share_customers),
             share_suppliers: Boolean(res.data.data.share_suppliers),
             share_items: Boolean(res.data.data.share_items),
+            isolate_reports: Boolean(res.data.data.isolate_reports),
           });
         }
       } catch (err) {
@@ -178,6 +180,41 @@ export default function BranchDataSharingSection() {
               />
             </div>
 
+            {/* Standard Module Reports Isolation */}
+            <div className="flex items-start justify-between p-3.5 rounded-lg border border-slate-200 hover:border-slate-300 transition-colors bg-white">
+              <div className="flex items-start gap-3">
+                <div className="p-2 bg-amber-50 text-amber-700 rounded-lg mt-0.5">
+                  <BarChart3 className="w-5 h-5" />
+                </div>
+                <div>
+                  <label
+                    htmlFor="isolate-reports-cb"
+                    className="font-medium text-slate-800 cursor-pointer text-sm"
+                  >
+                    Isolate Standard Module Reports by Branch
+                  </label>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    {sharing.isolate_reports
+                      ? "Enabled: Standard reports in all modules (Sales, Purchase, Inventory, Finance, HR, POS, Transport, Service, Maintenance, Production, Projects) only display data from the user's active/assigned branch."
+                      : "Disabled (Shared): Standard reports include consolidated company data across all accessible branches. (Note: Executive Overview and BI are configured independently below)."}
+                  </p>
+                </div>
+              </div>
+              <input
+                id="isolate-reports-cb"
+                type="checkbox"
+                className="checkbox checkbox-primary mt-1"
+                checked={sharing.isolate_reports}
+                onChange={(e) =>
+                  setSharing((prev) => ({
+                    ...prev,
+                    isolate_reports: e.target.checked,
+                  }))
+                }
+                disabled={saving}
+              />
+            </div>
+
             <div className="pt-2 flex justify-end">
               <button
                 type="button"
@@ -185,7 +222,7 @@ export default function BranchDataSharingSection() {
                 onClick={handleSave}
                 disabled={saving || loading}
               >
-                {saving ? "Saving..." : "Save Branch Sharing Settings"}
+                {saving ? "Saving..." : "Save Branch Access & Isolation Settings"}
               </button>
             </div>
           </div>

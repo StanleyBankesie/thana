@@ -3096,7 +3096,7 @@ router.get(
         `SELECT setting_key, setting_value
          FROM adm_system_settings
          WHERE (company_id = :companyId OR company_id IS NULL)
-           AND setting_key IN ('BRANCH_SHARE_CUSTOMERS', 'BRANCH_SHARE_SUPPLIERS', 'BRANCH_SHARE_ITEMS')
+           AND setting_key IN ('BRANCH_SHARE_CUSTOMERS', 'BRANCH_SHARE_SUPPLIERS', 'BRANCH_SHARE_ITEMS', 'BRANCH_ISOLATE_REPORTS')
          ORDER BY company_id DESC`,
         { companyId: companyId ?? null },
       );
@@ -3111,6 +3111,7 @@ router.get(
           share_customers: map.BRANCH_SHARE_CUSTOMERS === "1" || map.BRANCH_SHARE_CUSTOMERS === "true",
           share_suppliers: map.BRANCH_SHARE_SUPPLIERS === "1" || map.BRANCH_SHARE_SUPPLIERS === "true",
           share_items: map.BRANCH_SHARE_ITEMS === "1" || map.BRANCH_SHARE_ITEMS === "true",
+          isolate_reports: map.BRANCH_ISOLATE_REPORTS === "1" || map.BRANCH_ISOLATE_REPORTS === "true",
         },
       });
     } catch (err) {
@@ -3131,22 +3132,131 @@ router.post(
       const shareCustomers = body.share_customers ? "1" : "0";
       const shareSuppliers = body.share_suppliers ? "1" : "0";
       const shareItems = body.share_items ? "1" : "0";
+      const isolateReports = body.isolate_reports ? "1" : "0";
 
       await query(
         `INSERT INTO adm_system_settings (company_id, branch_id, setting_key, setting_value)
          VALUES 
            (:companyId, NULL, 'BRANCH_SHARE_CUSTOMERS', :shareCustomers),
            (:companyId, NULL, 'BRANCH_SHARE_SUPPLIERS', :shareSuppliers),
-           (:companyId, NULL, 'BRANCH_SHARE_ITEMS', :shareItems)
+           (:companyId, NULL, 'BRANCH_SHARE_ITEMS', :shareItems),
+           (:companyId, NULL, 'BRANCH_ISOLATE_REPORTS', :isolateReports)
          ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value), updated_at = CURRENT_TIMESTAMP`,
         {
           companyId: companyId ?? null,
           shareCustomers,
           shareSuppliers,
           shareItems,
+          isolateReports,
         },
       );
-      res.json({ success: true, message: "Branch data sharing settings saved successfully" });
+      res.json({ success: true, message: "Branch data access & isolation settings saved successfully" });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
+router.get(
+  "/settings/executive-overview-isolation",
+  requireAuth,
+  requireCompanyScope,
+  async (req, res, next) => {
+    try {
+      await ensureSystemSettingsTable();
+      const { companyId } = req.scope || {};
+      const rows = await query(
+        `SELECT setting_key, setting_value
+         FROM adm_system_settings
+         WHERE (company_id = :companyId OR company_id IS NULL)
+           AND setting_key = 'BRANCH_ISOLATE_EXEC_OVERVIEW'
+         ORDER BY company_id DESC`,
+        { companyId: companyId ?? null },
+      );
+      const val = rows[0]?.setting_value;
+      res.json({
+        data: {
+          isolate_branch: val === "1" || val === "true",
+        },
+      });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
+router.post(
+  "/settings/executive-overview-isolation",
+  requireAuth,
+  requireCompanyScope,
+  async (req, res, next) => {
+    try {
+      await ensureSystemSettingsTable();
+      const { companyId } = req.scope || {};
+      const isolateBranch = req.body?.isolate_branch ? "1" : "0";
+      await query(
+        `INSERT INTO adm_system_settings (company_id, branch_id, setting_key, setting_value)
+         VALUES (:companyId, NULL, 'BRANCH_ISOLATE_EXEC_OVERVIEW', :isolateBranch)
+         ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value), updated_at = CURRENT_TIMESTAMP`,
+        {
+          companyId: companyId ?? null,
+          isolateBranch,
+        },
+      );
+      res.json({ success: true, message: "Executive Overview isolation settings saved successfully" });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
+router.get(
+  "/settings/bi-isolation",
+  requireAuth,
+  requireCompanyScope,
+  async (req, res, next) => {
+    try {
+      await ensureSystemSettingsTable();
+      const { companyId } = req.scope || {};
+      const rows = await query(
+        `SELECT setting_key, setting_value
+         FROM adm_system_settings
+         WHERE (company_id = :companyId OR company_id IS NULL)
+           AND setting_key = 'BRANCH_ISOLATE_BI'
+         ORDER BY company_id DESC`,
+        { companyId: companyId ?? null },
+      );
+      const val = rows[0]?.setting_value;
+      res.json({
+        data: {
+          isolate_branch: val === "1" || val === "true",
+        },
+      });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
+router.post(
+  "/settings/bi-isolation",
+  requireAuth,
+  requireCompanyScope,
+  async (req, res, next) => {
+    try {
+      await ensureSystemSettingsTable();
+      const { companyId } = req.scope || {};
+      const isolateBranch = req.body?.isolate_branch ? "1" : "0";
+      await query(
+        `INSERT INTO adm_system_settings (company_id, branch_id, setting_key, setting_value)
+         VALUES (:companyId, NULL, 'BRANCH_ISOLATE_BI', :isolateBranch)
+         ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value), updated_at = CURRENT_TIMESTAMP`,
+        {
+          companyId: companyId ?? null,
+          isolateBranch,
+        },
+      );
+      res.json({ success: true, message: "Business Intelligence isolation settings saved successfully" });
     } catch (err) {
       next(err);
     }

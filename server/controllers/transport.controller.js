@@ -13,23 +13,26 @@ import { sendDocumentForwardNotification } from "../utils/documentNotification.j
 // === DASHBOARD STATS ===
 export const getTransportDashboardStats = async (req, res, next) => {
   try {
-    const { companyId } = req.scope;
+    const { companyId, branchId, branchIdsStr = "" } = req.scope || {};
+    const effectiveBranch = (branchId && branchId !== "all") ? String(branchId) : (branchIdsStr || "");
+    const branchCond = effectiveBranch ? " AND FIND_IN_SET(branch_id, :effectiveBranch)" : "";
+    const params = { companyId, effectiveBranch };
     
     const [vehicles] = await query(
-      "SELECT COUNT(*) as total FROM trans_vehicles WHERE company_id = :companyId AND is_active = 1",
-      { companyId }
+      `SELECT COUNT(*) as total FROM trans_vehicles WHERE company_id = :companyId AND is_active = 1${branchCond}`,
+      params
     );
     const [drivers] = await query(
-      "SELECT COUNT(*) as total FROM trans_drivers WHERE company_id = :companyId AND is_active = 1",
-      { companyId }
+      `SELECT COUNT(*) as total FROM trans_drivers WHERE company_id = :companyId AND is_active = 1${branchCond}`,
+      params
     );
     const [activeTrips] = await query(
-      "SELECT COUNT(*) as total FROM trans_trips WHERE company_id = :companyId AND status IN ('SCHEDULED', 'IN_TRANSIT')",
-      { companyId }
+      `SELECT COUNT(*) as total FROM trans_trips WHERE company_id = :companyId AND status IN ('SCHEDULED', 'IN_TRANSIT')${branchCond}`,
+      params
     );
     const [fuelCost] = await query(
-      "SELECT COALESCE(SUM(total_cost), 0) as total FROM trans_fuel_logs WHERE company_id = :companyId",
-      { companyId }
+      `SELECT COALESCE(SUM(total_cost), 0) as total FROM trans_fuel_logs WHERE company_id = :companyId${branchCond}`,
+      params
     );
 
     res.json({
@@ -1849,21 +1852,25 @@ export const updateExpenseLogVoucherId = async (req, res, next) => {
 // === COMPREHENSIVE TRANSPORT & TRIP EXECUTION ANALYTICS REPORT ===
 export const getTransportFullAnalyticsReport = async (req, res, next) => {
   try {
-    const { companyId } = req.scope || {};
+    const { companyId, branchId, branchIdsStr = "" } = req.scope || {};
     const vehicleId = req.query.vehicle_id ? toNumber(req.query.vehicle_id) : null;
     const driverId = req.query.driver_id ? toNumber(req.query.driver_id) : null;
     const status = req.query.status ? String(req.query.status).toUpperCase() : null;
 
+    const effectiveBranch = (branchId && branchId !== "all") ? String(branchId) : (branchIdsStr || "");
+    const branchCond = effectiveBranch ? " AND FIND_IN_SET(branch_id, :effectiveBranch)" : "";
+    const params = { companyId, effectiveBranch };
+
     // 1. Fetch Vehicles
     const vehicleRows = await query(
-      "SELECT id, reg_number, make, model, status, capacity, fuel_type FROM trans_vehicles WHERE company_id = :companyId ORDER BY reg_number",
-      { companyId }
+      `SELECT id, reg_number, make, model, status, capacity, fuel_type FROM trans_vehicles WHERE company_id = :companyId${branchCond} ORDER BY reg_number`,
+      params
     ).catch(() => []);
 
     // 2. Fetch Drivers
     const driverRows = await query(
-      "SELECT id, employee_name AS driver_name, license_number, status FROM trans_drivers WHERE company_id = :companyId ORDER BY employee_name",
-      { companyId }
+      `SELECT id, employee_name AS driver_name, license_number, status FROM trans_drivers WHERE company_id = :companyId${branchCond} ORDER BY employee_name`,
+      params
     ).catch(() => []);
 
     // 3. Query Trips
@@ -1877,40 +1884,41 @@ export const getTransportFullAnalyticsReport = async (req, res, next) => {
       LEFT JOIN trans_drivers d ON d.id = t.driver_id
       WHERE (t.company_id = :companyId OR :companyId IS NULL OR t.company_id = 0)`;
 
+    if (effectiveBranch) tripSql += ` AND FIND_IN_SET(t.branch_id, :effectiveBranch)`;
     if (vehicleId) tripSql += ` AND t.vehicle_id = :vehicleId`;
     if (driverId) tripSql += ` AND t.driver_id = :driverId`;
     if (status) tripSql += ` AND UPPER(t.status) = :status`;
 
     tripSql += ` ORDER BY t.created_at DESC, t.id DESC`;
 
-    const rawTrips = await query(tripSql, { companyId, vehicleId, driverId, status }).catch(() => []);
+    const rawTrips = await query(tripSql, { companyId, effectiveBranch, vehicleId, driverId, status }).catch(() => []);
 
     // 4. Query Fuel Logs
     const fuelRows = await query(
-      "SELECT f.*, v.reg_number AS reg_number FROM trans_fuel_logs f LEFT JOIN trans_vehicles v ON v.id = f.vehicle_id WHERE f.company_id = :companyId ORDER BY f.log_date DESC",
-      { companyId }
+      `SELECT f.*, v.reg_number AS reg_number FROM trans_fuel_logs f LEFT JOIN trans_vehicles v ON v.id = f.vehicle_id WHERE f.company_id = :companyId${effectiveBranch ? " AND FIND_IN_SET(f.branch_id, :effectiveBranch)" : ""} ORDER BY f.log_date DESC`,
+      params
     ).catch(() => []);
 
     // 5. Query Expenses / Bills
     const expenseRows = await query(
-      "SELECT * FROM trans_expense_logs WHERE company_id = :companyId AND (deleted_at IS NULL)",
-      { companyId }
+      `SELECT * FROM trans_expense_logs WHERE company_id = :companyId AND (deleted_at IS NULL)${branchCond}`,
+      params
     ).catch(() => []);
 
     // 6. Query Billing/Invoices for Revenue
     const invoiceRows = await query(
-      "SELECT trip_id, net_amount as amount, status FROM trans_invoices WHERE company_id = :companyId",
-      { companyId }
+      `SELECT trip_id, net_amount as amount, status FROM trans_invoices WHERE company_id = :companyId${branchCond}`,
+      params
     ).catch(() => []);
 
     const billingRows = await query(
-      "SELECT trip_id, amount, status FROM trans_billing WHERE company_id = :companyId AND (deleted_at IS NULL)",
-      { companyId }
+      `SELECT trip_id, amount, status FROM trans_billing WHERE company_id = :companyId AND (deleted_at IS NULL)${branchCond}`,
+      params
     ).catch(() => []);
 
     // 7. Query Routes for Distance
     const routeRows = await query(
-      "SELECT id, distance FROM trans_routes WHERE company_id = :companyId AND (deleted_at IS NULL)",
+      `SELECT id, distance FROM trans_routes WHERE company_id = :companyId AND (deleted_at IS NULL)`,
       { companyId }
     ).catch(() => []);
 

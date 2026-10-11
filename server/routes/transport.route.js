@@ -3,7 +3,7 @@
  * @description Routes for the Transport Module
  */
 import express from "express";
-import { requireAuth, requireCompanyScope } from "../middleware/auth.js";
+import { requireAuth, requireCompanyScope, requireBranchScope } from "../middleware/auth.js";
 import { requirePermission } from "../middleware/requirePermission.js";
 import {
   listTransportationBills, getTransportationBill, createTransportationBill, updateTransportationBill, deleteTransportationBill, getNextTransportationBillNo
@@ -49,9 +49,9 @@ import {
 const router = express.Router();
 
 // Dashboard & Analytics
-router.get("/dashboard", requireAuth, requireCompanyScope, getTransportDashboardStats);
-router.get("/reports/analytics", requireAuth, requireCompanyScope, getTransportFullAnalyticsReport);
-router.get("/reports/trip-execution", requireAuth, requireCompanyScope, getTransportFullAnalyticsReport);
+router.get("/dashboard", requireAuth, requireCompanyScope, requireBranchScope, getTransportDashboardStats);
+router.get("/reports/analytics", requireAuth, requireCompanyScope, requireBranchScope, getTransportFullAnalyticsReport);
+router.get("/reports/trip-execution", requireAuth, requireCompanyScope, requireBranchScope, getTransportFullAnalyticsReport);
 
 // Vehicles
 router.get("/vehicles", requireAuth, requireCompanyScope, requirePermission("TRANSPORT.VEHICLES.VIEW"), listVehicles);

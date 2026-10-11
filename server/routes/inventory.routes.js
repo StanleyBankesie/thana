@@ -11744,4 +11744,229 @@ router.get(
   },
 );
 
+// ===== INVENTORY DASHBOARD METRICS =====
+router.get(
+  "/dashboard/metrics",
+  requireAuth,
+  requireCompanyScope,
+  requireBranchScope,
+  async (req, res, next) => {
+    try {
+      const { companyId, branchId = null, branchIdsStr = "" } = req.scope || {};
+      const topLimit = Math.max(1, Math.min(50, Number(req.query.top || 10)));
+      const now = new Date();
+      const qFrom = req.query.from ? String(req.query.from) : null;
+      const qTo = req.query.to ? String(req.query.to) : null;
+      const toDate = qTo || now.toISOString().slice(0, 10);
+      const ytdStart = qFrom || `${now.getFullYear()}-01-01`;
+      const mtdStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
+
+      const p = {
+        companyId,
+        branchIdsStr: String(branchIdsStr || ""),
+        toDate,
+        ytdStart,
+        mtdStart,
+      };
+
+      // 1. Total stock value
+      const [stockValRow] = await query(
+        `SELECT COALESCE(SUM(sb.qty * COALESCE(NULLIF(i.cost_price, 0), NULLIF(i.selling_price, 0), 0)), 0) AS total_val,
+                COALESCE(SUM(sb.qty), 0) AS total_qty
+         FROM inv_stock_balances sb
+         JOIN inv_items i ON i.id = sb.item_id AND i.company_id = :companyId
+         WHERE sb.company_id = :companyId
+           AND (:branchIdsStr = '' OR FIND_IN_SET(sb.branch_id, :branchIdsStr))
+           AND sb.qty > 0`,
+        p,
+      ).catch(() => [{ total_val: 0, total_qty: 0 }]);
+
+      let totalStockValue = Number(stockValRow?.total_val || 0);
+
+      // 2. YTD & MTD GRN Value
+      let ytdGrnValue = 0;
+      let mtdGrnValue = 0;
+
+      const [grnRow] = await query(
+        `SELECT 
+           COALESCE(SUM(CASE WHEN g.grn_date >= :ytdStart AND g.grn_date <= :toDate THEN d.qty_accepted * COALESCE(NULLIF(i.cost_price, 0), NULLIF(i.selling_price, 0), 0) ELSE 0 END), 0) AS ytd_grn,
+           COALESCE(SUM(CASE WHEN g.grn_date >= :mtdStart AND g.grn_date <= :toDate THEN d.qty_accepted * COALESCE(NULLIF(i.cost_price, 0), NULLIF(i.selling_price, 0), 0) ELSE 0 END), 0) AS mtd_grn
+         FROM inv_goods_receipt_notes g
+         JOIN inv_goods_receipt_note_details d ON d.grn_id = g.id
+         LEFT JOIN inv_items i ON i.id = d.item_id
+         WHERE g.company_id = :companyId
+           AND (:branchIdsStr = '' OR FIND_IN_SET(g.branch_id, :branchIdsStr))
+           AND UPPER(g.status) NOT IN ('CANCELLED', 'VOID')`,
+        p,
+      ).catch(() => [{ ytd_grn: 0, mtd_grn: 0 }]);
+
+      ytdGrnValue = Number(grnRow?.ytd_grn || 0);
+      mtdGrnValue = Number(grnRow?.mtd_grn || 0);
+
+      // If GRN items had no unit price recorded, fallback to purchase bills
+      if (ytdGrnValue === 0) {
+        const [billRow] = await query(
+          `SELECT 
+             COALESCE(SUM(CASE WHEN b.bill_date >= :ytdStart AND b.bill_date <= :toDate THEN b.net_amount ELSE 0 END), 0) AS ytd_bills,
+             COALESCE(SUM(CASE WHEN b.bill_date >= :mtdStart AND b.bill_date <= :toDate THEN b.net_amount ELSE 0 END), 0) AS mtd_bills
+           FROM pur_bills b
+           WHERE b.company_id = :companyId
+             AND (:branchIdsStr = '' OR FIND_IN_SET(b.branch_id, :branchIdsStr))
+             AND UPPER(b.status) NOT IN ('CANCELLED', 'VOID')`,
+          p,
+        ).catch(() => [{ ytd_bills: 0, mtd_bills: 0 }]);
+        if (Number(billRow?.ytd_bills || 0) > 0) {
+          ytdGrnValue = Number(billRow?.ytd_bills || 0);
+          mtdGrnValue = Number(billRow?.mtd_bills || 0);
+        }
+      }
+
+      // 3. Items Below Minimum
+      const [minRow] = await query(
+        `SELECT COUNT(DISTINCT i.id) AS count
+         FROM inv_items i
+         JOIN (
+           SELECT item_id, SUM(qty) AS total_qty
+           FROM inv_stock_balances
+           WHERE company_id = :companyId
+             AND (:branchIdsStr = '' OR FIND_IN_SET(branch_id, :branchIdsStr))
+           GROUP BY item_id
+         ) sb ON sb.item_id = i.id
+         WHERE i.company_id = :companyId
+           AND i.is_active = 1
+           AND i.min_stock_level > 0
+           AND sb.total_qty < i.min_stock_level`,
+        p,
+      ).catch(() => [{ count: 0 }]);
+
+      // 4. Items Above Maximum
+      const [maxRow] = await query(
+        `SELECT COUNT(DISTINCT i.id) AS count
+         FROM inv_items i
+         JOIN (
+           SELECT item_id, SUM(qty) AS total_qty
+           FROM inv_stock_balances
+           WHERE company_id = :companyId
+             AND (:branchIdsStr = '' OR FIND_IN_SET(branch_id, :branchIdsStr))
+           GROUP BY item_id
+         ) sb ON sb.item_id = i.id
+         WHERE i.company_id = :companyId
+           AND i.is_active = 1
+           AND i.max_stock_level > 0
+           AND sb.total_qty > i.max_stock_level`,
+        p,
+      ).catch(() => [{ count: 0 }]);
+
+      // 5. Top Items (by Stock Value or Quantity)
+      const topItems = await query(
+        `SELECT 
+           i.item_name AS label,
+           ROUND(COALESCE(SUM(sb.qty * COALESCE(NULLIF(i.cost_price, 0), NULLIF(i.selling_price, 0), 1)), 0), 2) AS value
+         FROM inv_stock_balances sb
+         JOIN inv_items i ON i.id = sb.item_id AND i.company_id = :companyId
+         WHERE sb.company_id = :companyId
+           AND (:branchIdsStr = '' OR FIND_IN_SET(sb.branch_id, :branchIdsStr))
+           AND sb.qty > 0
+         GROUP BY i.id, i.item_name
+         ORDER BY value DESC
+         LIMIT :topLimit`,
+        { ...p, topLimit },
+      ).catch(() => []);
+
+      // 6. Top Groups (by Stock Value)
+      const topGroups = await query(
+        `SELECT 
+           COALESCE(g.group_name, 'Unassigned') AS label,
+           ROUND(COALESCE(SUM(sb.qty * COALESCE(NULLIF(i.cost_price, 0), NULLIF(i.selling_price, 0), 1)), 0), 2) AS value
+         FROM inv_stock_balances sb
+         JOIN inv_items i ON i.id = sb.item_id AND i.company_id = :companyId
+         LEFT JOIN inv_item_groups g ON g.id = i.item_group_id
+         WHERE sb.company_id = :companyId
+           AND (:branchIdsStr = '' OR FIND_IN_SET(sb.branch_id, :branchIdsStr))
+           AND sb.qty > 0
+         GROUP BY g.id, g.group_name
+         ORDER BY value DESC
+         LIMIT :topLimit`,
+        { ...p, topLimit },
+      ).catch(() => []);
+
+      // 7. Warehouse Wise Stock
+      const warehousePie = await query(
+        `SELECT 
+           COALESCE(w.warehouse_name, 'Main Warehouse') AS label,
+           ROUND(COALESCE(SUM(sb.qty * COALESCE(NULLIF(i.cost_price, 0), NULLIF(i.selling_price, 0), 1)), 0), 2) AS value
+         FROM inv_stock_balances sb
+         JOIN inv_items i ON i.id = sb.item_id AND i.company_id = :companyId
+         LEFT JOIN inv_warehouses w ON w.id = sb.warehouse_id
+         WHERE sb.company_id = :companyId
+           AND (:branchIdsStr = '' OR FIND_IN_SET(sb.branch_id, :branchIdsStr))
+           AND sb.qty > 0
+         GROUP BY w.id, w.warehouse_name
+         ORDER BY value DESC`,
+        p,
+      ).catch(() => []);
+
+      // 8. Type Wise Stock
+      const typePie = await query(
+        `SELECT 
+           COALESCE(it.type_name, i.item_type, 'General') AS label,
+           ROUND(COALESCE(SUM(sb.qty * COALESCE(NULLIF(i.cost_price, 0), NULLIF(i.selling_price, 0), 1)), 0), 2) AS value
+         FROM inv_stock_balances sb
+         JOIN inv_items i ON i.id = sb.item_id AND i.company_id = :companyId
+         LEFT JOIN inv_item_types it ON (it.company_id = i.company_id AND it.type_code = i.item_type)
+         WHERE sb.company_id = :companyId
+           AND (:branchIdsStr = '' OR FIND_IN_SET(sb.branch_id, :branchIdsStr))
+           AND sb.qty > 0
+         GROUP BY i.item_type, it.type_name
+         ORDER BY value DESC`,
+        p,
+      ).catch(() => []);
+
+      // 9. Group Wise Stock
+      const groupPie = await query(
+        `SELECT 
+           COALESCE(g.group_name, 'Unassigned') AS label,
+           ROUND(COALESCE(SUM(sb.qty * COALESCE(NULLIF(i.cost_price, 0), NULLIF(i.selling_price, 0), 1)), 0), 2) AS value
+         FROM inv_stock_balances sb
+         JOIN inv_items i ON i.id = sb.item_id AND i.company_id = :companyId
+         LEFT JOIN inv_item_groups g ON g.id = i.item_group_id
+         WHERE sb.company_id = :companyId
+           AND (:branchIdsStr = '' OR FIND_IN_SET(sb.branch_id, :branchIdsStr))
+           AND sb.qty > 0
+         GROUP BY g.id, g.group_name
+         ORDER BY value DESC`,
+        p,
+      ).catch(() => []);
+
+      const cards = {
+        total_stock_value: totalStockValue,
+        ytd_grn_value: ytdGrnValue,
+        mtd_grn_value: mtdGrnValue,
+        items_below_min: Number(minRow?.count || 0),
+        items_above_max: Number(maxRow?.count || 0),
+      };
+
+      res.json({
+        success: true,
+        cards,
+        top_items: topItems,
+        top_groups: topGroups,
+        warehouse_pie: warehousePie,
+        type_pie: typePie,
+        group_pie: groupPie,
+        data: {
+          cards,
+          top_items: topItems,
+          top_groups: topGroups,
+          warehouse_pie: warehousePie,
+          type_pie: typePie,
+          group_pie: groupPie,
+        },
+      });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
 export default router;
