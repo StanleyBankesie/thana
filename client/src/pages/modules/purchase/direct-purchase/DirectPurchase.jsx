@@ -132,6 +132,12 @@ export default function DirectPurchase() {
           payment_type: hdr.payment_type || "CASH",
           payment_terms: hdr.payment_terms || "",
           remarks: hdr.remarks || "",
+          auto_payment: Boolean(hdr.auto_payment || hdr.payment_account_id || hdr.payment_voucher_id),
+          payment_account_id: hdr.payment_account_id ? String(hdr.payment_account_id) : "",
+          payment_method: hdr.payment_method || "Cash",
+          payment_reference: hdr.payment_reference || "",
+          cheque_date: hdr.cheque_date ? String(hdr.cheque_date).slice(0, 10) : "",
+          paid_amount: hdr.paid_amount != null && hdr.paid_amount !== "" ? String(hdr.paid_amount) : "",
         });
         const details = Array.isArray(hdr.details) ? hdr.details : [];
         setLines(
@@ -476,29 +482,37 @@ export default function DirectPurchase() {
 
   const selectablePaymentAccounts = useMemo(() => {
     const list = Array.isArray(accounts) ? accounts : [];
-    return list.filter((a) => {
+    const currentAcc = list.find(
+      (a) => String(a.id) === String(form.payment_account_id || ""),
+    );
+    const filtered = list.filter((a) => {
       const gc = String(a.group_code || "").toUpperCase();
       const gn = String(a.group_name || "").toUpperCase();
-      return isChequeLike
-        ? gc === "AST_BANK" || gn === "BANK ACCOUNTS"
-        : gc === "AST_CASH" || gn === "CASH AND CASH EQUIVALENTS";
+      const name = String(a.name || "").toUpperCase();
+      const isBank = gc === "AST_BANK" || gc === "1006" || gn.includes("BANK") || name.includes("BANK");
+      const isCash = gc === "AST_CASH" || gc === "1005" || gn.includes("CASH") || gn.includes("MONEY") || name.includes("CASH") || name.includes("MOMO") || name.includes("MOBILE MONEY");
+      return isBank || isCash;
     });
-  }, [accounts, isChequeLike]);
+    if (currentAcc && !filtered.some((a) => String(a.id) === String(currentAcc.id))) {
+      filtered.unshift(currentAcc);
+    }
+    return filtered;
+  }, [accounts, form.payment_account_id]);
 
   useEffect(() => {
     if (!form.auto_payment) return;
+    if (isViewMode || dpId) return;
     const acc = accounts.find(
       (a) => String(a.id) === String(form.payment_account_id || ""),
     );
     if (!acc) return;
     const gc = String(acc.group_code || "").toUpperCase();
     const gn = String(acc.group_name || "").toUpperCase();
-    const wantsBank = isChequeLike;
-    const ok = wantsBank
-      ? gc === "AST_BANK" || gn === "BANK ACCOUNTS"
-      : gc === "AST_CASH" || gn === "CASH AND CASH EQUIVALENTS";
-    if (!ok) updateForm("payment_account_id", "");
-  }, [form.auto_payment, isChequeLike, accounts, form.payment_account_id]);
+    const name = String(acc.name || "").toUpperCase();
+    const isBank = gc === "AST_BANK" || gc === "1006" || gn.includes("BANK") || name.includes("BANK");
+    const isCash = gc === "AST_CASH" || gc === "1005" || gn.includes("CASH") || gn.includes("MONEY") || name.includes("CASH") || name.includes("MOMO") || name.includes("MOBILE MONEY");
+    if (!isBank && !isCash) updateForm("payment_account_id", "");
+  }, [form.auto_payment, isChequeLike, accounts, form.payment_account_id, isViewMode, dpId]);
   const totalInCurrentCurrency = useMemo(
     () =>
       Number(totals.subtotal || 0) +
@@ -1466,7 +1480,7 @@ export default function DirectPurchase() {
             ) : null}
           </div>
 
-          {canRecordDirectPayment && !isViewMode && (
+          {canRecordDirectPayment && (!isViewMode || form.auto_payment || form.payment_account_id) && (
             <div className="bg-brand/5 border border-brand/20 rounded-lg p-5 mt-5">
               <div className="flex items-center justify-between pb-3 border-b border-brand/15">
                 <label className="inline-flex items-center gap-2.5 cursor-pointer select-none">
@@ -1474,6 +1488,7 @@ export default function DirectPurchase() {
                     type="checkbox"
                     className="w-4 h-4 text-brand rounded border-gray-300 focus:ring-brand"
                     checked={Boolean(form.auto_payment)}
+                    disabled={isViewMode}
                     onChange={(e) => {
                       const checked = e.target.checked;
                       updateForm("auto_payment", checked);
@@ -1502,6 +1517,7 @@ export default function DirectPurchase() {
                     <select
                       className="input w-full"
                       value={form.payment_method || "Cash"}
+                      disabled={isViewMode}
                       onChange={(e) => {
                         updateForm("payment_method", e.target.value);
                         updateForm("payment_account_id", "");
@@ -1522,6 +1538,7 @@ export default function DirectPurchase() {
                     <select
                       className="input w-full"
                       value={form.payment_account_id || ""}
+                      disabled={isViewMode}
                       onChange={(e) =>
                         updateForm("payment_account_id", e.target.value)
                       }
@@ -1545,6 +1562,7 @@ export default function DirectPurchase() {
                       className="input w-full"
                       placeholder="e.g. TR-9481 / Cheque #"
                       value={form.payment_reference || ""}
+                      disabled={isViewMode}
                       onChange={(e) =>
                         updateForm("payment_reference", e.target.value)
                       }
@@ -1561,6 +1579,7 @@ export default function DirectPurchase() {
                         step="0.01"
                         className="input w-full font-semibold"
                         placeholder="0.00"
+                        disabled={isViewMode}
                         value={
                           form.paid_amount !== ""
                             ? form.paid_amount
@@ -1590,6 +1609,7 @@ export default function DirectPurchase() {
                       <input
                         type="date"
                         className="input w-full"
+                        disabled={isViewMode}
                         value={form.cheque_date || ""}
                         onChange={(e) =>
                           updateForm("cheque_date", e.target.value)

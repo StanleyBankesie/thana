@@ -2752,6 +2752,13 @@ router.get(
         supplier_invoice_date: hdr.supplier_invoice_date,
         payment_type: hdr.payment_type,
         payment_terms: hdr.payment_terms,
+        payment_account_id: hdr.payment_account_id,
+        payment_method: hdr.payment_method,
+        payment_reference: hdr.payment_reference,
+        cheque_date: hdr.cheque_date,
+        paid_amount: hdr.paid_amount,
+        auto_payment: Boolean(hdr.auto_payment || hdr.payment_account_id || hdr.payment_voucher_id),
+        payment_voucher_id: hdr.payment_voucher_id,
         remarks: hdr.remarks,
         subtotal: hdr.subtotal,
         discount_amount: hdr.discount_amount,
@@ -3421,6 +3428,11 @@ router.get(
             h.payment_type,
             h.status,
             h.net_amount AS grand_total,
+            h.payment_account_id,
+            h.payment_voucher_id,
+            h.auto_payment,
+            h.payment_method,
+            h.paid_amount,
             h.grn_id,
             g.grn_no,
             h.bill_id,
@@ -11679,6 +11691,12 @@ async function ensureDirectPurchaseTables() {
       supplier_invoice_number VARCHAR(100) NULL,
       supplier_invoice_date DATE NULL,
       payment_terms INT NULL,
+      payment_account_id BIGINT UNSIGNED NULL,
+      payment_method VARCHAR(50) NULL,
+      payment_reference VARCHAR(100) NULL,
+      cheque_date DATE NULL,
+      paid_amount DECIMAL(18,2) NOT NULL DEFAULT 0,
+      auto_payment TINYINT(1) NOT NULL DEFAULT 0,
       remarks VARCHAR(255) NULL,
       subtotal DECIMAL(18,2) NOT NULL DEFAULT 0,
       discount_amount DECIMAL(18,2) NOT NULL DEFAULT 0,
@@ -11689,6 +11707,7 @@ async function ensureDirectPurchaseTables() {
       bill_id BIGINT UNSIGNED NULL,
       grn_voucher_id BIGINT UNSIGNED NULL,
       bill_voucher_id BIGINT UNSIGNED NULL,
+      payment_voucher_id BIGINT UNSIGNED NULL,
       created_by BIGINT UNSIGNED NULL,
       approved_by BIGINT UNSIGNED NULL,
       posted_by BIGINT UNSIGNED NULL,
@@ -11754,6 +11773,55 @@ async function ensureDirectPurchaseExtendedColumns() {
     await pool
       .query(
         "ALTER TABLE pur_direct_purchase_hdr ADD COLUMN supplier_invoice_date DATE NULL AFTER supplier_invoice_number",
+      )
+      .catch(() => {});
+  }
+  if (!(await hasColumn("pur_direct_purchase_hdr", "payment_account_id"))) {
+    await pool
+      .query(
+        "ALTER TABLE pur_direct_purchase_hdr ADD COLUMN payment_account_id BIGINT UNSIGNED NULL AFTER payment_terms",
+      )
+      .catch(() => {});
+  }
+  if (!(await hasColumn("pur_direct_purchase_hdr", "payment_method"))) {
+    await pool
+      .query(
+        "ALTER TABLE pur_direct_purchase_hdr ADD COLUMN payment_method VARCHAR(50) NULL AFTER payment_account_id",
+      )
+      .catch(() => {});
+  }
+  if (!(await hasColumn("pur_direct_purchase_hdr", "payment_reference"))) {
+    await pool
+      .query(
+        "ALTER TABLE pur_direct_purchase_hdr ADD COLUMN payment_reference VARCHAR(100) NULL AFTER payment_method",
+      )
+      .catch(() => {});
+  }
+  if (!(await hasColumn("pur_direct_purchase_hdr", "cheque_date"))) {
+    await pool
+      .query(
+        "ALTER TABLE pur_direct_purchase_hdr ADD COLUMN cheque_date DATE NULL AFTER payment_reference",
+      )
+      .catch(() => {});
+  }
+  if (!(await hasColumn("pur_direct_purchase_hdr", "paid_amount"))) {
+    await pool
+      .query(
+        "ALTER TABLE pur_direct_purchase_hdr ADD COLUMN paid_amount DECIMAL(18,2) NOT NULL DEFAULT 0 AFTER cheque_date",
+      )
+      .catch(() => {});
+  }
+  if (!(await hasColumn("pur_direct_purchase_hdr", "auto_payment"))) {
+    await pool
+      .query(
+        "ALTER TABLE pur_direct_purchase_hdr ADD COLUMN auto_payment TINYINT(1) NOT NULL DEFAULT 0 AFTER paid_amount",
+      )
+      .catch(() => {});
+  }
+  if (!(await hasColumn("pur_direct_purchase_hdr", "payment_voucher_id"))) {
+    await pool
+      .query(
+        "ALTER TABLE pur_direct_purchase_hdr ADD COLUMN payment_voucher_id BIGINT UNSIGNED NULL AFTER bill_voucher_id",
       )
       .catch(() => {});
   }
@@ -11906,11 +11974,13 @@ router.post(
         `INSERT INTO pur_direct_purchase_hdr
          (company_id, branch_id, dp_no, dp_date, supplier_id, warehouse_id, 
           ${currencyBindings.insertColumns.length ? `${currencyBindings.insertColumns.join(", ")},` : ""}
-         payment_type, payment_terms, supplier_invoice_number, supplier_invoice_date, remarks, subtotal, discount_amount, tax_amount, net_amount, status, created_by)
+         payment_type, payment_terms, payment_account_id, payment_method, payment_reference, cheque_date, paid_amount, auto_payment,
+         supplier_invoice_number, supplier_invoice_date, remarks, subtotal, discount_amount, tax_amount, net_amount, status, created_by)
          VALUES
          (:companyId, :branchId, :dpNo, :dpDate, :supplierId, :warehouseId, 
           ${currencyBindings.insertValues.length ? `${currencyBindings.insertValues.join(", ")},` : ""}
-          :paymentType, :paymentTerms, :supplierInvoiceNumber, :supplierInvoiceDate, :remarks, :subtotal, :discountAmount, :taxAmount, :netAmount, 'DRAFT', :createdBy)`,
+          :paymentType, :paymentTerms, :paymentAccountId, :paymentMethod, :paymentReference, :chequeDate, :paidAmount, :autoPayment,
+          :supplierInvoiceNumber, :supplierInvoiceDate, :remarks, :subtotal, :discountAmount, :taxAmount, :netAmount, 'DRAFT', :createdBy)`,
         {
           companyId,
           branchId, branchIdsStr,
@@ -11920,6 +11990,12 @@ router.post(
           warehouseId,
           paymentType,
           paymentTerms,
+          paymentAccountId,
+          paymentMethod,
+          paymentReference,
+          chequeDate,
+          paidAmount: autoPayment ? (paidAmount > 0 ? paidAmount : netAmount) : 0,
+          autoPayment: autoPayment ? 1 : 0,
           supplierInvoiceNumber,
           supplierInvoiceDate,
           remarks,
@@ -12126,6 +12202,8 @@ router.post(
                bill_id = :billId,
                grn_voucher_id = :grnVoucherId,
                bill_voucher_id = :billVoucherId,
+               payment_voucher_id = :paymentVoucherId,
+               payment_account_id = :paymentAccountId,
                approved_by = :userId,
                posted_by = :userId
          WHERE id = :id AND company_id = :companyId AND (:branchIdsStr = '' OR FIND_IN_SET(branch_id, :branchIdsStr))`,
@@ -12137,6 +12215,8 @@ router.post(
           billId,
           grnVoucherId,
           billVoucherId,
+          paymentVoucherId,
+          paymentAccountId: autoPayment ? paymentAccountId : null,
           userId: req.user?.sub || null,
         },
       );

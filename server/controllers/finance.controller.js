@@ -2267,12 +2267,40 @@ export const listVouchers = async (req, res, next) => {
                   COALESCE((SELECT SUM(l.credit) FROM fin_voucher_lines l WHERE l.voucher_id = v.id), 0)
                 ) AS total_amount,
                 v.voucher_type_id, vt.code AS voucher_type_code, vt.name AS voucher_type_name,
-                v.currency_id, c.code AS currency_code
+                v.currency_id, c.code AS currency_code,
+                v.created_by, v.created_at,
+                u.username AS created_by_username,
+                COALESCE(u.full_name, u.username) AS created_by_name,
+                (
+                  SELECT a.name
+                  FROM fin_voucher_lines l
+                  JOIN fin_accounts a ON a.id = l.account_id
+                  WHERE l.voucher_id = v.id AND l.credit > 0
+                  ORDER BY l.line_no ASC, l.id ASC
+                  LIMIT 1
+                ) AS payment_account_name,
+                (
+                  SELECT a.code
+                  FROM fin_voucher_lines l
+                  JOIN fin_accounts a ON a.id = l.account_id
+                  WHERE l.voucher_id = v.id AND l.credit > 0
+                  ORDER BY l.line_no ASC, l.id ASC
+                  LIMIT 1
+                ) AS payment_account_code,
+                (
+                  SELECT l.account_id
+                  FROM fin_voucher_lines l
+                  WHERE l.voucher_id = v.id AND l.credit > 0
+                  ORDER BY l.line_no ASC, l.id ASC
+                  LIMIT 1
+                ) AS payment_account_id
            FROM fin_vouchers v
            LEFT JOIN fin_voucher_types vt
              ON vt.id = v.voucher_type_id
            LEFT JOIN fin_currencies c
              ON c.id = v.currency_id
+           LEFT JOIN adm_users u
+             ON u.id = v.created_by
           ${whereClause}
           ORDER BY v.voucher_date DESC, v.id DESC LIMIT ${limit} OFFSET ${offset}`,
         params,
@@ -2287,10 +2315,38 @@ export const listVouchers = async (req, res, next) => {
                   COALESCE(v.total_credit, 0) AS total_credit,
                   COALESCE(v.balanced_amount, 0) AS balanced_amount,
                   GREATEST(COALESCE(v.total_debit, 0), COALESCE(v.total_credit, 0), COALESCE(v.balanced_amount, 0)) AS total_amount,
-                  v.voucher_type_id, vt.code AS voucher_type_code, vt.name AS voucher_type_name
+                  v.voucher_type_id, vt.code AS voucher_type_code, vt.name AS voucher_type_name,
+                  v.created_by, v.created_at,
+                  u.username AS created_by_username,
+                  COALESCE(u.full_name, u.username) AS created_by_name,
+                  (
+                    SELECT a.name
+                    FROM fin_voucher_lines l
+                    JOIN fin_accounts a ON a.id = l.account_id
+                    WHERE l.voucher_id = v.id AND l.credit > 0
+                    ORDER BY l.line_no ASC, l.id ASC
+                    LIMIT 1
+                  ) AS payment_account_name,
+                  (
+                    SELECT a.code
+                    FROM fin_voucher_lines l
+                    JOIN fin_accounts a ON a.id = l.account_id
+                    WHERE l.voucher_id = v.id AND l.credit > 0
+                    ORDER BY l.line_no ASC, l.id ASC
+                    LIMIT 1
+                  ) AS payment_account_code,
+                  (
+                    SELECT l.account_id
+                    FROM fin_voucher_lines l
+                    WHERE l.voucher_id = v.id AND l.credit > 0
+                    ORDER BY l.line_no ASC, l.id ASC
+                    LIMIT 1
+                  ) AS payment_account_id
              FROM fin_vouchers v
              LEFT JOIN fin_voucher_types vt
                ON vt.id = v.voucher_type_id
+             LEFT JOIN adm_users u
+               ON u.id = v.created_by
             ${whereClause}
             ORDER BY v.id DESC LIMIT ${limit} OFFSET ${offset}`,
           params,
@@ -2342,12 +2398,17 @@ export const getVoucherById = async (req, res, next) => {
                 COALESCE((SELECT SUM(l.credit) FROM fin_voucher_lines l WHERE l.voucher_id = v.id), 0)
               ) AS total_amount,
               v.voucher_type_id, vt.code AS voucher_type_code, vt.name AS voucher_type_name,
-              v.currency_id, c.code AS currency_code, v.exchange_rate
+              v.currency_id, c.code AS currency_code, v.exchange_rate,
+              v.created_by, v.created_at,
+              u.username AS created_by_username,
+              COALESCE(u.full_name, u.username) AS created_by_name
          FROM fin_vouchers v
          LEFT JOIN fin_voucher_types vt
            ON vt.id = v.voucher_type_id
          LEFT JOIN fin_currencies c
            ON c.id = v.currency_id
+         LEFT JOIN adm_users u
+           ON u.id = v.created_by
         WHERE v.company_id = :companyId
           AND (:branchId IS NULL OR :branchId = 'all' OR (:branchIdsStr = '' OR FIND_IN_SET(v.branch_id, :branchIdsStr)) OR v.branch_id IS NULL)
           AND v.id = :id

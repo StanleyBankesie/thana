@@ -301,7 +301,16 @@ export default function PaymentVoucherList() {
     if (!q) return base;
     return filterAndSort(base, {
       query: q,
-      getKeys: (v) => [v.voucher_no, v.description, v.narration, v.remarks],
+      getKeys: (v) => [
+        v.voucher_no,
+        v.description,
+        v.narration,
+        v.remarks,
+        v.payment_account_name,
+        v.payment_account_code,
+        v.created_by_username,
+        v.created_by_name,
+      ],
     });
   }, [items, search, status]);
 
@@ -1373,12 +1382,13 @@ export default function PaymentVoucherList() {
                   <tr>
                     <SortableHeader label="Voucher No" sortKey="voucher_no" currentKey={sortKey} direction={sortDir} onToggle={toggle} />
                     <SortableHeader label="Date" sortKey="voucher_date" currentKey={sortKey} direction={sortDir} onToggle={toggle} />
+                    <SortableHeader label="Payment Account" sortKey="payment_account_name" currentKey={sortKey} direction={sortDir} onToggle={toggle} />
                     <SortableHeader label="Description" sortKey="description" currentKey={sortKey} direction={sortDir} onToggle={toggle} />
                     <SortableHeader label="Amount" sortKey="total_amount" currentKey={sortKey} direction={sortDir} onToggle={toggle} className="text-right" />
                     <SortableHeader label="Status" sortKey="status" currentKey={sortKey} direction={sortDir} onToggle={toggle} />
+                    <SortableHeader label="Created By" sortKey="created_by_username" currentKey={sortKey} direction={sortDir} onToggle={toggle} />
+                    <SortableHeader label="Created Date" sortKey="created_at" currentKey={sortKey} direction={sortDir} onToggle={toggle} />
                     <th className="text-right">Actions</th>
-                    {(isPAYV || isRV || isJV) && <SortableHeader label="Created By" sortKey="created_by_username" currentKey={sortKey} direction={sortDir} onToggle={toggle} />}
-                    {(isPAYV || isRV || isJV) && <SortableHeader label="Created Date" sortKey="created_at" currentKey={sortKey} direction={sortDir} onToggle={toggle} />}
                   </tr>
                 </thead>
                 <tbody>
@@ -1391,6 +1401,11 @@ export default function PaymentVoucherList() {
                         )}
                       </td>
                       <td>{new Date(v.voucher_date).toLocaleDateString()}</td>
+                      <td>
+                        {v.payment_account_name
+                          ? `${v.payment_account_code ? v.payment_account_code + " - " : ""}${v.payment_account_name}`
+                          : "-"}
+                      </td>
                       <td>{renderDescription(v)}</td>
                       <td className="text-right font-medium">
                         {`GH₵ ${Number(v.total_amount ?? v.amount ?? v.total_debit ?? v.total_credit ?? v.balanced_amount ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
@@ -1398,6 +1413,8 @@ export default function PaymentVoucherList() {
                       <td>
                         <StatusBadge status={v.status} />
                       </td>
+                      <td className="py-2">{v.created_by_username || v.created_by_name || "-"}</td>
+                      <td className="py-2">{v.created_at ? new Date(v.created_at).toLocaleDateString() : "-"}</td>
                       <td className="py-2">
                         <div className="flex items-center justify-end gap-2">
                           {/* Slot 1: View */}
@@ -1504,8 +1521,6 @@ export default function PaymentVoucherList() {
                           </div>
                         </div>
                       </td>
-                      {(isPAYV || isRV || isJV) && <td className="py-2">{v.created_by_username || v.created_by_name || "-"}</td>}
-                      {(isPAYV || isRV || isJV) && <td className="py-2">{v.created_at ? new Date(v.created_at).toLocaleDateString() : "-"}</td>}
                     </tr>
                   ))}
                 </tbody>
