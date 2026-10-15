@@ -43,7 +43,12 @@ export default function CompanyList() {
     }
   };
 
-  if (Number(user?.id) !== 1) {
+  if (
+    Number(user?.id) !== 1 &&
+    !user?.isSuperAdmin &&
+    Number(user?.role_id) !== 1 &&
+    Number(user?.roleId) !== 1
+  ) {
     return (
       <div className="p-8 text-center">
         <h2 className="text-2xl font-bold text-red-600 mb-4">Access Denied</h2>

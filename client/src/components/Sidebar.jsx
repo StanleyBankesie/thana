@@ -50,7 +50,7 @@ export default function Sidebar() {
   let menuItems = [
     {
       key: "sales",
-      label: "Sales",
+      label: "Sales Management",
       icon: "💰",
       path: "/sales",
       children: [
@@ -91,7 +91,7 @@ export default function Sidebar() {
     },
     {
       key: "inventory",
-      label: "Inventory",
+      label: "Inventory Management",
       icon: "📦",
       path: "/inventory",
       children: [
@@ -120,7 +120,7 @@ export default function Sidebar() {
     },
     {
       key: "purchase",
-      label: "Purchase",
+      label: "Procurement",
       icon: "🛒",
       path: "/purchase",
       children: [
@@ -201,7 +201,7 @@ export default function Sidebar() {
     },
     {
       key: "administration",
-      label: "Administration",
+      label: "System Admin",
       icon: "⚙️",
       path: "/administration",
       children: [
@@ -293,7 +293,7 @@ export default function Sidebar() {
     },
     {
       key: "production",
-      label: "Production",
+      label: "Manufacturing",
       icon: "🏭",
       path: "/production",
       children: [
@@ -334,7 +334,7 @@ export default function Sidebar() {
     },
     {
       key: "transport",
-      label: "Transport",
+      label: "Transport and Logistics",
       icon: "🚛",
       path: "/transport",
       children: [

@@ -15,18 +15,18 @@ import { ThemeProvider } from "./theme/ThemeContext.jsx";
 import { GpsTrackingProvider } from "./context/GpsTrackingContext.jsx";
 import ProtectedRoute from "./auth/ProtectedRoute.jsx";
 import ErrorBoundary from "./components/ErrorBoundary.jsx";
-import LoginPage from "./pages/LoginPage.jsx";
-import ForgotPasswordRequest from "./pages/ForgotPasswordRequest.jsx";
-import ResetPasswordPage from "./pages/ResetPasswordPage.jsx";
-import PrivacyPolicy from "./pages/PrivacyPolicy.jsx";
+const LoginPage = React.lazy(() => import("./pages/LoginPage.jsx"));
+const ForgotPasswordRequest = React.lazy(() => import("./pages/ForgotPasswordRequest.jsx"));
+const ResetPasswordPage = React.lazy(() => import("./pages/ResetPasswordPage.jsx"));
+const PrivacyPolicy = React.lazy(() => import("./pages/PrivacyPolicy.jsx"));
 import { Provider, useDispatch } from "react-redux";
 import { store } from "./store/store.js";
-import BranchSelectionPage from "./pages/BranchSelectionPage.jsx";
+const BranchSelectionPage = React.lazy(() => import("./pages/BranchSelectionPage.jsx"));
 import { useAuth } from "./auth/AuthContext.jsx";
 import { clearGeneralCache } from "./offline/cache.js";
 import { clearPosCache } from "./offline/db.js";
 
-import AppShell from "./layout/AppShell.jsx";
+const AppShell = React.lazy(() => import("./layout/AppShell.jsx"));
 
 const LoadingScreen = () => null;
 
@@ -41,21 +41,25 @@ function ScopedShell() {
   const { scope, initialized } = useAuth();
   // Redux dispatch for store actions
   const dispatch = useDispatch();
+  const prevBranchRef = React.useRef(scope?.branchId);
 
-  // Reset store and clear caches on branch change
+  // Reset store and clear caches on genuine branch change (not initial login)
   React.useEffect(() => {
+    const prevBranch = prevBranchRef.current;
     if (initialized && scope?.branchId) {
-      // Clear Redux Store state
-      dispatch({ type: "RESET_STORE" });
-      // Clear IndexedDB offline caches
-      clearGeneralCache().catch(() => {});
-      clearPosCache().catch(() => {});
+      if (prevBranch && prevBranch !== scope?.branchId) {
+        // Clear Redux Store state
+        dispatch({ type: "RESET_STORE" });
+        // Clear IndexedDB offline caches
+        clearGeneralCache().catch(() => {});
+        clearPosCache().catch(() => {});
+      }
+      prevBranchRef.current = scope?.branchId;
     }
   }, [scope?.branchId, initialized, dispatch]);
 
-  // Only set the key once initialized to avoid an extra remount on first load.
-  const branchKey = initialized ? `branch-${scope?.branchId ?? "none"}` : "branch-init";
-  return <AppShell key={branchKey} />;
+  const activeBranchId = scope?.branchId ?? "default";
+  return <AppShell key={`branch-${activeBranchId}`} />;
 }
 
 /**
@@ -91,34 +95,36 @@ export default function App() {
                 <GpsTrackingProvider>
                 <ToastContainer position="top-right" theme="dark" />
 
-                <Routes>
-                  <Route path="/login" element={
-                    <ErrorBoundary><LoginPage /></ErrorBoundary>
-                  } />
-                  <Route
-                    path="/forgot-password"
-                    element={<ErrorBoundary><ForgotPasswordRequest /></ErrorBoundary>}
-                  />
-                  <Route path="/reset-password" element={<ErrorBoundary><ResetPasswordPage /></ErrorBoundary>} />
-                  <Route path="/privacy-policy" element={<ErrorBoundary><PrivacyPolicy /></ErrorBoundary>} />
-                  <Route
-                    path="/select-branch"
-                    element={
-                      <ProtectedRoute>
-                        <ErrorBoundary><BranchSelectionPage /></ErrorBoundary>
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/*"
-                    element={
-                      <ProtectedRoute>
-                        <ErrorBoundary><ScopedShell /></ErrorBoundary>
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route path="*" element={<Navigate to="/" replace />} />
-                </Routes>
+                <React.Suspense fallback={null}>
+                  <Routes>
+                    <Route path="/login" element={
+                      <ErrorBoundary><LoginPage /></ErrorBoundary>
+                    } />
+                    <Route
+                      path="/forgot-password"
+                      element={<ErrorBoundary><ForgotPasswordRequest /></ErrorBoundary>}
+                    />
+                    <Route path="/reset-password" element={<ErrorBoundary><ResetPasswordPage /></ErrorBoundary>} />
+                    <Route path="/privacy-policy" element={<ErrorBoundary><PrivacyPolicy /></ErrorBoundary>} />
+                    <Route
+                      path="/select-branch"
+                      element={
+                        <ProtectedRoute>
+                          <ErrorBoundary><BranchSelectionPage /></ErrorBoundary>
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/*"
+                      element={
+                        <ProtectedRoute>
+                          <ErrorBoundary><ScopedShell /></ErrorBoundary>
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route path="*" element={<Navigate to="/" replace />} />
+                  </Routes>
+                </React.Suspense>
                 </GpsTrackingProvider>
               </PermissionProvider>
             </AuthProvider>

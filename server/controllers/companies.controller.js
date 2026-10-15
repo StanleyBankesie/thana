@@ -72,6 +72,9 @@ export const ensureCompanyColumns = async () => {
   if (!(await hasColumn(table, "logo"))) {
     await query(`ALTER TABLE ${table} ADD COLUMN logo LONGBLOB NULL`);
   }
+  if (!(await hasColumn(table, "created_by"))) {
+    await query(`ALTER TABLE ${table} ADD COLUMN created_by BIGINT UNSIGNED NULL`);
+  }
 };
 
 /**
@@ -89,15 +92,62 @@ export const mangeCompanies = async (req, res, next) => {
       throw httpError(400, "VALIDATION_ERROR", "name and code are required");
 
     await ensureCompanyColumns();
+    const userId = Number(req.user?.id || req.user?.sub) || null;
+    const hasCreatedBy = await hasColumn("adm_companies", "created_by");
+
+    const cols = ["name", "code", "is_active"];
+    const vals = [":name", ":code", ":is_active"];
+    const queryParams = {
+      name,
+      code,
+      is_active: is_active === undefined ? 1 : Number(Boolean(is_active)),
+    };
+    if (hasCreatedBy && userId) {
+      cols.push("created_by");
+      vals.push(":created_by");
+      queryParams.created_by = userId;
+    }
+
     const result = await query(
-      "INSERT INTO adm_companies (name, code, is_active) VALUES (:name, :code, :is_active)",
-      {
-        name,
-        code,
-        is_active: is_active === undefined ? 1 : Number(Boolean(is_active)),
-      },
+      `INSERT INTO adm_companies (${cols.join(", ")}) VALUES (${vals.join(", ")})`,
+      queryParams,
     );
-    res.status(201).json({ id: result.insertId });
+    const newCompanyId = result.insertId;
+
+    // Automatically create a default main branch for this new company so it can immediately be used
+    try {
+      await ensureBranchColumns();
+      const branchCode = `${code}-HO`.slice(0, 20);
+      const branchResult = await query(
+        `INSERT INTO adm_branches (company_id, name, code, is_active, is_superbranch, created_by)
+         VALUES (:company_id, :name, :code, 1, 1, :created_by)`,
+        {
+          company_id: newCompanyId,
+          name: "Head Office",
+          code: branchCode,
+          created_by: userId,
+        },
+      );
+      const newBranchId = branchResult.insertId;
+
+      const { ensureUserBranchMapping } = await import("../utils/dbUtils.js");
+      await ensureUserBranchMapping();
+
+      const usersToAssign = new Set([1]);
+      if (userId) usersToAssign.add(userId);
+
+      for (const uid of usersToAssign) {
+        await query(
+          `INSERT IGNORE INTO adm_user_branches (user_id, company_id, branch_id)
+           VALUES (:uid, :company_id, :branch_id)`,
+          { uid, company_id: newCompanyId, branch_id: newBranchId },
+        );
+      }
+    } catch (branchErr) {
+      console.error("Failed to create default branch for new company:", branchErr);
+    }
+
+    res.status(201).json({ id: newCompanyId });
   } catch (err) {
     next(err);
   }
@@ -219,6 +269,18 @@ export const getCompanies = async (req, res, next) => {
     try {
       await ensureCompanyColumns();
     } catch {}
+
+    const userId = Number(req.user?.id || req.user?.sub);
+    const isSuper =
+      userId === 1 ||
+      req.user?.isSuperAdmin ||
+      Number(req.user?.role_id) === 1 ||
+      Number(req.user?.roleId) === 1 ||
+      (Array.isArray(req.user?.permissions) &&
+        (req.user.permissions.includes("*") ||
+         req.user.permissions.includes("ADMIN.COMPANIES.VIEW") ||
+         req.user.permissions.includes("ADMIN.COMPANIES.MANAGE")));
+
     const companyIds = Array.isArray(req.user?.companyIds)
       ? req.user.companyIds
           .map((x) => Number(x))
@@ -227,22 +289,25 @@ export const getCompanies = async (req, res, next) => {
     const { active } = req.query || {};
     const filters = [];
     const params = {};
-    if (companyIds.length) {
+
+    if (!isSuper && companyIds.length) {
       const keys = companyIds.map((_, i) => `:cid${i}`);
-      filters.push(`id IN (${keys.join(",")})`);
+      filters.push(`(c.id IN (${keys.join(",")}) OR c.created_by = :userId)`);
       companyIds.forEach((v, i) => (params[`cid${i}`] = v));
+      params.userId = userId;
     }
     if (typeof active !== "undefined" && active !== "") {
-      filters.push("is_active = :is_active");
+      filters.push("c.is_active = :is_active");
       params.is_active = Number(Boolean(active));
     }
     const where = filters.length ? `WHERE ${filters.join(" AND ")}` : "";
-    const items = await query(`SELECT id, name, code, is_active, created_at,
-          created_at,
-          u.username AS created_by_name
-         FROM adm_companies ${where}
-        LEFT JOIN adm_users u ON u.id = created_by
-         ORDER BY name ASC`,
+    const items = await query(
+      `SELECT c.id, c.name, c.code, c.is_active, c.created_at,
+              u.username AS created_by_name
+         FROM adm_companies c
+        LEFT JOIN adm_users u ON u.id = c.created_by
+        ${where}
+        ORDER BY c.name ASC`,
       params,
     );
     res.json({ items });
@@ -418,6 +483,18 @@ export const getCompanyLogo = async (req, res, next) => {
 export const getBranches = async (req, res, next) => {
   try {
     await ensureBranchColumns();
+
+    const userId = Number(req.user?.id || req.user?.sub);
+    const isSuper =
+      userId === 1 ||
+      req.user?.isSuperAdmin ||
+      Number(req.user?.role_id) === 1 ||
+      Number(req.user?.roleId) === 1 ||
+      (Array.isArray(req.user?.permissions) &&
+        (req.user.permissions.includes("*") ||
+         req.user.permissions.includes("ADMIN.BRANCHES.VIEW") ||
+         req.user.permissions.includes("ADMIN.BRANCHES.MANAGE")));
+
     const companyIds = Array.isArray(req.user?.companyIds)
       ? req.user.companyIds
           .map((x) => Number(x))
@@ -426,7 +503,7 @@ export const getBranches = async (req, res, next) => {
     const { active } = req.query || {};
     const filters = [];
     const params = {};
-    if (companyIds.length) {
+    if (!isSuper && companyIds.length) {
       const keys = companyIds.map((_, i) => `:cid${i}`);
       filters.push(`b.company_id IN (${keys.join(",")})`);
       companyIds.forEach((v, i) => (params[`cid${i}`] = v));
@@ -436,20 +513,21 @@ export const getBranches = async (req, res, next) => {
       params.is_active = Number(Boolean(active));
     }
     const { branchIdsStr } = req.scope || {};
-    if (branchIdsStr) {
+    if (!isSuper && branchIdsStr) {
       filters.push("(:branchIdsStr = '' OR FIND_IN_SET(b.id, :branchIdsStr))");
       params.branchIdsStr = branchIdsStr;
     }
     const where = filters.length ? `WHERE ${filters.join(" AND ")}` : "";
 
-    const items = await query(`SELECT b.*, c.name as company_name,
-          b.created_at,
-          u.username AS created_by_name
+    const items = await query(
+      `SELECT b.*, c.name as company_name,
+              b.created_at,
+              u.username AS created_by_name
          FROM adm_branches b
          JOIN adm_companies c ON b.company_id = c.id
-         ${where}
         LEFT JOIN adm_users u ON u.id = b.created_by
-         ORDER BY c.name ASC, b.name ASC`,
+        ${where}
+        ORDER BY c.name ASC, b.name ASC`,
       params,
     );
     res.json({ items });

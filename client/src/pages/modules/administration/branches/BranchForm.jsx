@@ -51,12 +51,25 @@ export default function BranchForm() {
     stock_upload_user_id: "",
   });
   const [users, setUsers] = useState([]);
+  const [companies, setCompanies] = useState([]);
 
   useEffect(() => {
     fetchUsers();
+    fetchCompanies();
     if (!isEdit) return;
     fetchBranch();
   }, [id]);
+
+  async function fetchCompanies() {
+    try {
+      const res = await api.get("/admin/companies");
+      const items = Array.isArray(res.data?.items) ? res.data.items : [];
+      setCompanies(items);
+      if (!isEdit && items.length > 0) {
+        setForm((p) => ({ ...p, company_id: p.company_id || items[0].id }));
+      }
+    } catch {}
+  }
 
   async function fetchUsers() {
     try {
@@ -167,16 +180,21 @@ export default function BranchForm() {
           <div className="card-body space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="label">Company ID</label>
-                <input
+                <label className="label">Company *</label>
+                <select
                   className="input"
-                  type="number"
                   value={form.company_id}
                   onChange={(e) =>
                     update("company_id", parseInt(e.target.value) || 1)
                   }
-                  disabled
-                />
+                  required
+                >
+                  {companies.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name} ({c.code})
+                    </option>
+                  ))}
+                </select>
               </div>
               <div>
                 <label className="label">Code *</label>

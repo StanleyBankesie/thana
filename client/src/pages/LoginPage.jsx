@@ -344,7 +344,9 @@ export default function LoginPage() {
 
       if (branches.length === 1) {
         const branchId = branches[0];
-        let companyId = companies.length === 1 ? companies[0] : null;
+        let companyId =
+          Number(data?.user?.companyId || data?.user?.company_id) ||
+          (companies.length > 0 ? companies[0] : null);
         if (!companyId) {
           try {
             const res = await api.get("/admin/branches");

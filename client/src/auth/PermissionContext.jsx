@@ -74,12 +74,30 @@ export const usePermission = () => {
 
 export const PermissionProvider = ({ children }) => {
   const { user, token, initialized } = useAuth();
-  const [modules, setModules] = useState(new Set());
-  const [permissions, setPermissions] = useState([]);
-  const [roleFeatures, setRoleFeatures] = useState(new Set());
-  const [exceptionalPerms, setExceptionalPerms] = useState(new Set());
-  const [licensedModules, setLicensedModules] = useState(new Set());
-  const [loading, setLoading] = useState(true);
+  const [modules, setModules] = useState(() => {
+    const s = readPermissionSnapshot();
+    return s?.modules ? new Set(s.modules.map((m) => String(m || "").trim()).filter(Boolean)) : new Set();
+  });
+  const [permissions, setPermissions] = useState(() => {
+    const s = readPermissionSnapshot();
+    return Array.isArray(s?.permissions) ? s.permissions : [];
+  });
+  const [roleFeatures, setRoleFeatures] = useState(() => {
+    const s = readPermissionSnapshot();
+    return s?.roleFeatures ? new Set(s.roleFeatures.map((f) => String(f || "").trim()).filter(Boolean)) : new Set();
+  });
+  const [exceptionalPerms, setExceptionalPerms] = useState(() => {
+    const s = readPermissionSnapshot();
+    return s?.exceptionalPerms ? new Set(s.exceptionalPerms.map((c) => String(c || "").toUpperCase().trim()).filter(Boolean)) : new Set();
+  });
+  const [licensedModules, setLicensedModules] = useState(() => {
+    const s = readPermissionSnapshot();
+    return s?.licensedModules ? new Set(s.licensedModules.map((m) => String(m || "").trim()).filter(Boolean)) : new Set();
+  });
+  const [loading, setLoading] = useState(() => {
+    const s = readPermissionSnapshot();
+    return !s;
+  });
   const [error, setError] = useState(null);
   const [sessionOverrides, setSessionOverrides] = useState(() => new Map());
   const [pagePermsByPath, setPagePermsByPath] = useState(() => new Map());
@@ -206,7 +224,8 @@ export const PermissionProvider = ({ children }) => {
    */
   const loadPermissions = async (background = false) => {
     try {
-      if (!background) setLoading(true);
+      const snap = readPermissionSnapshot();
+      if (!background && !snap) setLoading(true);
       setError(null);
 
       if (!initialized || !token) {

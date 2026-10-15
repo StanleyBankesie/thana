@@ -766,9 +766,19 @@ export const exportCustomBiDataset = async (req, res, next) => {
 // LEGACY HANDLERS REUSED BY MODULES
 // ==========================================
 
+// In-memory cache for home overview dashboard metrics (60-second TTL)
+const homeOverviewCache = new Map();
+const HOME_OVERVIEW_TTL_MS = 60 * 1000;
+
 export const getHomeOverview = async (req, res, next) => {
   try {
     const { companyId, branchId = null, branchIdsStr = '' } = req.scope || {};
+    const cacheKey = `${companyId || 'all'}:${branchId ?? 'all'}:${branchIdsStr || ''}`;
+    const cached = homeOverviewCache.get(cacheKey);
+    if (cached && Date.now() - cached.timestamp < HOME_OVERVIEW_TTL_MS) {
+      return res.json(cached.data);
+    }
+
     const p = { companyId, branchId, branchIdsStr: String(branchIdsStr || '') };
     const whereBranch = (branchId !== null && branchId !== undefined && String(branchId).trim() !== '')
       ? "branch_id = :branchId"
@@ -942,7 +952,7 @@ export const getHomeOverview = async (req, res, next) => {
       "average-sales-this-month": { text: avgSalesBadge },
     };
 
-    res.json({
+    const responseData = {
       todaySales,
       totalTransactions: todayTransactions,
       totalCustomers,
@@ -975,7 +985,10 @@ export const getHomeOverview = async (req, res, next) => {
       apOutstanding,
       cashBalance,
       badges
-    });
+    };
+
+    homeOverviewCache.set(cacheKey, { timestamp: Date.now(), data: responseData });
+    res.json(responseData);
   } catch (err) { next(err); }
 };
 

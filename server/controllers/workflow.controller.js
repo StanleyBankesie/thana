@@ -421,7 +421,8 @@ const ensureWorkflowTables = async () => {
       updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
       PRIMARY KEY (id),
       KEY idx_doc_workflow_lookup (document_id, document_type),
-      KEY idx_doc_workflow_status (status)
+      KEY idx_doc_workflow_status (status),
+      KEY idx_doc_wf_user_status (assigned_to_user_id, status, company_id)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
   `);
   await query(`
@@ -1504,7 +1505,8 @@ export const getPendingApprovals = async (req, res, next) => {
          WHERE dw.company_id = :companyId
            AND dw.status = 'PENDING'
            AND dw.assigned_to_user_id = :userId
-         ORDER BY dw.created_at DESC`,
+         ORDER BY dw.created_at DESC
+         LIMIT 50`,
       { companyId, userId },
     );
     res.json({ items });

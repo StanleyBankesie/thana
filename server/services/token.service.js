@@ -504,6 +504,22 @@ export async function buildAuthUserPayload(user, permissions = []) {
     roleId === 1 ||
     (Array.isArray(permissions) && permissions.includes("*"));
 
+  if (isSuper) {
+    try {
+      const allCompanies = await query(
+        `SELECT id FROM adm_companies WHERE is_active = 1`,
+      );
+      if (allCompanies && allCompanies.length > 0) {
+        allCompanyIds = [
+          ...new Set([
+            ...allCompanyIds,
+            ...allCompanies.map((c) => Number(c.id)).filter(Boolean),
+          ]),
+        ];
+      }
+    } catch {}
+  }
+
   const payload = {
     sub: Number(user.id),
     id: Number(user.id),

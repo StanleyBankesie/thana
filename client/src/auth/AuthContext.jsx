@@ -85,11 +85,13 @@ export function AuthProvider({ children }) {
       setToken(current.token);
       setUser(current.user);
       setScope(resolveScope(current.user, current.scope));
+      setInitialized(true);
       return;
     }
     if (current) {
       clearStoredAuth();
     }
+    setInitialized(true);
   }, []);
 
   useEffect(() => {

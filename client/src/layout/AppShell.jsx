@@ -27,29 +27,29 @@ import {
 import { usePermission } from "../auth/PermissionContext.jsx";
 import { useTheme } from "../theme/ThemeContext.jsx";
 import ThemeToggle from "../components/ThemeToggle.jsx";
-import DashboardPage from "../pages/dashboard/DashboardPage.jsx";
-import HomePage from "../pages/home/HomePage.jsx";
-import AdministrationHome from "../pages/modules/administration/AdministrationHome.jsx";
-import SalesHome from "../pages/modules/sales/SalesHome.jsx";
-import InventoryHome from "../pages/modules/inventory/InventoryHome.jsx";
-import PurchaseHome from "../pages/modules/purchase/PurchaseHome.jsx";
-import FinanceRoutes from "../pages/modules/finance/FinanceRoutes.jsx";
-import HumanResourcesHome from "../pages/modules/human-resources/HumanResourcesHome.jsx";
-import MaintenanceHome from "../pages/modules/maintenance/MaintenanceHome.jsx";
-import ProjectManagementHome from "../pages/modules/project-management/ProjectManagementHome.jsx";
-import ProductionHome from "../pages/modules/production/ProductionHome.jsx";
-import PosHome from "../pages/modules/pos/PosHome.jsx";
-import BusinessIntelligenceHome from "../pages/modules/business-intelligence/BusinessIntelligenceHome.jsx";
-import ServiceManagementHome from "../pages/modules/service-management/ServiceManagementHome.jsx";
-import TransportLayout from "../pages/modules/transport/TransportLayout.jsx";
-import ExecutiveOverviewRoutes from "../pages/modules/executive-overview/ExecutiveOverviewRoutes.jsx";
-import SystemConfigurationHome from "../pages/modules/system-configuration/SystemConfigurationHome.jsx";
-import NotificationsPage from "../pages/NotificationsPage.jsx";
-import SocialFeedPage from "../pages/social/SocialFeedPage.jsx";
-import RoleSetup from "../pages/admin/RoleSetup.jsx";
-import UserPermissions from "../pages/admin/UserPermissions.jsx";
-import SocialFeedNotification from "../components/CompanyFeed/SocialFeedNotification.jsx";
-import DashboardPermissions from "../pages/admin/DashboardPermissions.jsx";
+const DashboardPage = React.lazy(() => import("../pages/dashboard/DashboardPage.jsx"));
+const HomePage = React.lazy(() => import("../pages/home/HomePage.jsx"));
+const AdministrationHome = React.lazy(() => import("../pages/modules/administration/AdministrationHome.jsx"));
+const SalesHome = React.lazy(() => import("../pages/modules/sales/SalesHome.jsx"));
+const InventoryHome = React.lazy(() => import("../pages/modules/inventory/InventoryHome.jsx"));
+const PurchaseHome = React.lazy(() => import("../pages/modules/purchase/PurchaseHome.jsx"));
+const FinanceRoutes = React.lazy(() => import("../pages/modules/finance/FinanceRoutes.jsx"));
+const HumanResourcesHome = React.lazy(() => import("../pages/modules/human-resources/HumanResourcesHome.jsx"));
+const MaintenanceHome = React.lazy(() => import("../pages/modules/maintenance/MaintenanceHome.jsx"));
+const ProjectManagementHome = React.lazy(() => import("../pages/modules/project-management/ProjectManagementHome.jsx"));
+const ProductionHome = React.lazy(() => import("../pages/modules/production/ProductionHome.jsx"));
+const PosHome = React.lazy(() => import("../pages/modules/pos/PosHome.jsx"));
+const BusinessIntelligenceHome = React.lazy(() => import("../pages/modules/business-intelligence/BusinessIntelligenceHome.jsx"));
+const ServiceManagementHome = React.lazy(() => import("../pages/modules/service-management/ServiceManagementHome.jsx"));
+const TransportLayout = React.lazy(() => import("../pages/modules/transport/TransportLayout.jsx"));
+const ExecutiveOverviewRoutes = React.lazy(() => import("../pages/modules/executive-overview/ExecutiveOverviewRoutes.jsx"));
+const SystemConfigurationHome = React.lazy(() => import("../pages/modules/system-configuration/SystemConfigurationHome.jsx"));
+const NotificationsPage = React.lazy(() => import("../pages/NotificationsPage.jsx"));
+const SocialFeedPage = React.lazy(() => import("../pages/social/SocialFeedPage.jsx"));
+const RoleSetup = React.lazy(() => import("../pages/admin/RoleSetup.jsx"));
+const UserPermissions = React.lazy(() => import("../pages/admin/UserPermissions.jsx"));
+const SocialFeedNotification = React.lazy(() => import("../components/CompanyFeed/SocialFeedNotification.jsx"));
+const DashboardPermissions = React.lazy(() => import("../pages/admin/DashboardPermissions.jsx"));
 import addNotification from "../utils/addNotification.js";
 
 import logoDark from "../assets/resources/OMNISUITE_WHITE_LOGO.png";
@@ -87,34 +87,45 @@ import useSocket from "../hooks/useSocket.js";
 
 const AppRoutes = React.memo(function AppRoutes({ user }) {
   return (
-    <Routes>
-      <Route path="/" element={<HomePage />} />
-      <Route path="/dashboard" element={<DashboardPage />} />
-      <Route path="/administration/*" element={<AdministrationHome />} />
-      <Route path="/sales/*" element={<SalesHome />} />
-      <Route path="/inventory/*" element={<InventoryHome />} />
-      <Route path="/purchase/*" element={<PurchaseHome />} />
-      <Route path="/finance/*" element={<FinanceRoutes />} />
-      <Route path="/human-resources/*" element={<HumanResourcesHome />} />
-      <Route path="/maintenance/*" element={<MaintenanceHome />} />
-      <Route path="/project-management/*" element={<ProjectManagementHome />} />
-      <Route path="/production/*" element={<ProductionHome />} />
-      <Route path="/pos/*" element={<PosHome />} />
-      <Route path="/business-intelligence/*" element={<BusinessIntelligenceHome />} />
-      <Route path="/service-management/*" element={<ServiceManagementHome />} />
-      <Route path="/transport/*" element={<TransportLayout />} />
-      <Route path="/executive-overview/*" element={<ExecutiveOverviewRoutes />} />
-      <Route path="/administration/access/dashboard-permissions" element={<DashboardPermissions />} />
-      <Route path="/notifications" element={<NotificationsPage />} />
-      <Route path="/social-feed" element={<SocialFeedPage />} />
-      <Route path="/social-feed/:id" element={<SocialFeedPage />} />
-      <Route path="/admin/roles" element={<RoleSetup />} />
-      <Route path="/admin/user-permissions" element={<UserPermissions />} />
-      <Route 
-        path="/system-configuration/*" 
-        element={(user?.id === 1 || user?.id === 2) ? <SystemConfigurationHome /> : <Navigate to="/" replace />} 
-      />
-    </Routes>
+    <React.Suspense
+      fallback={
+        <div className="flex items-center justify-center min-h-[50vh] p-8">
+          <div className="flex flex-col items-center gap-3">
+            <div className="w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+            <span className="text-xs text-slate-400">Loading module...</span>
+          </div>
+        </div>
+      }
+    >
+      <Routes>
+        <Route path="/" element={<HomePage />} />
+        <Route path="/dashboard" element={<DashboardPage />} />
+        <Route path="/administration/*" element={<AdministrationHome />} />
+        <Route path="/sales/*" element={<SalesHome />} />
+        <Route path="/inventory/*" element={<InventoryHome />} />
+        <Route path="/purchase/*" element={<PurchaseHome />} />
+        <Route path="/finance/*" element={<FinanceRoutes />} />
+        <Route path="/human-resources/*" element={<HumanResourcesHome />} />
+        <Route path="/maintenance/*" element={<MaintenanceHome />} />
+        <Route path="/project-management/*" element={<ProjectManagementHome />} />
+        <Route path="/production/*" element={<ProductionHome />} />
+        <Route path="/pos/*" element={<PosHome />} />
+        <Route path="/business-intelligence/*" element={<BusinessIntelligenceHome />} />
+        <Route path="/service-management/*" element={<ServiceManagementHome />} />
+        <Route path="/transport/*" element={<TransportLayout />} />
+        <Route path="/executive-overview/*" element={<ExecutiveOverviewRoutes />} />
+        <Route path="/administration/access/dashboard-permissions" element={<DashboardPermissions />} />
+        <Route path="/notifications" element={<NotificationsPage />} />
+        <Route path="/social-feed" element={<SocialFeedPage />} />
+        <Route path="/social-feed/:id" element={<SocialFeedPage />} />
+        <Route path="/admin/roles" element={<RoleSetup />} />
+        <Route path="/admin/user-permissions" element={<UserPermissions />} />
+        <Route 
+          path="/system-configuration/*" 
+          element={(user?.id === 1 || user?.id === 2) ? <SystemConfigurationHome /> : <Navigate to="/" replace />} 
+        />
+      </Routes>
+    </React.Suspense>
   );
 });
 
@@ -127,13 +138,13 @@ const modules = [
   },
   {
     key: "administration",
-    label: "Administration",
+    label: "System Admin",
     path: "/administration",
     icon: <Settings />,
   },
-  { key: "sales", label: "Sales", path: "/sales", icon: <Banknote /> },
-  { key: "inventory", label: "Inventory", path: "/inventory", icon: <Archive /> },
-  { key: "purchase", label: "Purchase", path: "/purchase", icon: <ShoppingCart /> },
+  { key: "sales", label: "Sales Management", path: "/sales", icon: <Banknote /> },
+  { key: "inventory", label: "Inventory Management", path: "/inventory", icon: <Archive /> },
+  { key: "purchase", label: "Procurement", path: "/purchase", icon: <ShoppingCart /> },
   { key: "finance", label: "Finance", path: "/finance", icon: <Landmark /> },
   {
     key: "human-resources",
@@ -153,7 +164,7 @@ const modules = [
     path: "/project-management",
     icon: <Blocks />,
   },
-  { key: "production", label: "Production", path: "/production", icon: <Factory /> },
+  { key: "production", label: "Manufacturing", path: "/production", icon: <Factory /> },
   { key: "pos", label: "POS", path: "/pos", icon: <ShoppingBasket /> },
   {
     key: "business-intelligence",
@@ -175,7 +186,7 @@ const modules = [
   },
   {
     key: "transport",
-    label: "Transport",
+    label: "Transport and Logistics",
     path: "/transport",
     icon: <Truck />,
   },

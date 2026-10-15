@@ -56,7 +56,7 @@ export default function HomePage() {
   const [roleFeatures, setRoleFeatures] = useState([]);
   const [allFeatures, setAllFeatures] = useState([]);
   const [activeModule, setActiveModule] = useState(null);
-  const [profileData, setProfileData] = useState(null);
+  const [profileData, setProfileData] = useState(user);
   const [userBranches, setUserBranches] = useState([]);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [showPhotoMenu, setShowPhotoMenu] = useState(false);
@@ -260,36 +260,29 @@ export default function HomePage() {
     };
   }, [pendingHeight]);
 
+  // Sync profileData with authenticated user from AuthContext
   useEffect(() => {
-    let cancelled = false;
-    async function loadPerms() {
-      try {
-        const [upRes, featRes] = await Promise.all([
-          client.get("/admin/user-permissions"),
-          client.get("/access/features"),
-        ]);
-        const up = upRes?.data || {};
-        const fr = featRes?.data || {};
-        if (!cancelled) {
-          setReportsModules(Array.isArray(up?.modules) ? up.modules : []);
-          setRoleFeatures(
-            Array.isArray(up?.role_features) ? up.role_features : [],
-          );
-          setAllFeatures(Array.isArray(fr?.features) ? fr.features : []);
-        }
-      } catch {
-        if (!cancelled) {
-          setReportsModules([]);
-          setRoleFeatures([]);
-          setAllFeatures([]);
-        }
-      }
+    if (user) {
+      setProfileData(user);
     }
-    loadPerms();
+  }, [user]);
+
+  // Lazily load features only when a user inspects reports in a module
+  useEffect(() => {
+    if (!activeModule || allFeatures.length > 0) return;
+    let cancelled = false;
+    client
+      .get("/access/features")
+      .then((res) => {
+        if (!cancelled) {
+          setAllFeatures(Array.isArray(res.data?.features) ? res.data.features : []);
+        }
+      })
+      .catch(() => {});
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [activeModule, allFeatures.length]);
 
   useEffect(() => {
     let cancelled = false;
@@ -335,16 +328,6 @@ export default function HomePage() {
   useEffect(() => {
     let cancelled = false;
     client
-      .get("/auth/me")
-      .then((res) => {
-        if (cancelled) return;
-        setProfileData(res.data?.user || null);
-      })
-      .catch(() => {
-        if (cancelled) return;
-        setProfileData(null);
-      });
-    client
       .get("/auth/user-branches")
       .then((res) => {
         if (cancelled) return;
@@ -368,8 +351,8 @@ export default function HomePage() {
     return userBranches[0] || null;
   }, [userBranches, scope?.branchId]);
 
-  const displayCompanyName = activeBranch?.company_name || profileData?.company_name || user?.companyName || "";
-  const displayBranchName = activeBranch?.name || profileData?.branch_name || user?.branchName || "";
+  const displayCompanyName = activeBranch?.company_name || profileData?.company_name || user?.companyName || user?.company_name || "";
+  const displayBranchName = activeBranch?.name || profileData?.branch_name || user?.branchName || user?.branch_name || "";
 
   const normalizeType = (s) =>
     String(s || "")
@@ -1387,7 +1370,7 @@ export default function HomePage() {
               <span className="text-purple-500">📑</span> Reports
             </h2>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-              {(getEnabledModules() || reportsModules).map((mk) => {
+              {((getEnabledModules && getEnabledModules()) || reportsModules || []).map((mk) => {
                 const label = String(mk)
                   .split("-")
                   .map((s) => s.charAt(0).toUpperCase() + s.slice(1))
