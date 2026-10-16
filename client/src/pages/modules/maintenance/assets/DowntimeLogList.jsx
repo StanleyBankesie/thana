@@ -81,8 +81,8 @@ export default function DowntimeLogList() {
     <div className="p-6 max-w-6xl mx-auto space-y-8 animate-in fade-in duration-700">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <Link to="/maintenance" className="p-2 hover:bg-slate-100 rounded-full transition-colors text-slate-500">
-            <ArrowLeft size={20} />
+          <Link to="/maintenance?section=Equipment %26 Assets" className="btn btn-secondary flex items-center gap-1.5">
+            <ArrowLeft size={16} /> Back
           </Link>
           <div>
             <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">Downtime Tracking</h1>

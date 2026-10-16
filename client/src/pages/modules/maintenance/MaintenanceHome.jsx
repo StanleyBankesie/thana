@@ -41,6 +41,17 @@ import MaintenanceMaterialRequisitionForm from "./material-requisitions/Maintena
 import MaterialReceiptList from "./material-receipt/MaterialReceiptList.jsx";
 import MaterialReceiptForm from "./material-receipt/MaterialReceiptForm.jsx";
 import MaintenanceDashboardPage from "./MaintenanceDashboardPage.jsx";
+import PropertiesList from "./properties/PropertiesList.jsx";
+import FMContractsList from "./fm-contracts/FMContractsList.jsx";
+import FieldTechnicianJobCard from "./field-service/FieldTechnicianJobCard.jsx";
+import ChecklistTemplatesList from "./checklists/ChecklistTemplatesList.jsx";
+import SoftServicesPage from "./soft-services/SoftServicesPage.jsx";
+import FacilitiesOperationsDashboard from "./operations-dashboard/FacilitiesOperationsDashboard.jsx";
+import FMSLAComplianceReport from "./reports/FMSLAComplianceReport.jsx";
+import FMPropertyCostReport from "./reports/FMPropertyCostReport.jsx";
+import FMContractsReport from "./reports/FMContractsReport.jsx";
+import FMSoftServicesReport from "./reports/FMSoftServicesReport.jsx";
+import FMInspectionChecklistReport from "./reports/FMInspectionChecklistReport.jsx";
 import { usePermission } from "../../../auth/PermissionContext.jsx";
 
 const ActionButton = ({ label, path, type, featureKey, action }) => {
@@ -81,6 +92,24 @@ export const maintenanceSections = [
     ],
   },
   {
+    title: "Facilities Management",
+    icon: "🏢",
+    items: [
+      buildFeature("Facilities Command Center", "/maintenance/facilities-dashboard", "Live SLA tracking and operations KPIs", "📊"),
+      buildFeature("Client Properties & Sites", "/maintenance/properties", "Multi-tier facility property register & hierarchy", "🏛️"),
+      buildFeature("FM Service Contracts", "/maintenance/fm-contracts", "Client service contracts, SLA rules, and recurring billing", "📜"),
+      buildFeature("Field Technician Workspace", "/maintenance/field-service", "Mobile job card, step transitions, and client sign-off", "👨‍🔧"),
+    ],
+  },
+  {
+    title: "Inspections & Soft Services",
+    icon: "✨",
+    items: [
+      buildFeature("Inspection Checklists", "/maintenance/checklists", "Configurable audit templates across all service lines", "📋"),
+      buildFeature("Soft Facilities Services", "/maintenance/soft-services", "Janitorial audits, security patrol rounds, pest & waste", "🧹"),
+    ],
+  },
+  {
     title: "Maintenance Operations",
     icon: "🛠️",
     items: [
@@ -113,7 +142,12 @@ export const maintenanceSections = [
     title: "Setup & Reports",
     icon: "⚙️",
     items: [
-      buildFeature("Maintenance Reports", "/maintenance/reports", "Asset performance and cost reports", "📊"),
+      buildFeature("Maintenance Reports", "/maintenance/reports", "Asset performance and facilities analytics", "📊"),
+      buildFeature("FM SLA Compliance", "/maintenance/reports/sla-compliance", "Response & resolution SLA benchmarks", "🛡️"),
+      buildFeature("Property Costs", "/maintenance/reports/property-costs", "Portfolio maintenance cost and expense allocation", "💵"),
+      buildFeature("Contract Margins", "/maintenance/reports/contract-profitability", "FM contract profitability & renewals", "📜"),
+      buildFeature("Soft Services Audit", "/maintenance/reports/soft-services", "Janitorial, security, pest, and waste audits", "✨"),
+      buildFeature("Inspection Audit", "/maintenance/reports/checklist-inspections", "PPM inspection checklist compliance", "📋"),
       buildFeature("Downtime Analysis", "/maintenance/reports/downtime", "Analyze MTBF, MTTR, and asset downtime", "📉"),
       buildFeature("Maintenance Setup", "/maintenance/setup", "Configure maintenance categories, work centers, and parameters", "⚙️"),
     ],
@@ -224,6 +258,17 @@ export default function MaintenanceHome() {
         <Route path="/setup" element={<MaintenanceSetupPage />} />
         <Route path="/reports" element={<MaintenanceReports />} />
         <Route path="/reports/downtime" element={<DowntimeAnalysisReport />} />
+        <Route path="/reports/sla-compliance" element={<FMSLAComplianceReport />} />
+        <Route path="/reports/property-costs" element={<FMPropertyCostReport />} />
+        <Route path="/reports/contract-profitability" element={<FMContractsReport />} />
+        <Route path="/reports/soft-services" element={<FMSoftServicesReport />} />
+        <Route path="/reports/checklist-inspections" element={<FMInspectionChecklistReport />} />
+        <Route path="/facilities-dashboard" element={<FacilitiesOperationsDashboard />} />
+        <Route path="/properties" element={<PropertiesList />} />
+        <Route path="/fm-contracts" element={<FMContractsList />} />
+        <Route path="/field-service" element={<FieldTechnicianJobCard />} />
+        <Route path="/checklists" element={<ChecklistTemplatesList />} />
+        <Route path="/soft-services" element={<SoftServicesPage />} />
       </Routes>
     </ModuleLayout>
   );

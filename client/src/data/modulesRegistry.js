@@ -217,6 +217,7 @@ export const MODULES_REGISTRY = {
       { key: "supplieroutstandingreport", label: " Supplier Outstanding Report", type: "feature" },
       { key: "trialbalancereport", label: " Trial Balance Report", type: "feature" },
       { key: "voucherregisterreport", label: " Voucher Register Report", type: "feature" },
+      { key: "budgetvsactualreport", label: " Budget vs Actual Report", type: "feature" },
     ],
     dashboards: [
 
@@ -333,6 +334,19 @@ export const MODULES_REGISTRY = {
       { key: "project-status-report", label: "Project Status Report", type: "feature" },
       { key: "project-income-report", label: "Project Income Report", type: "feature" },
       { key: "project-expense-report", label: "Project Expense Report", type: "feature" },
+      { key: "tenders", label: "Tenders & Bidding", type: "feature" },
+      { key: "boqs", label: "Bill of Quantities (BOQ)", type: "feature" },
+      { key: "cost-control", label: "Cost Control & EVM", type: "feature" },
+      { key: "schedule", label: "Planning & CPM Schedule", type: "feature" },
+      { key: "daily-reports", label: "Daily Site Diary (DSR)", type: "feature" },
+      { key: "subcontracts", label: "Subcontractors & IPCs", type: "feature" },
+      { key: "client-valuations", label: "Client Valuations (IPAs)", type: "feature" },
+      { key: "variations", label: "Variations & Change Orders", type: "feature" },
+      { key: "quality-control", label: "Quality Control (QA/QC)", type: "feature" },
+      { key: "safety", label: "Safety Management (HSE)", type: "feature" },
+      { key: "documents", label: "Drawings & Documents", type: "feature" },
+      { key: "rfis", label: "RFIs (Requests for Information)", type: "feature" },
+      { key: "equipment-logs", label: "Plant & Equipment Logs", type: "feature" },
     ],
     dashboards: [
 

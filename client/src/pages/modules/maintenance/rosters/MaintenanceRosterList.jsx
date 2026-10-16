@@ -8,7 +8,7 @@ import { toast } from "react-toastify";
 import { api } from "../../../../api/client";
 import {
   Clock, RefreshCw, CheckCircle, X, Calendar, ClipboardList,
-  ChevronRight, Eye, Edit2
+  ChevronRight, Eye, Edit2, ArrowLeft
 } from "lucide-react";
 import { Guard } from "../../../../hooks/usePermissions";
 import { useViewMode } from "@/hooks/useViewMode";
@@ -278,10 +278,10 @@ export default function MaintenanceRosterList() {
             <p className="text-sm text-slate-500">Track and manage scheduled maintenance activities</p>
           </div>
           <div className="flex items-center gap-2">
+            <Link to="/maintenance?section=Resource Management" className="btn btn-secondary flex items-center gap-1.5"><ArrowLeft size={16} /> Back</Link>
             <button onClick={loadData} className="btn-secondary p-2" title="Refresh">
               <RefreshCw size={15} className={loading ? "animate-spin" : ""} />
             </button>
-            <button onClick={() => window.history.back()} className="btn-secondary">Back</button>
             <Link to="/maintenance/rosters/new" className="btn-primary">+ New Roster</Link>
           </div>
         </div>

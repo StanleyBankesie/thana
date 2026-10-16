@@ -7,7 +7,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { toast } from "react-toastify";
 import { api } from "../../../../api/client";
-import { Eye } from "lucide-react";
+import { Eye, ArrowLeft } from "lucide-react";
 import { ListPrintIconButton, ListPdfIconButton, ListAttachmentIconButton } from "../../../../components/list/ListDocActionIconButtons.jsx";
 import DocumentAttachmentsModal from "../../../../components/attachments/DocumentAttachmentsModal.jsx";
 import { Guard } from "../../../../hooks/usePermissions";
@@ -65,7 +65,7 @@ export default function MaintenanceScheduleList() {
             <p className="text-sm text-slate-500">Track and manage maintenance schedules</p>
           </div>
           <div className="flex gap-2">
-            <button onClick={() => window.history.back()} className="btn-secondary">Back</button>
+            <Link to="/maintenance?section=Maintenance Operations" className="btn btn-secondary flex items-center gap-1.5"><ArrowLeft size={16} /> Back</Link>
             <Link to="/maintenance/schedules/new" className="btn-primary">+ New Schedule</Link>
           </div>
         </div>

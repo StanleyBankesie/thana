@@ -1,0 +1,464 @@
+/**
+ * @file DailySiteReportForm.jsx
+ * @description Detailed Daily Site Report (DSR) entry & view form.
+ */
+
+import React, { useState, useEffect } from "react";
+import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
+import {
+  BookOpen,
+  Save,
+  ArrowLeft,
+  CloudSun,
+  Users,
+  Truck,
+  Package,
+  CheckSquare,
+  ShieldAlert,
+  Plus,
+  Trash2,
+  CheckCircle2
+} from "lucide-react";
+import { api } from "../../../../api/client.js";
+import { toast } from "react-toastify";
+
+export default function DailySiteReportForm() {
+  const navigate = useNavigate();
+  const { id } = useParams();
+  const [searchParams] = useSearchParams();
+  const isEdit = Boolean(id);
+
+  const [projects, setProjects] = useState([]);
+  const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(isEdit);
+
+  const [form, setForm] = useState({
+    project_id: searchParams.get("project_id") || "",
+    report_date: new Date().toISOString().split("T")[0],
+    report_number: "",
+    weather_morning: "SUNNY",
+    weather_afternoon: "SUNNY",
+    site_condition: "DRY",
+    working_hours_from: "08:00:00",
+    working_hours_to: "17:00:00",
+    site_engineer_name: "",
+    general_remarks: "",
+    safety_observations: "",
+    status: "DRAFT",
+  });
+
+  // Sub-items
+  const [activities, setActivities] = useState([
+    { location_grid: "Grid A-C / Level 1", description: "Formwork and reinforcement installation for columns", quantity_completed: 12, unit: "NR", progress_percent: 60 }
+  ]);
+  const [workforce, setWorkforce] = useState([
+    { trade_category: "SKILLED", trade_name: "Carpenters", subcontractor_name: "Apex Formwork", headcount: 6, total_hours: 48 },
+    { trade_category: "SKILLED", trade_name: "Steel Benders", subcontractor_name: "Apex Formwork", headcount: 8, total_hours: 64 },
+    { trade_category: "UNSKILLED", trade_name: "General Labour", subcontractor_name: "Direct", headcount: 12, total_hours: 96 }
+  ]);
+  const [equipment, setEquipment] = useState([
+    { equipment_name: "Concrete Mixer 400L", equipment_tag: "MIX-01", hours_worked: 7, hours_idle: 1, hours_breakdown: 0 },
+    { equipment_name: "Tower Hoist", equipment_tag: "HST-02", hours_worked: 8, hours_idle: 0, hours_breakdown: 0 }
+  ]);
+  const [materials, setMaterials] = useState([
+    { material_name: "Dangote Portland Cement 42.5R", quantity: 200, unit: "BAGS", supplier_name: "Ghacem Direct", delivery_note_no: "DN-9844" }
+  ]);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await api.get("/projects/projects", { params: { active: "all" } });
+        const prjs = res.data?.items || [];
+        setProjects(prjs);
+        if (!form.project_id && prjs.length > 0) {
+          setForm(f => ({ ...f, project_id: String(prjs[0].id) }));
+        }
+      } catch (e) {}
+    })();
+  }, []);
+
+  useEffect(() => {
+    if (isEdit) {
+      (async () => {
+        try {
+          const res = await api.get(`/construction/daily-reports/${id}`);
+          if (res.data?.item) {
+            const itm = res.data.item;
+            setForm({
+              ...itm,
+              report_date: itm.report_date ? itm.report_date.split("T")[0] : "",
+            });
+            setActivities(res.data.activities || []);
+            setWorkforce(res.data.workforce || []);
+            setEquipment(res.data.equipment || []);
+            setMaterials(res.data.materials || []);
+          }
+        } catch (e) {
+          toast.error("Failed to load daily report");
+        } finally {
+          setLoading(false);
+        }
+      })();
+    }
+  }, [id]);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!form.project_id) return toast.error("Please select a project");
+    setSaving(true);
+    try {
+      await api.post("/construction/daily-reports", {
+        ...form,
+        activities,
+        workforce,
+        equipment,
+        materials,
+      });
+      toast.success("Daily site report saved successfully");
+      navigate("/project-management/daily-reports");
+    } catch (e) {
+      toast.error("Failed to save daily site report");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loading) return <div className="p-12 text-center text-slate-400">Loading daily report...</div>;
+
+  return (
+    <div className="space-y-6 max-w-6xl mx-auto pb-12">
+      {/* Header */}
+      <div className="card">
+        <div className="card-header bg-brand text-white rounded-t-lg flex justify-between items-center">
+          <div className="flex items-center gap-3">
+            <Link to="/project-management/daily-reports" className="text-white/80 hover:text-white">
+              <ArrowLeft size={18} />
+            </Link>
+            <div>
+              <h1 className="text-2xl font-bold flex items-center gap-2">
+                <BookOpen size={24} /> {isEdit ? `Daily Site Diary: ${form.report_number}` : "New Daily Site Diary Entry"}
+              </h1>
+              <p className="text-xs opacity-80">Official construction site daily record and measurements</p>
+            </div>
+          </div>
+          <button
+            onClick={handleSubmit}
+            disabled={saving}
+            className="btn-success flex items-center gap-1.5 text-xs font-bold px-4 py-2 rounded-lg shadow-sm"
+          >
+            <Save size={16} /> {saving ? "Saving..." : "Save Diary"}
+          </button>
+        </div>
+      </div>
+
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Basic Site & Weather Metadata */}
+        <div className="card p-6 space-y-4">
+          <div className="flex items-center gap-2 text-brand-600 border-b pb-2">
+            <CloudSun size={18} />
+            <h2 className="font-bold text-xs uppercase tracking-wider">Site Conditions & Weather</h2>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-xs">
+            <div className="space-y-1">
+              <label className="font-bold text-slate-500 uppercase">Project</label>
+              <select
+                className="w-full px-3 py-2 border rounded-lg bg-slate-50 dark:bg-slate-900"
+                value={form.project_id}
+                onChange={e => setForm({ ...form, project_id: e.target.value })}
+                disabled={isEdit}
+              >
+                {projects.map(p => (
+                  <option key={p.id} value={p.id}>{p.project_code} - {p.project_name}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="space-y-1">
+              <label className="font-bold text-slate-500 uppercase">Report Date</label>
+              <input
+                type="date"
+                required
+                className="w-full px-3 py-2 border rounded-lg bg-slate-50 dark:bg-slate-900 font-mono"
+                value={form.report_date}
+                onChange={e => setForm({ ...form, report_date: e.target.value })}
+              />
+            </div>
+
+            <div className="space-y-1">
+              <label className="font-bold text-slate-500 uppercase">Weather (Morning)</label>
+              <select
+                className="w-full px-3 py-2 border rounded-lg bg-slate-50 dark:bg-slate-900"
+                value={form.weather_morning}
+                onChange={e => setForm({ ...form, weather_morning: e.target.value })}
+              >
+                <option value="SUNNY">Sunny / Clear</option>
+                <option value="OVERCAST">Overcast / Cloudy</option>
+                <option value="LIGHT_RAIN">Light Rain / Drizzle</option>
+                <option value="HEAVY_RAIN">Heavy Rain / Downpour</option>
+              </select>
+            </div>
+
+            <div className="space-y-1">
+              <label className="font-bold text-slate-500 uppercase">Site Condition</label>
+              <select
+                className="w-full px-3 py-2 border rounded-lg bg-slate-50 dark:bg-slate-900"
+                value={form.site_condition}
+                onChange={e => setForm({ ...form, site_condition: e.target.value })}
+              >
+                <option value="DRY">Dry & Workable</option>
+                <option value="DAMP">Damp</option>
+                <option value="MUDDY">Muddy / Slowed Traffic</option>
+                <option value="FLOODED">Waterlogged / Work Stoppage</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        {/* Workforce Headcount */}
+        <div className="card p-6 space-y-4">
+          <div className="flex justify-between items-center border-b pb-2">
+            <div className="flex items-center gap-2 text-brand-600">
+              <Users size={18} />
+              <h2 className="font-bold text-xs uppercase tracking-wider">Site Workforce Deployment</h2>
+            </div>
+            <button
+              type="button"
+              onClick={() => setWorkforce([...workforce, { trade_category: "SKILLED", trade_name: "", subcontractor_name: "", headcount: 1, total_hours: 8 }])}
+              className="btn btn-secondary text-xs flex items-center gap-1"
+            >
+              <Plus size={14} /> Add Trade
+            </button>
+          </div>
+
+          <table className="w-full text-left text-xs">
+            <thead className="bg-slate-50 dark:bg-slate-800 font-bold uppercase">
+              <tr>
+                <th className="p-2">Category</th>
+                <th className="p-2">Trade / Role</th>
+                <th className="p-2">Company / Subcontractor</th>
+                <th className="p-2 text-right w-24">Headcount</th>
+                <th className="p-2 text-right w-24">Total Hours</th>
+                <th className="p-2 w-12 text-center"></th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+              {workforce.map((w, idx) => (
+                <tr key={idx}>
+                  <td className="p-1.5">
+                    <select
+                      className="w-full p-1 border rounded bg-transparent"
+                      value={w.trade_category}
+                      onChange={e => {
+                        const copy = [...workforce];
+                        copy[idx].trade_category = e.target.value;
+                        setWorkforce(copy);
+                      }}
+                    >
+                      <option value="SKILLED">Skilled</option>
+                      <option value="SEMI_SKILLED">Semi-Skilled</option>
+                      <option value="UNSKILLED">Unskilled</option>
+                      <option value="SUPERVISORY">Supervisory</option>
+                    </select>
+                  </td>
+                  <td className="p-1.5">
+                    <input
+                      type="text"
+                      className="w-full p-1 border rounded bg-transparent"
+                      placeholder="e.g. Carpenters"
+                      value={w.trade_name}
+                      onChange={e => {
+                        const copy = [...workforce];
+                        copy[idx].trade_name = e.target.value;
+                        setWorkforce(copy);
+                      }}
+                    />
+                  </td>
+                  <td className="p-1.5">
+                    <input
+                      type="text"
+                      className="w-full p-1 border rounded bg-transparent"
+                      placeholder="Subcontractor"
+                      value={w.subcontractor_name}
+                      onChange={e => {
+                        const copy = [...workforce];
+                        copy[idx].subcontractor_name = e.target.value;
+                        setWorkforce(copy);
+                      }}
+                    />
+                  </td>
+                  <td className="p-1.5 text-right">
+                    <input
+                      type="number"
+                      className="w-full p-1 border rounded text-right bg-transparent font-mono"
+                      value={w.headcount}
+                      onChange={e => {
+                        const copy = [...workforce];
+                        copy[idx].headcount = Number(e.target.value);
+                        copy[idx].total_hours = Number(e.target.value) * 8;
+                        setWorkforce(copy);
+                      }}
+                    />
+                  </td>
+                  <td className="p-1.5 text-right font-mono font-bold">
+                    {w.total_hours} hrs
+                  </td>
+                  <td className="p-1.5 text-center">
+                    <button
+                      type="button"
+                      onClick={() => setWorkforce(workforce.filter((_, i) => i !== idx))}
+                      className="text-rose-500 hover:text-rose-700"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Site Activities Completed */}
+        <div className="card p-6 space-y-4">
+          <div className="flex justify-between items-center border-b pb-2">
+            <div className="flex items-center gap-2 text-brand-600">
+              <CheckSquare size={18} />
+              <h2 className="font-bold text-xs uppercase tracking-wider">Site Activities & Works Executed</h2>
+            </div>
+            <button
+              type="button"
+              onClick={() => setActivities([...activities, { location_grid: "", description: "", quantity_completed: 1, unit: "M3", progress_percent: 0 }])}
+              className="btn btn-secondary text-xs flex items-center gap-1"
+            >
+              <Plus size={14} /> Add Activity
+            </button>
+          </div>
+
+          <table className="w-full text-left text-xs">
+            <thead className="bg-slate-50 dark:bg-slate-800 font-bold uppercase">
+              <tr>
+                <th className="p-2 w-32">Location / Grid</th>
+                <th className="p-2">Description of Work Executed</th>
+                <th className="p-2 w-24 text-right">Measured Qty</th>
+                <th className="p-2 w-20">Unit</th>
+                <th className="p-2 w-28 text-right">% Complete</th>
+                <th className="p-2 w-12 text-center"></th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+              {activities.map((act, idx) => (
+                <tr key={idx}>
+                  <td className="p-1.5">
+                    <input
+                      type="text"
+                      className="w-full p-1 border rounded bg-transparent"
+                      placeholder="e.g. Grid 1-4 / B"
+                      value={act.location_grid}
+                      onChange={e => {
+                        const copy = [...activities];
+                        copy[idx].location_grid = e.target.value;
+                        setActivities(copy);
+                      }}
+                    />
+                  </td>
+                  <td className="p-1.5">
+                    <input
+                      type="text"
+                      className="w-full p-1 border rounded bg-transparent"
+                      placeholder="Work executed..."
+                      value={act.description}
+                      onChange={e => {
+                        const copy = [...activities];
+                        copy[idx].description = e.target.value;
+                        setActivities(copy);
+                      }}
+                    />
+                  </td>
+                  <td className="p-1.5 text-right">
+                    <input
+                      type="number"
+                      step="any"
+                      className="w-full p-1 border rounded text-right bg-transparent font-mono"
+                      value={act.quantity_completed}
+                      onChange={e => {
+                        const copy = [...activities];
+                        copy[idx].quantity_completed = Number(e.target.value);
+                        setActivities(copy);
+                      }}
+                    />
+                  </td>
+                  <td className="p-1.5">
+                    <select
+                      className="w-full p-1 border rounded bg-transparent"
+                      value={act.unit}
+                      onChange={e => {
+                        const copy = [...activities];
+                        copy[idx].unit = e.target.value;
+                        setActivities(copy);
+                      }}
+                    >
+                      {["M3", "M2", "M", "KG", "TON", "NR", "SUM"].map(u => (
+                        <option key={u} value={u}>{u}</option>
+                      ))}
+                    </select>
+                  </td>
+                  <td className="p-1.5 text-right">
+                    <input
+                      type="number"
+                      min="0"
+                      max="100"
+                      className="w-full p-1 border rounded text-right bg-transparent font-mono font-bold"
+                      value={act.progress_percent}
+                      onChange={e => {
+                        const copy = [...activities];
+                        copy[idx].progress_percent = Number(e.target.value);
+                        setActivities(copy);
+                      }}
+                    />
+                  </td>
+                  <td className="p-1.5 text-center">
+                    <button
+                      type="button"
+                      onClick={() => setActivities(activities.filter((_, i) => i !== idx))}
+                      className="text-rose-500 hover:text-rose-700"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Safety & Remarks */}
+        <div className="card p-6 space-y-4">
+          <div className="flex items-center gap-2 text-brand-600 border-b pb-2">
+            <ShieldAlert size={18} />
+            <h2 className="font-bold text-xs uppercase tracking-wider">HSE & Remarks</h2>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+            <div className="space-y-1">
+              <label className="font-bold text-slate-500 uppercase">HSE Observations & Incidents</label>
+              <textarea
+                className="w-full p-3 border rounded-xl bg-slate-50 dark:bg-slate-900 min-h-[90px]"
+                placeholder="Toolbox talks conducted, near misses, PPE compliance..."
+                value={form.safety_observations}
+                onChange={e => setForm({ ...form, safety_observations: e.target.value })}
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="font-bold text-slate-500 uppercase">Site Engineer Remarks</label>
+              <textarea
+                className="w-full p-3 border rounded-xl bg-slate-50 dark:bg-slate-900 min-h-[90px]"
+                placeholder="Inspections held with consultant, delayed deliveries, instructions received..."
+                value={form.general_remarks}
+                onChange={e => setForm({ ...form, general_remarks: e.target.value })}
+              />
+            </div>
+          </div>
+        </div>
+      </form>
+    </div>
+  );
+}

@@ -7,7 +7,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { toast } from "react-toastify";
 import { api } from "../../../../api/client";
-import { Eye, Mail, Pencil } from "lucide-react";
+import { Eye, Mail, Pencil, ArrowLeft } from "lucide-react";
 import { ListPrintIconButton, ListPdfIconButton, ListAttachmentIconButton } from "../../../../components/list/ListDocActionIconButtons.jsx";
 import DocumentAttachmentsModal from "../../../../components/attachments/DocumentAttachmentsModal.jsx";
 import { Guard } from "../../../../hooks/usePermissions";
@@ -59,8 +59,8 @@ export default function MaintenanceRFQList() {
             <p className="text-sm text-slate-500">Track and manage requests for quotations</p>
           </div>
           <div className="flex gap-2">
-            <button onClick={() => (window.location.href = "/maintenance?section=Procurement %26 Materials")} className="btn btn-secondary">Back</button>
-            <button onClick={() => (window.location.href = "/maintenance/rfq/new")} className="bg-brand text-white px-4 py-2 rounded-lg font-medium hover:bg-brand-700">+ New RFQ</button>
+            <Link to="/maintenance?section=Procurement %26 Billing" className="btn btn-secondary flex items-center gap-1.5"><ArrowLeft size={16} /> Back</Link>
+            <Link to="/maintenance/rfq/new" className="bg-brand text-white px-4 py-2 rounded-lg font-medium hover:bg-brand-700">+ New RFQ</Link>
           </div>
         </div>
         <div className="bg-white dark:bg-slate-800 rounded-lg shadow-sm overflow-hidden">

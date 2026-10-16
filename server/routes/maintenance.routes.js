@@ -6,6 +6,7 @@ import {
 } from "../middleware/auth.js";
 import { requirePermission } from "../middleware/requirePermission.js";
 import * as mc from "../controllers/maintenance.controller.js";
+import * as fc from "../controllers/facilities.controller.js";
 
 const router = express.Router();
 const auth = [requireAuth, requireCompanyScope, requireBranchScope];
@@ -127,5 +128,60 @@ router.post("/material-receipts", ...auth, mc.createMaintMaterialReceipt);
 router.put("/material-receipts/:id", ...auth, mc.updateMaintMaterialReceipt);
 router.get("/issue-to-requirement/maint", ...auth, mc.getPendingMaintIssueToRequirement);
 router.get("/issue-to-requirement/maint/:issueId", ...auth, mc.getMaintIssueToRequirementDetail);
+
+// ===== FACILITIES MANAGEMENT EXTENSIONS =====
+// Properties & Multi-tier Hierarchy
+router.get("/properties", ...auth, fc.listProperties);
+router.get("/properties/:id", ...auth, fc.getPropertyById);
+router.get("/properties/:id/hierarchy", ...auth, fc.getPropertyHierarchy);
+router.post("/properties", ...auth, fc.createProperty);
+router.put("/properties/:id", ...auth, fc.updateProperty);
+router.post("/buildings", ...auth, fc.createBuilding);
+router.put("/buildings/:id", ...auth, fc.updateBuilding);
+router.delete("/buildings/:id", ...auth, fc.deleteBuilding);
+router.post("/zones", ...auth, fc.createZone);
+router.put("/zones/:id", ...auth, fc.updateZone);
+router.delete("/zones/:id", ...auth, fc.deleteZone);
+router.post("/spaces", ...auth, fc.createSpace);
+router.put("/spaces/:id", ...auth, fc.updateSpace);
+router.delete("/spaces/:id", ...auth, fc.deleteSpace);
+
+// FM Contracts & SLA
+router.get("/fm-contracts", ...auth, fc.listContracts);
+router.get("/fm-contracts/:id", ...auth, fc.getContractById);
+router.post("/fm-contracts", ...auth, fc.createContract);
+router.get("/fm-contracts/coverage/check", ...auth, fc.checkContractCoverage);
+router.post("/fm-contracts/:id/generate-invoice", ...auth, fc.generateContractInvoice);
+
+// FM Tickets & SLA Lifecycle
+router.get("/fm-tickets", ...auth, fc.listFMTickets);
+router.post("/fm-tickets", ...auth, fc.createFMTicket);
+router.post("/fm-tickets/:id/pause-sla", ...auth, fc.pauseTicketSLA);
+router.post("/fm-tickets/:id/resume-sla", ...auth, fc.resumeTicketSLA);
+router.post("/fm-tickets/:id/convert-to-work-order", ...auth, fc.convertTicketToWorkOrder);
+
+// Field Technician Work Orders
+router.get("/technician/jobs", ...auth, fc.getTechnicianJobs);
+router.post("/jobs/:id/status-transition", ...auth, fc.transitionJobStatus);
+router.post("/jobs/:id/complete", ...auth, fc.completeJobWithSignoff);
+
+// Digital Checklists
+router.get("/checklists/templates", ...auth, fc.listChecklistTemplates);
+router.get("/checklists/templates/:id", ...auth, fc.getChecklistTemplateById);
+router.post("/checklists/templates", ...auth, fc.createChecklistTemplate);
+router.post("/checklists/execute", ...auth, fc.executeChecklist);
+
+// Soft Services Logs
+router.get("/janitorial-logs", ...auth, fc.listJanitorialLogs);
+router.post("/janitorial-logs", ...auth, fc.createJanitorialLog);
+router.get("/security-patrol-logs", ...auth, fc.listSecurityPatrolLogs);
+router.post("/security-patrol-logs", ...auth, fc.createSecurityPatrolLog);
+router.get("/pest-control-logs", ...auth, fc.listPestControlLogs);
+router.post("/pest-control-logs", ...auth, fc.createPestControlLog);
+router.get("/waste-disposal-logs", ...auth, fc.listWasteDisposalLogs);
+router.post("/waste-disposal-logs", ...auth, fc.createWasteDisposalLog);
+
+// Facilities Dashboard KPIs
+router.get("/facilities-dashboard/kpis", ...auth, fc.getFacilitiesDashboardKPIs);
 
 export default router;

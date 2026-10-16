@@ -43,13 +43,13 @@ export const BACKGROUND_PRESETS = [
     theme: "Warm Apricot",
   },
   {
-    id: "cyber-nexus",
-    name: "Cyber Nexus",
-    subtitle: "Dark Tech",
-    description: "Deep navy digital space with glowing amber network constellations & orbital rings",
-    url: "/backgrounds/cyber-nexus-dark.jpg",
-    previewUrl: "/backgrounds/cyber-nexus-dark.jpg",
-    theme: "Dark Cybernetic",
+    id: "solid-white",
+    name: "Solid White Color",
+    subtitle: "Pure Minimal",
+    description: "Clean, glare-free pure solid white background (#ffffff) with maximum contrast and readability",
+    url: "/backgrounds/solid-white.svg",
+    previewUrl: "/backgrounds/solid-white.svg",
+    theme: "Solid White",
   },
   {
     id: "digital-aura",
@@ -96,9 +96,9 @@ export default function AppBackgroundControlSection() {
           const d = res.data;
           let preset = d.background_preset || "silk-waves";
           let bgUrl = d.background_url || "";
-          if (preset === "midnight-flow" || bgUrl.includes("txb3zy")) {
-            preset = "cyber-nexus";
-            bgUrl = "/backgrounds/cyber-nexus-dark.jpg";
+          if (preset === "midnight-flow" || bgUrl.includes("txb3zy") || preset === "cyber-nexus" || bgUrl.includes("cyber-nexus")) {
+            preset = "solid-white";
+            bgUrl = "/backgrounds/solid-white.svg";
           } else if (preset === "amber-luster" || preset === "aurora-glow" || bgUrl.includes("hsy20i") || bgUrl.includes("abstract-aurora-glow")) {
             preset = "amber-apricot";
             bgUrl = "/backgrounds/amber-apricot-flow.jpg";
@@ -387,7 +387,15 @@ export default function AppBackgroundControlSection() {
                   >
                     {/* Thumbnail Preview Banner */}
                     <div className="h-28 w-full relative bg-slate-900 overflow-hidden flex items-center justify-center">
-                      {preset.previewUrl ? (
+                      {preset.id === "solid-white" ? (
+                        <div className="w-full h-full bg-white flex flex-col items-center justify-center border-b border-slate-200">
+                          <div className="w-8 h-8 rounded-full bg-white border-2 border-slate-300 shadow-xs flex items-center justify-center mb-1">
+                            <span className="w-4 h-4 rounded-full bg-slate-100 border border-slate-200"></span>
+                          </div>
+                          <span className="text-[11px] font-bold text-slate-800 tracking-wider">#FFFFFF</span>
+                          <span className="text-[9px] font-medium text-slate-500">Solid White</span>
+                        </div>
+                      ) : preset.previewUrl ? (
                         <img
                           src={preset.previewUrl}
                           alt={preset.name}
@@ -413,7 +421,13 @@ export default function AppBackgroundControlSection() {
                       )}
 
                       {/* Preset Tag */}
-                      <div className="absolute bottom-2 left-2 px-2 py-0.5 rounded-md bg-black/60 backdrop-blur-sm text-white text-[10px] font-semibold">
+                      <div
+                        className={`absolute bottom-2 left-2 px-2 py-0.5 rounded-md text-[10px] font-semibold ${
+                          preset.id === "solid-white"
+                            ? "bg-slate-800/90 text-white border border-slate-700 shadow-xs"
+                            : "bg-black/60 backdrop-blur-sm text-white"
+                        }`}
+                      >
                         {preset.theme}
                       </div>
                     </div>
@@ -676,9 +690,11 @@ export default function AppBackgroundControlSection() {
               </span>
             </div>
 
-            <div className="relative p-6 min-h-[160px] flex items-center justify-center overflow-hidden bg-slate-900">
+            <div className={`relative p-6 min-h-[160px] flex items-center justify-center overflow-hidden transition-colors duration-300 ${selectedPreset === "solid-white" || backgroundUrl === "/backgrounds/solid-white.svg" ? "bg-slate-100" : "bg-slate-900"}`}>
               {/* Background behind preview */}
-              {backgroundUrl ? (
+              {selectedPreset === "solid-white" || backgroundUrl === "/backgrounds/solid-white.svg" ? (
+                <div className="absolute inset-0 bg-white" />
+              ) : backgroundUrl ? (
                 <div
                   className="absolute inset-0 bg-cover bg-center transition-all duration-300"
                   style={{

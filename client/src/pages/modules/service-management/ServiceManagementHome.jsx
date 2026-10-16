@@ -26,8 +26,73 @@ import ServiceInvoiceList from "./service-invoices/ServiceInvoiceList.jsx";
 import ServiceInvoiceForm from "./service-invoices/ServiceInvoiceForm.jsx";
 import ServiceParametersPage from "./setup/ServiceParametersPage.jsx";
 import ServiceReportsPage from "./reports/ServiceReportsPage.jsx";
+import PropertiesList from "../maintenance/properties/PropertiesList.jsx";
+import FMContractsList from "../maintenance/fm-contracts/FMContractsList.jsx";
+import FieldTechnicianJobCard from "../maintenance/field-service/FieldTechnicianJobCard.jsx";
+import ChecklistTemplatesList from "../maintenance/checklists/ChecklistTemplatesList.jsx";
+import SoftServicesPage from "../maintenance/soft-services/SoftServicesPage.jsx";
+import FacilitiesOperationsDashboard from "../maintenance/operations-dashboard/FacilitiesOperationsDashboard.jsx";
 
 export const serviceManagementSections = [
+  {
+    title: "Facilities Management",
+    items: [
+      {
+        title: "Facilities Command Center",
+        description: "Live SLA tracking and operations KPIs",
+        path: "/service-management/facilities-dashboard",
+        icon: "📊",
+        actions: [
+          { label: "View", path: "/service-management/facilities-dashboard", type: "outline", featureKey: "SERVICE.MANAGE", action: "view" }
+        ]
+      },
+      {
+        title: "Client Properties & Sites",
+        description: "Multi-tier facility property register and hierarchy",
+        path: "/service-management/properties",
+        icon: "🏢",
+        actions: [
+          { label: "View", path: "/service-management/properties", type: "outline", featureKey: "SERVICE.MANAGE", action: "view" }
+        ]
+      },
+      {
+        title: "FM Service Contracts",
+        description: "Client service contracts, SLA rules, and recurring billing",
+        path: "/service-management/fm-contracts",
+        icon: "📜",
+        actions: [
+          { label: "View", path: "/service-management/fm-contracts", type: "outline", featureKey: "SERVICE.MANAGE", action: "view" }
+        ]
+      },
+      {
+        title: "Field Technician Workspace",
+        description: "Mobile job card, step transitions, and client sign-off",
+        path: "/service-management/field-service",
+        icon: "👨‍🔧",
+        actions: [
+          { label: "Open", path: "/service-management/field-service", type: "outline", featureKey: "SERVICE.MANAGE", action: "view" }
+        ]
+      },
+      {
+        title: "Inspection Checklists",
+        description: "Configurable audit templates across all service lines",
+        path: "/service-management/checklists",
+        icon: "📋",
+        actions: [
+          { label: "View", path: "/service-management/checklists", type: "outline", featureKey: "SERVICE.MANAGE", action: "view" }
+        ]
+      },
+      {
+        title: "Soft Facilities Services",
+        description: "Janitorial audits, security patrol rounds, pest and waste",
+        path: "/service-management/soft-services",
+        icon: "✨",
+        actions: [
+          { label: "View", path: "/service-management/soft-services", type: "outline", featureKey: "SERVICE.MANAGE", action: "view" }
+        ]
+      }
+    ]
+  },
   {
     title: "Service Requests",
     items: [
@@ -317,6 +382,12 @@ export default function ServiceManagementHome() {
     >
       <Routes>
         <Route path="/" element={<ServiceManagementLanding />} />
+        <Route path="facilities-dashboard" element={<FacilitiesOperationsDashboard />} />
+        <Route path="properties" element={<PropertiesList />} />
+        <Route path="fm-contracts" element={<FMContractsList />} />
+        <Route path="field-service" element={<FieldTechnicianJobCard />} />
+        <Route path="checklists" element={<ChecklistTemplatesList />} />
+        <Route path="soft-services" element={<SoftServicesPage />} />
         <Route
           path="dashboard"
           element={

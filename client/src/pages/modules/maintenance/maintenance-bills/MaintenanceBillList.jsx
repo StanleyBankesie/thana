@@ -7,7 +7,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { toast } from "react-toastify";
 import { api } from "../../../../api/client";
-import { Eye, Edit } from "lucide-react";
+import { Eye, Edit, ArrowLeft } from "lucide-react";
 import { ListPrintIconButton, ListPdfIconButton, ListAttachmentIconButton } from "../../../../components/list/ListDocActionIconButtons.jsx";
 import DocumentAttachmentsModal from "../../../../components/attachments/DocumentAttachmentsModal.jsx";
 import { usePermission } from "../../../../auth/PermissionContext.jsx";
@@ -59,8 +59,8 @@ export default function MaintenanceBillList() {
           <div className="flex justify-between items-center">
             <div className="font-semibold">Maintenance Bills</div>
             <div className="flex gap-2">
-              <button onClick={() => (window.location.href = "/maintenance?section=Procurement %26 Materials")} className="btn btn-secondary">Back</button>
-              <button onClick={() => (window.location.href = "/maintenance/bills/new")} className="bg-green-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-green-700">+ New Bill</button>
+              <Link to="/maintenance?section=Procurement %26 Billing" className="btn btn-secondary flex items-center gap-1.5"><ArrowLeft size={16} /> Back</Link>
+              <Link to="/maintenance/bills/new" className="bg-green-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-green-700">+ New Bill</Link>
             </div>
           </div>
         </div>

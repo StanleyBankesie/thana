@@ -12,6 +12,7 @@ import {
 } from "../middleware/auth.js";
 import { requirePermission } from "../middleware/requirePermission.js";
 import * as financeController from "../controllers/finance.controller.js";
+import * as budgetController from "../controllers/finance.budget.controller.js";
 
 const router = express.Router();
 
@@ -804,6 +805,135 @@ router.get(
   requireCompanyScope,
   requireBranchScope,
   financeController.getFinanceDashboardStats,
+);
+
+// =========================================================================
+// BUDGET MANAGEMENT, WORKFLOWS, DASHBOARD & BUDGET VS ACTUAL REPORT
+// =========================================================================
+router.get(
+  "/budgets",
+  requireAuth,
+  requireCompanyScope,
+  budgetController.listBudgets,
+);
+
+router.get(
+  "/budgets/dashboard/summary",
+  requireAuth,
+  requireCompanyScope,
+  budgetController.getBudgetVsActualDashboard,
+);
+
+router.get(
+  "/budgets/controls/policy",
+  requireAuth,
+  requireCompanyScope,
+  budgetController.getBudgetControlSettings,
+);
+
+router.put(
+  "/budgets/controls/policy",
+  requireAuth,
+  requireCompanyScope,
+  budgetController.updateBudgetControlSettings,
+);
+
+router.post(
+  "/budgets/check-availability",
+  requireAuth,
+  requireCompanyScope,
+  budgetController.checkBudgetAvailability,
+);
+
+router.get(
+  "/budgets/variances/explanations",
+  requireAuth,
+  requireCompanyScope,
+  budgetController.getVarianceExplanations,
+);
+
+router.post(
+  "/budgets/variances/explanations",
+  requireAuth,
+  requireCompanyScope,
+  budgetController.saveVarianceExplanation,
+);
+
+router.get(
+  "/budgets/:id",
+  requireAuth,
+  requireCompanyScope,
+  financeController.requireIdParam("id"),
+  budgetController.getBudgetById,
+);
+
+router.post(
+  "/budgets",
+  requireAuth,
+  requireCompanyScope,
+  budgetController.createBudget,
+);
+
+router.put(
+  "/budgets/:id",
+  requireAuth,
+  requireCompanyScope,
+  financeController.requireIdParam("id"),
+  budgetController.updateBudget,
+);
+
+router.delete(
+  "/budgets/:id",
+  requireAuth,
+  requireCompanyScope,
+  financeController.requireIdParam("id"),
+  budgetController.deleteBudget,
+);
+
+router.post(
+  "/budgets/:id/submit",
+  requireAuth,
+  requireCompanyScope,
+  financeController.requireIdParam("id"),
+  budgetController.submitBudget,
+);
+
+router.post(
+  "/budgets/:id/approve",
+  requireAuth,
+  requireCompanyScope,
+  financeController.requireIdParam("id"),
+  budgetController.approveBudget,
+);
+
+router.post(
+  "/budgets/:id/reject",
+  requireAuth,
+  requireCompanyScope,
+  financeController.requireIdParam("id"),
+  budgetController.rejectBudget,
+);
+
+router.post(
+  "/budgets/:id/revise",
+  requireAuth,
+  requireCompanyScope,
+  financeController.requireIdParam("id"),
+  budgetController.reviseBudget,
+);
+
+router.get(
+  "/reports/budget-vs-actual",
+  requireAuth,
+  requireCompanyScope,
+  budgetController.getBudgetVsActualReport,
+);
+
+router.get(
+  "/reports/budget-vs-actual/drilldown",
+  requireAuth,
+  requireCompanyScope,
+  budgetController.getTransactionDrilldown,
 );
 
 export default router;

@@ -50,6 +50,9 @@ import CurrenciesPage from "./setup/CurrenciesPage.jsx";
 import FiscalYearsPage from "./setup/FiscalYearsPage.jsx";
 import CostCentersPage from "./setup/CostCentersPage.jsx";
 import OpeningBalancesPage from "./setup/OpeningBalancesPage.jsx";
+import BudgetPage from "./setup/BudgetPage.jsx";
+import BudgetDashboardPage from "./budget/BudgetDashboardPage.jsx";
+import BudgetVsActualReportPage from "./reports/BudgetVsActualReportPage.jsx";
 import BankReconciliationList from "./banking/BankReconciliationList.jsx";
 import BankReconciliationForm from "./banking/BankReconciliationForm.jsx";
 import PdcPostingsList from "./banking/PdcPostingsList.jsx";
@@ -267,6 +270,34 @@ export default function FinanceRoutes() {
         <Route
           path="reports/chart-of-accounts-graphical"
           element={<GraphicalChartOfAccountsPage />}
+        />
+        <Route
+          path="budget-dashboard"
+          element={<BudgetDashboardPage />}
+        />
+        <Route
+          path="budgets/dashboard"
+          element={<BudgetDashboardPage />}
+        />
+        <Route
+          path="reports/budget-vs-actual"
+          element={<BudgetVsActualReportPage />}
+        />
+        <Route
+          path="budget-vs-actual"
+          element={<BudgetVsActualReportPage />}
+        />
+        <Route
+          path="setup/budget"
+          element={<BudgetPage />}
+        />
+        <Route
+          path="budget"
+          element={<BudgetPage />}
+        />
+        <Route
+          path="budgets"
+          element={<BudgetPage />}
         />
 
         <Route path="*" element={<Navigate to="/finance?section=Voucher%20Management" replace />} />

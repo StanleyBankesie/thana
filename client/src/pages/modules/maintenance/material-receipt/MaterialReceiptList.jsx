@@ -5,7 +5,7 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { Plus, RefreshCw } from "lucide-react";
+import { Plus, RefreshCw, ArrowLeft } from "lucide-react";
 import { api } from "../../../../api/client";
 import { toast } from "react-toastify";
 import { filterAndSort } from "@/utils/searchUtils.js";
@@ -72,7 +72,7 @@ export default function MaterialReceiptList() {
               <p className="text-sm mt-1">Receive materials issued from Inventory (Project Management department)</p>
             </div>
             <div className="flex gap-2">
-              <button onClick={() => window.history.back()} className="btn btn-secondary">Back</button>
+              <Link to="/maintenance?section=Resource Management" className="btn btn-secondary flex items-center gap-1.5"><ArrowLeft size={16} /> Back</Link>
               <button onClick={loadData} className="btn btn-secondary p-2" title="Refresh"><RefreshCw size={16} /></button>
               <Link to="/maintenance/material-receipts/new" className="btn-success flex items-center gap-2"><Plus size={16} />Receive{pendingIssues > 0 ? ` (${pendingIssues})` : ""}</Link>
             </div>

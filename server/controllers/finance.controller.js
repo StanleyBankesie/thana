@@ -7692,3 +7692,424 @@ export const getDashboardMetrics = async (req, res, next) => {
     next(e);
   }
 };
+
+/* =========================================================================
+   BUDGET MANAGEMENT & BUDGET VS ACTUAL REPORT
+========================================================================= */
+
+export const listBudgets = async (req, res, next) => {
+  try {
+    const { companyId } = req.scope || {};
+    const { fiscal_year_id, status } = req.query;
+
+    let whereClause = "WHERE b.company_id = :companyId";
+    const params = { companyId };
+
+    if (fiscal_year_id) {
+      whereClause += " AND b.fiscal_year_id = :fiscal_year_id";
+      params.fiscal_year_id = Number(fiscal_year_id);
+    }
+    if (status) {
+      whereClause += " AND b.status = :status";
+      params.status = status;
+    }
+
+    const budgets = await query(
+      `SELECT 
+        b.*,
+        fy.code AS fiscal_year_code,
+        cc.name AS cost_center_name,
+        cur.code AS currency_code,
+        COUNT(bl.id) AS line_count,
+        COALESCE(SUM(bl.budget_amount), b.total_budget, 0) AS calculated_total
+       FROM fin_budgets b
+       LEFT JOIN fin_fiscal_years fy ON fy.id = b.fiscal_year_id
+       LEFT JOIN fin_cost_centers cc ON cc.id = b.cost_center_id
+       LEFT JOIN fin_currencies cur ON cur.id = b.currency_id
+       LEFT JOIN fin_budget_lines bl ON bl.budget_id = b.id
+       ${whereClause}
+       GROUP BY b.id
+       ORDER BY b.id DESC`,
+      params
+    );
+
+    res.json({ status: "success", data: budgets });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const getBudgetById = async (req, res, next) => {
+  try {
+    const { companyId } = req.scope || {};
+    const id = Number(req.params.id);
+
+    const budgets = await query(
+      `SELECT b.*, fy.code AS fiscal_year_code, cc.name AS cost_center_name
+       FROM fin_budgets b
+       LEFT JOIN fin_fiscal_years fy ON fy.id = b.fiscal_year_id
+       LEFT JOIN fin_cost_centers cc ON cc.id = b.cost_center_id
+       WHERE b.id = :id AND b.company_id = :companyId`,
+      { id, companyId }
+    );
+    if (!budgets.length) {
+      return res.status(404).json({ error: "Budget not found" });
+    }
+
+    const lines = await query(
+      `SELECT bl.*, a.code AS account_code, a.name AS account_name, g.nature AS account_nature, cc.name AS cost_center_name
+       FROM fin_budget_lines bl
+       JOIN fin_accounts a ON a.id = bl.account_id
+       LEFT JOIN fin_account_groups g ON g.id = a.group_id
+       LEFT JOIN fin_cost_centers cc ON cc.id = bl.cost_center_id
+       WHERE bl.budget_id = :id
+       ORDER BY a.code ASC`,
+      { id }
+    );
+
+    res.json({ status: "success", data: { ...budgets[0], lines } });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const createBudget = async (req, res, next) => {
+  try {
+    const { companyId, branchId } = req.scope || {};
+    const userId = Number(req.user?.sub || req.user?.id);
+    const { fiscal_year_id, budget_code, budget_name, cost_center_id, currency_id, description, status, lines } = req.body;
+
+    if (!fiscal_year_id || !budget_name) {
+      return res.status(400).json({ error: "Fiscal year and budget name are required" });
+    }
+
+    const code = budget_code?.trim() || `BUD-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
+
+    let totalBudget = 0;
+    if (Array.isArray(lines)) {
+      totalBudget = lines.reduce((acc, l) => acc + (Number(l.budget_amount) || 0), 0);
+    }
+
+    const result = await query(
+      `INSERT INTO fin_budgets 
+       (company_id, branch_id, fiscal_year_id, budget_code, budget_name, cost_center_id, currency_id, description, total_budget, status, created_by)
+       VALUES (:companyId, :branchId, :fiscal_year_id, :code, :budget_name, :cost_center_id, :currency_id, :description, :totalBudget, :status, :userId)`,
+      {
+        companyId,
+        branchId: branchId || null,
+        fiscal_year_id: Number(fiscal_year_id),
+        code,
+        budget_name,
+        cost_center_id: cost_center_id ? Number(cost_center_id) : null,
+        currency_id: currency_id ? Number(currency_id) : null,
+        description: description || null,
+        totalBudget,
+        status: status || 'ACTIVE',
+        userId: userId || null
+      }
+    );
+
+    const budgetId = result.insertId;
+
+    if (Array.isArray(lines) && lines.length > 0) {
+      for (const line of lines) {
+        if (!line.account_id) continue;
+        await query(
+          `INSERT INTO fin_budget_lines (budget_id, account_id, cost_center_id, period_month, budget_amount, notes)
+           VALUES (:budgetId, :accountId, :costCenterId, :periodMonth, :amount, :notes)`,
+          {
+            budgetId,
+            accountId: Number(line.account_id),
+            costCenterId: line.cost_center_id ? Number(line.cost_center_id) : (cost_center_id ? Number(cost_center_id) : null),
+            periodMonth: line.period_month ? Number(line.period_month) : null,
+            amount: Number(line.budget_amount) || 0,
+            notes: line.notes || null
+          }
+        );
+      }
+    }
+
+    res.status(201).json({ status: "success", data: { id: budgetId, budget_code: code } });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const updateBudget = async (req, res, next) => {
+  try {
+    const { companyId } = req.scope || {};
+    const id = Number(req.params.id);
+    const { fiscal_year_id, budget_name, cost_center_id, currency_id, description, status, lines } = req.body;
+
+    let totalBudget = 0;
+    if (Array.isArray(lines)) {
+      totalBudget = lines.reduce((acc, l) => acc + (Number(l.budget_amount) || 0), 0);
+    }
+
+    await query(
+      `UPDATE fin_budgets 
+       SET fiscal_year_id = COALESCE(:fiscal_year_id, fiscal_year_id),
+           budget_name = COALESCE(:budget_name, budget_name),
+           cost_center_id = :cost_center_id,
+           currency_id = :currency_id,
+           description = :description,
+           total_budget = :totalBudget,
+           status = COALESCE(:status, status)
+       WHERE id = :id AND company_id = :companyId`,
+      {
+        id,
+        companyId,
+        fiscal_year_id: fiscal_year_id ? Number(fiscal_year_id) : null,
+        budget_name: budget_name || null,
+        cost_center_id: cost_center_id ? Number(cost_center_id) : null,
+        currency_id: currency_id ? Number(currency_id) : null,
+        description: description || null,
+        totalBudget,
+        status: status || null
+      }
+    );
+
+    if (Array.isArray(lines)) {
+      await query(`DELETE FROM fin_budget_lines WHERE budget_id = :id`, { id });
+      for (const line of lines) {
+        if (!line.account_id) continue;
+        await query(
+          `INSERT INTO fin_budget_lines (budget_id, account_id, cost_center_id, period_month, budget_amount, notes)
+           VALUES (:budgetId, :accountId, :costCenterId, :periodMonth, :amount, :notes)`,
+          {
+            budgetId: id,
+            accountId: Number(line.account_id),
+            costCenterId: line.cost_center_id ? Number(line.cost_center_id) : (cost_center_id ? Number(cost_center_id) : null),
+            periodMonth: line.period_month ? Number(line.period_month) : null,
+            amount: Number(line.budget_amount) || 0,
+            notes: line.notes || null
+          }
+        );
+      }
+    }
+
+    res.json({ status: "success", message: "Budget updated successfully" });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const deleteBudget = async (req, res, next) => {
+  try {
+    const { companyId } = req.scope || {};
+    const id = Number(req.params.id);
+
+    await query(`DELETE FROM fin_budget_lines WHERE budget_id = :id`, { id });
+    await query(`DELETE FROM fin_budgets WHERE id = :id AND company_id = :companyId`, { id, companyId });
+
+    res.json({ status: "success", message: "Budget deleted successfully" });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const getBudgetVsActualReport = async (req, res, next) => {
+  try {
+    const { companyId } = req.scope || {};
+    const { fiscal_year_id, budget_id, cost_center_id, period_month, group_id, nature } = req.query;
+
+    if (!companyId) {
+      return res.status(400).json({ error: "Company scope required" });
+    }
+
+    // 1. Determine target fiscal year
+    let targetFiscalYearId = fiscal_year_id ? Number(fiscal_year_id) : null;
+    let fiscalYearInfo = null;
+    if (targetFiscalYearId) {
+      const fyRows = await query(`SELECT * FROM fin_fiscal_years WHERE id = :id AND company_id = :companyId`, { id: targetFiscalYearId, companyId });
+      fiscalYearInfo = fyRows[0] || null;
+    } else {
+      const fyRows = await query(`SELECT * FROM fin_fiscal_years WHERE company_id = :companyId ORDER BY is_open DESC, start_date DESC LIMIT 1`, { companyId });
+      fiscalYearInfo = fyRows[0] || null;
+      targetFiscalYearId = fiscalYearInfo?.id || null;
+    }
+
+    // 2. Fetch budget header (if budget_id specified or pick active budget for fiscal year)
+    let selectedBudgetId = budget_id ? Number(budget_id) : null;
+    let budgetInfo = null;
+    if (selectedBudgetId) {
+      const bRows = await query(`SELECT * FROM fin_budgets WHERE id = :id AND company_id = :companyId`, { id: selectedBudgetId, companyId });
+      budgetInfo = bRows[0] || null;
+    } else if (targetFiscalYearId) {
+      const bRows = await query(`SELECT * FROM fin_budgets WHERE company_id = :companyId AND fiscal_year_id = :fyId AND status IN ('ACTIVE', 'APPROVED') ORDER BY id DESC LIMIT 1`, { companyId, fyId: targetFiscalYearId });
+      budgetInfo = bRows[0] || null;
+      selectedBudgetId = budgetInfo?.id || null;
+    }
+
+    // 3. Date filters: fiscal year start/end or custom from/to
+    const fromDate = req.query.from || fiscalYearInfo?.start_date || null;
+    const toDate = req.query.to || fiscalYearInfo?.end_date || null;
+
+    const params = {
+      companyId,
+      budgetId: selectedBudgetId || 0,
+      fromDate: fromDate ? String(fromDate).substring(0, 10) : null,
+      toDate: toDate ? String(toDate).substring(0, 10) : null,
+      costCenterId: cost_center_id ? Number(cost_center_id) : null,
+      month: period_month ? Number(period_month) : null,
+    };
+
+    let natureFilter = "";
+    if (nature && ['INCOME', 'EXPENSE', 'ASSET', 'LIABILITY', 'EQUITY'].includes(String(nature).toUpperCase())) {
+      natureFilter = `AND g.nature = '${String(nature).toUpperCase()}'`;
+    }
+
+    let groupFilter = "";
+    if (group_id) {
+      groupFilter = `AND a.group_id = ${Number(group_id)}`;
+    }
+
+    const reportQuery = `
+      SELECT 
+        a.id AS account_id,
+        a.code AS account_code,
+        a.name AS account_name,
+        g.id AS group_id,
+        g.name AS group_name,
+        g.nature AS account_nature,
+        COALESCE(b_agg.budget_amount, 0) AS budget_amount,
+        COALESCE(act_agg.total_debit, 0) AS total_debit,
+        COALESCE(act_agg.total_credit, 0) AS total_credit
+      FROM fin_accounts a
+      JOIN fin_account_groups g ON g.id = a.group_id
+      LEFT JOIN (
+        SELECT 
+          bl.account_id,
+          SUM(bl.budget_amount) AS budget_amount
+        FROM fin_budget_lines bl
+        JOIN fin_budgets b ON b.id = bl.budget_id
+        WHERE b.company_id = :companyId
+          AND (:budgetId = 0 OR bl.budget_id = :budgetId)
+          AND (:costCenterId IS NULL OR bl.cost_center_id = :costCenterId)
+          AND (:month IS NULL OR bl.period_month = :month)
+        GROUP BY bl.account_id
+      ) b_agg ON b_agg.account_id = a.id
+      LEFT JOIN (
+        SELECT 
+          vl.account_id,
+          SUM(COALESCE(vl.debit, 0)) AS total_debit,
+          SUM(COALESCE(vl.credit, 0)) AS total_credit
+        FROM fin_voucher_lines vl
+        JOIN fin_vouchers v ON v.id = vl.voucher_id
+        WHERE v.company_id = :companyId
+          AND (v.status = 'POSTED' OR v.status IS NULL OR v.status NOT IN ('CANCELLED', 'VOID', 'REJECTED'))
+          AND (:costCenterId IS NULL OR vl.cost_center = :costCenterId OR v.cost_center_id = :costCenterId)
+          AND (:fromDate IS NULL OR DATE(v.voucher_date) >= :fromDate)
+          AND (:toDate IS NULL OR DATE(v.voucher_date) <= :toDate)
+          AND (:month IS NULL OR MONTH(v.voucher_date) = :month)
+        GROUP BY vl.account_id
+      ) act_agg ON act_agg.account_id = a.id
+      WHERE a.company_id = :companyId
+        AND a.is_active = 1
+        ${natureFilter}
+        ${groupFilter}
+        AND (COALESCE(b_agg.budget_amount, 0) > 0 OR COALESCE(act_agg.total_debit, 0) > 0 OR COALESCE(act_agg.total_credit, 0) > 0)
+      ORDER BY g.nature, a.code ASC
+    `;
+
+    const rows = await query(reportQuery, params);
+
+    let totalBudgetExpense = 0;
+    let totalActualExpense = 0;
+    let totalBudgetIncome = 0;
+    let totalActualIncome = 0;
+
+    const items = rows.map((r) => {
+      const budget = Number(r.budget_amount || 0);
+      const debit = Number(r.total_debit || 0);
+      const credit = Number(r.total_credit || 0);
+      const nature = r.account_nature || "EXPENSE";
+
+      let actual = 0;
+      let variance = 0;
+      let status = "ON_TRACK";
+
+      if (nature === "EXPENSE") {
+        actual = debit - credit;
+        variance = budget - actual;
+        totalBudgetExpense += budget;
+        totalActualExpense += actual;
+        if (budget > 0) {
+          const util = (actual / budget) * 100;
+          if (util > 100) status = "OVER_BUDGET";
+          else if (util >= 85) status = "NEARING_LIMIT";
+          else status = "WITHIN_BUDGET";
+        } else if (actual > 0) {
+          status = "OVER_BUDGET";
+        }
+      } else if (nature === "INCOME") {
+        actual = credit - debit;
+        variance = actual - budget;
+        totalBudgetIncome += budget;
+        totalActualIncome += actual;
+        if (budget > 0) {
+          const util = (actual / budget) * 100;
+          if (util >= 100) status = "TARGET_EXCEEDED";
+          else if (util >= 75) status = "ON_TRACK";
+          else status = "BEHIND_TARGET";
+        } else if (actual > 0) {
+          status = "TARGET_EXCEEDED";
+        }
+      } else {
+        actual = debit - credit;
+        variance = budget - actual;
+        status = actual <= budget ? "WITHIN_BUDGET" : "OVER_BUDGET";
+      }
+
+      const utilizationPct = budget > 0 ? (actual / budget) * 100 : (actual > 0 ? 100 : 0);
+
+      return {
+        account_id: r.account_id,
+        account_code: r.account_code,
+        account_name: r.account_name,
+        group_id: r.group_id,
+        group_name: r.group_name,
+        account_nature: nature,
+        budget_amount: Math.round(budget * 100) / 100,
+        actual_amount: Math.round(actual * 100) / 100,
+        variance_amount: Math.round(variance * 100) / 100,
+        utilization_pct: Math.round(utilizationPct * 10) / 10,
+        status,
+      };
+    });
+
+    const expenseVariance = totalBudgetExpense - totalActualExpense;
+    const incomeVariance = totalActualIncome - totalBudgetIncome;
+    const netBudget = totalBudgetIncome - totalBudgetExpense;
+    const netActual = totalActualIncome - totalActualExpense;
+    const netVariance = netActual - netBudget;
+
+    res.json({
+      status: "success",
+      data: {
+        fiscal_year: fiscalYearInfo,
+        budget: budgetInfo,
+        date_range: { from: fromDate, to: toDate },
+        summary: {
+          total_budget_expense: Math.round(totalBudgetExpense * 100) / 100,
+          total_actual_expense: Math.round(totalActualExpense * 100) / 100,
+          expense_variance: Math.round(expenseVariance * 100) / 100,
+          expense_utilization_pct: totalBudgetExpense > 0 ? Math.round((totalActualExpense / totalBudgetExpense) * 1000) / 10 : 0,
+
+          total_budget_income: Math.round(totalBudgetIncome * 100) / 100,
+          total_actual_income: Math.round(totalActualIncome * 100) / 100,
+          income_variance: Math.round(incomeVariance * 100) / 100,
+          income_achievement_pct: totalBudgetIncome > 0 ? Math.round((totalActualIncome / totalBudgetIncome) * 1000) / 10 : 0,
+
+          net_budget_profit: Math.round(netBudget * 100) / 100,
+          net_actual_profit: Math.round(netActual * 100) / 100,
+          net_profit_variance: Math.round(netVariance * 100) / 100,
+        },
+        items,
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+

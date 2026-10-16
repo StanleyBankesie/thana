@@ -1965,9 +1965,18 @@ export default function AppShell() {
           </nav>
         </aside>
 
-        <main className="flex-1 overflow-x-hidden min-w-0 relative bg-slate-100 dark:bg-slate-900 min-h-[calc(100vh-45px)]">
+        <main className={`flex-1 overflow-x-hidden min-w-0 relative min-h-[calc(100vh-45px)] ${appBackground?.preset === "solid-white" || appBackground?.url?.includes("solid-white") ? "bg-white" : "bg-slate-100 dark:bg-slate-900"}`}>
           {/* Main Application Background Image Layer (strictly inside main application area) */}
-          {appBackground?.url ? (
+          {appBackground?.preset === "solid-white" || appBackground?.url?.includes("solid-white") ? (
+            <div
+              aria-hidden="true"
+              className="fixed top-[45px] bottom-0 right-0 pointer-events-none z-0 bg-white transition-all duration-300 ease-in-out"
+              style={{
+                left: sidebarOpen ? "280px" : "0px",
+                backgroundColor: "#ffffff",
+              }}
+            />
+          ) : appBackground?.url ? (
             <div
               aria-hidden="true"
               className="fixed top-[45px] bottom-0 right-0 pointer-events-none z-0 bg-cover bg-center bg-no-repeat transition-all duration-300 ease-in-out"

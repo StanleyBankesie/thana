@@ -931,14 +931,16 @@ export const listAssets = async (req, res, next) => {
     if (cached) return res.json({ items: cached });
 
     await ensureTables(companyId, branchId);
-    const items = await query(`SELECT *,
-          created_at,
+    const items = await query(`SELECT a.*,
+          p.property_name,
+          p.property_code,
           u.username AS created_by_name
-         FROM maint_assets
-        LEFT JOIN adm_users u ON u.id = created_by
-         WHERE company_id = :companyId
-         AND (:branchIdsStr = '' OR FIND_IN_SET(branch_id, :branchIdsStr))
-       ORDER BY asset_name ASC, id ASC`,
+         FROM maint_assets a
+        LEFT JOIN fm_properties p ON p.id = a.property_id
+        LEFT JOIN adm_users u ON u.id = a.created_by
+         WHERE a.company_id = :companyId
+         AND (:branchIdsStr = '' OR FIND_IN_SET(a.branch_id, :branchIdsStr))
+       ORDER BY a.asset_name ASC, a.id ASC`,
       { companyId, branchId, branchIdsStr },
     );
     await cacheSet(`maint_assets:company:${companyId}:branches:${branchIdsStr}`, items, 300);
@@ -954,14 +956,16 @@ export const getAssetById = async (req, res, next) => {
     const { companyId, branchId = null, branchIdsStr = '' } = req.scope || {};
     const id = toNumber(req.params.id);
     await ensureTables(companyId, branchId);
-    const rows = await query(`SELECT *,
-          created_at,
+    const rows = await query(`SELECT a.*,
+          p.property_name,
+          p.property_code,
           u.username AS created_by_name
-         FROM maint_assets
-        LEFT JOIN adm_users u ON u.id = created_by
-         WHERE id = :id
-         AND company_id = :companyId
-         AND (:branchIdsStr = '' OR FIND_IN_SET(branch_id, :branchIdsStr))
+         FROM maint_assets a
+        LEFT JOIN fm_properties p ON p.id = a.property_id
+        LEFT JOIN adm_users u ON u.id = a.created_by
+         WHERE a.id = :id
+         AND a.company_id = :companyId
+         AND (:branchIdsStr = '' OR FIND_IN_SET(a.branch_id, :branchIdsStr))
        LIMIT 1`,
       { id, companyId, branchId, branchIdsStr },
     );
@@ -979,9 +983,11 @@ export const createAsset = async (req, res, next) => {
     await ensureTables(companyId, branchId);
     const b = req.body || {};
     const r = await query(`INSERT INTO maint_assets
-        (company_id, branch_id, asset_no, asset_name, location, status, notes)
+        (company_id, branch_id, asset_no, asset_name, location, status, notes,
+         property_id, building_id, zone_id, space_id, client_id, category, make, model, serial_number, capacity_rating, criticality, installed_date, warranty_expiry_date)
        VALUES
-        (:companyId, :branchId, :asset_no, :asset_name, :location, :status, :notes)`,
+        (:companyId, :branchId, :asset_no, :asset_name, :location, :status, :notes,
+         :property_id, :building_id, :zone_id, :space_id, :client_id, :category, :make, :model, :serial_number, :capacity_rating, :criticality, :installed_date, :warranty_expiry_date)`,
       {
         companyId,
         branchId, branchIdsStr,
@@ -990,8 +996,22 @@ export const createAsset = async (req, res, next) => {
         location: cleanText(b.location),
         status: cleanText(b.status) || "ACTIVE",
         notes: cleanText(b.notes),
+        property_id: toNumber(b.property_id),
+        building_id: toNumber(b.building_id),
+        zone_id: toNumber(b.zone_id),
+        space_id: toNumber(b.space_id),
+        client_id: toNumber(b.client_id),
+        category: cleanText(b.category),
+        make: cleanText(b.make),
+        model: cleanText(b.model),
+        serial_number: cleanText(b.serial_number),
+        capacity_rating: cleanText(b.capacity_rating),
+        criticality: cleanText(b.criticality) || 'MEDIUM',
+        installed_date: toDateOnly(b.installed_date),
+        warranty_expiry_date: toDateOnly(b.warranty_expiry_date)
       },
     );
+    await cacheDelPattern(`maint_assets:company:${companyId}:*`);
     res.status(201).json({ id: r.insertId });
   } catch (err) {
     next(err);
@@ -1010,7 +1030,20 @@ export const updateAsset = async (req, res, next) => {
            asset_name = :asset_name,
            location = :location,
            status = :status,
-           notes = :notes
+           notes = :notes,
+           property_id = :property_id,
+           building_id = :building_id,
+           zone_id = :zone_id,
+           space_id = :space_id,
+           client_id = :client_id,
+           category = :category,
+           make = :make,
+           model = :model,
+           serial_number = :serial_number,
+           capacity_rating = :capacity_rating,
+           criticality = :criticality,
+           installed_date = :installed_date,
+           warranty_expiry_date = :warranty_expiry_date
        WHERE id = :id
          AND company_id = :companyId
          AND (:branchIdsStr = '' OR FIND_IN_SET(branch_id, :branchIdsStr))`,
@@ -1023,6 +1056,19 @@ export const updateAsset = async (req, res, next) => {
         location: cleanText(b.location),
         status: cleanText(b.status) || "ACTIVE",
         notes: cleanText(b.notes),
+        property_id: toNumber(b.property_id),
+        building_id: toNumber(b.building_id),
+        zone_id: toNumber(b.zone_id),
+        space_id: toNumber(b.space_id),
+        client_id: toNumber(b.client_id),
+        category: cleanText(b.category),
+        make: cleanText(b.make),
+        model: cleanText(b.model),
+        serial_number: cleanText(b.serial_number),
+        capacity_rating: cleanText(b.capacity_rating),
+        criticality: cleanText(b.criticality) || 'MEDIUM',
+        installed_date: toDateOnly(b.installed_date),
+        warranty_expiry_date: toDateOnly(b.warranty_expiry_date)
       },
     );
     await cacheDelPattern(`maint_assets:company:${companyId}:*`);

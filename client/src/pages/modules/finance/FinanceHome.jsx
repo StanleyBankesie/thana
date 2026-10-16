@@ -110,6 +110,10 @@ export const financeSections = [
           <ActionButton key="view" label="View" path="/finance/setup/opening-balances" type="outline" featureKey="finance:opening-balances" action="view" />,
           <ActionButton key="add" label="Add" path="/finance/setup/opening-balances/create" type="primary" featureKey="finance:opening-balances" action="create" />
         ], },
+      { title: "Budget Management", path: "/finance/budget", description: "Allocate corporate and cost center financial budgets", icon: "💵" , actions: [
+          <ActionButton key="view" label="View" path="/finance/budget" type="outline" featureKey="finance:budget" action="view" />,
+          <ActionButton key="add" label="Add" path="/finance/budget" type="primary" featureKey="finance:budget" action="create" />
+        ], },
     ],
   },
   {
@@ -171,6 +175,9 @@ export const financeSections = [
         ], },
       { title: "Graphical Chart of Accounts", path: "/finance/reports/chart-of-accounts-graphical", description: "Hierarchical visual view of accounts", icon: "🌳" , actions: [
           <ActionButton key="view" label="View" path="/finance/reports/chart-of-accounts-graphical" type="outline" featureKey="finance:chart-of-accounts-graphical" action="view" />,
+        ], },
+      { title: "Budget vs. Actual Report", path: "/finance/reports/budget-vs-actual", description: "General Ledger & Cost Center budget variance analysis", icon: "📈" , actions: [
+          <ActionButton key="view" label="View" path="/finance/reports/budget-vs-actual" type="outline" featureKey="finance:budget-vs-actual" action="view" />,
         ], },
     ],
   },
@@ -279,6 +286,7 @@ export default function FinanceHome() {
       stats={stats}
       headerActions={[
         { label: "Dashboard", path: "/finance/dashboard", icon: "📊" },
+        { label: "Budget Dashboard", path: "/finance/budget-dashboard", icon: "📈" },
       ]}
       sections={financeSections}
       useSectionNavigation={true}
@@ -491,5 +499,17 @@ export const financeFeatures = [
     label: "Post-Dated Cheques (PDC)",
     path: "/finance/pdc-postings",
     type: "feature",
+  },
+  {
+    module_key: "finance",
+    label: "Budget Management",
+    path: "/finance/budget",
+    type: "feature",
+  },
+  {
+    module_key: "finance",
+    label: "Budget vs. Actual Report",
+    path: "/finance/reports/budget-vs-actual",
+    type: "dashboard",
   },
 ];

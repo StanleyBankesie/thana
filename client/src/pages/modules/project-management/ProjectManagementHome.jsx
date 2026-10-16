@@ -41,6 +41,19 @@ import ProjectQuotationForm from "./quotations/ProjectQuotationForm.jsx";
 import ProjectInvoiceList from "./project-invoices/ProjectInvoiceList.jsx";
 import ProjectInvoiceForm from "./project-invoices/ProjectInvoiceForm.jsx";
 
+import BOQManager from "./construction/BOQManager.jsx";
+import CostControlDashboard from "./construction/CostControlDashboard.jsx";
+import GanttScheduleView from "./construction/GanttScheduleView.jsx";
+import DailySiteReportList from "./construction/DailySiteReportList.jsx";
+import DailySiteReportForm from "./construction/DailySiteReportForm.jsx";
+import SubcontractorManager from "./construction/SubcontractorManager.jsx";
+import ClientValuationList from "./construction/ClientValuationList.jsx";
+import VariationRegister from "./construction/VariationRegister.jsx";
+import QualityControlPage from "./construction/QualityControlPage.jsx";
+import SafetyManagementPage from "./construction/SafetyManagementPage.jsx";
+import DocumentRegisterPage from "./construction/DocumentRegisterPage.jsx";
+import EquipmentLogsPage from "./construction/EquipmentLogsPage.jsx";
+
 export const projectManagementSections = [
   {
     title: "Portfolio",
@@ -274,6 +287,130 @@ export const projectManagementSections = [
         ],
         description: "Payment vouchers linked to projects",
         icon: "💳",
+      },
+    ],
+  },
+  {
+    title: "Construction Estimating & Cost Control",
+    badge: "Commercial",
+    items: [
+      {
+        title: "Bill of Quantities (BOQ)",
+        path: "/project-management/boqs",
+        actions: [
+          { label: "View", path: "/project-management/boqs", type: "outline" },
+        ],
+        description: "Hierarchical work breakdown, rate build-up, and takeoff sheets",
+        icon: "📐",
+      },
+      {
+        title: "Cost Control & EVM",
+        path: "/project-management/cost-control",
+        actions: [
+          { label: "View", path: "/project-management/cost-control", type: "outline" },
+        ],
+        description: "Earned Value Management, CPI, SPI, EAC, and cost code tracking",
+        icon: "📊",
+      },
+      {
+        title: "Variations & Change Orders",
+        path: "/project-management/variations",
+        actions: [
+          { label: "View", path: "/project-management/variations", type: "outline" },
+        ],
+        description: "Change orders, scope additions, and contract adjustments",
+        icon: "📝",
+      },
+    ],
+  },
+  {
+    title: "Valuations & Contracts",
+    badge: "Billing",
+    items: [
+      {
+        title: "Client Valuations (IPAs)",
+        path: "/project-management/client-valuations",
+        actions: [
+          { label: "View", path: "/project-management/client-valuations", type: "outline" },
+        ],
+        description: "Measured interim payment claims, retention, and advance recovery",
+        icon: "📑",
+      },
+      {
+        title: "Subcontractors & IPCs",
+        path: "/project-management/subcontracts",
+        actions: [
+          { label: "View", path: "/project-management/subcontracts", type: "outline" },
+        ],
+        description: "Trade agreements, interim payment certificates, and retention",
+        icon: "🤝",
+      },
+    ],
+  },
+  {
+    title: "Site Operations & Plant",
+    badge: "Field",
+    items: [
+      {
+        title: "Daily Site Diary (DSR)",
+        path: "/project-management/daily-reports",
+        actions: [
+          { label: "View", path: "/project-management/daily-reports", type: "outline" },
+          { label: "New", path: "/project-management/daily-reports/new", type: "primary" },
+        ],
+        description: "Weather, daily workforce headcount, plant deployment, and work logs",
+        icon: "🏗️",
+      },
+      {
+        title: "Plant & Equipment Logs",
+        path: "/project-management/equipment-logs",
+        actions: [
+          { label: "View", path: "/project-management/equipment-logs", type: "outline" },
+        ],
+        description: "Machine operating hours, idle/breakdown downtime, and fuel costing",
+        icon: "🚜",
+      },
+    ],
+  },
+  {
+    title: "Planning, QA/QC & Safety",
+    badge: "Compliance",
+    items: [
+      {
+        title: "Schedule & Critical Path",
+        path: "/project-management/schedule",
+        actions: [
+          { label: "View", path: "/project-management/schedule", type: "outline" },
+        ],
+        description: "CPM network analysis, float calculations, and EOT claims",
+        icon: "📅",
+      },
+      {
+        title: "Quality Control (QA/QC)",
+        path: "/project-management/quality-control",
+        actions: [
+          { label: "View", path: "/project-management/quality-control", type: "outline" },
+        ],
+        description: "Inspection requests (IR), NCRs, punch lists, and material tests",
+        icon: "🛡️",
+      },
+      {
+        title: "Safety Management (HSE)",
+        path: "/project-management/safety",
+        actions: [
+          { label: "View", path: "/project-management/safety", type: "outline" },
+        ],
+        description: "Safety incidents, lost-time injuries, and toolbox briefings",
+        icon: "🦺",
+      },
+      {
+        title: "Drawings & RFIs",
+        path: "/project-management/documents",
+        actions: [
+          { label: "View", path: "/project-management/documents", type: "outline" },
+        ],
+        description: "Approved drawing register and requests for information",
+        icon: "📋",
       },
     ],
   },
@@ -520,6 +657,21 @@ export default function ProjectManagementHome() {
           path="/purchase-requisitions/:id"
           element={<PMPurchaseRequisitionForm />}
         />
+        {/* Construction Management Module Routes */}
+        <Route path="/boqs" element={<BOQManager />} />
+        <Route path="/cost-control" element={<CostControlDashboard />} />
+        <Route path="/schedule" element={<GanttScheduleView />} />
+        <Route path="/daily-reports" element={<DailySiteReportList />} />
+        <Route path="/daily-reports/new" element={<DailySiteReportForm />} />
+        <Route path="/daily-reports/:id" element={<DailySiteReportForm />} />
+        <Route path="/subcontracts" element={<SubcontractorManager />} />
+        <Route path="/client-valuations" element={<ClientValuationList />} />
+        <Route path="/variations" element={<VariationRegister />} />
+        <Route path="/quality-control" element={<QualityControlPage />} />
+        <Route path="/safety" element={<SafetyManagementPage />} />
+        <Route path="/documents" element={<DocumentRegisterPage />} />
+        <Route path="/rfis" element={<DocumentRegisterPage />} />
+        <Route path="/equipment-logs" element={<EquipmentLogsPage />} />
       </Routes>
     </ModuleLayout>
   );
@@ -729,6 +881,86 @@ export const projectManagementFeatures = [
         actions: [
           { label: "View", path: "/project-management/reports/task-execution", type: "outline" }
         ],
+    type: "feature",
+  },
+  {
+    module_key: "project-management",
+    label: "Bill of Quantities (BOQ)",
+    path: "/project-management/boqs",
+    actions: [{ label: "View", path: "/project-management/boqs", type: "outline" }],
+    type: "feature",
+  },
+  {
+    module_key: "project-management",
+    label: "Cost Control & EVM",
+    path: "/project-management/cost-control",
+    actions: [{ label: "View", path: "/project-management/cost-control", type: "outline" }],
+    type: "feature",
+  },
+  {
+    module_key: "project-management",
+    label: "Planning & CPM Schedule",
+    path: "/project-management/schedule",
+    actions: [{ label: "View", path: "/project-management/schedule", type: "outline" }],
+    type: "feature",
+  },
+  {
+    module_key: "project-management",
+    label: "Daily Site Diary (DSR)",
+    path: "/project-management/daily-reports",
+    actions: [
+      { label: "View", path: "/project-management/daily-reports", type: "outline" },
+      { label: "New", path: "/project-management/daily-reports/new", type: "primary" },
+    ],
+    type: "feature",
+  },
+  {
+    module_key: "project-management",
+    label: "Subcontractors & IPCs",
+    path: "/project-management/subcontracts",
+    actions: [{ label: "View", path: "/project-management/subcontracts", type: "outline" }],
+    type: "feature",
+  },
+  {
+    module_key: "project-management",
+    label: "Client Valuations (IPAs)",
+    path: "/project-management/client-valuations",
+    actions: [{ label: "View", path: "/project-management/client-valuations", type: "outline" }],
+    type: "feature",
+  },
+  {
+    module_key: "project-management",
+    label: "Variations & Change Orders",
+    path: "/project-management/variations",
+    actions: [{ label: "View", path: "/project-management/variations", type: "outline" }],
+    type: "feature",
+  },
+  {
+    module_key: "project-management",
+    label: "Quality Control (QA/QC)",
+    path: "/project-management/quality-control",
+    actions: [{ label: "View", path: "/project-management/quality-control", type: "outline" }],
+    type: "feature",
+  },
+  {
+    module_key: "project-management",
+    label: "Safety Management (HSE)",
+    path: "/project-management/safety",
+    actions: [{ label: "View", path: "/project-management/safety", type: "outline" }],
+    type: "feature",
+  },
+  {
+    module_key: "project-management",
+    label: "Drawings & Documents",
+    path: "/project-management/documents",
+    actions: [{ label: "View", path: "/project-management/documents", type: "outline" }],
+    type: "feature",
+  },
+  {
+    module_key: "project-management",
+    label: "Plant & Equipment Logs",
+    path: "/project-management/equipment-logs",
+    actions: [{ label: "View", path: "/project-management/equipment-logs", type: "outline" }],
     type: "feature",
   },
 ];

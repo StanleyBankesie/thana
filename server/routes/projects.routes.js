@@ -14,7 +14,10 @@ import { query } from "../db/pool.js";
 import { httpError } from "../utils/httpError.js";
 import * as projectsController from "../controllers/projects.controller.js";
 
+import constructionRoutes from "./construction.routes.js";
+
 const router = express.Router();
+router.use("/construction", constructionRoutes);
 
 function toNumber(v, fallback = null) {
   const n = Number(v);

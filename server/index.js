@@ -23,7 +23,9 @@ import inventoryRoutes, { ensureWarehousesTable } from "./routes/inventory.route
 import financeRoutes from "./routes/finance.routes.js";
 import hrRoutes from "./routes/hr.routes.js";
 import maintenanceRoutes from "./routes/maintenance.routes.js";
+import facilitiesRoutes from "./routes/facilities.routes.js";
 import projectsRoutes from "./routes/projects.routes.js";
+import constructionRoutes from "./routes/construction.routes.js";
 import productionRoutes from "./routes/production.routes.js";
 import posRoutes from "./routes/pos.routes.js";
 import biRoutes from "./routes/bi.routes.js";
@@ -82,6 +84,9 @@ import { ensureCompanyColumns } from "./controllers/companies.controller.js";
 import { ensureAuthTables } from "./services/token.service.js";
 import { seedDefaultTemplates } from "./services/seed-defaults.js";
 import { ensureIndexes } from "./utils/ensureIndexes.js";
+import { ensureConstructionTables } from "./utils/constructionTables.js";
+import { ensureFinanceBudgetTables } from "./utils/financeBudgetTables.js";
+import { ensureFacilitiesManagementTables } from "./utils/facilitiesManagementTables.js";
 import { initCronJobs } from "./utils/cronJobs.js";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -840,6 +845,27 @@ app.get("/api/ping", (_req, res) => res.json({ ok: true }));
     } catch (e) {
       console.warn("Error checking for constraints: ", e.message);
     }
+
+    // Construction Management Tables & Schema
+    try {
+      await ensureConstructionTables();
+    } catch (e) {
+      console.warn("Could not ensure construction tables:", e.message);
+    }
+
+    // Finance Budget Management Tables & Schema
+    try {
+      await ensureFinanceBudgetTables();
+    } catch (e) {
+      console.warn("Could not ensure finance budget tables:", e.message);
+    }
+
+    // Facilities Management Tables & Schema
+    try {
+      await ensureFacilitiesManagementTables();
+    } catch (e) {
+      console.warn("Could not ensure facilities management tables:", e.message);
+    }
   } catch (err) {
     logDbError("Error during database initialization", err);
   }
@@ -1017,7 +1043,9 @@ const apiPaths = [
   { path: "/finance", router: financeRoutes },
   { path: "/hr", router: hrRoutes },
   { path: "/maintenance", router: maintenanceRoutes },
+  { path: "/facilities", router: facilitiesRoutes },
   { path: "/projects", router: projectsRoutes },
+  { path: "/construction", router: constructionRoutes },
   { path: "/production", router: productionRoutes },
   { path: "/pos", router: posRoutes },
   { path: "/bi", router: biRoutes },

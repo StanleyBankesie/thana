@@ -5,6 +5,7 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import { ArrowLeft } from "lucide-react";
 
 import { api } from "../../../../api/client";
 import { toast } from "react-toastify";
@@ -101,8 +102,8 @@ export default function MaintenanceMaterialRequisitionList() {
               </p>
             </div>
             <div className="flex gap-2">
-              <button onClick={() => (window.location.href = "/maintenance?section=Procurement %26 Materials")} className="btn btn-secondary">Back</button>
-              <button onClick={() => (window.location.href = "/maintenance/material-requisitions/new")} className="bg-green-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-green-700">+ New Requisition</button>
+              <Link to="/maintenance?section=Resource Management" className="btn btn-secondary flex items-center gap-1.5"><ArrowLeft size={16} /> Back</Link>
+              <Link to="/maintenance/material-requisitions/new" className="bg-green-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-green-700">+ New Requisition</Link>
             </div>
           </div>
         </div>

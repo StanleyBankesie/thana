@@ -7,7 +7,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { toast } from "react-toastify";
 import { api } from "../../../../api/client";
-import { Eye } from "lucide-react";
+import { Eye, ArrowLeft } from "lucide-react";
 import { ListPrintIconButton, ListPdfIconButton, ListAttachmentIconButton } from "../../../../components/list/ListDocActionIconButtons.jsx";
 import DocumentAttachmentsModal from "../../../../components/attachments/DocumentAttachmentsModal.jsx";
 import { useViewMode } from "@/hooks/useViewMode";
@@ -54,7 +54,7 @@ export default function EquipmentList() {
           <div className="flex justify-between items-center">
             <div className="font-semibold">Equipment Setup</div>
             <div className="flex gap-2">
-              <button onClick={() => window.history.back()} className="btn btn-secondary">Back</button>
+              <Link to="/maintenance?section=Equipment %26 Assets" className="btn btn-secondary flex items-center gap-1.5"><ArrowLeft size={16} /> Back</Link>
               <Link to="/maintenance/equipment/new" className="btn-success">+ New Equipment</Link>
             </div>
           </div>

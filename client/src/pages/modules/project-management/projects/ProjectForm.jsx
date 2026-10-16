@@ -23,7 +23,10 @@ import {
   Flag,
   FileText,
   Tag,
-  ChevronDown
+  ChevronDown,
+  Building,
+  MapPin,
+  ShieldCheck
 } from "lucide-react";
 import { api } from "../../../../api/client.js";
 import { toast } from "react-toastify";
@@ -47,7 +50,27 @@ export default function ProjectForm() {
   const [form, setForm] = useState({
     project_code: "",
     project_name: "",
+    project_type: "GENERAL_CONSTRUCTION",
     client_name: "",
+    client_id: "",
+    contract_ref_no: "",
+    contract_sum: 0,
+    revised_contract_sum: 0,
+    retention_percent: 5,
+    retention_cap: 0,
+    advance_payment_amount: 0,
+    advance_recovery_percent: 10,
+    site_address: "",
+    site_city: "",
+    site_gps_lat: "",
+    site_gps_lng: "",
+    site_engineer_name: "",
+    qs_name: "",
+    supervisor_name: "",
+    commercial_manager_name: "",
+    defects_liability_months: 12,
+    practical_completion_date: "",
+    final_completion_date: "",
     manager_id: "",
     manager_name: "",
     budget: 0,
@@ -87,6 +110,8 @@ export default function ProjectForm() {
           ...item,
           start_date: item.start_date ? item.start_date.split('T')[0] : "",
           end_date: item.end_date ? item.end_date.split('T')[0] : "",
+          practical_completion_date: item.practical_completion_date ? item.practical_completion_date.split('T')[0] : "",
+          final_completion_date: item.final_completion_date ? item.final_completion_date.split('T')[0] : "",
           is_active: item.is_active !== 'N',
         });
       }
@@ -248,6 +273,188 @@ export default function ProjectForm() {
                 value={form.remarks}
                 onChange={e => setForm({...form, remarks: e.target.value})}
               />
+            </div>
+          </div>
+
+          {/* Construction & Contract Specifications */}
+          <div className="card p-8 space-y-6">
+            <div className="flex items-center gap-3 text-brand-600 border-b border-slate-50 dark:border-slate-700 pb-3">
+              <Building size={18} />
+              <h2 className="font-bold uppercase text-xs tracking-wider">Construction & Contract Management</h2>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Construction Type</label>
+                <select
+                  className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none font-medium text-sm"
+                  value={form.project_type}
+                  onChange={e => setForm({...form, project_type: e.target.value})}
+                >
+                  <option value="GENERAL_CONSTRUCTION">General Construction</option>
+                  <option value="RESIDENTIAL">Residential Construction</option>
+                  <option value="COMMERCIAL_BUILDING">Commercial Buildings</option>
+                  <option value="INDUSTRIAL">Industrial Construction</option>
+                  <option value="ROADS_HIGHWAYS">Roads & Highways</option>
+                  <option value="BRIDGES">Bridges & Civil Infrastructure</option>
+                  <option value="DRAINAGE_WATER">Drainage & Water Infrastructure</option>
+                  <option value="RENOVATION">Renovation & Refurbishment</option>
+                  <option value="MEP_INSTALLATION">MEP Installations</option>
+                  <option value="SPECIALIST_CONTRACTING">Specialist Contracting</option>
+                  <option value="PROPERTY_DEVELOPMENT">Property Development</option>
+                </select>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Contract Reference No.</label>
+                <input
+                  type="text"
+                  className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-sm"
+                  placeholder="e.g. CNT-2026-088"
+                  value={form.contract_ref_no || ""}
+                  onChange={e => setForm({...form, contract_ref_no: e.target.value})}
+                />
+              </div>
+            </div>
+
+            {/* Commercial terms */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Original Contract Sum</label>
+                <input
+                  type="number"
+                  className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-sm"
+                  value={form.contract_sum}
+                  onChange={e => setForm({...form, contract_sum: Number(e.target.value), revised_contract_sum: form.revised_contract_sum || Number(e.target.value)})}
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Revised Contract Sum</label>
+                <input
+                  type="number"
+                  className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-sm"
+                  value={form.revised_contract_sum}
+                  onChange={e => setForm({...form, revised_contract_sum: Number(e.target.value)})}
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Retention (%)</label>
+                <input
+                  type="number"
+                  step="0.1"
+                  className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-sm"
+                  value={form.retention_percent}
+                  onChange={e => setForm({...form, retention_percent: Number(e.target.value)})}
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Retention Cap</label>
+                <input
+                  type="number"
+                  className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-sm"
+                  value={form.retention_cap}
+                  onChange={e => setForm({...form, retention_cap: Number(e.target.value)})}
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Advance Payment Amount</label>
+                <input
+                  type="number"
+                  className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-sm"
+                  value={form.advance_payment_amount}
+                  onChange={e => setForm({...form, advance_payment_amount: Number(e.target.value)})}
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Advance Recovery (%)</label>
+                <input
+                  type="number"
+                  step="0.1"
+                  className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-sm"
+                  value={form.advance_recovery_percent}
+                  onChange={e => setForm({...form, advance_recovery_percent: Number(e.target.value)})}
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Defects Liability (Months)</label>
+                <input
+                  type="number"
+                  className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-sm"
+                  value={form.defects_liability_months}
+                  onChange={e => setForm({...form, defects_liability_months: Number(e.target.value)})}
+                />
+              </div>
+            </div>
+
+            {/* Site Location */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 border-t border-slate-100 dark:border-slate-700">
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Site Address</label>
+                <input
+                  type="text"
+                  className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-sm"
+                  placeholder="Plot / Street / Area"
+                  value={form.site_address || ""}
+                  onChange={e => setForm({...form, site_address: e.target.value})}
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">City / Town</label>
+                <input
+                  type="text"
+                  className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-sm"
+                  placeholder="e.g. Accra"
+                  value={form.site_city || ""}
+                  onChange={e => setForm({...form, site_city: e.target.value})}
+                />
+              </div>
+            </div>
+
+            {/* Key Personnel */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Site Engineer</label>
+                <input
+                  type="text"
+                  className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-sm"
+                  placeholder="Site Engineer Name"
+                  value={form.site_engineer_name || ""}
+                  onChange={e => setForm({...form, site_engineer_name: e.target.value})}
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Quantity Surveyor (QS)</label>
+                <input
+                  type="text"
+                  className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-sm"
+                  placeholder="Quantity Surveyor Name"
+                  value={form.qs_name || ""}
+                  onChange={e => setForm({...form, qs_name: e.target.value})}
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Site Supervisor</label>
+                <input
+                  type="text"
+                  className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-sm"
+                  placeholder="Site Supervisor Name"
+                  value={form.supervisor_name || ""}
+                  onChange={e => setForm({...form, supervisor_name: e.target.value})}
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Commercial Manager</label>
+                <input
+                  type="text"
+                  className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-sm"
+                  placeholder="Commercial Manager Name"
+                  value={form.commercial_manager_name || ""}
+                  onChange={e => setForm({...form, commercial_manager_name: e.target.value})}
+                />
+              </div>
             </div>
           </div>
         </div>

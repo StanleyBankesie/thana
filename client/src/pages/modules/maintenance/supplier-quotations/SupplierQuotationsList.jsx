@@ -10,7 +10,7 @@ import { api } from "../../../../api/client";
 import { usePermission } from "../../../../auth/PermissionContext.jsx";
 import useSort from "../../../../hooks/useSort.js";
 import SortableHeader from "../../../../components/SortableHeader.jsx";
-import { X, Eye } from "lucide-react";
+import { X, Eye, ArrowLeft } from "lucide-react";
 import { ListPrintIconButton, ListPdfIconButton, ListAttachmentIconButton } from "../../../../components/list/ListDocActionIconButtons.jsx";
 import DocumentAttachmentsModal from "../../../../components/attachments/DocumentAttachmentsModal.jsx";
 import { useViewMode } from "@/hooks/useViewMode";
@@ -245,8 +245,8 @@ export default function SupplierQuotationsList() {
           <div className="flex justify-between items-center">
             <div className="font-semibold">Supplier Quotations</div>
             <div className="flex gap-2">
-              <button onClick={() => (window.location.href = "/maintenance?section=Procurement %26 Materials")} className="btn btn-secondary">Back</button>
-              <button onClick={() => (window.location.href = "/maintenance/supplier-quotations/new")} className="bg-green-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-green-700">+ New Quotation</button>
+              <Link to="/maintenance?section=Procurement %26 Billing" className="btn btn-secondary flex items-center gap-1.5"><ArrowLeft size={16} /> Back</Link>
+              <Link to="/maintenance/supplier-quotations/new" className="bg-green-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-green-700">+ New Quotation</Link>
             </div>
           </div>
         </div>
