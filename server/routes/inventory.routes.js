@@ -10108,6 +10108,18 @@ router.post(
         }
       });
 
+      // Fetch warehouses for mapping
+      const [whRows] = await conn.execute(
+        `SELECT id, warehouse_code, warehouse_name, branch_id FROM inv_warehouses WHERE company_id = :companyId`,
+        { companyId },
+      );
+      const whMap = new Map();
+      (whRows || []).forEach((w) => {
+        whMap.set(String(w.id), w);
+        if (w.warehouse_code) whMap.set(String(w.warehouse_code).toUpperCase(), w);
+        if (w.warehouse_name) whMap.set(String(w.warehouse_name).toUpperCase(), w);
+      });
+
       for (const item of items) {
         try {
           let itemCode = item.item_code ? String(item.item_code).trim() : null;
@@ -10164,6 +10176,23 @@ router.post(
             ? String(item.description).trim() || null
             : null;
 
+          // Resolve warehouse
+          const whKey = String(
+            item.opening_warehouse_id ||
+            item.warehouse_id ||
+            item.warehouse_name ||
+            item.warehouse ||
+            item.warehouse_code ||
+            ""
+          ).trim().toUpperCase();
+          const matchedWh = whKey ? whMap.get(whKey) : null;
+          const openingWarehouseId = matchedWh
+            ? matchedWh.id
+            : (toNumber(item.opening_warehouse_id || item.warehouse_id) || null);
+          const whBranchId = matchedWh?.branch_id || toNumber(req.body?.branch_id || req.scope?.branchId) || 1;
+
+          let itemId = null;
+
           // Check if exists
           const [existing] = await conn.execute(
             `SELECT id FROM inv_items WHERE company_id = :companyId AND item_code = :itemCode LIMIT 1`,
@@ -10171,7 +10200,7 @@ router.post(
           );
 
           if (existing && existing.length > 0) {
-            const itemId = existing[0].id;
+            itemId = existing[0].id;
             await conn.execute(
               `UPDATE inv_items SET
                 item_name = :itemName, uom = :uom, item_type = :itemType,
@@ -10216,16 +10245,16 @@ router.post(
             );
             updated++;
           } else {
-            await conn.execute(
+            const [insertResult] = await conn.execute(
               `INSERT INTO inv_items (
-                company_id, item_code, item_name, uom, item_type,
+                company_id, branch_id, item_code, item_name, uom, item_type,
                 category_id, item_group_id, cost_price, selling_price, is_active, created_by,
                 barcode, currency_id, image_url, vat_on_purchase_id, vat_on_sales_id,
                 purchase_account_id, sales_account_id, service_item, is_production_item, is_stockable, is_sellable,
                 is_purchasable, min_stock_level, max_stock_level, reorder_level, safety_stock,
                 description
               ) VALUES (
-                :companyId, :itemCode, :itemName, :uom, :itemType,
+                :companyId, :branchId, :itemCode, :itemName, :uom, :itemType,
                 :categoryId, :itemGroupId, :costPrice, :sellingPrice, :isActive, :createdBy,
                 :barcode, :currencyId, :imageUrl, :vatOnPurchaseId, :vatOnSalesId,
                 :purchaseAccountId, :salesAccountId, :serviceItem, :isProductionItem, :isStockable, :isSellable,
@@ -10234,6 +10263,7 @@ router.post(
               )`,
               {
                 companyId,
+                branchId: whBranchId,
                 itemCode,
                 itemName,
                 uom,
@@ -10263,7 +10293,62 @@ router.post(
                 description,
               },
             );
+            itemId = insertResult.insertId;
             inserted++;
+          }
+
+          // Handle opening balance
+          const openingQuantity = Number(item.opening_quantity || 0);
+          if (itemId && openingQuantity > 0 && openingWarehouseId) {
+            const updationNo = `UPD-OP-${Date.now()}-${inserted + updated}`;
+            const [updRaw] = await conn.execute(
+              `INSERT INTO inv_stock_updations 
+                 (company_id, branch_id, warehouse_id, updation_no, updation_date, reason, status, created_by)
+               VALUES 
+                 (:companyId, :branchId, :warehouseId, :updationNo, NOW(), 'Opening Balance', 'APPROVED', :createdBy)`,
+              {
+                companyId: companyId || null,
+                branchId: whBranchId,
+                warehouseId: openingWarehouseId,
+                updationNo,
+                createdBy: userId,
+              },
+            );
+            const updationId = updRaw.insertId;
+            await conn.execute(
+              `INSERT INTO inv_stock_updation_details 
+                 (updation_id, item_id, qty, uom, current_stock, created_by)
+               VALUES 
+                 (:updationId, :itemId, :qty, :uom, 0, :createdBy)`,
+              {
+                updationId,
+                itemId,
+                qty: openingQuantity,
+                uom: uom || "PCS",
+                createdBy: userId,
+              },
+            );
+
+            const [sbRows] = await conn.execute(
+              `SELECT qty FROM inv_stock_balances 
+                WHERE company_id = :companyId AND warehouse_id = :warehouseId AND item_id = :itemId
+                LIMIT 1`,
+              { companyId: companyId || null, warehouseId: openingWarehouseId, itemId },
+            );
+
+            if (Array.isArray(sbRows) && sbRows.length > 0) {
+              await conn.execute(
+                `UPDATE inv_stock_balances SET qty = qty + :delta, updated_at = NOW()
+                  WHERE company_id = :companyId AND warehouse_id = :warehouseId AND item_id = :itemId`,
+                { delta: openingQuantity, companyId: companyId || null, warehouseId: openingWarehouseId, itemId },
+              );
+            } else {
+              await conn.execute(
+                `INSERT INTO inv_stock_balances (company_id, branch_id, warehouse_id, item_id, qty)
+                 VALUES (:companyId, :branchId, :warehouseId, :itemId, :qty)`,
+                { companyId: companyId || null, branchId: whBranchId, warehouseId: openingWarehouseId, itemId, qty: openingQuantity },
+              );
+            }
           }
         } catch (itemErr) {
           console.error("Bulk item error:", itemErr);
@@ -10350,7 +10435,19 @@ router.post(
         ? String(body.description).trim() || null
         : null;
       const openingQuantity = Number(body.opening_quantity || 0);
-      const openingWarehouseId = body.opening_warehouse_id ? toNumber(body.opening_warehouse_id) : null;
+      let openingWarehouseId = body.opening_warehouse_id ? toNumber(body.opening_warehouse_id) : null;
+      if (!openingWarehouseId && (body.warehouse_name || body.warehouse || body.warehouse_code)) {
+        const whQuery = String(body.warehouse_name || body.warehouse || body.warehouse_code).trim();
+        const foundWh = await query(
+          `SELECT id, branch_id FROM inv_warehouses 
+           WHERE company_id = :companyId AND (warehouse_name = :whQuery OR warehouse_code = :whQuery)
+           LIMIT 1`,
+          { companyId, whQuery },
+        );
+        if (foundWh && foundWh.length > 0) {
+          openingWarehouseId = foundWh[0].id;
+        }
+      }
 
       if (!itemCode || !itemName) {
         throw httpError(

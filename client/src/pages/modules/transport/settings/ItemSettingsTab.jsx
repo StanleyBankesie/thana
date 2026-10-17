@@ -362,7 +362,7 @@ export default function ItemSettingsTab() {
         return;
       }
 
-      // Build lookup maps for category/group/currency/tax/account codes -> IDs
+      // Build lookup maps for category/group/currency/tax/account/warehouse codes -> IDs
       let categoryCodeToId = new Map();
       let categoryIdToName = new Map();
       let groupCodeToId = new Map();
@@ -371,19 +371,22 @@ export default function ItemSettingsTab() {
       let taxCodeToId = new Map();
       let accountCodeToId = new Map();
       let priceTypeNameToId = new Map();
+      let warehouseCodeToId = new Map();
+      let warehouseIdToName = new Map();
       let itemTypeSet = new Set();
       let itemTypeCodeToCode = new Map();
       let itemTypeNameToCode = new Map();
       try {
-        const [catRes, grpRes, curRes, taxRes, accRes, typeRes, ptRes] =
+        const [catRes, grpRes, curRes, taxRes, accRes, typeRes, ptRes, whRes] =
           await Promise.all([
-            api.get("/inventory/item-categories"),
-            api.get("/inventory/item-groups"),
-            api.get("/finance/currencies"),
-            api.get("/finance/tax-codes"),
-            api.get("/finance/accounts"),
-            api.get("/inventory/item-types"),
-            api.get("/sales/price-types?active=true"),
+            api.get("/inventory/item-categories").catch(() => ({ data: { items: [] } })),
+            api.get("/inventory/item-groups").catch(() => ({ data: { items: [] } })),
+            api.get("/finance/currencies").catch(() => ({ data: { items: [] } })),
+            api.get("/finance/tax-codes").catch(() => ({ data: { items: [] } })),
+            api.get("/finance/accounts").catch(() => ({ data: { items: [] } })),
+            api.get("/inventory/item-types").catch(() => ({ data: { items: [] } })),
+            api.get("/sales/price-types?active=true").catch(() => ({ data: { items: [] } })),
+            api.get("/inventory/warehouses").catch(() => ({ data: { items: [] } })),
           ]);
         const cats = Array.isArray(catRes?.data?.items)
           ? catRes.data.items
@@ -403,6 +406,11 @@ export default function ItemSettingsTab() {
         const types = Array.isArray(typeRes?.data?.items)
           ? typeRes.data.items
           : [];
+        const whs = Array.isArray(whRes?.data?.items)
+          ? whRes.data.items
+          : Array.isArray(whRes?.data)
+            ? whRes.data
+            : [];
         cats.forEach((c) => {
           const id = Number(c.id);
           const code = String(c.category_code || "").toUpperCase();
@@ -448,6 +456,16 @@ export default function ItemSettingsTab() {
           if (id > 0) {
             if (code) accountCodeToId.set(code, id);
             if (name) accountCodeToId.set(name, id);
+          }
+        });
+        whs.forEach((w) => {
+          const id = Number(w.id);
+          const code = String(w.warehouse_code || "").toUpperCase();
+          const name = String(w.warehouse_name || "").toUpperCase();
+          if (id > 0) {
+            if (code) warehouseCodeToId.set(code, id);
+            if (name) warehouseCodeToId.set(name, id);
+            warehouseIdToName.set(id, String(w.warehouse_name || w.warehouse_code || ""));
           }
         });
         const pts = Array.isArray(ptRes?.data?.items) ? ptRes.data.items : [];
@@ -625,6 +643,23 @@ export default function ItemSettingsTab() {
             "MAX STOCK",
           ]),
           REORDER_LEVEL: getVal(["REORDER_LEVEL", "REORDER LEVEL"]),
+          SAFETY_STOCK: getVal(["SAFETY_STOCK", "SAFETY STOCK", "SAFETY"]),
+          WAREHOUSE: getVal([
+            "WAREHOUSE",
+            "WAREHOUSE_NAME",
+            "WAREHOUSE NAME",
+            "WAREHOUSE_CODE",
+            "WAREHOUSE CODE",
+          ]),
+          OPENING_QUANTITY: getVal([
+            "OPENING_QUANTITY",
+            "OPENING QUANTITY",
+            "OPENING_STOCK",
+            "OPENING STOCK",
+            "QUANTITY",
+            "QTY",
+          ]),
+          STATUS: getVal(["STATUS", "ACTIVE", "IS_ACTIVE"]),
         };
         let nextItemCode = rowData.ITEM_CODE || "";
         const itemTypeRaw = String(rowData.ITEM_TYPE || "").toUpperCase();
@@ -635,6 +670,13 @@ export default function ItemSettingsTab() {
         const itemTypeValid =
           itemTypeSet.size === 0 ? true : !!itemTypeResolved;
         const barcodeExpanded = normalizeBarcode(rowData.BARCODE || "");
+        const warehouseRaw = String(rowData.WAREHOUSE || "").trim().toUpperCase();
+        const warehouseResolved = warehouseRaw
+          ? (warehouseCodeToId.get(warehouseRaw) || (Number(warehouseRaw) > 0 ? Number(warehouseRaw) : null))
+          : null;
+        const warehouseLabel = warehouseResolved
+          ? (warehouseIdToName.get(Number(warehouseResolved)) || rowData.WAREHOUSE)
+          : rowData.WAREHOUSE;
         const categoryResolved =
           (rowData.ITEM_CATEGORY &&
             categoryCodeToId.get(
@@ -695,7 +737,7 @@ export default function ItemSettingsTab() {
         // Only annotate (do not block) basic issues; server will decide final result
         const nameUpper = String(rowData.ITEM_NAME || "").toUpperCase();
         if (!nameUpper) errorsRow.push("Missing ITEM_NAME");
-        // Validate category, group, and item type
+        // Validate category, group, item type, and warehouse
         const categoryProvided =
           String(
             rowData.ITEM_CATEGORY ||
@@ -719,6 +761,9 @@ export default function ItemSettingsTab() {
         if (String(itemTypeRaw || "") && !itemTypeValid) {
           errorsRow.push("Unknown ITEM_TYPE (no match in system)");
         }
+        if (warehouseRaw && !warehouseResolved) {
+          errorsRow.push("Unknown WAREHOUSE (no match in system)");
+        }
         if (nameUpper) seenNames.add(nameUpper);
         rows.push({
           index: i + 1,
@@ -727,6 +772,10 @@ export default function ItemSettingsTab() {
             item_code: nextItemCode,
             item_name: rowData.ITEM_NAME,
             item_type: itemTypeResolved || itemTypeRaw || "",
+            warehouse_id: warehouseResolved,
+            warehouse_label: warehouseLabel || "-",
+            opening_quantity: Number(rowData.OPENING_QUANTITY) || 0,
+            safety_stock: Number(rowData.SAFETY_STOCK) || 0,
             category_id: categoryResolved,
             item_group_id: groupResolved,
             category_label: String(categoryLabel),
@@ -735,6 +784,7 @@ export default function ItemSettingsTab() {
             group_name: groupName,
             uom: rowData.BASE_UOM || "PCS",
             barcode: barcodeExpanded,
+            status: String(rowData.STATUS || "ACTIVE").toUpperCase(),
           },
           valid: errorsRow.length === 0,
           errors: errorsRow,
@@ -745,6 +795,8 @@ export default function ItemSettingsTab() {
         "Item Code",
         "Name",
         "Type",
+        "Warehouse",
+        "Opening Qty",
         "Uploaded Category",
         "Category Name",
         "Uploaded Group",
@@ -769,15 +821,18 @@ export default function ItemSettingsTab() {
       const currencyCodeToId = new Map();
       const taxCodeToId = new Map();
       const priceTypeNameToId = new Map();
+      const whNameToId = new Map();
       try {
-        const [curRes, taxRes, ptRes] = await Promise.all([
+        const [curRes, taxRes, ptRes, whRes] = await Promise.all([
           api.get("/finance/currencies"),
           api.get("/finance/tax-codes"),
           api.get("/sales/price-types?active=true"),
+          api.get("/inventory/warehouses").catch(() => ({ data: { items: [] } })),
         ]);
         const curs = Array.isArray(curRes?.data?.items) ? curRes.data.items : [];
         const taxes = Array.isArray(taxRes?.data?.items) ? taxRes.data.items : [];
         const pts = Array.isArray(ptRes?.data?.items) ? ptRes.data.items : [];
+        const whs = Array.isArray(whRes?.data?.items) ? whRes.data.items : Array.isArray(whRes?.data) ? whRes.data : [];
         curs.forEach((c) => {
           const id = Number(c.id);
           const code = String(c.code || "").toUpperCase();
@@ -801,6 +856,15 @@ export default function ItemSettingsTab() {
           const name = String(p.name || "").toUpperCase();
           if (id > 0 && name) priceTypeNameToId.set(name, id);
         });
+        whs.forEach((w) => {
+          const id = Number(w.id);
+          const code = String(w.warehouse_code || "").toUpperCase();
+          const name = String(w.warehouse_name || "").toUpperCase();
+          if (id > 0) {
+            if (code) whNameToId.set(code, id);
+            if (name) whNameToId.set(name, id);
+          }
+        });
       } catch {
         // keep empty maps; payload still carries raw code fields for server-side resolution
       }
@@ -817,6 +881,8 @@ export default function ItemSettingsTab() {
         .filter((r) => r && r.valid) // only valid rows
         .map((r) => {
           const rowData = r.raw || {};
+          const warehouseRaw = String(rowData.WAREHOUSE || "").trim().toUpperCase();
+          const resolvedWhId = r.preview?.warehouse_id || (warehouseRaw ? (whNameToId.get(warehouseRaw) || (Number(warehouseRaw) > 0 ? Number(warehouseRaw) : null)) : null);
           return {
             item_code: rowData.ITEM_CODE || r.preview.item_code || "",
             item_name: rowData.ITEM_NAME || "",
@@ -834,6 +900,11 @@ export default function ItemSettingsTab() {
             cost_price: Number(rowData.STANDARD_COST) || 0,
             selling_price: Number(rowData.SELLING_PRICE) || 0,
             currency_code: rowData.CURRENCY_CODE || rowData.CURRENCY || "",
+            warehouse_id: resolvedWhId,
+            opening_warehouse_id: resolvedWhId,
+            warehouse_name: rowData.WAREHOUSE || "",
+            opening_quantity: Number(rowData.OPENING_QUANTITY) || 0,
+            safety_stock: Number(rowData.SAFETY_STOCK) || 0,
             price_type: rowData.PRICE_TYPE || "",
             price_type_name: rowData.PRICE_TYPE_NAME || "",
             image_url: rowData.IMAGE_URL || rowData.IMAGE || "",
@@ -848,8 +919,11 @@ export default function ItemSettingsTab() {
               rowData.PURCHASE_ACCOUNT_CODE || rowData.PURCHASE_ACCOUNT || "",
             sales_account_code:
               rowData.SALES_ACCOUNT_CODE || rowData.SALES_ACCOUNT || "",
+            description: rowData.DESCRIPTION || "",
+            is_stockable: rowData.IS_STOCKABLE === "Y",
             is_sellable: rowData.IS_SELLABLE === "Y",
             is_purchasable: rowData.IS_PURCHASABLE === "Y",
+            is_active: String(rowData.STATUS || "").toUpperCase() === "INACTIVE" ? false : true,
             min_stock_level: Number(rowData.MIN_STOCK_LEVEL) || 0,
             max_stock_level: Number(rowData.MAX_STOCK_LEVEL) || 0,
             reorder_level: Number(rowData.REORDER_LEVEL) || 0,
@@ -914,6 +988,8 @@ export default function ItemSettingsTab() {
         if (!nextItemCode) {
           nextItemCode = await getNextItemCode(r.index || 0);
         }
+        const warehouseRaw = String(rowData.WAREHOUSE || "").trim().toUpperCase();
+        const resolvedWhId = r.preview?.warehouse_id || (warehouseRaw ? (whNameToId.get(warehouseRaw) || (Number(warehouseRaw) > 0 ? Number(warehouseRaw) : null)) : null);
         const basePayload = {
           item_code: nextItemCode,
           item_name: rowData.ITEM_NAME,
@@ -929,6 +1005,9 @@ export default function ItemSettingsTab() {
           category_code: rowData.ITEM_CATEGORY_CODE || null,
           group_code: rowData.ITEM_GROUP_CODE || null,
           currency_code: rowData.CURRENCY_CODE || rowData.CURRENCY || null,
+          warehouse_name: rowData.WAREHOUSE || null,
+          opening_warehouse_id: resolvedWhId,
+          opening_quantity: Number(rowData.OPENING_QUANTITY) || 0,
           vat_on_purchase_code:
             rowData.VAT_ON_PURCHASE || rowData.VAT_PURCHASE_CODE || null,
           vat_on_sales_code:
@@ -985,6 +1064,7 @@ export default function ItemSettingsTab() {
           is_stockable: rowData.IS_STOCKABLE === "Y",
           is_sellable: rowData.IS_SELLABLE === "Y",
           is_purchasable: rowData.IS_PURCHASABLE === "Y",
+          is_active: String(rowData.STATUS || "").toUpperCase() === "INACTIVE" ? false : true,
           min_stock_level: Number(rowData.MIN_STOCK_LEVEL) || 0,
           max_stock_level: Number(rowData.MAX_STOCK_LEVEL) || 0,
           reorder_level: Number(rowData.REORDER_LEVEL) || 0,
@@ -1135,9 +1215,10 @@ export default function ItemSettingsTab() {
     let groups = [];
     let currencies = [];
     let uomList = [];
+    let warehouses = [];
 
     try {
-      const [taxRes, accRes, typeRes, catRes, grpRes, curRes, uomRes] =
+      const [taxRes, accRes, typeRes, catRes, grpRes, curRes, uomRes, whRes] =
         await Promise.all([
           api.get("/finance/tax-codes").catch(() => ({ data: { items: [] } })),
           api.get("/finance/accounts").catch(() => ({ data: { items: [] } })),
@@ -1146,6 +1227,7 @@ export default function ItemSettingsTab() {
           api.get("/inventory/item-groups").catch(() => ({ data: { items: [] } })),
           api.get("/finance/currencies").catch(() => ({ data: { items: [] } })),
           api.get("/inventory/uoms").catch(() => ({ data: { items: [] } })),
+          api.get("/inventory/warehouses").catch(() => ({ data: { items: [] } })),
         ]);
 
       taxCodes = (Array.isArray(taxRes?.data?.items) ? taxRes.data.items : [])
@@ -1170,6 +1252,9 @@ export default function ItemSettingsTab() {
         .filter(Boolean);
       uomList = (Array.isArray(uomRes?.data?.items) ? uomRes.data.items : [])
         .map((u) => String(u.uom_code || u.code || u.name || "").trim())
+        .filter(Boolean);
+      warehouses = (Array.isArray(whRes?.data?.items) ? whRes.data.items : Array.isArray(whRes?.data) ? whRes.data : [])
+        .map((w) => String(w.warehouse_name || w.warehouse_code || "").trim())
         .filter(Boolean);
     } catch {
       // ignore; fallbacks below
@@ -1212,6 +1297,9 @@ export default function ItemSettingsTab() {
     if (!taxCodes.length) {
       taxCodes = ["No Tax", "VAT", "Standard", "Exempt", "Zero Rated"];
     }
+    if (!warehouses.length) {
+      warehouses = ["Main Warehouse"];
+    }
 
     const samplePurchaseAccId = 36;
     const sampleSalesAccId = 1;
@@ -1227,6 +1315,7 @@ export default function ItemSettingsTab() {
     lookupSheet.getCell("D1").value = "CURRENCY";
     lookupSheet.getCell("E1").value = "ITEM_TYPE";
     lookupSheet.getCell("F1").value = "TAX_CODE";
+    lookupSheet.getCell("G1").value = "WAREHOUSE";
 
     categories.forEach((c, idx) => {
       lookupSheet.getCell(`A${idx + 2}`).value = c;
@@ -1246,11 +1335,15 @@ export default function ItemSettingsTab() {
     taxCodes.forEach((tc, idx) => {
       lookupSheet.getCell(`F${idx + 2}`).value = tc;
     });
+    warehouses.forEach((w, idx) => {
+      lookupSheet.getCell(`G${idx + 2}`).value = w;
+    });
 
     lookupSheet.state = "hidden";
 
     // Column definitions with all capitalized headings:
     worksheet.columns = [
+      { header: "ITEM_CODE", key: "ITEM_CODE", width: 18 },
       { header: "ITEM_NAME*", key: "ITEM_NAME", width: 26 },
       { header: "ITEM TYPE*", key: "ITEM_TYPE", width: 20 },
       { header: "ITEM CATEGORY", key: "ITEM_CATEGORY", width: 22 },
@@ -1260,17 +1353,21 @@ export default function ItemSettingsTab() {
       { header: "STANDARD_COST", key: "STANDARD_COST", width: 16 },
       { header: "SELLING_PRICE", key: "SELLING_PRICE", width: 16 },
       { header: "CURRENCY", key: "CURRENCY_CODE", width: 14 },
+      { header: "WAREHOUSE", key: "WAREHOUSE", width: 22 },
+      { header: "OPENING_QUANTITY", key: "OPENING_QUANTITY", width: 18 },
       { header: "PURCHAS VAT CODE", key: "VAT_PURCHASE_CODE", width: 20 },
       { header: "SALES VAT CODE", key: "VAT_SALES_CODE", width: 20 },
       { header: "PURCHASE_ACCOUNT_ID", key: "PURCHASE_ACCOUNT_ID", width: 22 },
       { header: "SALES_ACCOUNT_ID", key: "SALES_ACCOUNT_ID", width: 20 },
+      { header: "MIN_STOCK_LEVEL", key: "MIN_STOCK_LEVEL", width: 18 },
+      { header: "MAX_STOCK_LEVEL", key: "MAX_STOCK_LEVEL", width: 18 },
+      { header: "REORDER_LEVEL", key: "REORDER_LEVEL", width: 16 },
+      { header: "SAFETY_STOCK", key: "SAFETY_STOCK", width: 16 },
       { header: "DESCRIPTION", key: "DESCRIPTION", width: 26 },
       { header: "IS_STOCKABLE", key: "IS_STOCKABLE", width: 15 },
       { header: "IS_SELLABLE", key: "IS_SELLABLE", width: 15 },
       { header: "IS_PURCHASABLE", key: "IS_PURCHASABLE", width: 16 },
-      { header: "MIN_STOCK_LEVEL", key: "MIN_STOCK_LEVEL", width: 18 },
-      { header: "MAX_STOCK_LEVEL", key: "MAX_STOCK_LEVEL", width: 18 },
-      { header: "REORDER_LEVEL", key: "REORDER_LEVEL", width: 16 },
+      { header: "STATUS", key: "STATUS", width: 14 },
     ];
 
     // Style header row
@@ -1284,6 +1381,7 @@ export default function ItemSettingsTab() {
 
     // Add sample rows
     worksheet.addRow({
+      ITEM_CODE: "",
       ITEM_NAME: "Raw Material 1",
       ITEM_TYPE: itemTypes[0] || "Raw Material",
       ITEM_CATEGORY: categories[0] || "",
@@ -1293,20 +1391,25 @@ export default function ItemSettingsTab() {
       STANDARD_COST: 100.0,
       SELLING_PRICE: 120.0,
       CURRENCY_CODE: currencies[0] || "GHS",
+      WAREHOUSE: warehouses[0] || "",
+      OPENING_QUANTITY: 50,
       VAT_PURCHASE_CODE: taxCodes[0] || "No Tax",
       VAT_SALES_CODE: taxCodes[0] || "No Tax",
       PURCHASE_ACCOUNT_ID: samplePurchaseAccId,
       SALES_ACCOUNT_ID: sampleSalesAccId,
+      MIN_STOCK_LEVEL: 10,
+      MAX_STOCK_LEVEL: 100,
+      REORDER_LEVEL: 20,
+      SAFETY_STOCK: 15,
       DESCRIPTION: "Sample raw material",
       IS_STOCKABLE: "Y",
       IS_SELLABLE: "Y",
       IS_PURCHASABLE: "Y",
-      MIN_STOCK_LEVEL: 10,
-      MAX_STOCK_LEVEL: 100,
-      REORDER_LEVEL: 20,
+      STATUS: "ACTIVE",
     });
 
     worksheet.addRow({
+      ITEM_CODE: "",
       ITEM_NAME: "Finished Good 1",
       ITEM_TYPE: itemTypes[1] || "Finished Good",
       ITEM_CATEGORY: categories[1] || categories[0] || "",
@@ -1316,17 +1419,21 @@ export default function ItemSettingsTab() {
       STANDARD_COST: 150.0,
       SELLING_PRICE: 180.0,
       CURRENCY_CODE: currencies[0] || "GHS",
+      WAREHOUSE: warehouses[0] || "",
+      OPENING_QUANTITY: 25,
       VAT_PURCHASE_CODE: taxCodes[0] || "No Tax",
       VAT_SALES_CODE: taxCodes[0] || "No Tax",
       PURCHASE_ACCOUNT_ID: samplePurchaseAccId,
       SALES_ACCOUNT_ID: sampleSalesAccId,
+      MIN_STOCK_LEVEL: 5,
+      MAX_STOCK_LEVEL: 50,
+      REORDER_LEVEL: 10,
+      SAFETY_STOCK: 8,
       DESCRIPTION: "Sample finished product",
       IS_STOCKABLE: "Y",
       IS_SELLABLE: "Y",
       IS_PURCHASABLE: "Y",
-      MIN_STOCK_LEVEL: 5,
-      MAX_STOCK_LEVEL: 50,
-      REORDER_LEVEL: 10,
+      STATUS: "ACTIVE",
     });
 
     const maxCatRow = Math.max(categories.length + 1, 2);
@@ -1335,10 +1442,11 @@ export default function ItemSettingsTab() {
     const maxCurRow = Math.max(currencies.length + 1, 2);
     const maxTypeRow = Math.max(itemTypes.length + 1, 2);
     const maxTaxRow = Math.max(taxCodes.length + 1, 2);
+    const maxWhRow = Math.max(warehouses.length + 1, 2);
 
     for (let r = 2; r <= 1000; r++) {
-      // B: Item Type
-      worksheet.getCell(`B${r}`).dataValidation = {
+      // C: Item Type
+      worksheet.getCell(`C${r}`).dataValidation = {
         type: "list",
         allowBlank: false,
         formulae: [`LookupData!$E$2:$E$${maxTypeRow}`],
@@ -1346,9 +1454,9 @@ export default function ItemSettingsTab() {
         errorTitle: "Invalid Item Type",
         error: "Please select a valid Item Type from the list.",
       };
-      // C: Item Category
+      // D: Item Category
       if (categories.length > 0) {
-        worksheet.getCell(`C${r}`).dataValidation = {
+        worksheet.getCell(`D${r}`).dataValidation = {
           type: "list",
           allowBlank: true,
           formulae: [`LookupData!$A$2:$A$${maxCatRow}`],
@@ -1357,9 +1465,9 @@ export default function ItemSettingsTab() {
           error: "Please select an Item Category from the list.",
         };
       }
-      // D: Item Group
+      // E: Item Group
       if (groups.length > 0) {
-        worksheet.getCell(`D${r}`).dataValidation = {
+        worksheet.getCell(`E${r}`).dataValidation = {
           type: "list",
           allowBlank: true,
           formulae: [`LookupData!$B$2:$B$${maxGrpRow}`],
@@ -1368,8 +1476,8 @@ export default function ItemSettingsTab() {
           error: "Please select an Item Group from the list.",
         };
       }
-      // E: Unit of Measure
-      worksheet.getCell(`E${r}`).dataValidation = {
+      // F: Unit of Measure
+      worksheet.getCell(`F${r}`).dataValidation = {
         type: "list",
         allowBlank: false,
         formulae: [`LookupData!$C$2:$C$${maxUomRow}`],
@@ -1377,8 +1485,8 @@ export default function ItemSettingsTab() {
         errorTitle: "Invalid UOM",
         error: "Please select a valid Unit of Measure from the list.",
       };
-      // I: Currency
-      worksheet.getCell(`I${r}`).dataValidation = {
+      // J: Currency
+      worksheet.getCell(`J${r}`).dataValidation = {
         type: "list",
         allowBlank: true,
         formulae: [`LookupData!$D$2:$D$${maxCurRow}`],
@@ -1386,8 +1494,19 @@ export default function ItemSettingsTab() {
         errorTitle: "Invalid Currency",
         error: "Please select a Currency from the list.",
       };
-      // J: Purchas Vat Code
-      worksheet.getCell(`J${r}`).dataValidation = {
+      // K: Warehouse
+      if (warehouses.length > 0) {
+        worksheet.getCell(`K${r}`).dataValidation = {
+          type: "list",
+          allowBlank: true,
+          formulae: [`LookupData!$G$2:$G$${maxWhRow}`],
+          showErrorMessage: true,
+          errorTitle: "Invalid Warehouse",
+          error: "Please select a Warehouse from the list.",
+        };
+      }
+      // M: Purchas Vat Code
+      worksheet.getCell(`M${r}`).dataValidation = {
         type: "list",
         allowBlank: true,
         formulae: [`LookupData!$F$2:$F$${maxTaxRow}`],
@@ -1395,8 +1514,8 @@ export default function ItemSettingsTab() {
         errorTitle: "Invalid Purchase VAT Code",
         error: "Please select a Purchase VAT Code from the list.",
       };
-      // K: Sales Vat Code
-      worksheet.getCell(`K${r}`).dataValidation = {
+      // N: Sales Vat Code
+      worksheet.getCell(`N${r}`).dataValidation = {
         type: "list",
         allowBlank: true,
         formulae: [`LookupData!$F$2:$F$${maxTaxRow}`],
@@ -1404,23 +1523,29 @@ export default function ItemSettingsTab() {
         errorTitle: "Invalid Sales VAT Code",
         error: "Please select a Sales VAT Code from the list.",
       };
-      // O: IS_STOCKABLE
-      worksheet.getCell(`O${r}`).dataValidation = {
+      // V: IS_STOCKABLE
+      worksheet.getCell(`V${r}`).dataValidation = {
         type: "list",
         allowBlank: true,
         formulae: ['"Y,N"'],
       };
-      // P: IS_SELLABLE
-      worksheet.getCell(`P${r}`).dataValidation = {
+      // W: IS_SELLABLE
+      worksheet.getCell(`W${r}`).dataValidation = {
         type: "list",
         allowBlank: true,
         formulae: ['"Y,N"'],
       };
-      // Q: IS_PURCHASABLE
-      worksheet.getCell(`Q${r}`).dataValidation = {
+      // X: IS_PURCHASABLE
+      worksheet.getCell(`X${r}`).dataValidation = {
         type: "list",
         allowBlank: true,
         formulae: ['"Y,N"'],
+      };
+      // Y: STATUS
+      worksheet.getCell(`Y${r}`).dataValidation = {
+        type: "list",
+        allowBlank: true,
+        formulae: ['"ACTIVE,INACTIVE"'],
       };
     }
 
@@ -1856,6 +1981,8 @@ export default function ItemSettingsTab() {
                           <td>{r.preview.item_code || "-"}</td>
                           <td>{r.preview.item_name || "-"}</td>
                           <td>{r.preview.item_type || "-"}</td>
+                          <td>{r.preview.warehouse_label || "-"}</td>
+                          <td>{r.preview.opening_quantity || 0}</td>
                           <td>{r.preview.category_label || "-"}</td>
                           <td>{r.preview.category_name || "-"}</td>
                           <td>{r.preview.group_label || "-"}</td>
