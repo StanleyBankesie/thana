@@ -79,6 +79,25 @@ const DEFAULT_PRESET_ITEM_TYPES = [
   { id: 7, type_code: "SERVICE", type_name: "Service", is_active: 1 },
 ];
 
+  const requestWithFallback = useCallback(async (method, urls, data = null) => {
+    let lastErr = null;
+    for (const u of urls) {
+      try {
+        if (method === "get") return await api.get(u);
+        if (method === "post") return await api.post(u, data);
+        if (method === "put") return await api.put(u, data);
+        if (method === "delete") return await api.delete(u);
+      } catch (err) {
+        lastErr = err;
+        if (err?.response?.status === 404) {
+          continue;
+        }
+        throw err;
+      }
+    }
+    throw lastErr;
+  }, []);
+
   const fetchTypes = useCallback(async () => {
     setTypesLoading(true);
     setTypesError("");
@@ -111,27 +130,35 @@ const DEFAULT_PRESET_ITEM_TYPES = [
     setGroupsLoading(true);
     setGroupsError("");
     try {
-      const res = await api.get("/inventory/item-groups");
+      const res = await requestWithFallback("get", [
+        "/inventory/item-groups",
+        "/inventory/groups",
+        "/inventory/item-group",
+      ]);
       setGroups(Array.isArray(res.data?.items) ? res.data.items : []);
     } catch (e) {
       setGroupsError(e?.response?.data?.message || "Failed to load item groups");
     } finally {
       setGroupsLoading(false);
     }
-  }, []);
+  }, [requestWithFallback]);
 
   const fetchCategories = useCallback(async () => {
     setCategoriesLoading(true);
     setCategoriesError("");
     try {
-      const res = await api.get("/inventory/item-categories");
+      const res = await requestWithFallback("get", [
+        "/inventory/item-categories",
+        "/inventory/categories",
+        "/inventory/item-category",
+      ]);
       setCategories(Array.isArray(res.data?.items) ? res.data.items : []);
     } catch (e) {
       setCategoriesError(e?.response?.data?.message || "Failed to load item categories");
     } finally {
       setCategoriesLoading(false);
     }
-  }, []);
+  }, [requestWithFallback]);
 
   const fetchUoms = useCallback(async () => {
     setUomsLoading(true);
@@ -260,11 +287,19 @@ const DEFAULT_PRESET_ITEM_TYPES = [
         };
 
         if (modalMode === "create") {
-          await api.post("/inventory/item-groups", payload);
+          await requestWithFallback("post", [
+            "/inventory/item-groups",
+            "/inventory/groups",
+            "/inventory/item-group",
+          ], payload);
           toast.success("Item group created successfully");
         } else {
           const groupId = selectedItem?.group_id || selectedItem?.id;
-          await api.put(`/inventory/item-groups/${groupId}`, payload);
+          await requestWithFallback("put", [
+            `/inventory/item-groups/${groupId}`,
+            `/inventory/groups/${groupId}`,
+            `/inventory/item-group/${groupId}`,
+          ], payload);
           toast.success("Item group updated successfully");
         }
         await fetchGroups();
@@ -284,11 +319,19 @@ const DEFAULT_PRESET_ITEM_TYPES = [
         };
 
         if (modalMode === "create") {
-          await api.post("/inventory/item-categories", payload);
+          await requestWithFallback("post", [
+            "/inventory/item-categories",
+            "/inventory/categories",
+            "/inventory/item-category",
+          ], payload);
           toast.success("Item category created successfully");
         } else {
           const categoryId = selectedItem?.category_id || selectedItem?.id;
-          await api.put(`/inventory/item-categories/${categoryId}`, payload);
+          await requestWithFallback("put", [
+            `/inventory/item-categories/${categoryId}`,
+            `/inventory/categories/${categoryId}`,
+            `/inventory/item-category/${categoryId}`,
+          ], payload);
           toast.success("Item category updated successfully");
         }
         await fetchCategories();

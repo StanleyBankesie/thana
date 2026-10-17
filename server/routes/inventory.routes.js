@@ -378,6 +378,14 @@ export async function ensureItemGroupTables() {
   if (!(await checkCol("inv_item_categories", "item_group_id"))) {
     await query("ALTER TABLE inv_item_categories ADD COLUMN item_group_id BIGINT UNSIGNED NULL").catch(() => {});
   }
+  if (!(await checkCol("inv_item_groups", "branch_id"))) {
+    await query("ALTER TABLE inv_item_groups ADD COLUMN branch_id BIGINT UNSIGNED NOT NULL DEFAULT 1").catch(() => {});
+  }
+  if (!(await checkCol("inv_item_categories", "branch_id"))) {
+    await query("ALTER TABLE inv_item_categories ADD COLUMN branch_id BIGINT UNSIGNED NOT NULL DEFAULT 1").catch(() => {});
+  }
+  await query("UPDATE inv_item_categories SET company_id = 1 WHERE company_id IS NULL OR company_id = 0").catch(() => {});
+  await query("UPDATE inv_item_groups SET company_id = 1 WHERE company_id IS NULL OR company_id = 0").catch(() => {});
   verifiedTables.add("inv_item_groups");
 }
 
@@ -5731,14 +5739,13 @@ router.post(
   },
 );
 router.get(
-  "/item-groups",
+  ["/item-groups", "/item-group", "/groups"],
   requireAuth,
   requireCompanyScope,
-  requireBranchScope,
   async (req, res, next) => {
     try {
       await ensureItemGroupTables();
-      const { companyId, branchId = null } = req.scope || {};
+      const { companyId } = req.scope || {};
       const rows = await query(
         `
         SELECT g.id, g.group_code, g.group_name, g.item_type_id, g.parent_group_id,
@@ -5752,10 +5759,10 @@ router.get(
           LEFT JOIN inv_item_types t ON t.id = g.item_type_id
           LEFT JOIN inv_item_groups p ON p.id = g.parent_group_id
         LEFT JOIN adm_users u ON u.id = g.created_by
-         WHERE g.company_id = :companyId AND g.branch_id = :branchId
+         WHERE (g.company_id = :companyId OR g.company_id IS NULL OR g.company_id = 0)
          ORDER BY g.group_name ASC
         `,
-        { companyId, branchId },
+        { companyId },
       );
       res.json({ items: rows || [] });
     } catch (e) {
@@ -5765,14 +5772,13 @@ router.get(
 );
 
 router.get(
-  ["/categories", "/item-categories"],
+  ["/categories", "/item-categories", "/item-category"],
   requireAuth,
   requireCompanyScope,
-  requireBranchScope,
   async (req, res, next) => {
     try {
       await ensureItemGroupTables();
-      const { companyId, branchId = null } = req.scope || {};
+      const { companyId } = req.scope || {};
       const rows = await query(
         `
         SELECT c.id, c.category_code, c.category_name, c.item_group_id, c.parent_category_id,
@@ -5790,10 +5796,10 @@ router.get(
           LEFT JOIN inv_item_types t ON t.id = g.item_type_id
           LEFT JOIN inv_item_categories p ON p.id = c.parent_category_id
         LEFT JOIN adm_users u ON u.id = c.created_by
-         WHERE c.company_id = :companyId AND c.branch_id = :branchId
+         WHERE (c.company_id = :companyId OR c.company_id IS NULL OR c.company_id = 0)
          ORDER BY c.category_name ASC
         `,
-        { companyId, branchId },
+        { companyId },
       );
       res.json({ items: rows || [] });
     } catch (e) {
@@ -5803,14 +5809,14 @@ router.get(
 );
 
 router.post(
-  "/item-groups",
+  ["/item-groups", "/item-group", "/groups"],
   requireAuth,
   requireCompanyScope,
-  requireBranchScope,
   async (req, res, next) => {
     try {
       await ensureItemGroupTables();
-      const { companyId, branchId = null } = req.scope || {};
+      const { companyId } = req.scope || {};
+      const branchId = Number(req.scope?.branchId) || 1;
       const body = req.body || {};
       const groupCode = String(body.group_code || "").trim();
       const groupName = String(body.group_name || "").trim();
@@ -5841,20 +5847,31 @@ router.post(
       );
       res.status(201).json({ id: ins.insertId });
     } catch (e) {
+      if (
+        e?.code === "ER_DUP_ENTRY" ||
+        /duplicate entry/i.test(e?.message || "")
+      ) {
+        return next(
+          httpError(
+            409,
+            "DUPLICATE_CODE",
+            "An item group with this code already exists",
+          ),
+        );
+      }
       next(e);
     }
   },
 );
 
 router.put(
-  "/item-groups/:id",
+  ["/item-groups/:id", "/item-group/:id", "/groups/:id"],
   requireAuth,
   requireCompanyScope,
-  requireBranchScope,
   async (req, res, next) => {
     try {
       await ensureItemGroupTables();
-      const { companyId, branchId = null } = req.scope || {};
+      const { companyId } = req.scope || {};
       const id = Number(req.params.id);
       if (!Number.isFinite(id) || id <= 0) {
         throw httpError(400, "VALIDATION_ERROR", "Invalid id");
@@ -5884,12 +5901,26 @@ router.put(
         );
       }
 
-      const upd = await query(
-        `UPDATE inv_item_groups SET group_code = :groupCode, group_name = :groupName, item_type_id = :itemTypeId, parent_group_id = :parentGroupId, is_active = :isActive WHERE id = :id AND company_id = :companyId AND branch_id = :branchId`,
+      const existing = await query(
+        `SELECT id FROM inv_item_groups WHERE id = :id AND (company_id = :companyId OR company_id IS NULL OR company_id = 0)`,
+        { id, companyId },
+      );
+      if (!existing || !existing.length) {
+        throw httpError(404, "NOT_FOUND", "Item group not found");
+      }
+
+      await query(
+        `UPDATE inv_item_groups
+         SET group_code = :groupCode,
+             group_name = :groupName,
+             item_type_id = :itemTypeId,
+             parent_group_id = :parentGroupId,
+             is_active = :isActive,
+             company_id = :companyId
+         WHERE id = :id`,
         {
           id,
           companyId,
-          branchId,
           groupCode,
           groupName,
           itemTypeId,
@@ -5898,38 +5929,51 @@ router.put(
         },
       );
 
-      if (!upd.affectedRows) {
-        throw httpError(404, "NOT_FOUND", "Item group not found");
-      }
       res.json({ ok: true });
     } catch (e) {
+      if (
+        e?.code === "ER_DUP_ENTRY" ||
+        /duplicate entry/i.test(e?.message || "")
+      ) {
+        return next(
+          httpError(
+            409,
+            "DUPLICATE_CODE",
+            "An item group with this code already exists",
+          ),
+        );
+      }
       next(e);
     }
   },
 );
 
 router.delete(
-  "/item-groups/:id",
+  ["/item-groups/:id", "/item-group/:id", "/groups/:id"],
   requireAuth,
   requireCompanyScope,
-  requireBranchScope,
   async (req, res, next) => {
     try {
       await ensureItemGroupTables();
-      const { companyId, branchId = null } = req.scope || {};
+      const { companyId } = req.scope || {};
       const id = Number(req.params.id);
       if (!Number.isFinite(id) || id <= 0) {
         throw httpError(400, "VALIDATION_ERROR", "Invalid id");
       }
 
-      const del = await query(
-        `DELETE FROM inv_item_groups WHERE id = :id AND company_id = :companyId AND branch_id = :branchId`,
-        { id, companyId, branchId },
+      const existing = await query(
+        `SELECT id FROM inv_item_groups WHERE id = :id AND (company_id = :companyId OR company_id IS NULL OR company_id = 0)`,
+        { id, companyId },
       );
-
-      if (!del.affectedRows) {
+      if (!existing || !existing.length) {
         throw httpError(404, "NOT_FOUND", "Item group not found");
       }
+
+      await query(
+        `DELETE FROM inv_item_groups WHERE id = :id`,
+        { id },
+      );
+
       res.json({ ok: true });
     } catch (e) {
       if (e.code === "ER_ROW_IS_REFERENCED_2") {
@@ -6028,53 +6072,15 @@ function startBatchExpiryMonitor() {
 }
 startBatchExpiryMonitor();
 
-router.get(
-  "/item-categories",
-  requireAuth,
-  requireCompanyScope,
-  requireBranchScope,
-  async (req, res, next) => {
-    try {
-      await ensureItemGroupTables();
-      const { companyId, branchId = null } = req.scope || {};
-      const rows = await query(
-        `
-        SELECT c.id, c.category_code, c.category_name, c.item_group_id, c.parent_category_id,
-               CASE WHEN c.is_active = 1 THEN 1 ELSE 0 END AS is_active,
-               g.group_code AS item_group_code,
-               g.group_name AS item_group_name,
-               g.item_type_id,
-               t.type_code AS item_type_code,
-               t.type_name AS item_type_name,
-               p.category_name AS parent_category_name,
-          c.created_at,
-          u.username AS created_by_name
-         FROM inv_item_categories c
-          LEFT JOIN inv_item_groups g ON g.id = c.item_group_id
-          LEFT JOIN inv_item_types t ON t.id = g.item_type_id
-          LEFT JOIN inv_item_categories p ON p.id = c.parent_category_id
-        LEFT JOIN adm_users u ON u.id = c.created_by
-         WHERE c.company_id = :companyId AND c.branch_id = :branchId
-         ORDER BY c.category_name ASC
-        `,
-        { companyId, branchId },
-      );
-      res.json({ items: rows || [] });
-    } catch (e) {
-      next(e);
-    }
-  },
-);
-
 router.post(
-  "/item-categories",
+  ["/item-categories", "/item-category", "/categories"],
   requireAuth,
   requireCompanyScope,
-  requireBranchScope,
   async (req, res, next) => {
     try {
       await ensureItemGroupTables();
-      const { companyId, branchId = null } = req.scope || {};
+      const { companyId } = req.scope || {};
+      const branchId = Number(req.scope?.branchId) || 1;
       const body = req.body || {};
       const categoryCode = String(body.category_code || "").trim();
       const categoryName = String(body.category_name || "").trim();
@@ -6113,20 +6119,31 @@ router.post(
       );
       res.status(201).json({ id: ins.insertId });
     } catch (e) {
+      if (
+        e?.code === "ER_DUP_ENTRY" ||
+        /duplicate entry/i.test(e?.message || "")
+      ) {
+        return next(
+          httpError(
+            409,
+            "DUPLICATE_CODE",
+            "An item category with this code already exists",
+          ),
+        );
+      }
       next(e);
     }
   },
 );
 
 router.put(
-  "/item-categories/:id",
+  ["/item-categories/:id", "/item-category/:id", "/categories/:id"],
   requireAuth,
   requireCompanyScope,
-  requireBranchScope,
   async (req, res, next) => {
     try {
       await ensureItemGroupTables();
-      const { companyId, branchId = null } = req.scope || {};
+      const { companyId } = req.scope || {};
       const id = Number(req.params.id);
       if (!Number.isFinite(id) || id <= 0) {
         throw httpError(400, "VALIDATION_ERROR", "Invalid id");
@@ -6156,12 +6173,26 @@ router.put(
         );
       }
 
-      const upd = await query(
-        `UPDATE inv_item_categories SET category_code = :categoryCode, category_name = :categoryName, item_group_id = :itemGroupId, parent_category_id = :parentCategoryId, is_active = :isActive WHERE id = :id AND company_id = :companyId AND branch_id = :branchId`,
+      const existing = await query(
+        `SELECT id FROM inv_item_categories WHERE id = :id AND (company_id = :companyId OR company_id IS NULL OR company_id = 0)`,
+        { id, companyId },
+      );
+      if (!existing || !existing.length) {
+        throw httpError(404, "NOT_FOUND", "Item category not found");
+      }
+
+      await query(
+        `UPDATE inv_item_categories
+         SET category_code = :categoryCode,
+             category_name = :categoryName,
+             item_group_id = :itemGroupId,
+             parent_category_id = :parentCategoryId,
+             is_active = :isActive,
+             company_id = :companyId
+         WHERE id = :id`,
         {
           id,
           companyId,
-          branchId,
           categoryCode,
           categoryName,
           itemGroupId,
@@ -6170,38 +6201,51 @@ router.put(
         },
       );
 
-      if (!upd.affectedRows) {
-        throw httpError(404, "NOT_FOUND", "Item category not found");
-      }
       res.json({ ok: true });
     } catch (e) {
+      if (
+        e?.code === "ER_DUP_ENTRY" ||
+        /duplicate entry/i.test(e?.message || "")
+      ) {
+        return next(
+          httpError(
+            409,
+            "DUPLICATE_CODE",
+            "An item category with this code already exists",
+          ),
+        );
+      }
       next(e);
     }
   },
 );
 
 router.delete(
-  "/item-categories/:id",
+  ["/item-categories/:id", "/item-category/:id", "/categories/:id"],
   requireAuth,
   requireCompanyScope,
-  requireBranchScope,
   async (req, res, next) => {
     try {
       await ensureItemGroupTables();
-      const { companyId, branchId = null } = req.scope || {};
+      const { companyId } = req.scope || {};
       const id = Number(req.params.id);
       if (!Number.isFinite(id) || id <= 0) {
         throw httpError(400, "VALIDATION_ERROR", "Invalid id");
       }
 
-      const del = await query(
-        `DELETE FROM inv_item_categories WHERE id = :id AND company_id = :companyId AND branch_id = :branchId`,
-        { id, companyId, branchId },
+      const existing = await query(
+        `SELECT id FROM inv_item_categories WHERE id = :id AND (company_id = :companyId OR company_id IS NULL OR company_id = 0)`,
+        { id, companyId },
       );
-
-      if (!del.affectedRows) {
+      if (!existing || !existing.length) {
         throw httpError(404, "NOT_FOUND", "Item category not found");
       }
+
+      await query(
+        `DELETE FROM inv_item_categories WHERE id = :id`,
+        { id },
+      );
+
       res.json({ ok: true });
     } catch (e) {
       if (e.code === "ER_ROW_IS_REFERENCED_2") {
