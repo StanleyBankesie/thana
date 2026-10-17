@@ -309,6 +309,7 @@ export async function ensureItemsTable() {
   await query(`ALTER TABLE inv_items ADD COLUMN is_sellable CHAR(1) NOT NULL DEFAULT 'Y'`).catch(() => {});
   await query(`ALTER TABLE inv_items ADD COLUMN is_purchasable CHAR(1) NOT NULL DEFAULT 'Y'`).catch(() => {});
   await query(`ALTER TABLE inv_items ADD COLUMN branch_id BIGINT UNSIGNED NULL DEFAULT 1`).catch(() => {});
+  await query(`ALTER TABLE inv_items ADD COLUMN image_url VARCHAR(500) NULL`).catch(() => {});
   await query(`ALTER TABLE inv_items ADD KEY idx_item_branch (company_id, branch_id)`).catch(() => {});
   await query(`UPDATE inv_items SET item_group_id = group_id WHERE item_group_id IS NULL AND group_id IS NOT NULL`).catch(() => {});
   await query(`UPDATE inv_items SET uom = 'PCS' WHERE uom IS NULL OR uom = ''`).catch(() => {});
@@ -10269,7 +10270,17 @@ router.post(
                 catMap.set(catName.toUpperCase(), categoryId);
                 catMap.set(catCode, categoryId);
               }
-            } catch {}
+            } catch {
+              const [foundCat] = await conn.execute(
+                `SELECT id FROM inv_item_categories WHERE (company_id = :companyId OR company_id IS NULL) AND (category_code = :catCode OR category_name = :catName) LIMIT 1`,
+                { companyId, catCode, catName }
+              ).catch(() => [[]]);
+              if (foundCat && foundCat.length > 0) {
+                categoryId = foundCat[0].id;
+                catMap.set(catName.toUpperCase(), categoryId);
+                catMap.set(catCode, categoryId);
+              }
+            }
           }
 
           // Resolve Group ID
@@ -10291,7 +10302,17 @@ router.post(
                 grpMap.set(grpName.toUpperCase(), itemGroupId);
                 grpMap.set(grpCode, itemGroupId);
               }
-            } catch {}
+            } catch {
+              const [foundGrp] = await conn.execute(
+                `SELECT id FROM inv_item_groups WHERE (company_id = :companyId OR company_id IS NULL) AND (group_code = :grpCode OR group_name = :grpName) LIMIT 1`,
+                { companyId, grpCode, grpName }
+              ).catch(() => [[]]);
+              if (foundGrp && foundGrp.length > 0) {
+                itemGroupId = foundGrp[0].id;
+                grpMap.set(grpName.toUpperCase(), itemGroupId);
+                grpMap.set(grpCode, itemGroupId);
+              }
+            }
           }
 
           const costPrice = Number(item.cost_price || 0);
@@ -10380,54 +10401,102 @@ router.post(
 
           if (existingItem) {
             itemId = existingItem.id;
-            const effectiveCode = itemCode || existingItem.item_code;
-            await conn.execute(
-              `UPDATE inv_items SET
-                branch_id = COALESCE(:branchId, branch_id),
-                item_code = :effectiveCode,
-                item_name = :itemName, uom = :uom, item_type = :itemType,
-                category_id = :categoryId, item_group_id = :itemGroupId,
-                cost_price = :costPrice, selling_price = :sellingPrice, is_active = :isActive,
-                barcode = :barcode, currency_id = :currencyId, image_url = :imageUrl,
-                vat_on_purchase_id = :vatOnPurchaseId, vat_on_sales_id = :vatOnSalesId,
-                purchase_account_id = :purchaseAccountId, sales_account_id = :salesAccountId,
-                service_item = :serviceItem, is_production_item = :isProductionItem, is_stockable = :isStockable, is_sellable = :isSellable,
-                is_purchasable = :isPurchasable, min_stock_level = :minStockLevel,
-                max_stock_level = :maxStockLevel, reorder_level = :reorderLevel,
-                safety_stock = :safetyStock, description = :description
-               WHERE id = :itemId`,
-              {
-                branchId: whBranchId || null,
-                effectiveCode,
-                itemName,
-                uom,
-                itemType,
-                categoryId,
-                itemGroupId,
-                costPrice,
-                sellingPrice,
-                isActive,
-                barcode,
-                currencyId,
-                imageUrl,
-                vatOnPurchaseId,
-                vatOnSalesId,
-                purchaseAccountId,
-                salesAccountId,
-                serviceItem,
-                isProductionItem: isProductionItemVal,
-                isStockable,
-                isSellable,
-                isPurchasable,
-                minStockLevel,
-                maxStockLevel,
-                reorderLevel,
-                safetyStock,
-                description,
-                itemId,
-              },
-            );
-            updated++;
+            const effectiveCode = existingItem.item_code || itemCode;
+            try {
+              await conn.execute(
+                `UPDATE inv_items SET
+                  branch_id = COALESCE(:branchId, branch_id),
+                  item_code = :effectiveCode,
+                  item_name = :itemName, uom = :uom, item_type = :itemType,
+                  category_id = :categoryId, item_group_id = :itemGroupId,
+                  cost_price = :costPrice, selling_price = :sellingPrice, is_active = :isActive,
+                  barcode = :barcode, currency_id = :currencyId, image_url = :imageUrl,
+                  vat_on_purchase_id = :vatOnPurchaseId, vat_on_sales_id = :vatOnSalesId,
+                  purchase_account_id = :purchaseAccountId, sales_account_id = :salesAccountId,
+                  service_item = :serviceItem, is_production_item = :isProductionItem, is_stockable = :isStockable, is_sellable = :isSellable,
+                  is_purchasable = :isPurchasable, min_stock_level = :minStockLevel,
+                  max_stock_level = :maxStockLevel, reorder_level = :reorderLevel,
+                  safety_stock = :safetyStock, description = :description
+                 WHERE id = :itemId`,
+                {
+                  branchId: whBranchId || null,
+                  effectiveCode,
+                  itemName,
+                  uom,
+                  itemType,
+                  categoryId,
+                  itemGroupId,
+                  costPrice,
+                  sellingPrice,
+                  isActive,
+                  barcode,
+                  currencyId,
+                  imageUrl,
+                  vatOnPurchaseId,
+                  vatOnSalesId,
+                  purchaseAccountId,
+                  salesAccountId,
+                  serviceItem,
+                  isProductionItem: isProductionItemVal,
+                  isStockable,
+                  isSellable,
+                  isPurchasable,
+                  minStockLevel,
+                  maxStockLevel,
+                  reorderLevel,
+                  safetyStock,
+                  description,
+                  itemId,
+                },
+              );
+              updated++;
+            } catch (upErr) {
+              await conn.execute(
+                `UPDATE inv_items SET
+                  branch_id = COALESCE(:branchId, branch_id),
+                  item_name = :itemName, uom = :uom, item_type = :itemType,
+                  category_id = :categoryId, item_group_id = :itemGroupId,
+                  cost_price = :costPrice, selling_price = :sellingPrice, is_active = :isActive,
+                  barcode = :barcode, currency_id = :currencyId, image_url = :imageUrl,
+                  vat_on_purchase_id = :vatOnPurchaseId, vat_on_sales_id = :vatOnSalesId,
+                  purchase_account_id = :purchaseAccountId, sales_account_id = :salesAccountId,
+                  service_item = :serviceItem, is_production_item = :isProductionItem, is_stockable = :isStockable, is_sellable = :isSellable,
+                  is_purchasable = :isPurchasable, min_stock_level = :minStockLevel,
+                  max_stock_level = :maxStockLevel, reorder_level = :reorderLevel,
+                  safety_stock = :safetyStock, description = :description
+                 WHERE id = :itemId`,
+                {
+                  branchId: whBranchId || null,
+                  itemName,
+                  uom,
+                  itemType,
+                  categoryId,
+                  itemGroupId,
+                  costPrice,
+                  sellingPrice,
+                  isActive,
+                  barcode,
+                  currencyId,
+                  imageUrl,
+                  vatOnPurchaseId,
+                  vatOnSalesId,
+                  purchaseAccountId,
+                  salesAccountId,
+                  serviceItem,
+                  isProductionItem: isProductionItemVal,
+                  isStockable,
+                  isSellable,
+                  isPurchasable,
+                  minStockLevel,
+                  maxStockLevel,
+                  reorderLevel,
+                  safetyStock,
+                  description,
+                  itemId,
+                },
+              );
+              updated++;
+            }
           } else {
             if (!itemCode) {
               while (true) {
@@ -10501,22 +10570,121 @@ router.post(
                 );
                 if (dupItem && dupItem.length > 0) {
                   itemId = dupItem[0].id;
-                  await conn.execute(
-                    `UPDATE inv_items SET
-                      branch_id = COALESCE(:branchId, branch_id),
-                      item_name = :itemName, uom = :uom, item_type = :itemType,
-                      category_id = :categoryId, item_group_id = :itemGroupId,
-                      cost_price = :costPrice, selling_price = :sellingPrice, is_active = :isActive,
-                      barcode = :barcode, currency_id = :currencyId, image_url = :imageUrl,
-                      vat_on_purchase_id = :vatOnPurchaseId, vat_on_sales_id = :vatOnSalesId,
-                      purchase_account_id = :purchaseAccountId, sales_account_id = :salesAccountId,
-                      service_item = :serviceItem, is_production_item = :isProductionItem, is_stockable = :isStockable, is_sellable = :isSellable,
-                      is_purchasable = :isPurchasable, min_stock_level = :minStockLevel,
-                      max_stock_level = :maxStockLevel, reorder_level = :reorderLevel,
-                      safety_stock = :safetyStock, description = :description
-                     WHERE id = :itemId`,
+                  try {
+                    await conn.execute(
+                      `UPDATE inv_items SET
+                        branch_id = COALESCE(:branchId, branch_id),
+                        item_name = :itemName, uom = :uom, item_type = :itemType,
+                        category_id = :categoryId, item_group_id = :itemGroupId,
+                        cost_price = :costPrice, selling_price = :sellingPrice, is_active = :isActive,
+                        barcode = :barcode, currency_id = :currencyId, image_url = :imageUrl,
+                        vat_on_purchase_id = :vatOnPurchaseId, vat_on_sales_id = :vatOnSalesId,
+                        purchase_account_id = :purchaseAccountId, sales_account_id = :salesAccountId,
+                        service_item = :serviceItem, is_production_item = :isProductionItem, is_stockable = :isStockable, is_sellable = :isSellable,
+                        is_purchasable = :isPurchasable, min_stock_level = :minStockLevel,
+                        max_stock_level = :maxStockLevel, reorder_level = :reorderLevel,
+                        safety_stock = :safetyStock, description = :description
+                       WHERE id = :itemId`,
+                      {
+                        branchId: whBranchId || null,
+                        itemName,
+                        uom,
+                        itemType,
+                        categoryId,
+                        itemGroupId,
+                        costPrice,
+                        sellingPrice,
+                        isActive,
+                        barcode,
+                        currencyId,
+                        imageUrl,
+                        vatOnPurchaseId,
+                        vatOnSalesId,
+                        purchaseAccountId,
+                        salesAccountId,
+                        serviceItem,
+                        isProductionItem: isProductionItemVal,
+                        isStockable,
+                        isSellable,
+                        isPurchasable,
+                        minStockLevel,
+                        maxStockLevel,
+                        reorderLevel,
+                        safetyStock,
+                        description,
+                        itemId,
+                      }
+                    );
+                    updated++;
+                  } catch (upErr2) {
+                    await conn.execute(
+                      `UPDATE inv_items SET
+                        branch_id = COALESCE(:branchId, branch_id),
+                        uom = :uom, item_type = :itemType,
+                        category_id = :categoryId, item_group_id = :itemGroupId,
+                        cost_price = :costPrice, selling_price = :sellingPrice, is_active = :isActive,
+                        barcode = :barcode, currency_id = :currencyId, image_url = :imageUrl,
+                        vat_on_purchase_id = :vatOnPurchaseId, vat_on_sales_id = :vatOnSalesId,
+                        purchase_account_id = :purchaseAccountId, sales_account_id = :salesAccountId,
+                        service_item = :serviceItem, is_production_item = :isProductionItem, is_stockable = :isStockable, is_sellable = :isSellable,
+                        is_purchasable = :isPurchasable, min_stock_level = :minStockLevel,
+                        max_stock_level = :maxStockLevel, reorder_level = :reorderLevel,
+                        safety_stock = :safetyStock, description = :description
+                       WHERE id = :itemId`,
+                      {
+                        branchId: whBranchId || null,
+                        uom,
+                        itemType,
+                        categoryId,
+                        itemGroupId,
+                        costPrice,
+                        sellingPrice,
+                        isActive,
+                        barcode,
+                        currencyId,
+                        imageUrl,
+                        vatOnPurchaseId,
+                        vatOnSalesId,
+                        purchaseAccountId,
+                        salesAccountId,
+                        serviceItem,
+                        isProductionItem: isProductionItemVal,
+                        isStockable,
+                        isSellable,
+                        isPurchasable,
+                        minStockLevel,
+                        maxStockLevel,
+                        reorderLevel,
+                        safetyStock,
+                        description,
+                        itemId,
+                      }
+                    );
+                    updated++;
+                  }
+                } else {
+                  currentMax++;
+                  itemCode = `ITM-${String(currentMax).padStart(6, "0")}`;
+                  const [insertRetry] = await conn.execute(
+                    `INSERT INTO inv_items (
+                      company_id, branch_id, item_code, item_name, uom, item_type,
+                      category_id, item_group_id, cost_price, selling_price, is_active, created_by,
+                      barcode, currency_id, image_url, vat_on_purchase_id, vat_on_sales_id,
+                      purchase_account_id, sales_account_id, service_item, is_production_item, is_stockable, is_sellable,
+                      is_purchasable, min_stock_level, max_stock_level, reorder_level, safety_stock,
+                      description
+                    ) VALUES (
+                      :companyId, :branchId, :itemCode, :itemName, :uom, :itemType,
+                      :categoryId, :itemGroupId, :costPrice, :sellingPrice, :isActive, :createdBy,
+                      :barcode, :currencyId, :imageUrl, :vatOnPurchaseId, :vatOnSalesId,
+                      :purchaseAccountId, :salesAccountId, :serviceItem, :isProductionItem, :isStockable, :isSellable,
+                      :isPurchasable, :minStockLevel, :maxStockLevel, :reorderLevel, :safetyStock,
+                      :description
+                    )`,
                     {
-                      branchId: whBranchId || null,
+                      companyId,
+                      branchId: whBranchId,
+                      itemCode,
                       itemName,
                       uom,
                       itemType,
@@ -10525,6 +10693,7 @@ router.post(
                       costPrice,
                       sellingPrice,
                       isActive,
+                      createdBy: userId,
                       barcode,
                       currencyId,
                       imageUrl,
@@ -10542,12 +10711,10 @@ router.post(
                       reorderLevel,
                       safetyStock,
                       description,
-                      itemId,
-                    }
+                    },
                   );
-                  updated++;
-                } else {
-                  throw insErr;
+                  itemId = insertRetry.insertId;
+                  inserted++;
                 }
               } else {
                 throw insErr;

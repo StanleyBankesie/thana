@@ -1,5 +1,18 @@
 import React from "react";
 
+function renderOptionIcon(iconItem) {
+  if (!iconItem) return null;
+  if (React.isValidElement(iconItem)) return iconItem;
+  if (
+    typeof iconItem === "function" ||
+    (typeof iconItem === "object" && iconItem !== null)
+  ) {
+    const IconComp = iconItem;
+    return <IconComp className="w-3.5 h-3.5" />;
+  }
+  return <span>{iconItem}</span>;
+}
+
 /**
  * Apple-style Segmented Control for multi-option switching (e.g. view mode, status filter).
  */
@@ -26,7 +39,7 @@ export function SegmentedControl({
       {options.map((option) => {
         const optionValue = typeof option === "object" ? option.value : option;
         const optionLabel = typeof option === "object" ? option.label : option;
-        const Icon = typeof option === "object" ? option.icon : null;
+        const optionIcon = typeof option === "object" ? option.icon : null;
         const isActive = value === optionValue;
 
         return (
@@ -42,7 +55,7 @@ export function SegmentedControl({
                 : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
             }`}
           >
-            {Icon && <Icon className="w-3.5 h-3.5" />}
+            {optionIcon && renderOptionIcon(optionIcon)}
             <span>{optionLabel}</span>
           </button>
         );

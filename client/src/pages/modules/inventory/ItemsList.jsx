@@ -964,8 +964,8 @@ export default function ItemsList() {
         } catch {}
         return `ITM-${String(Date.now()).slice(-6)}-${String(fallbackSeed).padStart(2, "0")}`;
       };
-      const payloadRows = previewRows
-        .filter((r) => r && r.valid) // only valid rows
+      let rowsToProcess = previewRows.filter((r) => r && r.valid); // only valid rows
+      const payloadRows = rowsToProcess
         .map((r) => {
           const rowData = r.raw || {};
           const warehouseRaw = String(rowData.WAREHOUSE || "").trim().toUpperCase();
@@ -1059,13 +1059,29 @@ export default function ItemsList() {
             const res = await api.get("/inventory/items?all=1");
             setItems(Array.isArray(res.data?.items) ? res.data.items : []);
           }
-          if (failed > 0) {
-            console.warn(`Bulk endpoint reported ${failed} skipped rows; proceeding with individual fallback...`);
-          } else {
+          if (failed === 0) {
             setPreviewOpen(false);
             setPreviewRows([]);
             setPreviewHeaders([]);
             return;
+          }
+          console.warn(`Bulk endpoint reported ${failed} skipped rows; proceeding with individual fallback...`);
+          const failedNames = new Set(
+            (resp?.data?.errors || []).map((e) =>
+              String(e.item_name || "").toUpperCase().trim(),
+            ),
+          );
+          if (failedNames.size > 0) {
+            rowsToProcess = previewRows.filter(
+              (x) =>
+                x &&
+                x.valid &&
+                failedNames.has(
+                  String(x.raw?.ITEM_NAME || x.preview?.item_name || "")
+                    .toUpperCase()
+                    .trim(),
+                ),
+            );
           }
         } catch (bulkErr) {
           // Fallback to per-row upload when bulk endpoint is unavailable or fails
@@ -1075,24 +1091,31 @@ export default function ItemsList() {
       let success = 0;
       let failed = 0;
       const errs = [];
-      // Build quick lookup of existing items by name and code for update fallback
+      // Fetch fresh items from server to guarantee up-to-date lookups
+      let currentItems = Array.isArray(items) ? items : [];
+      try {
+        const freshRes = await api.get("/inventory/items?all=1", {
+          __skipOfflineQueue: true,
+        });
+        if (Array.isArray(freshRes?.data?.items)) currentItems = freshRes.data.items;
+      } catch {}
       const nameToId = new Map(
-        (Array.isArray(items) ? items : [])
+        currentItems
           .filter((it) => it && it.id && it.item_name)
           .map((it) => [
-            String(it.item_name || "").toUpperCase(),
+            String(it.item_name || "").toUpperCase().trim(),
             Number(it.id),
           ]),
       );
       const codeToId = new Map(
-        (Array.isArray(items) ? items : [])
+        currentItems
           .filter((it) => it && it.id && it.item_code)
           .map((it) => [
-            String(it.item_code || "").toUpperCase(),
+            String(it.item_code || "").toUpperCase().trim(),
             Number(it.id),
           ]),
       );
-      for (const r of previewRows.filter((x) => x && x.valid)) {
+      for (const r of rowsToProcess) {
         const rowData = r.raw;
         let nextItemCode = rowData.ITEM_CODE;
         if (!nextItemCode) {
@@ -1223,9 +1246,14 @@ export default function ItemsList() {
             }
             if (itemId) {
               try {
+                const updatePayload = { ...payload };
+                const existingCode = [...codeToId.entries()].find(([, id]) => id === itemId)?.[0];
+                if (existingCode) {
+                  updatePayload.item_code = existingCode;
+                }
                 const up = await api.put(
                   `/inventory/items/${itemId}`,
-                  payload,
+                  updatePayload,
                   { __skipOfflineQueue: true },
                 );
                 if (up?.data?.offline) {
