@@ -44,36 +44,57 @@
   }
 }
 
+@layer utilities {
+  .shadow-apple-xs {
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.04);
+  }
+  .shadow-apple-sm {
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.05);
+  }
+  .shadow-apple-md {
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.06), 0 2px 4px -2px rgba(0, 0, 0, 0.04);
+  }
+  .shadow-apple-lg {
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -4px rgba(0, 0, 0, 0.04);
+  }
+  .shadow-apple-xl {
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.10), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+  }
+  .shadow-apple-dock {
+    box-shadow: 0 -4px 20px -2px rgba(15, 23, 42, 0.08), 0 4px 6px -2px rgba(15, 23, 42, 0.04);
+  }
+}
+
 @layer components {
-  /* ── ERP Button Styles ─────────────────────────────── */
+  /* ── ERP Button Styles (Apple HIG Compliant) ───────── */
   .btn-primary {
-    @apply inline-flex items-center justify-center px-4 py-2 rounded-lg font-medium text-white bg-brand-900 hover:bg-brand-800 active:bg-brand-950 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed;
-    min-height: 38px;
+    @apply inline-flex items-center justify-center px-5 py-2.5 rounded-xl font-medium text-white bg-brand-900 hover:bg-brand-800 active:bg-brand-950 transition-all duration-150 shadow-apple-xs disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98];
+    min-height: 42px;
   }
   .btn-primary:focus-visible {
     @apply outline-none ring-2 ring-brand-900/40 ring-offset-2 ring-offset-white dark:ring-offset-slate-800;
   }
 
   .btn-secondary {
-    @apply inline-flex items-center justify-center px-4 py-2 rounded-lg font-medium text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 border border-slate-300 dark:border-slate-600 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed;
-    min-height: 38px;
+    @apply inline-flex items-center justify-center px-5 py-2.5 rounded-xl font-medium text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700/60 border border-slate-200 dark:border-slate-700 transition-all duration-150 shadow-apple-xs disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98];
+    min-height: 42px;
   }
   .btn-secondary:focus-visible {
-    @apply outline-none ring-2 ring-brand-900/30 ring-offset-2 ring-offset-white dark:ring-offset-slate-800;
+    @apply outline-none ring-2 ring-slate-400/30 ring-offset-2 ring-offset-white dark:ring-offset-slate-800;
   }
 
   .btn-outline {
-    @apply inline-flex items-center justify-center px-4 py-2 rounded-lg font-medium text-brand-900 dark:text-brand-400 border border-brand-900 dark:border-brand-400 hover:bg-brand-50 dark:hover:bg-brand-900/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
-    min-height: 38px;
+    @apply inline-flex items-center justify-center px-5 py-2.5 rounded-xl font-medium text-brand-900 dark:text-brand-300 border border-brand-900/30 dark:border-brand-400/40 hover:bg-brand-50 dark:hover:bg-brand-950/20 transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98];
+    min-height: 42px;
   }
   .btn-outline:focus-visible {
     @apply outline-none ring-2 ring-brand-500/40 ring-offset-2 ring-offset-white dark:ring-offset-slate-800;
   }
 
   .btn-success {
-    @apply inline-flex items-center justify-center font-medium text-white rounded-lg shadow-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
-    padding: 0.5rem 1rem;
-    min-height: 38px;
+    @apply inline-flex items-center justify-center font-medium text-white rounded-xl shadow-apple-xs transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98];
+    padding: 0.625rem 1.25rem;
+    min-height: 42px;
     background-color: var(--success-color);
   }
   .btn-success:hover:not(:disabled) {
@@ -83,65 +104,64 @@
     background-color: var(--success-color-active);
   }
   .btn-success:focus-visible {
-    @apply outline-none ring-2 ring-brand-500/30 ring-offset-2 ring-offset-white dark:ring-offset-slate-800;
+    @apply outline-none ring-2 ring-emerald-500/30 ring-offset-2 ring-offset-white dark:ring-offset-slate-800;
   }
 
   /* ── Button size variants ──────────────────────────── */
   .btn-sm {
-    padding: 0.375rem 0.75rem;
-    min-height: 32px;
+    padding: 0.4rem 0.875rem;
+    min-height: 36px;
     font-size: 0.8125rem;
-    border-radius: 0.5rem;
+    border-radius: 0.625rem;
   }
   .btn-xs {
-    padding: 0.25rem 0.5rem;
-    min-height: 26px;
+    padding: 0.3rem 0.625rem;
+    min-height: 30px;
     font-size: 0.75rem;
-    border-radius: 0.375rem;
+    border-radius: 0.5rem;
   }
 
-  /* ── ERP Card Styles ───────────────────────────────── */
+  /* ── ERP Card Styles (Apple Grouped Surfaces) ────── */
   .card {
-    @apply rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm;
+    @apply rounded-2xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-apple-xs;
   }
 
   .card-header {
-    @apply border-b border-slate-200 dark:border-slate-700 px-6 py-4 bg-white dark:bg-slate-800 rounded-t-xl;
+    @apply border-b border-slate-100 dark:border-slate-800/80 px-6 py-4 bg-white dark:bg-slate-900 rounded-t-2xl;
   }
 
   .card-body {
-    @apply px-6 py-4;
+    @apply px-6 py-5;
   }
 
-  /* ── ERP Input Styles ──────────────────────────────── */
+  /* ── ERP Input Styles (Apple Clean Controls) ──────── */
   .input {
-    @apply px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all shadow-sm text-sm;
-    min-height: 38px;
+    @apply px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 outline-none focus:ring-4 focus:ring-brand-500/10 focus:border-brand-600 dark:focus:border-brand-400 transition-all shadow-apple-xs text-sm;
+    min-height: 42px;
     font-size: 0.875rem;
   }
   .input::placeholder,
   input::placeholder,
   textarea::placeholder {
-    @apply text-slate-400 dark:text-slate-500 text-sm font-normal;
+    @apply text-slate-500 dark:text-slate-400 text-sm font-normal;
   }
   select.input {
-    min-height: 38px;
+    min-height: 42px;
   }
 
   /* Login page input variant */
   .login-input {
-    @apply w-full h-10 px-4 rounded-[10px] border border-slate-300 bg-white text-slate-900 outline-none transition-all;
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.85), 0 1px 2px rgba(15, 23, 42, 0.08);
+    @apply w-full h-11 px-4 rounded-xl border border-slate-200 bg-white text-slate-900 outline-none transition-all shadow-apple-xs;
   }
   .login-input::placeholder {
-    @apply text-slate-400;
+    @apply text-slate-500;
   }
   .login-input:focus {
-    @apply border-brand-500 ring-2 ring-brand-500/20;
+    @apply border-brand-500 ring-4 ring-brand-500/15;
   }
 
   .label {
-    @apply block text-sm font-medium mb-1.5 text-slate-700 dark:text-slate-300;
+    @apply block text-xs font-semibold uppercase tracking-wider mb-1.5 text-slate-700 dark:text-slate-200;
   }
 
   /* ── Focus ring for all interactive elements ────────── */
@@ -163,7 +183,7 @@
   }
 
   .table th {
-    @apply px-4 py-3 text-left text-xs font-bold text-slate-900 dark:text-slate-100 uppercase tracking-wider;
+    @apply px-4 py-3 text-left text-xs font-semibold text-slate-700 dark:text-slate-300 tracking-normal;
   }
 
   .table td {
@@ -381,25 +401,25 @@
     transform: none !important;
   }
 
-  /* ERP Status Badges */
+  /* ERP Status Badges (Apple HIG Semantic Badges) */
   .badge {
-    @apply inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium;
+    @apply inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border transition-colors;
   }
 
   .badge-success {
-    @apply bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200;
+    @apply bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800;
   }
 
   .badge-warning {
-    @apply bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-200;
+    @apply bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800;
   }
 
   .badge-error {
-    @apply bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-200;
+    @apply bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800;
   }
 
   .badge-info {
-    @apply bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200;
+    @apply bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800;
   }
 
   .no-scrollbar {

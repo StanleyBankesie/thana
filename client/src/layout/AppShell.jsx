@@ -1403,14 +1403,14 @@ export default function AppShell() {
       {/* Floating Social Feed Notification - Always Visible */}
       <SocialFeedNotification />
 
-      <header data-rbac-exempt="true" className="flex justify-between items-center px-6 py-1 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 shadow-sm z-50 sticky top-0">
+      <header data-rbac-exempt="true" className="h-14 flex justify-between items-center px-4 sm:px-6 border-b border-slate-200/80 dark:border-slate-800/80 bg-white/95 dark:bg-slate-950/95 backdrop-blur-md shadow-apple-xs z-50 sticky top-0">
         <div className="flex items-center gap-3 flex-nowrap">
           <button
             type="button"
             aria-label="Toggle navigation menu"
             data-rbac-exempt="true"
             onClick={() => setSidebarOpen((v) => !v)}
-            className="inline-flex items-center justify-center w-9 h-9 rounded-lg text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800 transition-colors"
+            className="inline-flex items-center justify-center w-10 h-10 rounded-xl text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800 transition-colors active:scale-95"
           >
             <Menu className="w-5 h-5" />
           </button>
@@ -1951,10 +1951,10 @@ export default function AppShell() {
           onTouchStart={handleSidebarTouchStart}
           onTouchEnd={handleSidebarTouchEnd}
           className={
-            "md:sticky md:top-[45px] md:h-[calc(100vh-45px)] border-b md:border-b-0 md:border-r border-slate-800 dark:border-slate-800 p-5 bg-brand-950 dark:bg-slate-950 shadow-lg overflow-y-auto no-scrollbar z-[60] transition-all duration-300 ease-in-out " +
+            "md:sticky md:top-[56px] md:h-[calc(100vh-56px)] border-b md:border-b-0 md:border-r border-slate-800 dark:border-slate-800 p-5 bg-brand-950 dark:bg-slate-950 shadow-lg overflow-y-auto no-scrollbar z-[60] transition-all duration-300 ease-in-out " +
             (sidebarOpen
-              ? "fixed inset-y-0 left-0 w-[280px] top-[45px] translate-x-0 md:static md:translate-x-0"
-              : "fixed inset-y-0 left-0 w-[280px] top-[45px] -translate-x-full md:static md:translate-x-0 md:hidden")
+              ? "fixed inset-y-0 left-0 w-[280px] top-[56px] translate-x-0 md:static md:translate-x-0"
+              : "fixed inset-y-0 left-0 w-[280px] top-[56px] -translate-x-full md:static md:translate-x-0 md:hidden")
           }
         >
           <nav className="space-y-1 pb-6">
@@ -2007,12 +2007,12 @@ export default function AppShell() {
           </nav>
         </aside>
 
-        <main className={`flex-1 overflow-x-hidden min-w-0 relative min-h-[calc(100vh-45px)] ${appBackground?.preset === "solid-white" || appBackground?.url?.includes("solid-white") ? "bg-white" : "bg-slate-100 dark:bg-slate-900"}`}>
+        <main className={`flex-1 overflow-x-hidden min-w-0 relative min-h-[calc(100vh-56px)] pb-20 md:pb-6 ${appBackground?.preset === "solid-white" || appBackground?.url?.includes("solid-white") ? "bg-white" : "bg-slate-100 dark:bg-slate-900"}`}>
           {/* Main Application Background Image Layer (strictly inside main application area) */}
           {appBackground?.preset === "solid-white" || appBackground?.url?.includes("solid-white") ? (
             <div
               aria-hidden="true"
-              className="fixed top-[45px] bottom-0 right-0 pointer-events-none z-0 bg-white transition-all duration-300 ease-in-out"
+              className="fixed top-[56px] bottom-0 right-0 pointer-events-none z-0 bg-white transition-all duration-300 ease-in-out"
               style={{
                 left: sidebarOpen ? "280px" : "0px",
                 backgroundColor: "#ffffff",
@@ -2021,7 +2021,7 @@ export default function AppShell() {
           ) : appBackground?.url ? (
             <div
               aria-hidden="true"
-              className="fixed top-[45px] bottom-0 right-0 pointer-events-none z-0 bg-cover bg-center bg-no-repeat transition-all duration-300 ease-in-out"
+              className="fixed top-[56px] bottom-0 right-0 pointer-events-none z-0 bg-cover bg-center bg-no-repeat transition-all duration-300 ease-in-out"
               style={{
                 left: sidebarOpen ? "280px" : "0px",
                 backgroundImage: `url(${appBackground.url})`,
@@ -2066,6 +2066,91 @@ export default function AppShell() {
       <PaymentPackageModal isOpen={showPaymentModal} onClose={() => setShowPaymentModal(false)} companyId={user?.company_id || user?.companyIds?.[0]} />
       <FloatingChat />
       <BanksAiFloating />
+
+      {/* Apple-style Mobile Bottom Navigation Tab Bar (HIG compliant, >=44pt targets, tactile press) */}
+      <nav
+        aria-label="Mobile Navigation"
+        data-rbac-exempt="true"
+        className="md:hidden fixed bottom-0 inset-x-0 h-16 bg-white/95 dark:bg-slate-950/95 backdrop-blur-lg border-t border-slate-200/90 dark:border-slate-800 z-40 flex items-center justify-around px-2 shadow-apple-dock pb-[env(safe-area-inset-bottom)]"
+      >
+        <NavLink
+          to="/"
+          end
+          className={({ isActive }) =>
+            `flex flex-col items-center justify-center min-w-[56px] py-1 transition-all duration-150 active:scale-95 ${
+              isActive
+                ? "text-brand-900 dark:text-brand-300 font-semibold"
+                : "text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
+            }`
+          }
+        >
+          <Home className="w-5 h-5 mb-0.5" />
+          <span className="text-[11px] leading-tight">Home</span>
+        </NavLink>
+
+        {canViewModule("inventory") && (
+          <NavLink
+            to="/inventory"
+            className={({ isActive }) =>
+              `flex flex-col items-center justify-center min-w-[56px] py-1 transition-all duration-150 active:scale-95 ${
+                isActive
+                  ? "text-brand-900 dark:text-brand-300 font-semibold"
+                  : "text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
+              }`
+            }
+          >
+            <Archive className="w-5 h-5 mb-0.5" />
+            <span className="text-[11px] leading-tight">Inventory</span>
+          </NavLink>
+        )}
+
+        {canViewModule("sales") && (
+          <NavLink
+            to="/sales"
+            className={({ isActive }) =>
+              `flex flex-col items-center justify-center min-w-[56px] py-1 transition-all duration-150 active:scale-95 ${
+                isActive
+                  ? "text-brand-900 dark:text-brand-300 font-semibold"
+                  : "text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
+              }`
+            }
+          >
+            <Banknote className="w-5 h-5 mb-0.5" />
+            <span className="text-[11px] leading-tight">Sales</span>
+          </NavLink>
+        )}
+
+        {canViewModule("finance") && (
+          <NavLink
+            to="/finance"
+            className={({ isActive }) =>
+              `flex flex-col items-center justify-center min-w-[56px] py-1 transition-all duration-150 active:scale-95 ${
+                isActive
+                  ? "text-brand-900 dark:text-brand-300 font-semibold"
+                  : "text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
+              }`
+            }
+          >
+            <Landmark className="w-5 h-5 mb-0.5" />
+            <span className="text-[11px] leading-tight">Finance</span>
+          </NavLink>
+        )}
+
+        <button
+          type="button"
+          aria-label="Toggle all modules menu"
+          data-rbac-exempt="true"
+          onClick={() => setSidebarOpen((v) => !v)}
+          className={`flex flex-col items-center justify-center min-w-[56px] py-1 transition-all duration-150 active:scale-95 ${
+            sidebarOpen
+              ? "text-brand-900 dark:text-brand-300 font-semibold"
+              : "text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
+          }`}
+        >
+          <Menu className="w-5 h-5 mb-0.5" />
+          <span className="text-[11px] leading-tight">Menu</span>
+        </button>
+      </nav>
     </div>
   );
 }

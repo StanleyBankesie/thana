@@ -16,6 +16,7 @@ import SortableHeader from "@/components/SortableHeader.jsx";
 import { usePermission } from "@/auth/PermissionContext.jsx";
 import { useViewMode } from "@/hooks/useViewMode";
 import ViewToggle from "@/components/ViewToggle";
+import { Button, Badge } from "@/components/ui";
 import {
   ChevronDown,
   Upload,
@@ -23,6 +24,7 @@ import {
   Download,
   Layers,
   X,
+  Plus,
 } from "lucide-react";
 
 function toCharYorN(val, defaultVal = "Y") {
@@ -1053,30 +1055,18 @@ export default function ItemsList() {
           const failed = Number(resp?.data?.failed || 0);
           shouldClosePreview = failed === 0;
           if (inserted || updated) {
-            toast.success(`Uploaded ${inserted} new, updated ${updated}`);
+            toast.success(`Uploaded ${inserted} new, updated ${updated} existing items`);
             const res = await api.get("/inventory/items?all=1");
             setItems(Array.isArray(res.data?.items) ? res.data.items : []);
           }
-          if (failed) {
-            toast.error(`Skipped ${failed} rows`);
-            const errs = Array.isArray(resp?.data?.errors)
-              ? resp.data.errors
-              : [];
-            if (errs.length) {
-              alert(
-                "Some rows failed:\n" +
-                  errs
-                    .slice(0, 10)
-                    .map(
-                      (e) =>
-                        `Row ${e.index} (${e.item_name || "-"}) - ${e.message}`,
-                    )
-                    .join("\n") +
-                  (errs.length > 10 ? "\n..." : ""),
-              );
-            }
+          if (failed > 0) {
+            console.warn(`Bulk endpoint reported ${failed} skipped rows; proceeding with individual fallback...`);
+          } else {
+            setPreviewOpen(false);
+            setPreviewRows([]);
+            setPreviewHeaders([]);
+            return;
           }
-          return;
         } catch (bulkErr) {
           // Fallback to per-row upload when bulk endpoint is unavailable or fails
           console.error("Bulk upload failed, falling back to per-row:", bulkErr);
@@ -1085,12 +1075,20 @@ export default function ItemsList() {
       let success = 0;
       let failed = 0;
       const errs = [];
-      // Build quick lookup of existing items by name for update fallback
+      // Build quick lookup of existing items by name and code for update fallback
       const nameToId = new Map(
         (Array.isArray(items) ? items : [])
           .filter((it) => it && it.id && it.item_name)
           .map((it) => [
             String(it.item_name || "").toUpperCase(),
+            Number(it.id),
+          ]),
+      );
+      const codeToId = new Map(
+        (Array.isArray(items) ? items : [])
+          .filter((it) => it && it.id && it.item_code)
+          .map((it) => [
+            String(it.item_code || "").toUpperCase(),
             Number(it.id),
           ]),
       );
@@ -1198,12 +1196,14 @@ export default function ItemsList() {
           const code = err?.response?.data?.code || "";
           const status = err?.response?.status || 0;
           if (
-            status === 409 &&
-            String(code).toUpperCase() === "DUPLICATE_ITEM_NAME"
+            status === 409 ||
+            /duplicate/i.test(code) ||
+            /already exists/i.test(err?.response?.data?.message || "")
           ) {
-            // Fallback to update existing item by name
-            const key = String(payload.item_name || "").toUpperCase();
-            let itemId = nameToId.get(key);
+            // Fallback to update existing item by code or name
+            const keyCode = String(payload.item_code || "").toUpperCase();
+            const keyName = String(payload.item_name || "").toUpperCase();
+            let itemId = (keyCode ? codeToId.get(keyCode) : null) || nameToId.get(keyName);
             if (!itemId) {
               try {
                 const resAll = await api.get("/inventory/items?all=1", {
@@ -1213,10 +1213,12 @@ export default function ItemsList() {
                   ? resAll.data.items
                   : [];
                 for (const it of arr) {
+                  const cd = String(it.item_code || "").toUpperCase();
                   const nm = String(it.item_name || "").toUpperCase();
-                  if (!nameToId.has(nm)) nameToId.set(nm, Number(it.id));
+                  if (cd && !codeToId.has(cd)) codeToId.set(cd, Number(it.id));
+                  if (nm && !nameToId.has(nm)) nameToId.set(nm, Number(it.id));
                 }
-                itemId = nameToId.get(key);
+                itemId = (keyCode ? codeToId.get(keyCode) : null) || nameToId.get(keyName);
               } catch {}
             }
             if (itemId) {
@@ -1747,16 +1749,18 @@ export default function ItemsList() {
         <div className="card-header">
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
             <div>
-              <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
+              <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
                 Items Master
               </h1>
               <p className="text-sm mt-1 text-slate-500 dark:text-slate-400">
-                Configure items, UOM, pricing and barcodes
+                Configure items, units of measure, pricing and barcodes
               </p>
             </div>
-            <div className="flex gap-2 flex-wrap w-full md:w-auto justify-start md:justify-end">
-              <Link to="/inventory?section=Stock%20Operations" className="btn-secondary">
-                Return to Menu
+            <div className="flex gap-2.5 flex-wrap w-full md:w-auto justify-start md:justify-end items-center">
+              <Link to="/inventory?section=Stock%20Operations">
+                <Button variant="secondary" size="md">
+                  Return to Menu
+                </Button>
               </Link>
               <input
                 type="file"
@@ -1765,21 +1769,22 @@ export default function ItemsList() {
                 className="hidden"
                 accept=".xlsx,.xls,.csv"
               />
-              {/* Bulk Operations Dropdown & SweetAlert-styled popover */}
+              {/* Bulk Operations Dropdown & Popover */}
               <div className="relative">
-                <button
+                <Button
                   type="button"
-                  className="btn-secondary flex items-center gap-2"
+                  variant="secondary"
+                  size="md"
                   onClick={() => setShowBulkOps((prev) => !prev)}
+                  icon={<Layers className="w-4 h-4 text-slate-500" />}
                 >
-                  <Layers className="w-4 h-4 text-slate-500" />
                   <span>Bulk Operations</span>
                   <ChevronDown
                     className={`w-3.5 h-3.5 transition-transform duration-200 ${
                       showBulkOps ? "rotate-180" : ""
                     }`}
                   />
-                </button>
+                </Button>
 
                 {showBulkOps && (
                   <>
@@ -1787,14 +1792,14 @@ export default function ItemsList() {
                       className="fixed inset-0 z-40"
                       onClick={() => setShowBulkOps(false)}
                     />
-                    <div className="absolute right-0 top-full mt-2 w-80 sm:w-96 bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 z-50 p-5 animate-in fade-in zoom-in-95 duration-150">
+                    <div className="absolute right-0 top-full mt-2 w-80 sm:w-96 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl rounded-2xl shadow-apple-xl border border-slate-200/80 dark:border-slate-800 z-50 p-5 animate-in fade-in zoom-in-95 duration-150">
                       <div className="flex items-start justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center font-bold text-lg shadow-inner">
-                            ⚡
+                          <div className="w-10 h-10 rounded-xl bg-brand-50 dark:bg-brand-900/40 text-brand-700 dark:text-brand-300 flex items-center justify-center font-bold text-lg shadow-apple-xs">
+                            <Layers className="w-5 h-5" />
                           </div>
                           <div>
-                            <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                            <h3 className="text-base font-semibold text-slate-900 dark:text-white">
                               Bulk Operations
                             </h3>
                             <p className="text-xs text-slate-500 dark:text-slate-400">
@@ -1805,27 +1810,27 @@ export default function ItemsList() {
                         <button
                           type="button"
                           onClick={() => setShowBulkOps(false)}
-                          className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                          className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                           aria-label="Close"
                         >
                           <X className="w-4 h-4" />
                         </button>
                       </div>
 
-                      <div className="mt-4 space-y-2.5">
+                      <div className="mt-4 space-y-2">
                         <button
                           type="button"
                           onClick={() => {
                             setShowBulkOps(false);
                             handleBulkUpload();
                           }}
-                          className="w-full flex items-center gap-3 p-3 text-left rounded-xl border border-slate-200 dark:border-slate-700 hover:border-emerald-500 dark:hover:border-emerald-500 hover:bg-emerald-50/50 dark:hover:bg-emerald-950/20 transition-all group"
+                          className="w-full flex items-center gap-3 p-3 text-left rounded-xl border border-slate-200/80 dark:border-slate-800 hover:border-brand-500/50 hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-all group active:scale-[0.99]"
                         >
-                          <div className="w-9 h-9 rounded-lg bg-emerald-100 dark:bg-emerald-900/50 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                          <div className="w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-800 text-brand-700 dark:text-brand-300 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
                             <Upload className="w-4 h-4" />
                           </div>
                           <div className="flex-1 min-w-0">
-                            <div className="text-sm font-semibold text-slate-800 dark:text-slate-200 group-hover:text-emerald-700 dark:group-hover:text-emerald-300">
+                            <div className="text-sm font-semibold text-slate-800 dark:text-slate-200 group-hover:text-brand-700 dark:group-hover:text-brand-300">
                               Bulk Upload
                             </div>
                             <div className="text-xs text-slate-500 dark:text-slate-400 truncate">
@@ -1840,13 +1845,13 @@ export default function ItemsList() {
                             setShowBulkOps(false);
                             downloadTemplateCSV();
                           }}
-                          className="w-full flex items-center gap-3 p-3 text-left rounded-xl border border-slate-200 dark:border-slate-700 hover:border-blue-500 dark:hover:border-blue-500 hover:bg-blue-50/50 dark:hover:bg-blue-950/20 transition-all group"
+                          className="w-full flex items-center gap-3 p-3 text-left rounded-xl border border-slate-200/80 dark:border-slate-800 hover:border-brand-500/50 hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-all group active:scale-[0.99]"
                         >
-                          <div className="w-9 h-9 rounded-lg bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                          <div className="w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-800 text-brand-700 dark:text-brand-300 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
                             <FileSpreadsheet className="w-4 h-4" />
                           </div>
                           <div className="flex-1 min-w-0">
-                            <div className="text-sm font-semibold text-slate-800 dark:text-slate-200 group-hover:text-blue-700 dark:group-hover:text-blue-300">
+                            <div className="text-sm font-semibold text-slate-800 dark:text-slate-200 group-hover:text-brand-700 dark:group-hover:text-brand-300">
                               Download Template (Excel)
                             </div>
                             <div className="text-xs text-slate-500 dark:text-slate-400 truncate">
@@ -1861,13 +1866,13 @@ export default function ItemsList() {
                             setShowBulkOps(false);
                             exportItemsExcel();
                           }}
-                          className="w-full flex items-center gap-3 p-3 text-left rounded-xl border border-slate-200 dark:border-slate-700 hover:border-purple-500 dark:hover:border-purple-500 hover:bg-purple-50/50 dark:hover:bg-purple-950/20 transition-all group"
+                          className="w-full flex items-center gap-3 p-3 text-left rounded-xl border border-slate-200/80 dark:border-slate-800 hover:border-brand-500/50 hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-all group active:scale-[0.99]"
                         >
-                          <div className="w-9 h-9 rounded-lg bg-purple-100 dark:bg-purple-900/50 text-purple-600 dark:text-purple-400 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                          <div className="w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-800 text-brand-700 dark:text-brand-300 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
                             <Download className="w-4 h-4" />
                           </div>
                           <div className="flex-1 min-w-0">
-                            <div className="text-sm font-semibold text-slate-800 dark:text-slate-200 group-hover:text-purple-700 dark:group-hover:text-purple-300">
+                            <div className="text-sm font-semibold text-slate-800 dark:text-slate-200 group-hover:text-brand-700 dark:group-hover:text-brand-300">
                               Export Items (Excel)
                             </div>
                             <div className="text-xs text-slate-500 dark:text-slate-400 truncate">
@@ -1880,8 +1885,10 @@ export default function ItemsList() {
                   </>
                 )}
               </div>
-              <Link to="/inventory/items/new" className="btn-primary">
-                + New Item
+              <Link to="/inventory/items/new">
+                <Button variant="prominent" size="md" icon={<Plus className="w-4 h-4" />}>
+                  New Item
+                </Button>
               </Link>
             </div>
           </div>
@@ -1941,22 +1948,22 @@ export default function ItemsList() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-4">
-            <div className="p-3 bg-white rounded border">
-              <div className="text-2xl font-bold">{stats.total}</div>
-              <div className="text-sm text-slate-500">Total Items</div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3.5 mb-5">
+            <div className="p-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-apple-xs flex flex-col justify-between">
+              <div className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Total Items</div>
+              <div className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white mt-1">{stats.total}</div>
             </div>
-            <div className="p-3 bg-white rounded border">
-              <div className="text-2xl font-bold">{stats.active}</div>
-              <div className="text-sm text-slate-500">Active Items</div>
+            <div className="p-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-apple-xs flex flex-col justify-between">
+              <div className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">Active Items</div>
+              <div className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white mt-1">{stats.active}</div>
             </div>
-            <div className="p-3 bg-white rounded border">
-              <div className="text-2xl font-bold">{stats.lowStock}</div>
-              <div className="text-sm text-slate-500">Low Stock</div>
+            <div className="p-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-apple-xs flex flex-col justify-between">
+              <div className="text-xs font-semibold text-amber-600 dark:text-amber-400 uppercase tracking-wider">Low Stock</div>
+              <div className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white mt-1">{stats.lowStock}</div>
             </div>
-            <div className="p-3 bg-white rounded border">
-              <div className="text-2xl font-bold">{stats.inactive}</div>
-              <div className="text-sm text-slate-500">Inactive Items</div>
+            <div className="p-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-apple-xs flex flex-col justify-between">
+              <div className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Inactive Items</div>
+              <div className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white mt-1">{stats.inactive}</div>
             </div>
           </div>
 
@@ -2101,27 +2108,27 @@ export default function ItemsList() {
                       <div className="flex items-center gap-2 whitespace-nowrap">
                         <Link
                           to={`/inventory/items/${it.id}?mode=view`}
-                          className="inline-flex items-center justify-center px-4 py-1.5 text-sm font-medium text-slate-700 bg-slate-50 border border-slate-200 rounded-full hover:bg-slate-100 hover:text-slate-900 transition-colors"
+                          className="inline-flex items-center justify-center px-3 py-1 text-xs font-medium text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800/80 hover:bg-slate-200 dark:hover:bg-slate-700/80 rounded-lg transition-all active:scale-95"
                         >
                           View
                         </Link>
                         <Link
                           to={`/inventory/items/${it.id}?mode=edit`}
-                          className="inline-flex items-center justify-center px-4 py-1.5 text-sm font-medium text-slate-700 bg-slate-50 border border-slate-200 rounded-full hover:bg-slate-100 hover:text-slate-900 transition-colors"
+                          className="inline-flex items-center justify-center px-3 py-1 text-xs font-medium text-brand-700 dark:text-brand-300 bg-brand-50 dark:bg-brand-900/40 hover:bg-brand-100 dark:hover:bg-brand-900/70 rounded-lg transition-all active:scale-95"
                         >
                           Edit
                         </Link>
                         {it.is_active ? (
                           <button
                             onClick={() => handleToggleStatus(it, false)}
-                            className="inline-flex items-center justify-center px-4 py-1.5 text-sm font-medium text-red-600 bg-red-50 border border-red-200 rounded-full hover:bg-red-100 hover:text-red-700 transition-colors"
+                            className="inline-flex items-center justify-center px-3 py-1 text-xs font-medium text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/40 hover:bg-red-100 dark:hover:bg-red-900/60 rounded-lg transition-all active:scale-95"
                           >
                             Disable
                           </button>
                         ) : (
                           <button
                             onClick={() => handleToggleStatus(it, true)}
-                            className="inline-flex items-center justify-center px-4 py-1.5 text-sm font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-full hover:bg-emerald-100 hover:text-emerald-800 transition-colors"
+                            className="inline-flex items-center justify-center px-3 py-1 text-xs font-medium text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 rounded-lg transition-all active:scale-95"
                           >
                             Enable
                           </button>
@@ -2136,13 +2143,13 @@ export default function ItemsList() {
                       {Number(it.selling_price || 0).toFixed(2)}
                     </td>
                     <td>
-                      <span
-                        className={`badge ${
-                          it.is_active ? "badge-success" : "badge-error"
-                        }`}
+                      <Badge
+                        variant={it.is_active ? "success" : "neutral"}
+                        size="sm"
+                        dot
                       >
-                        {it.is_active ? "ACTIVE" : "INACTIVE"}
-                      </span>
+                        {it.is_active ? "Active" : "Inactive"}
+                      </Badge>
                     </td>
                     <td>{it.created_by_name || "-"}</td>
                     <td>
@@ -2289,10 +2296,11 @@ export default function ItemsList() {
                   </table>
                 </div>
               </div>
-              <div className="flex justify-end gap-2">
-                <button
+              <div className="flex justify-end gap-2.5">
+                <Button
                   type="button"
-                  className="btn"
+                  variant="secondary"
+                  size="md"
                   onClick={() => {
                     setPreviewOpen(false);
                     setPreviewRows([]);
@@ -2300,15 +2308,16 @@ export default function ItemsList() {
                   }}
                 >
                   Cancel
-                </button>
-                <button
+                </Button>
+                <Button
                   type="button"
-                  className="btn-success"
+                  variant="prominent"
+                  size="md"
                   onClick={confirmUpload}
-                  disabled={uploading}
+                  loading={uploading}
                 >
                   {uploading ? "Uploading..." : "Upload Valid Rows"}
-                </button>
+                </Button>
               </div>
             </div>
           </div>

@@ -10162,9 +10162,9 @@ router.post(
 
       // Fetch warehouses for mapping
       const [whRows] = await conn.execute(
-        `SELECT id, warehouse_code, warehouse_name, branch_id FROM inv_warehouses WHERE company_id = :companyId`,
+        `SELECT id, warehouse_code, warehouse_name, branch_id FROM inv_warehouses WHERE company_id = :companyId OR company_id IS NULL OR company_id = 0`,
         { companyId },
-      );
+      ).catch(() => [[]]);
       const whMap = new Map();
       (whRows || []).forEach((w) => {
         whMap.set(String(w.id), w);
@@ -10208,26 +10208,92 @@ router.post(
         if (a.name) accMap.set(String(a.name).trim().toUpperCase(), Number(a.id));
       });
 
+      // Fetch categories for mapping
+      const [catRows] = await conn.execute(
+        `SELECT id, category_code, category_name FROM inv_item_categories WHERE company_id = :companyId OR company_id IS NULL OR company_id = 0`,
+        { companyId },
+      ).catch(() => [[]]);
+      const catMap = new Map();
+      (catRows || []).forEach((c) => {
+        catMap.set(String(c.id), Number(c.id));
+        if (c.category_code) catMap.set(String(c.category_code).trim().toUpperCase(), Number(c.id));
+        if (c.category_name) catMap.set(String(c.category_name).trim().toUpperCase(), Number(c.id));
+      });
+
+      // Fetch groups for mapping
+      const [grpRows] = await conn.execute(
+        `SELECT id, group_code, group_name FROM inv_item_groups WHERE company_id = :companyId OR company_id IS NULL OR company_id = 0`,
+        { companyId },
+      ).catch(() => [[]]);
+      const grpMap = new Map();
+      (grpRows || []).forEach((g) => {
+        grpMap.set(String(g.id), Number(g.id));
+        if (g.group_code) grpMap.set(String(g.group_code).trim().toUpperCase(), Number(g.id));
+        if (g.group_name) grpMap.set(String(g.group_name).trim().toUpperCase(), Number(g.id));
+      });
+
+      const errors = [];
+
       for (const item of items) {
         try {
-          let itemCode = item.item_code ? String(item.item_code).trim() : null;
-          if (!itemCode) {
-            currentMax++;
-            itemCode = `ITM-${String(currentMax).padStart(6, "0")}`;
-          }
-
           const itemName = item.item_name
             ? String(item.item_name).trim()
             : null;
           if (!itemName) {
             failed++;
+            errors.push({ item_name: "Unnamed item", message: "item_name is missing" });
             continue;
           }
 
+          let itemCode = item.item_code ? String(item.item_code).trim() : null;
+
           const uom = item.uom ? String(item.uom).trim() : "PCS";
           const itemType = item.item_type || "INVENTORY";
-          const categoryId = toNumber(item.category_id);
-          const itemGroupId = toNumber(item.item_group_id);
+
+          // Resolve Category ID
+          let categoryId = toNumber(item.category_id);
+          if (!categoryId) {
+            const rawCat = String(item.category_name || item.category_code || item.category_label || item.category || "").trim().toUpperCase();
+            if (rawCat) categoryId = catMap.get(rawCat) || null;
+          }
+          if (!categoryId && (item.category_name || item.category_label || item.category_code)) {
+            const catName = String(item.category_name || item.category_label || item.category_code).trim();
+            const catCode = String(item.category_code || catName.slice(0, 10)).trim().toUpperCase();
+            try {
+              const [newCat] = await conn.execute(
+                `INSERT INTO inv_item_categories (company_id, category_code, category_name) VALUES (:companyId, :catCode, :catName)`,
+                { companyId, catCode, catName }
+              );
+              if (newCat?.insertId) {
+                categoryId = newCat.insertId;
+                catMap.set(catName.toUpperCase(), categoryId);
+                catMap.set(catCode, categoryId);
+              }
+            } catch {}
+          }
+
+          // Resolve Group ID
+          let itemGroupId = toNumber(item.item_group_id || item.group_id);
+          if (!itemGroupId) {
+            const rawGrp = String(item.group_name || item.group_code || item.group_label || item.group || "").trim().toUpperCase();
+            if (rawGrp) itemGroupId = grpMap.get(rawGrp) || null;
+          }
+          if (!itemGroupId && (item.group_name || item.group_label || item.group_code)) {
+            const grpName = String(item.group_name || item.group_label || item.group_code).trim();
+            const grpCode = String(item.group_code || grpName.slice(0, 10)).trim().toUpperCase();
+            try {
+              const [newGrp] = await conn.execute(
+                `INSERT INTO inv_item_groups (company_id, group_code, group_name) VALUES (:companyId, :grpCode, :grpName)`,
+                { companyId, grpCode, grpName }
+              );
+              if (newGrp?.insertId) {
+                itemGroupId = newGrp.insertId;
+                grpMap.set(grpName.toUpperCase(), itemGroupId);
+                grpMap.set(grpCode, itemGroupId);
+              }
+            } catch {}
+          }
+
           const costPrice = Number(item.cost_price || 0);
           const sellingPrice = Number(item.selling_price || 0);
           const isActive =
@@ -10288,17 +10354,37 @@ router.post(
 
           let itemId = null;
 
-          // Check if exists
-          const [existing] = await conn.execute(
-            `SELECT id FROM inv_items WHERE company_id = :companyId AND item_code = :itemCode LIMIT 1`,
-            { companyId, itemCode },
-          );
+          // Check if item already exists by item_code OR by item_name
+          let existingItem = null;
+          if (itemCode) {
+            const [byCode] = await conn.execute(
+              `SELECT id, item_code, item_name FROM inv_items WHERE company_id = :companyId AND item_code = :itemCode LIMIT 1`,
+              { companyId, itemCode },
+            );
+            if (byCode && byCode.length > 0) {
+              existingItem = byCode[0];
+            }
+          }
+          if (!existingItem && itemName) {
+            const [byName] = await conn.execute(
+              `SELECT id, item_code, item_name FROM inv_items WHERE company_id = :companyId AND item_name = :itemName LIMIT 1`,
+              { companyId, itemName },
+            );
+            if (byName && byName.length > 0) {
+              existingItem = byName[0];
+              if (!itemCode) {
+                itemCode = existingItem.item_code;
+              }
+            }
+          }
 
-          if (existing && existing.length > 0) {
-            itemId = existing[0].id;
+          if (existingItem) {
+            itemId = existingItem.id;
+            const effectiveCode = itemCode || existingItem.item_code;
             await conn.execute(
               `UPDATE inv_items SET
                 branch_id = COALESCE(:branchId, branch_id),
+                item_code = :effectiveCode,
                 item_name = :itemName, uom = :uom, item_type = :itemType,
                 category_id = :categoryId, item_group_id = :itemGroupId,
                 cost_price = :costPrice, selling_price = :sellingPrice, is_active = :isActive,
@@ -10312,6 +10398,7 @@ router.post(
                WHERE id = :itemId`,
               {
                 branchId: whBranchId || null,
+                effectiveCode,
                 itemName,
                 uom,
                 itemType,
@@ -10342,119 +10429,202 @@ router.post(
             );
             updated++;
           } else {
-            const [insertResult] = await conn.execute(
-              `INSERT INTO inv_items (
-                company_id, branch_id, item_code, item_name, uom, item_type,
-                category_id, item_group_id, cost_price, selling_price, is_active, created_by,
-                barcode, currency_id, image_url, vat_on_purchase_id, vat_on_sales_id,
-                purchase_account_id, sales_account_id, service_item, is_production_item, is_stockable, is_sellable,
-                is_purchasable, min_stock_level, max_stock_level, reorder_level, safety_stock,
-                description
-              ) VALUES (
-                :companyId, :branchId, :itemCode, :itemName, :uom, :itemType,
-                :categoryId, :itemGroupId, :costPrice, :sellingPrice, :isActive, :createdBy,
-                :barcode, :currencyId, :imageUrl, :vatOnPurchaseId, :vatOnSalesId,
-                :purchaseAccountId, :salesAccountId, :serviceItem, :isProductionItem, :isStockable, :isSellable,
-                :isPurchasable, :minStockLevel, :maxStockLevel, :reorderLevel, :safetyStock,
-                :description
-              )`,
-              {
-                companyId,
-                branchId: whBranchId,
-                itemCode,
-                itemName,
-                uom,
-                itemType,
-                categoryId,
-                itemGroupId,
-                costPrice,
-                sellingPrice,
-                isActive,
-                createdBy: userId,
-                barcode,
-                currencyId,
-                imageUrl,
-                vatOnPurchaseId,
-                vatOnSalesId,
-                purchaseAccountId,
-                salesAccountId,
-                serviceItem,
-                isProductionItem: isProductionItemVal,
-                isStockable,
-                isSellable,
-                isPurchasable,
-                minStockLevel,
-                maxStockLevel,
-                reorderLevel,
-                safetyStock,
-                description,
-              },
-            );
-            itemId = insertResult.insertId;
-            inserted++;
+            if (!itemCode) {
+              while (true) {
+                currentMax++;
+                itemCode = `ITM-${String(currentMax).padStart(6, "0")}`;
+                const [codeCheck] = await conn.execute(
+                  `SELECT id FROM inv_items WHERE company_id = :companyId AND item_code = :itemCode LIMIT 1`,
+                  { companyId, itemCode },
+                );
+                if (!codeCheck || codeCheck.length === 0) break;
+              }
+            }
+
+            try {
+              const [insertResult] = await conn.execute(
+                `INSERT INTO inv_items (
+                  company_id, branch_id, item_code, item_name, uom, item_type,
+                  category_id, item_group_id, cost_price, selling_price, is_active, created_by,
+                  barcode, currency_id, image_url, vat_on_purchase_id, vat_on_sales_id,
+                  purchase_account_id, sales_account_id, service_item, is_production_item, is_stockable, is_sellable,
+                  is_purchasable, min_stock_level, max_stock_level, reorder_level, safety_stock,
+                  description
+                ) VALUES (
+                  :companyId, :branchId, :itemCode, :itemName, :uom, :itemType,
+                  :categoryId, :itemGroupId, :costPrice, :sellingPrice, :isActive, :createdBy,
+                  :barcode, :currencyId, :imageUrl, :vatOnPurchaseId, :vatOnSalesId,
+                  :purchaseAccountId, :salesAccountId, :serviceItem, :isProductionItem, :isStockable, :isSellable,
+                  :isPurchasable, :minStockLevel, :maxStockLevel, :reorderLevel, :safetyStock,
+                  :description
+                )`,
+                {
+                  companyId,
+                  branchId: whBranchId,
+                  itemCode,
+                  itemName,
+                  uom,
+                  itemType,
+                  categoryId,
+                  itemGroupId,
+                  costPrice,
+                  sellingPrice,
+                  isActive,
+                  createdBy: userId,
+                  barcode,
+                  currencyId,
+                  imageUrl,
+                  vatOnPurchaseId,
+                  vatOnSalesId,
+                  purchaseAccountId,
+                  salesAccountId,
+                  serviceItem,
+                  isProductionItem: isProductionItemVal,
+                  isStockable,
+                  isSellable,
+                  isPurchasable,
+                  minStockLevel,
+                  maxStockLevel,
+                  reorderLevel,
+                  safetyStock,
+                  description,
+                },
+              );
+              itemId = insertResult.insertId;
+              inserted++;
+            } catch (insErr) {
+              if (insErr?.code === "ER_DUP_ENTRY" || /duplicate/i.test(insErr?.message || "")) {
+                // If duplicate occurred on insert, safely update existing item instead of failing
+                const [dupItem] = await conn.execute(
+                  `SELECT id, item_code FROM inv_items WHERE company_id = :companyId AND (item_code = :itemCode OR item_name = :itemName) LIMIT 1`,
+                  { companyId, itemCode, itemName }
+                );
+                if (dupItem && dupItem.length > 0) {
+                  itemId = dupItem[0].id;
+                  await conn.execute(
+                    `UPDATE inv_items SET
+                      branch_id = COALESCE(:branchId, branch_id),
+                      item_name = :itemName, uom = :uom, item_type = :itemType,
+                      category_id = :categoryId, item_group_id = :itemGroupId,
+                      cost_price = :costPrice, selling_price = :sellingPrice, is_active = :isActive,
+                      barcode = :barcode, currency_id = :currencyId, image_url = :imageUrl,
+                      vat_on_purchase_id = :vatOnPurchaseId, vat_on_sales_id = :vatOnSalesId,
+                      purchase_account_id = :purchaseAccountId, sales_account_id = :salesAccountId,
+                      service_item = :serviceItem, is_production_item = :isProductionItem, is_stockable = :isStockable, is_sellable = :isSellable,
+                      is_purchasable = :isPurchasable, min_stock_level = :minStockLevel,
+                      max_stock_level = :maxStockLevel, reorder_level = :reorderLevel,
+                      safety_stock = :safetyStock, description = :description
+                     WHERE id = :itemId`,
+                    {
+                      branchId: whBranchId || null,
+                      itemName,
+                      uom,
+                      itemType,
+                      categoryId,
+                      itemGroupId,
+                      costPrice,
+                      sellingPrice,
+                      isActive,
+                      barcode,
+                      currencyId,
+                      imageUrl,
+                      vatOnPurchaseId,
+                      vatOnSalesId,
+                      purchaseAccountId,
+                      salesAccountId,
+                      serviceItem,
+                      isProductionItem: isProductionItemVal,
+                      isStockable,
+                      isSellable,
+                      isPurchasable,
+                      minStockLevel,
+                      maxStockLevel,
+                      reorderLevel,
+                      safetyStock,
+                      description,
+                      itemId,
+                    }
+                  );
+                  updated++;
+                } else {
+                  throw insErr;
+                }
+              } else {
+                throw insErr;
+              }
+            }
           }
 
           // Handle opening balance
           const openingQuantity = Number(item.opening_quantity || 0);
           if (itemId && openingQuantity > 0 && openingWarehouseId) {
-            const updationNo = `UPD-OP-${Date.now()}-${inserted + updated}`;
-            const [updRaw] = await conn.execute(
-              `INSERT INTO inv_stock_updations 
-                 (company_id, branch_id, warehouse_id, updation_no, updation_date, reason, status, created_by)
-               VALUES 
-                 (:companyId, :branchId, :warehouseId, :updationNo, NOW(), 'Opening Balance', 'APPROVED', :createdBy)`,
-              {
-                companyId: companyId || null,
-                branchId: whBranchId,
-                warehouseId: openingWarehouseId,
-                updationNo,
-                createdBy: userId,
-              },
-            );
-            const updationId = updRaw.insertId;
-            await conn.execute(
-              `INSERT INTO inv_stock_updation_details 
-                 (updation_id, item_id, qty, uom, current_stock, created_by)
-               VALUES 
-                 (:updationId, :itemId, :qty, :uom, 0, :createdBy)`,
-              {
-                updationId,
-                itemId,
-                qty: openingQuantity,
-                uom: uom || "PCS",
-                createdBy: userId,
-              },
-            );
-
-            const [sbRows] = await conn.execute(
-              `SELECT qty FROM inv_stock_balances 
-                WHERE company_id = :companyId AND warehouse_id = :warehouseId AND item_id = :itemId
-                LIMIT 1`,
-              { companyId: companyId || null, warehouseId: openingWarehouseId, itemId },
-            );
-
-            if (Array.isArray(sbRows) && sbRows.length > 0) {
-              await conn.execute(
-                `UPDATE inv_stock_balances SET qty = qty + :delta, updated_at = NOW()
-                  WHERE company_id = :companyId AND warehouse_id = :warehouseId AND item_id = :itemId`,
-                { delta: openingQuantity, companyId: companyId || null, warehouseId: openingWarehouseId, itemId },
+            try {
+              const updationNo = `UPD-OP-${Date.now()}-${inserted + updated}`;
+              const finalBranchId = whBranchId || matchedWh?.branch_id || toNumber(req.scope?.branchId) || 1;
+              const [updRaw] = await conn.execute(
+                `INSERT INTO inv_stock_updations 
+                   (company_id, branch_id, warehouse_id, updation_no, updation_date, reason, status, created_by)
+                 VALUES 
+                   (:companyId, :branchId, :warehouseId, :updationNo, NOW(), 'Opening Balance', 'APPROVED', :createdBy)`,
+                {
+                  companyId: companyId || null,
+                  branchId: finalBranchId,
+                  warehouseId: openingWarehouseId,
+                  updationNo,
+                  createdBy: userId,
+                },
               );
-            } else {
+              const updationId = updRaw.insertId;
               await conn.execute(
-                `INSERT INTO inv_stock_balances (company_id, branch_id, warehouse_id, item_id, qty)
-                 VALUES (:companyId, :branchId, :warehouseId, :itemId, :qty)`,
-                { companyId: companyId || null, branchId: whBranchId, warehouseId: openingWarehouseId, itemId, qty: openingQuantity },
+                `INSERT INTO inv_stock_updation_details 
+                   (updation_id, item_id, qty, uom, current_stock, created_by)
+                 VALUES 
+                   (:updationId, :itemId, :qty, :uom, 0, :createdBy)`,
+                {
+                  updationId,
+                  itemId,
+                  qty: openingQuantity,
+                  uom: uom || "PCS",
+                  createdBy: userId,
+                },
               );
+
+              const [sbRows] = await conn.execute(
+                `SELECT qty FROM inv_stock_balances 
+                  WHERE company_id = :companyId AND warehouse_id = :warehouseId AND item_id = :itemId
+                  LIMIT 1`,
+                { companyId: companyId || null, warehouseId: openingWarehouseId, itemId },
+              );
+
+              if (Array.isArray(sbRows) && sbRows.length > 0) {
+                await conn.execute(
+                  `UPDATE inv_stock_balances SET qty = qty + :delta, updated_at = NOW()
+                    WHERE company_id = :companyId AND warehouse_id = :warehouseId AND item_id = :itemId`,
+                  { delta: openingQuantity, companyId: companyId || null, warehouseId: openingWarehouseId, itemId },
+                );
+              } else {
+                await conn.execute(
+                  `INSERT INTO inv_stock_balances (company_id, branch_id, warehouse_id, item_id, qty)
+                   VALUES (:companyId, :branchId, :warehouseId, :itemId, :qty)`,
+                  { companyId: companyId || null, branchId: finalBranchId, warehouseId: openingWarehouseId, itemId, qty: openingQuantity },
+                );
+              }
+            } catch (stockErr) {
+              console.error("Opening balance sync warning for item " + itemId + ":", stockErr);
             }
           }
         } catch (itemErr) {
-          console.error("Bulk item error:", itemErr);
+          console.error("Bulk item error for " + (item.item_name || item.item_code) + ":", itemErr);
           failed++;
+          errors.push({
+            item_name: item.item_name || item.item_code || "Unknown",
+            message: itemErr?.message || "Failed to process item",
+          });
         }
       }
 
       await conn.commit();
-      res.json({ inserted, updated, failed });
+      res.json({ inserted, updated, failed, errors });
     } catch (e) {
       await conn.rollback();
       next(e);

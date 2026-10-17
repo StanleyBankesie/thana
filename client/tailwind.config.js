@@ -4,7 +4,30 @@ export default {
   content: ["./index.html", "./src/**/*.{js,jsx}"],
   theme: {
     fontFamily: {
-      sans: ['"Inter"', 'system-ui', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', '"Helvetica Neue"', 'Arial', 'sans-serif'],
+      sans: [
+        "-apple-system",
+        "BlinkMacSystemFont",
+        '"SF Pro Text"',
+        '"SF Pro Display"',
+        '"SF Pro"',
+        '"Inter"',
+        "system-ui",
+        '"Segoe UI"',
+        "Roboto",
+        '"Helvetica Neue"',
+        "Arial",
+        "sans-serif",
+      ],
+      mono: [
+        '"SF Mono"',
+        "ui-monospace",
+        "Menlo",
+        "Monaco",
+        "Consolas",
+        '"Liberation Mono"',
+        '"Courier New"',
+        "monospace",
+      ],
     },
     extend: {
       colors: {
@@ -47,14 +70,23 @@ export default {
           teal: { DEFAULT: "#3b86a8", bg: "#c2deeb" }, // Mapped to Brand Mid
           pink: { DEFAULT: "#fbbf24", bg: "#fffbeb" }, // Mapped to Secondary
         },
-        // Semantic Status Colors
+        // Semantic Status Colors (Apple HIG compliant contrast)
         status: {
           success: "#2E8B1F", // Green
           warning: "#F57C00", // Orange
           error: "#ef4444", // Red (Standard)
           info: "#0E3646", // Brand
-          pending: "#6b7280", // Gray
+          pending: "#64748b", // Slate 500
         },
+      },
+      borderRadius: {
+        "apple-xs": "6px",
+        "apple-sm": "8px",
+        "apple-md": "10px",
+        "apple-lg": "12px",
+        "apple-xl": "16px",
+        "apple-2xl": "20px",
+        "apple-3xl": "24px",
       },
       boxShadow: {
         "erp-sm": "0 1px 2px 0 rgba(15, 23, 42, 0.05)",
@@ -64,9 +96,17 @@ export default {
         "erp-lg":
           "0 20px 25px -5px rgba(15, 23, 42, 0.1), 0 10px 10px -5px rgba(15, 23, 42, 0.04)",
         glass: "0 8px 32px 0 rgba(31, 38, 135, 0.37)",
+
+        // Apple Ambient Occlusion + Key Light Shadows
+        "apple-xs": "0 1px 2px 0 rgba(0, 0, 0, 0.04)",
+        "apple-sm": "0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.05)",
+        "apple-md": "0 4px 6px -1px rgba(0, 0, 0, 0.06), 0 2px 4px -2px rgba(0, 0, 0, 0.04)",
+        "apple-lg": "0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -4px rgba(0, 0, 0, 0.04)",
+        "apple-xl": "0 20px 25px -5px rgba(0, 0, 0, 0.10), 0 8px 10px -6px rgba(0, 0, 0, 0.05)",
+        "apple-dock": "0 -4px 20px -2px rgba(15, 23, 42, 0.08), 0 4px 6px -2px rgba(15, 23, 42, 0.04)",
       },
       fontSize: {
-        base: ["0.875rem", { lineHeight: "1.25rem" }], // 14px default base font size matching Item Setup form
+        base: ["0.875rem", { lineHeight: "1.25rem" }], // 14px default base font size
       },
     },
   },
