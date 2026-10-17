@@ -15,7 +15,8 @@ import {
   CheckCircle2,
   FlaskConical,
   X,
-  Search
+  Search,
+  RefreshCw
 } from "lucide-react";
 import { api } from "../../../../api/client.js";
 import { toast } from "react-toastify";
@@ -25,6 +26,7 @@ export default function QualityControlPage() {
   const [projects, setProjects] = useState([]);
   const [selectedProjectId, setSelectedProjectId] = useState("");
   const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
 
   // Tab data
   const [inspections, setInspections] = useState([]);
@@ -166,55 +168,71 @@ export default function QualityControlPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="card">
-        <div className="card-header bg-brand text-white rounded-t-lg flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+      {/* Canonical List Page Header */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <Link to="/project-management" className="btn btn-secondary inline-flex items-center gap-1.5">
+            <ArrowLeft size={16} /> Back
+          </Link>
           <div>
-            <div className="flex items-center gap-2">
-              <Link to="/project-management" className="text-white/80 hover:text-white">
-                <ArrowLeft size={18} />
-              </Link>
-              <h1 className="text-2xl font-bold flex items-center gap-2">
-                <ShieldCheck size={24} /> Quality Assurance & Control (QA/QC)
-              </h1>
-            </div>
-            <p className="text-sm mt-1 opacity-80">
+            <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+              <ShieldCheck size={24} className="text-brand-900 dark:text-brand-400" /> Quality Assurance & Control (QA/QC)
+            </h1>
+            <p className="text-slate-500 text-sm mt-0.5">
               Inspection requests (RFI/IR), Non-Conformance Reports (NCR), Snag lists, and Material testing
             </p>
           </div>
-          <div className="flex items-center gap-3">
-            <select
-              className="bg-white/10 text-white border border-white/20 rounded-lg px-3 py-1.5 text-sm outline-none font-medium"
-              value={selectedProjectId}
-              onChange={e => setSelectedProjectId(e.target.value)}
-            >
-              {projects.map(p => (
-                <option key={p.id} value={p.id} className="text-slate-900">
-                  {p.project_code} - {p.project_name}
-                </option>
-              ))}
-            </select>
-            {activeTab === "inspections" && (
-              <button onClick={() => setShowIRModal(true)} className="btn-success flex items-center gap-1 text-xs font-bold px-3 py-1.5 rounded-lg shadow-sm">
-                <Plus size={16} /> Schedule Inspection
-              </button>
-            )}
-            {activeTab === "ncrs" && (
-              <button onClick={() => setShowNCRModal(true)} className="btn-success flex items-center gap-1 text-xs font-bold px-3 py-1.5 rounded-lg shadow-sm">
-                <Plus size={16} /> Issue NCR
-              </button>
-            )}
-            {activeTab === "snag" && (
-              <button onClick={() => setShowSnagModal(true)} className="btn-success flex items-center gap-1 text-xs font-bold px-3 py-1.5 rounded-lg shadow-sm">
-                <Plus size={16} /> Add Snag
-              </button>
-            )}
-            {activeTab === "tests" && (
-              <button onClick={() => setShowTestModal(true)} className="btn-success flex items-center gap-1 text-xs font-bold px-3 py-1.5 rounded-lg shadow-sm">
-                <Plus size={16} /> Log Material Test
-              </button>
-            )}
+        </div>
+
+        <div className="flex flex-wrap items-center gap-3">
+          <select
+            className="input text-sm py-1.5 h-auto min-w-[180px]"
+            value={selectedProjectId}
+            onChange={e => setSelectedProjectId(e.target.value)}
+          >
+            {projects.map(p => (
+              <option key={p.id} value={p.id}>
+                {p.project_code} - {p.project_name}
+              </option>
+            ))}
+          </select>
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+            <input
+              type="text"
+              placeholder="Search QA/QC..."
+              className="input pl-9 pr-3 py-1.5 text-sm h-auto w-48"
+              value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
+            />
           </div>
+          <button
+            onClick={fetchQAQCData}
+            className="btn btn-secondary p-2"
+            title="Refresh"
+          >
+            <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
+          </button>
+          {activeTab === "inspections" && (
+            <button onClick={() => setShowIRModal(true)} className="btn btn-primary inline-flex items-center gap-2">
+              <Plus size={16} /> Schedule Inspection
+            </button>
+          )}
+          {activeTab === "ncrs" && (
+            <button onClick={() => setShowNCRModal(true)} className="btn btn-primary inline-flex items-center gap-2">
+              <Plus size={16} /> Issue NCR
+            </button>
+          )}
+          {activeTab === "snag" && (
+            <button onClick={() => setShowSnagModal(true)} className="btn btn-primary inline-flex items-center gap-2">
+              <Plus size={16} /> Add Snag
+            </button>
+          )}
+          {activeTab === "tests" && (
+            <button onClick={() => setShowTestModal(true)} className="btn btn-primary inline-flex items-center gap-2">
+              <Plus size={16} /> Log Material Test
+            </button>
+          )}
         </div>
       </div>
 

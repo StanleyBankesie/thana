@@ -68,13 +68,15 @@ export default function DowntimeAnalysisReport() {
   return (
     <div className="p-8 max-w-7xl mx-auto space-y-10 animate-in fade-in duration-700">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-        <div className="flex items-center gap-6">
-          <Link to="/maintenance/reports" className="p-3 bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 hover:bg-slate-50 transition-all text-slate-500">
-            <ArrowLeft size={20} />
+        <div className="flex items-center gap-3">
+          <Link to="/maintenance/reports" className="btn btn-secondary inline-flex items-center gap-1.5">
+            <ArrowLeft size={16} /> Back
           </Link>
           <div>
-            <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">Downtime Analysis</h1>
-            <p className="text-slate-500 font-medium italic">Root cause tracking and reliability metrics</p>
+            <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+              <ZapOff className="w-6 h-6 text-rose-600" /> Downtime Analysis
+            </h1>
+            <p className="text-slate-500 text-sm mt-0.5">Root cause tracking and reliability metrics</p>
           </div>
         </div>
         <div className="flex items-center gap-3 bg-white dark:bg-slate-800 p-2 rounded-[2rem] shadow-sm border border-slate-100 dark:border-slate-700">

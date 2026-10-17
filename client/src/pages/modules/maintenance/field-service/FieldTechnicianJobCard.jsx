@@ -182,21 +182,21 @@ export default function FieldTechnicianJobCard() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="bg-white dark:bg-slate-800 p-5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div className="flex items-center gap-4">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div className="flex items-center gap-3">
           <Link
             to="/maintenance?section=Facilities Management"
-            className="btn btn-secondary p-2.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 transition"
+            className="btn btn-secondary inline-flex items-center gap-1.5"
             title="Back to Facilities Management"
           >
-            <ArrowLeft size={20} />
+            <ArrowLeft size={16} /> Back
           </Link>
           <div>
-            <h1 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
+            <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
               <Wrench className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
               Field Service Technician Workspace
             </h1>
-            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+            <p className="text-slate-500 text-sm mt-0.5">
               Mobile-optimized job execution: dispatch stages, safety acknowledgment, digital checklists, and client sign-off.
             </p>
           </div>
@@ -655,14 +655,14 @@ export default function FieldTechnicianJobCard() {
                 <button
                   type="button"
                   onClick={() => setShowSignoffModal(false)}
-                  className="btn-secondary text-xs px-3 py-2"
+                  className="btn btn-secondary text-xs px-3 py-2"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={completing}
-                  className="btn-primary text-xs px-4 py-2 font-medium"
+                  className="btn btn-primary text-xs px-4 py-2 font-medium"
                 >
                   {completing ? "Submitting..." : "Confirm Sign-off & Close Job"}
                 </button>

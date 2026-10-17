@@ -127,43 +127,47 @@ export default function DailySiteReportForm() {
 
   return (
     <div className="space-y-6 max-w-6xl mx-auto pb-12">
-      {/* Header */}
-      <div className="card">
-        <div className="card-header bg-brand text-white rounded-t-lg flex justify-between items-center">
-          <div className="flex items-center gap-3">
-            <Link to="/project-management/daily-reports" className="text-white/80 hover:text-white">
-              <ArrowLeft size={18} />
-            </Link>
-            <div>
-              <h1 className="text-2xl font-bold flex items-center gap-2">
-                <BookOpen size={24} /> {isEdit ? `Daily Site Diary: ${form.report_number}` : "New Daily Site Diary Entry"}
-              </h1>
-              <p className="text-xs opacity-80">Official construction site daily record and measurements</p>
-            </div>
+      {/* Canonical Form Page Header */}
+      <div>
+        <Link to="/project-management/daily-reports" className="btn btn-secondary inline-flex items-center gap-1.5 mb-3">
+          <ArrowLeft size={16} /> Back to Daily Reports
+        </Link>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+              <BookOpen size={24} className="text-brand-900 dark:text-brand-400" />
+              {isEdit ? `Daily Site Diary: ${form.report_number}` : "New Daily Site Diary Entry"}
+            </h1>
+            <p className="text-slate-500 text-sm mt-0.5">Official construction site daily record and measurements</p>
           </div>
-          <button
-            onClick={handleSubmit}
-            disabled={saving}
-            className="btn-success flex items-center gap-1.5 text-xs font-bold px-4 py-2 rounded-lg shadow-sm"
-          >
-            <Save size={16} /> {saving ? "Saving..." : "Save Diary"}
-          </button>
+          <div className="flex items-center gap-3">
+            <Link to="/project-management/daily-reports" className="btn btn-secondary">
+              Cancel
+            </Link>
+            <button
+              onClick={handleSubmit}
+              disabled={saving}
+              className="btn btn-primary inline-flex items-center gap-2"
+            >
+              <Save size={16} /> {saving ? "Saving..." : "Save Diary"}
+            </button>
+          </div>
         </div>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Basic Site & Weather Metadata */}
         <div className="card p-6 space-y-4">
-          <div className="flex items-center gap-2 text-brand-600 border-b pb-2">
+          <div className="flex items-center gap-2 text-brand-900 dark:text-brand-400 border-b border-slate-100 dark:border-slate-800 pb-2">
             <CloudSun size={18} />
             <h2 className="font-bold text-xs uppercase tracking-wider">Site Conditions & Weather</h2>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-xs">
             <div className="space-y-1">
-              <label className="font-bold text-slate-500 uppercase">Project</label>
+              <label className="label text-xs uppercase font-bold text-slate-500 dark:text-slate-400">Project</label>
               <select
-                className="w-full px-3 py-2 border rounded-lg bg-slate-50 dark:bg-slate-900"
+                className="input w-full"
                 value={form.project_id}
                 onChange={e => setForm({ ...form, project_id: e.target.value })}
                 disabled={isEdit}
@@ -175,20 +179,20 @@ export default function DailySiteReportForm() {
             </div>
 
             <div className="space-y-1">
-              <label className="font-bold text-slate-500 uppercase">Report Date</label>
+              <label className="label text-xs uppercase font-bold text-slate-500 dark:text-slate-400">Report Date</label>
               <input
                 type="date"
                 required
-                className="w-full px-3 py-2 border rounded-lg bg-slate-50 dark:bg-slate-900 font-mono"
+                className="input w-full font-mono"
                 value={form.report_date}
                 onChange={e => setForm({ ...form, report_date: e.target.value })}
               />
             </div>
 
             <div className="space-y-1">
-              <label className="font-bold text-slate-500 uppercase">Weather (Morning)</label>
+              <label className="label text-xs uppercase font-bold text-slate-500 dark:text-slate-400">Weather (Morning)</label>
               <select
-                className="w-full px-3 py-2 border rounded-lg bg-slate-50 dark:bg-slate-900"
+                className="input w-full"
                 value={form.weather_morning}
                 onChange={e => setForm({ ...form, weather_morning: e.target.value })}
               >
@@ -200,9 +204,9 @@ export default function DailySiteReportForm() {
             </div>
 
             <div className="space-y-1">
-              <label className="font-bold text-slate-500 uppercase">Site Condition</label>
+              <label className="label text-xs uppercase font-bold text-slate-500 dark:text-slate-400">Site Condition</label>
               <select
-                className="w-full px-3 py-2 border rounded-lg bg-slate-50 dark:bg-slate-900"
+                className="input w-full"
                 value={form.site_condition}
                 onChange={e => setForm({ ...form, site_condition: e.target.value })}
               >
@@ -433,30 +437,44 @@ export default function DailySiteReportForm() {
 
         {/* Safety & Remarks */}
         <div className="card p-6 space-y-4">
-          <div className="flex items-center gap-2 text-brand-600 border-b pb-2">
+          <div className="flex items-center gap-2 text-brand-900 dark:text-brand-400 border-b border-slate-100 dark:border-slate-800 pb-2">
             <ShieldAlert size={18} />
             <h2 className="font-bold text-xs uppercase tracking-wider">HSE & Remarks</h2>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
             <div className="space-y-1">
-              <label className="font-bold text-slate-500 uppercase">HSE Observations & Incidents</label>
+              <label className="label text-xs uppercase font-bold text-slate-500 dark:text-slate-400">HSE Observations & Incidents</label>
               <textarea
-                className="w-full p-3 border rounded-xl bg-slate-50 dark:bg-slate-900 min-h-[90px]"
+                className="input w-full min-h-[90px]"
                 placeholder="Toolbox talks conducted, near misses, PPE compliance..."
                 value={form.safety_observations}
                 onChange={e => setForm({ ...form, safety_observations: e.target.value })}
               />
             </div>
             <div className="space-y-1">
-              <label className="font-bold text-slate-500 uppercase">Site Engineer Remarks</label>
+              <label className="label text-xs uppercase font-bold text-slate-500 dark:text-slate-400">Site Engineer Remarks</label>
               <textarea
-                className="w-full p-3 border rounded-xl bg-slate-50 dark:bg-slate-900 min-h-[90px]"
+                className="input w-full min-h-[90px]"
                 placeholder="Inspections held with consultant, delayed deliveries, instructions received..."
                 value={form.general_remarks}
                 onChange={e => setForm({ ...form, general_remarks: e.target.value })}
               />
             </div>
           </div>
+        </div>
+
+        {/* Canonical Form Footer */}
+        <div className="flex justify-end items-center gap-3 pt-4 border-t border-slate-200 dark:border-slate-700">
+          <Link to="/project-management/daily-reports" className="btn btn-secondary">
+            Cancel
+          </Link>
+          <button
+            type="submit"
+            disabled={saving}
+            className="btn btn-primary inline-flex items-center gap-2"
+          >
+            <Save size={16} /> {saving ? "Saving..." : "Save Diary"}
+          </button>
         </div>
       </form>
     </div>

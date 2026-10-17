@@ -15,7 +15,9 @@ import {
   CheckCircle,
   Clock,
   X,
-  HeartPulse
+  HeartPulse,
+  Search,
+  RefreshCw
 } from "lucide-react";
 import { api } from "../../../../api/client.js";
 import { toast } from "react-toastify";
@@ -26,6 +28,7 @@ export default function SafetyManagementPage() {
   const [incidents, setIncidents] = useState([]);
   const [talks, setTalks] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
 
   // Modals
   const [showIncidentModal, setShowIncidentModal] = useState(false);
@@ -119,73 +122,110 @@ export default function SafetyManagementPage() {
   const lostTimeCount = incidents.filter(i => i.incident_type === "LOST_TIME").length;
   const totalDaysLost = incidents.reduce((a, c) => a + Number(c.days_lost || 0), 0);
 
+  const filteredIncidents = incidents.filter(i => {
+    if (!searchTerm.trim()) return true;
+    const q = searchTerm.toLowerCase();
+    return (
+      i.description?.toLowerCase().includes(q) ||
+      i.location?.toLowerCase().includes(q) ||
+      i.incident_type?.toLowerCase().includes(q) ||
+      i.injured_person_name?.toLowerCase().includes(q)
+    );
+  });
+
+  const filteredTalks = talks.filter(t => {
+    if (!searchTerm.trim()) return true;
+    const q = searchTerm.toLowerCase();
+    return (
+      t.topic?.toLowerCase().includes(q) ||
+      t.conductor_name?.toLowerCase().includes(q) ||
+      t.notes?.toLowerCase().includes(q)
+    );
+  });
+
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="card">
-        <div className="card-header bg-brand text-white rounded-t-lg flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+      {/* Canonical List Page Header */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <Link to="/project-management" className="btn btn-secondary inline-flex items-center gap-1.5">
+            <ArrowLeft size={16} /> Back
+          </Link>
           <div>
-            <div className="flex items-center gap-2">
-              <Link to="/project-management" className="text-white/80 hover:text-white">
-                <ArrowLeft size={18} />
-              </Link>
-              <h1 className="text-2xl font-bold flex items-center gap-2">
-                <ShieldAlert size={24} /> Health, Safety & Environment (HSE)
-              </h1>
-            </div>
-            <p className="text-sm mt-1 opacity-80">
+            <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+              <ShieldAlert size={24} className="text-brand-900 dark:text-brand-400" /> Health, Safety & Environment (HSE)
+            </h1>
+            <p className="text-slate-500 text-sm mt-0.5">
               Site safety compliance, accident/near-miss investigation, and toolbox safety briefings
             </p>
           </div>
-          <div className="flex items-center gap-3">
-            <select
-              className="bg-white/10 text-white border border-white/20 rounded-lg px-3 py-1.5 text-sm outline-none font-medium"
-              value={selectedProjectId}
-              onChange={e => setSelectedProjectId(e.target.value)}
-            >
-              {projects.map(p => (
-                <option key={p.id} value={p.id} className="text-slate-900">
-                  {p.project_code} - {p.project_name}
-                </option>
-              ))}
-            </select>
-            <button
-              onClick={() => setShowIncidentModal(true)}
-              className="btn-danger flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg shadow-sm"
-            >
-              <AlertTriangle size={16} /> Report Incident
-            </button>
-            <button
-              onClick={() => setShowTalkModal(true)}
-              className="btn-success flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg shadow-sm"
-            >
-              <Megaphone size={16} /> Log Toolbox Talk
-            </button>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-3">
+          <select
+            className="input text-sm py-1.5 h-auto min-w-[180px]"
+            value={selectedProjectId}
+            onChange={e => setSelectedProjectId(e.target.value)}
+          >
+            {projects.map(p => (
+              <option key={p.id} value={p.id}>
+                {p.project_code} - {p.project_name}
+              </option>
+            ))}
+          </select>
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+            <input
+              type="text"
+              placeholder="Search HSE records..."
+              className="input pl-9 pr-3 py-1.5 text-sm h-auto w-48"
+              value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
+            />
           </div>
+          <button
+            onClick={fetchHSEData}
+            className="btn btn-secondary p-2"
+            title="Refresh"
+          >
+            <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
+          </button>
+          <button
+            onClick={() => setShowTalkModal(true)}
+            className="btn btn-secondary inline-flex items-center gap-1.5"
+          >
+            <Megaphone size={16} /> Log Toolbox Talk
+          </button>
+          <button
+            onClick={() => setShowIncidentModal(true)}
+            className="btn btn-primary inline-flex items-center gap-1.5"
+          >
+            <AlertTriangle size={16} /> Report Incident
+          </button>
         </div>
       </div>
 
       {/* Safety Statistics */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
         <div className="card p-4 space-y-1">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Total Safety Incidents</span>
+          <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Total Safety Incidents</span>
           <p className="text-2xl font-bold font-mono text-slate-900 dark:text-white">{incidents.length}</p>
           <p className="text-[10px] text-slate-400">Total reported site events</p>
         </div>
         <div className="card p-4 space-y-1">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Lost Time Injuries (LTI)</span>
+          <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Lost Time Injuries (LTI)</span>
           <p className={`text-2xl font-bold font-mono ${lostTimeCount > 0 ? "text-rose-600" : "text-emerald-600"}`}>
             {lostTimeCount}
           </p>
           <p className="text-[10px] text-slate-400">Target zero goal</p>
         </div>
         <div className="card p-4 space-y-1">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Total Days Lost</span>
+          <span className="text-xs font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider">Total Days Lost</span>
           <p className="text-2xl font-bold font-mono text-amber-600">{totalDaysLost} Man-Days</p>
           <p className="text-[10px] text-slate-400">Workforce impact</p>
         </div>
         <div className="card p-4 space-y-1">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Toolbox Briefings Held</span>
+          <span className="text-xs font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider">Toolbox Briefings Held</span>
           <p className="text-2xl font-bold font-mono text-blue-600">{talks.length} Sessions</p>
           <p className="text-[10px] text-slate-400">Preventive safety talks</p>
         </div>
@@ -193,48 +233,48 @@ export default function SafetyManagementPage() {
 
       {/* Incidents Table */}
       <div className="card overflow-hidden">
-        <div className="p-4 bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700">
+        <div className="p-4 bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-700">
           <h2 className="font-bold text-sm uppercase tracking-wider text-slate-900 dark:text-white flex items-center gap-2">
-            <HeartPulse size={16} className="text-rose-600" /> Incident & Near Miss Register
+            <HeartPulse size={16} className="text-rose-600" /> Incident & Near Miss Register ({filteredIncidents.length})
           </h2>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
-            <thead className="bg-slate-100 dark:bg-slate-900 font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">
+          <table className="table">
+            <thead>
               <tr>
-                <th className="p-3">Date</th>
-                <th className="p-3">Classification</th>
-                <th className="p-3">Location</th>
-                <th className="p-3">Description of Incident</th>
-                <th className="p-3">Injured Person</th>
-                <th className="p-3 text-right">Days Lost</th>
-                <th className="p-3 text-center">Status</th>
+                <th>Date</th>
+                <th>Classification</th>
+                <th>Location</th>
+                <th>Description of Incident</th>
+                <th>Injured Person</th>
+                <th className="text-right">Days Lost</th>
+                <th className="text-center">Status</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-medium">
-              {incidents.length === 0 ? (
+            <tbody>
+              {filteredIncidents.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="p-8 text-center text-slate-400 italic">
                     Zero incidents recorded for this project. Excellent safety compliance!
                   </td>
                 </tr>
               ) : (
-                incidents.map(i => (
-                  <tr key={i.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/40">
-                    <td className="p-3 font-mono">{i.incident_date ? i.incident_date.split("T")[0] : "-"}</td>
-                    <td className="p-3">
-                      <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase ${
-                        i.incident_type === "LOST_TIME" ? "bg-rose-100 text-rose-700" : "bg-amber-100 text-amber-700"
+                filteredIncidents.map(i => (
+                  <tr key={i.id}>
+                    <td className="font-mono">{i.incident_date ? i.incident_date.split("T")[0] : "-"}</td>
+                    <td>
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold ${
+                        i.incident_type === "LOST_TIME" ? "bg-rose-50 text-rose-700 border border-rose-200 dark:bg-rose-900/30 dark:text-rose-400" : "bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-900/30 dark:text-amber-400"
                       }`}>
                         {i.incident_type}
                       </span>
                     </td>
-                    <td className="p-3">{i.location || "-"}</td>
-                    <td className="p-3 font-bold text-slate-900 dark:text-white">{i.description}</td>
-                    <td className="p-3">{i.injured_person_name || "-"}</td>
-                    <td className="p-3 text-right font-mono font-bold text-rose-600">{i.days_lost || 0}</td>
-                    <td className="p-3 text-center">
-                      <span className="px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-slate-100 dark:bg-slate-800">
+                    <td>{i.location || "-"}</td>
+                    <td className="font-bold text-slate-900 dark:text-white">{i.description}</td>
+                    <td>{i.injured_person_name || "-"}</td>
+                    <td className="text-right font-mono font-bold text-rose-600">{i.days_lost || 0}</td>
+                    <td className="text-center">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300">
                         {i.status}
                       </span>
                     </td>
@@ -248,35 +288,35 @@ export default function SafetyManagementPage() {
 
       {/* Toolbox Talks Register */}
       <div className="card overflow-hidden">
-        <div className="p-4 bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700">
+        <div className="p-4 bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-700">
           <h2 className="font-bold text-sm uppercase tracking-wider text-slate-900 dark:text-white flex items-center gap-2">
-            <Megaphone size={16} className="text-brand-600" /> Toolbox Talks Briefings
+            <Megaphone size={16} className="text-brand-900 dark:text-brand-400" /> Toolbox Talks Briefings ({filteredTalks.length})
           </h2>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
-            <thead className="bg-slate-100 dark:bg-slate-900 font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">
+          <table className="table">
+            <thead>
               <tr>
-                <th className="p-3">Date</th>
-                <th className="p-3">Safety Topic</th>
-                <th className="p-3">Briefing Conductor</th>
-                <th className="p-3 text-right">Workers Present</th>
-                <th className="p-3">Summary / Notes</th>
+                <th>Date</th>
+                <th>Safety Topic</th>
+                <th>Briefing Conductor</th>
+                <th className="text-right">Workers Present</th>
+                <th>Summary / Notes</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-medium">
-              {talks.length === 0 ? (
+            <tbody>
+              {filteredTalks.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="p-8 text-center text-slate-400 italic">No toolbox talks logged yet.</td>
                 </tr>
               ) : (
-                talks.map(t => (
+                filteredTalks.map(t => (
                   <tr key={t.id}>
-                    <td className="p-3 font-mono">{t.talk_date ? t.talk_date.split("T")[0] : "-"}</td>
-                    <td className="p-3 font-bold text-brand-600">{t.topic}</td>
-                    <td className="p-3">{t.conductor_name || "Safety Officer"}</td>
-                    <td className="p-3 text-right font-mono font-bold">{t.attendee_count} Operatives</td>
-                    <td className="p-3 text-slate-500">{t.notes || "-"}</td>
+                    <td className="font-mono">{t.talk_date ? t.talk_date.split("T")[0] : "-"}</td>
+                    <td className="font-bold text-brand-900 dark:text-brand-400">{t.topic}</td>
+                    <td>{t.conductor_name || "Safety Officer"}</td>
+                    <td className="text-right font-mono font-bold">{t.attendee_count} Operatives</td>
+                    <td className="text-slate-500">{t.notes || "-"}</td>
                   </tr>
                 ))
               )}

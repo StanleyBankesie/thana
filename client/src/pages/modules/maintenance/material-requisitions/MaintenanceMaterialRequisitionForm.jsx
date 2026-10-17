@@ -5,6 +5,7 @@
 
 import React, { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
+import { ArrowLeft } from "lucide-react";
 
 import { api } from "../../../../api/client";
 import { toast } from "react-toastify";
@@ -153,7 +154,9 @@ export default function MaintenanceMaterialRequisitionForm() {
               </p>
             </div>
             <div className="flex gap-2">
-              <button onClick={() => window.history.back()} className="btn-success">Back to List</button>
+              <Link to="/maintenance/material-requisitions" className="btn btn-secondary flex items-center gap-1.5">
+                <ArrowLeft size={16} /> Back to List
+              </Link>
             </div>
           </div>
         </div>

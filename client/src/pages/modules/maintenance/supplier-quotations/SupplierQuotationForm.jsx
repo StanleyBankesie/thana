@@ -5,6 +5,7 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
+import { ArrowLeft } from "lucide-react";
 
 import { api } from "api/client";
 import { useExchangeRate } from "../../../../hooks/useExchangeRate";
@@ -665,9 +666,9 @@ export default function SupplierQuotationForm() {
                 : "Record a new supplier quotation"}
             </p>
           </div>
-          <button onClick={() => window.history.back()} className="px-3 py-1.5 rounded bg-white text-brand hover:bg-slate-100 text-sm font-semibold">
-            ← Back to List
-          </button>
+          <Link to="/maintenance/supplier-quotations" className="px-3 py-1.5 rounded bg-white text-brand hover:bg-slate-100 text-sm font-semibold flex items-center gap-1.5">
+            <ArrowLeft size={16} /> Back to List
+          </Link>
         </div>
 
       <form onSubmit={handleSubmit}>

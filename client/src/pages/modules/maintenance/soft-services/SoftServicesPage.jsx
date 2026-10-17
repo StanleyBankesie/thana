@@ -138,32 +138,64 @@ export default function SoftServicesPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white dark:bg-slate-800 p-5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
-        <div className="flex items-center gap-4">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div className="flex items-center gap-3">
           <Link
             to="/maintenance?section=Inspections %26 Soft Services"
-            className="btn btn-secondary p-2.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 transition"
+            className="btn btn-secondary inline-flex items-center gap-1.5"
             title="Back to Inspections & Soft Services"
           >
-            <ArrowLeft size={20} />
+            <ArrowLeft size={16} /> Back
           </Link>
           <div>
-            <h1 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
+            <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
               <Sparkles className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
               Soft Facilities Services & Site Operations
             </h1>
-            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+            <p className="text-slate-500 text-sm mt-0.5">
               Track non-technical service lines: Janitorial hygiene audits, security patrol logs, pest management, and waste disposal.
             </p>
           </div>
         </div>
         <button
           onClick={() => setShowModal(true)}
-          className="btn-primary flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg"
+          className="btn btn-primary inline-flex items-center gap-2"
         >
           <Plus size={16} />
           Log {activeTab === "janitorial" ? "Hygiene Audit" : activeTab === "security" ? "Security Patrol" : activeTab === "pest" ? "Pest Treatment" : "Waste Manifest"}
         </button>
+      </div>
+
+      {/* KPI Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="card p-4 space-y-1">
+          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Janitorial Audits</p>
+          <div className="flex items-baseline justify-between">
+            <span className="text-2xl font-bold text-slate-900 dark:text-slate-100">{janitorialLogs.length}</span>
+            <span className="badge badge-sm badge-info">Cleaning</span>
+          </div>
+        </div>
+        <div className="card p-4 space-y-1">
+          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Security Rounds</p>
+          <div className="flex items-baseline justify-between">
+            <span className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{securityLogs.length}</span>
+            <span className="badge badge-sm badge-success">Patrols</span>
+          </div>
+        </div>
+        <div className="card p-4 space-y-1">
+          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Pest Treatments</p>
+          <div className="flex items-baseline justify-between">
+            <span className="text-2xl font-bold text-blue-600 dark:text-blue-400">{pestLogs.length}</span>
+            <span className="badge badge-sm badge-ghost">Treatments</span>
+          </div>
+        </div>
+        <div className="card p-4 space-y-1">
+          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Waste Manifests</p>
+          <div className="flex items-baseline justify-between">
+            <span className="text-2xl font-bold text-purple-600 dark:text-purple-400">{wasteLogs.length}</span>
+            <span className="badge badge-sm badge-primary">Collections</span>
+          </div>
+        </div>
       </div>
 
       {/* Tabs */}
@@ -224,7 +256,7 @@ export default function SoftServicesPage() {
         </div>
       ) : activeTab === "janitorial" ? (
         <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden shadow-sm">
-          <table className="w-full text-left text-sm">
+          <table className="table w-full">
             <thead className="bg-slate-50 dark:bg-slate-900/50 text-slate-500 text-xs uppercase tracking-wider border-b border-slate-200 dark:border-slate-700">
               <tr>
                 <th className="py-3 px-4">Date / Shift</th>
@@ -268,7 +300,7 @@ export default function SoftServicesPage() {
         </div>
       ) : activeTab === "security" ? (
         <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden shadow-sm">
-          <table className="w-full text-left text-sm">
+          <table className="table w-full">
             <thead className="bg-slate-50 dark:bg-slate-900/50 text-slate-500 text-xs uppercase tracking-wider border-b border-slate-200 dark:border-slate-700">
               <tr>
                 <th className="py-3 px-4">Patrol Time</th>
@@ -301,7 +333,7 @@ export default function SoftServicesPage() {
         </div>
       ) : activeTab === "pest" ? (
         <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden shadow-sm">
-          <table className="w-full text-left text-sm">
+          <table className="table w-full">
             <thead className="bg-slate-50 dark:bg-slate-900/50 text-slate-500 text-xs uppercase tracking-wider border-b border-slate-200 dark:border-slate-700">
               <tr>
                 <th className="py-3 px-4">Treatment Date</th>
@@ -334,7 +366,7 @@ export default function SoftServicesPage() {
         </div>
       ) : (
         <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden shadow-sm">
-          <table className="w-full text-left text-sm">
+          <table className="table w-full">
             <thead className="bg-slate-50 dark:bg-slate-900/50 text-slate-500 text-xs uppercase tracking-wider border-b border-slate-200 dark:border-slate-700">
               <tr>
                 <th className="py-3 px-4">Collection Date</th>
@@ -544,10 +576,10 @@ export default function SoftServicesPage() {
               )}
 
               <div className="flex justify-end gap-3 pt-3 border-t border-slate-200 dark:border-slate-700">
-                <button type="button" onClick={() => setShowModal(false)} className="btn-secondary text-xs px-3 py-2">
+                <button type="button" onClick={() => setShowModal(false)} className="btn btn-secondary text-xs px-3 py-2">
                   Cancel
                 </button>
-                <button type="submit" disabled={submitting} className="btn-primary text-xs px-4 py-2 font-medium">
+                <button type="submit" disabled={submitting} className="btn btn-primary text-xs px-4 py-2 font-medium">
                   {submitting ? "Saving..." : "Save Log Entry"}
                 </button>
               </div>

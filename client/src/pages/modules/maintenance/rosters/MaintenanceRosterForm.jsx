@@ -17,6 +17,7 @@ import {
   ClipboardList,
   AlertCircle,
   ArrowRight,
+  ArrowLeft,
   X,
 } from "lucide-react";
 import { usePermission } from "@/auth/PermissionContext.jsx";
@@ -273,9 +274,9 @@ export default function MaintenanceRosterForm() {
     <div className="space-y-5">
       {/* ── Page header ── */}
       <div className="flex items-center gap-3">
-        <button onClick={() => window.history.back()} className="btn-secondary">
-          ← Back
-        </button>
+        <Link to="/maintenance/rosters" className="btn btn-secondary flex items-center gap-1.5">
+          <ArrowLeft size={16} /> Back
+        </Link>
         <div>
           <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
             {isEdit ? (isView ? "View" : "Edit") : "New"} Maintenance Roster

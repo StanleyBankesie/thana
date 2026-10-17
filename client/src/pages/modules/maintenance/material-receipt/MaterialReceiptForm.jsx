@@ -5,6 +5,7 @@
 
 import React, { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
+import { ArrowLeft } from "lucide-react";
 import { toast } from "react-toastify";
 import { api } from "api/client";
 import { usePermission } from "@/auth/PermissionContext.jsx";
@@ -216,7 +217,9 @@ export default function MaterialReceiptForm() {
               </h1>
               <p className="text-sm mt-1">Receive materials issued from Inventory</p>
             </div>
-            <button onClick={() => window.history.back()} className="btn-success">Back to List</button>
+            <Link to="/maintenance/material-receipts" className="btn btn-secondary flex items-center gap-1.5">
+              <ArrowLeft size={16} /> Back to List
+            </Link>
           </div>
         </div>
         <div className="card-body">

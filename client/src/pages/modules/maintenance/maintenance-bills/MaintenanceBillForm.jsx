@@ -5,6 +5,7 @@
 
 import React, { useState, useEffect, useMemo } from "react";
 import { Link, useNavigate, useParams, useLocation } from "react-router-dom";
+import { ArrowLeft } from "lucide-react";
 import { toast } from "react-toastify";
 import { api } from "../../../../api/client";
 import { useExchangeRate } from "@/hooks/useExchangeRate";
@@ -259,7 +260,9 @@ export default function MaintenanceBillForm() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <button onClick={() => window.history.back()} className="btn-secondary">← Back</button>
+          <Link to="/maintenance/maintenance-bills" className="btn btn-secondary flex items-center gap-1.5">
+            <ArrowLeft size={16} /> Back
+          </Link>
           <div>
             <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">{isEdit ? "Edit" : "New"} Maintenance Bill</h1>
             <p className="text-sm mt-1">Raise a payment bill for completed maintenance work</p>

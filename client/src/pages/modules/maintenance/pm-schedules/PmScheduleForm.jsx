@@ -5,6 +5,7 @@
 
 import React, { useEffect, useState } from "react";
 import { Link, useNavigate, useParams, useLocation } from "react-router-dom";
+import { ArrowLeft } from "lucide-react";
 
 /**
  *  component
@@ -58,10 +59,9 @@ export default function PmScheduleForm() {
   return (
     <div className="space-y-6">
       <div>
-        <button onClick={() => window.history.back()} className="btn btn-secondary mb-4"
-        >
-          ← Back to PM Schedules
-        </button>
+        <Link to="/maintenance/pm-schedules" className="btn btn-secondary inline-flex items-center gap-1.5 mb-4">
+          <ArrowLeft size={16} /> Back to PM Schedules
+        </Link>
         <h1 className="text-2xl font-bold text-brand-900 dark:text-brand-300">
           {readOnly
             ? "View Schedule"

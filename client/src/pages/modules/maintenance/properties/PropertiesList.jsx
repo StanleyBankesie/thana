@@ -134,35 +134,71 @@ export default function PropertiesList() {
     { value: "OTHER", label: "Other" }
   ];
 
+  const totalProps = properties.length;
+  const activeProps = properties.filter((p) => p.status === "ACTIVE").length;
+  const totalBuildings = properties.reduce((acc, p) => acc + (parseInt(p.building_count) || 0), 0);
+  const totalAssets = properties.reduce((acc, p) => acc + (parseInt(p.asset_count) || 0), 0);
+
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white dark:bg-slate-800 p-5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
-        <div className="flex items-center gap-4">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div className="flex items-center gap-3">
           <Link
             to="/maintenance?section=Facilities Management"
-            className="btn btn-secondary p-2.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 transition"
+            className="btn btn-secondary inline-flex items-center gap-1.5"
             title="Back to Facilities Management"
           >
-            <ArrowLeft size={20} />
+            <ArrowLeft size={16} /> Back
           </Link>
           <div>
-            <h1 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
+            <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
               <Building2 className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
               Client Properties & Site Register
             </h1>
-            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+            <p className="text-slate-500 text-sm mt-0.5">
               Manage client facility portfolios, buildings, floors/zones, spaces, and equipment locations.
             </p>
           </div>
         </div>
         <button
           onClick={() => setShowCreateModal(true)}
-          className="btn-primary flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg"
+          className="btn btn-primary inline-flex items-center gap-2"
         >
-          <Plus size={16} />
-          Register Property
+          <Plus size={16} /> Register Property
         </button>
+      </div>
+
+      {/* KPI Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="card p-4 space-y-1">
+          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Properties Managed</p>
+          <div className="flex items-baseline justify-between">
+            <span className="text-2xl font-bold text-slate-900 dark:text-slate-100">{totalProps}</span>
+            <span className="badge badge-sm badge-info">Sites</span>
+          </div>
+        </div>
+        <div className="card p-4 space-y-1">
+          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Active Portfolios</p>
+          <div className="flex items-baseline justify-between">
+            <span className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{activeProps}</span>
+            <span className="badge badge-sm badge-success">Operational</span>
+          </div>
+        </div>
+        <div className="card p-4 space-y-1">
+          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total Buildings</p>
+          <div className="flex items-baseline justify-between">
+            <span className="text-2xl font-bold text-blue-600 dark:text-blue-400">{totalBuildings}</span>
+            <span className="badge badge-sm badge-ghost">Structures</span>
+          </div>
+        </div>
+        <div className="card p-4 space-y-1">
+          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Assets & Systems</p>
+          <div className="flex items-baseline justify-between">
+            <span className="text-2xl font-bold text-purple-600 dark:text-purple-400">{totalAssets}</span>
+            <span className="badge badge-sm badge-primary">Tracked</span>
+          </div>
+        </div>
       </div>
 
       {/* Filter and Search Bar */}
@@ -300,7 +336,7 @@ export default function PropertiesList() {
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => handleOpenHierarchy(prop)}
-                    className="btn-outline text-xs px-3 py-1.5 flex items-center gap-1.5 text-slate-700 dark:text-slate-200"
+                    className="btn btn-secondary text-xs px-3 py-1.5 flex items-center gap-1.5"
                   >
                     <Layers size={13} />
                     View Hierarchy
@@ -536,14 +572,14 @@ export default function PropertiesList() {
                 <button
                   type="button"
                   onClick={() => setShowCreateModal(false)}
-                  className="btn-secondary text-sm px-4 py-2"
+                  className="btn btn-secondary text-sm px-4 py-2"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={saving}
-                  className="btn-primary text-sm px-5 py-2 font-medium"
+                  className="btn btn-primary text-sm px-5 py-2 font-medium"
                 >
                   {saving ? "Saving..." : "Save Property"}
                 </button>

@@ -14,7 +14,9 @@ import {
   X,
   FileSpreadsheet,
   CheckCircle,
-  Briefcase
+  Briefcase,
+  Search,
+  RefreshCw
 } from "lucide-react";
 import { api } from "../../../../api/client.js";
 import { toast } from "react-toastify";
@@ -26,6 +28,7 @@ export default function SubcontractorManager() {
   const [subcontracts, setSubcontracts] = useState([]);
   const [valuations, setValuations] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
 
   // Modals
   const [showContractModal, setShowContractModal] = useState(false);
@@ -143,96 +146,153 @@ export default function SubcontractorManager() {
   const advanceRecovered = (currentWork * Number(selectedContract?.advance_recovery_percent || 10)) / 100;
   const netPayable = Math.max(0, currentWork - retentionDeducted - advanceRecovered);
 
+  const filteredSubcontracts = subcontracts.filter(sc => {
+    if (!searchTerm.trim()) return true;
+    const q = searchTerm.toLowerCase();
+    return (
+      sc.subcontract_number?.toLowerCase().includes(q) ||
+      sc.supplier_name?.toLowerCase().includes(q) ||
+      sc.trade?.toLowerCase().includes(q) ||
+      sc.status?.toLowerCase().includes(q)
+    );
+  });
+
+  const totalContractValue = subcontracts.reduce((a, c) => a + Number(c.contract_sum || 0), 0);
+  const activeCount = subcontracts.filter(c => c.status === "ACTIVE").length;
+  const totalValuationsCertified = valuations.reduce((a, c) => a + Number(c.net_certified_amount || 0), 0);
+
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="card">
-        <div className="card-header bg-brand text-white rounded-t-lg flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+      {/* Canonical List Page Header */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <Link to="/project-management" className="btn btn-secondary inline-flex items-center gap-1.5">
+            <ArrowLeft size={16} /> Back
+          </Link>
           <div>
-            <div className="flex items-center gap-2">
-              <Link to="/project-management" className="text-white/80 hover:text-white">
-                <ArrowLeft size={18} />
-              </Link>
-              <h1 className="text-2xl font-bold flex items-center gap-2">
-                <Users size={24} /> Subcontractor Management & Valuations (IPC)
-              </h1>
-            </div>
-            <p className="text-sm mt-1 opacity-80">
+            <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+              <Users size={24} className="text-brand-900 dark:text-brand-400" /> Subcontractor Management & Valuations (IPC)
+            </h1>
+            <p className="text-slate-500 text-sm mt-0.5">
               Trade agreements, certified interim valuations, retention withholding, and advance recovery
             </p>
           </div>
-          <div className="flex items-center gap-3">
-            <select
-              className="bg-white/10 text-white border border-white/20 rounded-lg px-3 py-1.5 text-sm outline-none font-medium"
-              value={selectedProjectId}
-              onChange={e => setSelectedProjectId(e.target.value)}
-            >
-              {projects.map(p => (
-                <option key={p.id} value={p.id} className="text-slate-900">
-                  {p.project_code} - {p.project_name}
-                </option>
-              ))}
-            </select>
-            <button
-              onClick={() => setShowContractModal(true)}
-              className="btn-success flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg shadow-sm"
-            >
-              <Plus size={16} /> New Subcontract
-            </button>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-3">
+          <select
+            className="input text-sm py-1.5 h-auto min-w-[180px]"
+            value={selectedProjectId}
+            onChange={e => setSelectedProjectId(e.target.value)}
+          >
+            {projects.map(p => (
+              <option key={p.id} value={p.id}>
+                {p.project_code} - {p.project_name}
+              </option>
+            ))}
+          </select>
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+            <input
+              type="text"
+              placeholder="Search subcontracts..."
+              className="input pl-9 pr-3 py-1.5 text-sm h-auto w-48"
+              value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
+            />
           </div>
+          <button
+            onClick={fetchSubcontracts}
+            className="btn btn-secondary p-2"
+            title="Refresh"
+          >
+            <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
+          </button>
+          <button
+            onClick={() => setShowContractModal(true)}
+            className="btn btn-primary inline-flex items-center gap-2"
+          >
+            <Plus size={16} /> New Subcontract
+          </button>
+        </div>
+      </div>
+
+      {/* KPI Summary Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="card p-4 space-y-1">
+          <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Total Subcontracts</p>
+          <p className="text-2xl font-bold text-slate-900 dark:text-white">{subcontracts.length}</p>
+        </div>
+        <div className="card p-4 space-y-1">
+          <p className="text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">Active Agreements</p>
+          <p className="text-2xl font-bold text-slate-900 dark:text-white">{activeCount}</p>
+        </div>
+        <div className="card p-4 space-y-1">
+          <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Total Committed Value</p>
+          <p className="text-xl font-bold font-mono text-slate-900 dark:text-white">
+            GHS {totalContractValue.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+          </p>
+        </div>
+        <div className="card p-4 space-y-1">
+          <p className="text-xs font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider">Total Certified IPCs</p>
+          <p className="text-xl font-bold font-mono text-blue-600 dark:text-blue-400">
+            GHS {totalValuationsCertified.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+          </p>
         </div>
       </div>
 
       {/* Subcontracts Table */}
       <div className="card overflow-hidden">
-        <div className="p-4 bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center">
+        <div className="p-4 bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center">
           <h2 className="font-bold text-sm uppercase tracking-wider text-slate-900 dark:text-white">
-            Subcontract Agreements ({subcontracts.length})
+            Subcontract Agreements ({filteredSubcontracts.length})
           </h2>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
-            <thead className="bg-slate-100 dark:bg-slate-900 text-slate-600 dark:text-slate-300 uppercase tracking-wider font-bold border-b">
+          <table className="table">
+            <thead>
               <tr>
-                <th className="p-3">Contract #</th>
-                <th className="p-3">Subcontractor</th>
-                <th className="p-3">Trade</th>
-                <th className="p-3 text-right">Contract Sum (GHS)</th>
-                <th className="p-3 text-center">Retention %</th>
-                <th className="p-3 text-center">Advance Rec %</th>
-                <th className="p-3 text-center">Status</th>
-                <th className="p-3 text-center">Actions</th>
+                <th>Contract #</th>
+                <th>Subcontractor</th>
+                <th>Trade</th>
+                <th className="text-right">Contract Sum (GHS)</th>
+                <th className="text-center">Retention %</th>
+                <th className="text-center">Advance Rec %</th>
+                <th className="text-center">Status</th>
+                <th className="text-center">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-medium">
-              {subcontracts.length === 0 ? (
+            <tbody>
+              {filteredSubcontracts.length === 0 ? (
                 <tr>
                   <td colSpan={8} className="p-8 text-center text-slate-400 italic">
-                    No subcontracts registered for this project yet. Click "New Subcontract" to add one.
+                    {subcontracts.length === 0
+                      ? 'No subcontracts registered for this project yet. Click "New Subcontract" to add one.'
+                      : 'No subcontracts match your search criteria.'}
                   </td>
                 </tr>
               ) : (
-                subcontracts.map(sc => (
-                  <tr key={sc.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/40">
-                    <td className="p-3 font-mono font-bold text-brand-600">{sc.subcontract_number}</td>
-                    <td className="p-3 font-semibold text-slate-900 dark:text-white">{sc.supplier_name || "Specialist Contractor"}</td>
-                    <td className="p-3 uppercase text-[10px] font-bold text-slate-500">{sc.trade}</td>
-                    <td className="p-3 text-right font-mono font-bold">
+                filteredSubcontracts.map(sc => (
+                  <tr key={sc.id}>
+                    <td className="font-mono font-bold text-brand-600 dark:text-brand-400">{sc.subcontract_number}</td>
+                    <td className="font-semibold text-slate-900 dark:text-white">{sc.supplier_name || "Specialist Contractor"}</td>
+                    <td className="uppercase text-xs font-semibold text-slate-500">{sc.trade}</td>
+                    <td className="text-right font-mono font-bold">
                       {Number(sc.contract_sum || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                     </td>
-                    <td className="p-3 text-center font-mono">{sc.retention_percent}%</td>
-                    <td className="p-3 text-center font-mono">{sc.advance_recovery_percent}%</td>
-                    <td className="p-3 text-center">
-                      <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-emerald-100 text-emerald-700">
+                    <td className="text-center font-mono">{sc.retention_percent}%</td>
+                    <td className="text-center font-mono">{sc.advance_recovery_percent}%</td>
+                    <td className="text-center">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800">
                         {sc.status}
                       </span>
                     </td>
-                    <td className="p-3 text-center">
+                    <td className="text-center">
                       <button
                         onClick={() => openValuationModal(sc)}
-                        className="btn btn-secondary text-[11px] py-1 px-2.5 flex items-center gap-1 mx-auto"
+                        className="btn btn-secondary btn-sm inline-flex items-center gap-1"
                       >
-                        <FileCheck size={14} className="text-brand-600" /> Certify Valuation
+                        <FileCheck size={14} className="text-brand-600 dark:text-brand-400" /> Certify Valuation
                       </button>
                     </td>
                   </tr>

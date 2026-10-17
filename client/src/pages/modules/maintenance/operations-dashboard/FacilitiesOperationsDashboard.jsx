@@ -40,34 +40,34 @@ export default function FacilitiesOperationsDashboard() {
   return (
     <div className="space-y-6">
       {/* Page Title & Quick Navigation */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white dark:bg-slate-800 p-5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
-        <div className="flex items-center gap-4">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div className="flex items-center gap-3">
           <Link
             to="/maintenance?section=Facilities Management"
-            className="btn btn-secondary p-2.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 transition"
+            className="btn btn-secondary inline-flex items-center gap-1.5"
             title="Back to Facilities Management"
           >
-            <ArrowLeft size={20} />
+            <ArrowLeft size={16} /> Back
           </Link>
           <div>
-            <h1 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
+            <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
               <Building2 className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
               Facilities Operations & SLA Command Center
             </h1>
-            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+            <p className="text-slate-500 text-sm mt-0.5">
               Real-time multi-client property portfolios, active FM service agreements, SLA compliance tracking, and field technician dispatch.
             </p>
           </div>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <Link to="/maintenance/field-service" className="btn-primary text-xs px-3.5 py-2 flex items-center gap-1.5 font-medium">
+          <Link to="/maintenance/field-service" className="btn btn-primary inline-flex items-center gap-1.5 text-xs">
             <Wrench size={14} /> Technician Workspace
           </Link>
-          <Link to="/maintenance/properties" className="btn-outline text-xs px-3 py-2 flex items-center gap-1.5 text-slate-700 dark:text-slate-300">
+          <Link to="/maintenance/properties" className="btn btn-secondary inline-flex items-center gap-1.5 text-xs">
             <Layers size={14} /> Properties
           </Link>
-          <Link to="/maintenance/fm-contracts" className="btn-outline text-xs px-3 py-2 flex items-center gap-1.5 text-slate-700 dark:text-slate-300">
+          <Link to="/maintenance/fm-contracts" className="btn btn-secondary inline-flex items-center gap-1.5 text-xs">
             <ShieldCheck size={14} /> FM Contracts
           </Link>
         </div>
@@ -206,7 +206,7 @@ export default function FacilitiesOperationsDashboard() {
                           <td className="py-2.5 px-3 text-right">
                             <Link
                               to={`/maintenance/maintenance-requests/${t.id}`}
-                              className="btn-outline text-[11px] px-2 py-1 inline-flex items-center gap-1 text-slate-700 dark:text-slate-300"
+                              className="btn btn-secondary text-xs px-2 py-1 inline-flex items-center gap-1"
                             >
                               Dispatch <ArrowUpRight size={11} />
                             </Link>

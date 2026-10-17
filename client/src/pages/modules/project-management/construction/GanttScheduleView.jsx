@@ -127,49 +127,48 @@ export default function GanttScheduleView() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="card">
-        <div className="card-header bg-brand text-white rounded-t-lg flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+      {/* Canonical Schedule Page Header */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <Link to="/project-management" className="btn btn-secondary inline-flex items-center gap-1.5">
+            <ArrowLeft size={16} /> Back
+          </Link>
           <div>
-            <div className="flex items-center gap-2">
-              <Link to="/project-management" className="text-white/80 hover:text-white">
-                <ArrowLeft size={18} />
-              </Link>
-              <h1 className="text-2xl font-bold flex items-center gap-2">
-                <Calendar size={24} /> Project Schedule & Critical Path (CPM)
-              </h1>
-            </div>
-            <p className="text-sm mt-1 opacity-80">
+            <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+              <Calendar size={24} className="text-brand-900 dark:text-brand-400" /> Project Schedule & Critical Path (CPM)
+            </h1>
+            <p className="text-slate-500 text-sm mt-0.5">
               Forward/Backward pass network analysis, float monitoring, and schedule baselining
             </p>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <select
-              className="bg-white/10 text-white border border-white/20 rounded-lg px-3 py-1.5 text-sm outline-none font-medium"
-              value={selectedProjectId}
-              onChange={e => setSelectedProjectId(e.target.value)}
-            >
-              {projects.map(p => (
-                <option key={p.id} value={p.id} className="text-slate-900">
-                  {p.project_code} - {p.project_name}
-                </option>
-              ))}
-            </select>
-            <button
-              onClick={runCPMCalculation}
-              disabled={calculating || !tasks.length}
-              className="btn-success flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg shadow-sm"
-            >
-              <RefreshCw size={14} className={calculating ? "animate-spin" : ""} />
-              {calculating ? "Calculating CPM..." : "Compute CPM"}
-            </button>
-            <button
-              onClick={() => setShowEOTModal(true)}
-              className="btn btn-secondary text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-1.5"
-            >
-              <Plus size={14} /> EOT Claim
-            </button>
-          </div>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-3">
+          <select
+            className="input text-sm py-1.5 h-auto min-w-[180px]"
+            value={selectedProjectId}
+            onChange={e => setSelectedProjectId(e.target.value)}
+          >
+            {projects.map(p => (
+              <option key={p.id} value={p.id}>
+                {p.project_code} - {p.project_name}
+              </option>
+            ))}
+          </select>
+          <button
+            onClick={() => setShowEOTModal(true)}
+            className="btn btn-secondary inline-flex items-center gap-1.5"
+          >
+            <Plus size={16} /> EOT Claim
+          </button>
+          <button
+            onClick={runCPMCalculation}
+            disabled={calculating || !tasks.length}
+            className="btn btn-primary inline-flex items-center gap-1.5"
+          >
+            <RefreshCw size={16} className={calculating ? "animate-spin" : ""} />
+            {calculating ? "Calculating CPM..." : "Compute CPM"}
+          </button>
         </div>
       </div>
 

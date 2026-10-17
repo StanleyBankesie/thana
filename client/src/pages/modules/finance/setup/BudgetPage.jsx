@@ -383,46 +383,46 @@ export default function BudgetPage() {
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
       {/* Top Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white dark:bg-gray-800 p-6 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
-        <div>
-          <div className="flex items-center gap-2 mb-1">
-            <Link to="/finance" className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300">
-              <ArrowLeft className="w-5 h-5" />
-            </Link>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-              <DollarSign className="w-7 h-7 text-emerald-600" /> Budget Management
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <Link to="/finance" className="btn btn-secondary inline-flex items-center gap-1.5">
+            <ArrowLeft size={16} /> Back
+          </Link>
+          <div>
+            <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+              <DollarSign className="w-6 h-6 text-brand-900 dark:text-brand-400" /> Budget Management
             </h1>
+            <p className="text-slate-500 text-sm mt-0.5">
+              Create, allocate, approve, and revise corporate, project, and departmental financial budgets with version control.
+            </p>
           </div>
-          <p className="text-sm text-gray-500 dark:text-gray-400">
-            Create, allocate, approve, and revise corporate, project, and departmental financial budgets with version control.
-          </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
           <Link
             to="/finance/budget-dashboard"
-            className="btn btn-outline border-indigo-600 text-indigo-600 hover:bg-indigo-50 flex items-center gap-2"
+            className="btn btn-outline inline-flex items-center gap-2"
           >
-            <BarChart2 className="w-4 h-4" /> Executive Dashboard
+            <BarChart2 size={16} /> Executive Dashboard
           </Link>
           <Link
             to="/finance/reports/budget-vs-actual"
-            className="btn btn-outline border-blue-600 text-blue-600 hover:bg-blue-50 flex items-center gap-2"
+            className="btn btn-outline inline-flex items-center gap-2"
           >
-            <FileSpreadsheet className="w-4 h-4" /> Variance Report
+            <FileSpreadsheet size={16} /> Variance Report
           </Link>
           <button
             onClick={loadData}
-            className="btn btn-outline text-gray-700 dark:text-gray-300 flex items-center gap-2"
+            className="btn btn-secondary p-2"
             title="Refresh"
           >
-            <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
+            <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
           </button>
           <button
             onClick={handleOpenCreate}
-            className="btn btn-primary bg-emerald-600 hover:bg-emerald-700 border-none text-white flex items-center gap-2"
+            className="btn btn-primary inline-flex items-center gap-2"
           >
-            <Plus className="w-4 h-4" /> Create Budget
+            <Plus size={16} /> Create Budget
           </button>
         </div>
       </div>

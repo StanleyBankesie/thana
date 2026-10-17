@@ -13,7 +13,9 @@ import {
   Fuel,
   DollarSign,
   AlertCircle,
-  X
+  X,
+  Search,
+  RefreshCw
 } from "lucide-react";
 import { api } from "../../../../api/client.js";
 import { toast } from "react-toastify";
@@ -24,6 +26,7 @@ export default function EquipmentLogsPage() {
   const [equipments, setEquipments] = useState([]);
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
 
   const [showModal, setShowModal] = useState(false);
   const [form, setForm] = useState({
@@ -95,67 +98,92 @@ export default function EquipmentLogsPage() {
   const totalFuel = logs.reduce((a, c) => a + Number(c.fuel_consumed_litres || 0), 0);
   const totalCost = logs.reduce((a, c) => a + Number(c.total_cost || 0), 0);
 
+  const filteredLogs = logs.filter(l => {
+    if (!searchTerm.trim()) return true;
+    const q = searchTerm.toLowerCase();
+    return (
+      l.equipment_name?.toLowerCase().includes(q) ||
+      l.operator_name?.toLowerCase().includes(q)
+    );
+  });
+
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="card">
-        <div className="card-header bg-brand text-white rounded-t-lg flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+      {/* Canonical List Page Header */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <Link to="/project-management" className="btn btn-secondary inline-flex items-center gap-1.5">
+            <ArrowLeft size={16} /> Back
+          </Link>
           <div>
-            <div className="flex items-center gap-2">
-              <Link to="/project-management" className="text-white/80 hover:text-white">
-                <ArrowLeft size={18} />
-              </Link>
-              <h1 className="text-2xl font-bold flex items-center gap-2">
-                <Truck size={24} /> Plant & Heavy Equipment Operating Logs
-              </h1>
-            </div>
-            <p className="text-sm mt-1 opacity-80">
+            <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+              <Truck size={24} className="text-brand-900 dark:text-brand-400" /> Plant & Heavy Equipment Operating Logs
+            </h1>
+            <p className="text-slate-500 text-sm mt-0.5">
               Track daily machine operating hours, idle/breakdown downtime, fuel consumption, and costing
             </p>
           </div>
-          <div className="flex items-center gap-3">
-            <select
-              className="bg-white/10 text-white border border-white/20 rounded-lg px-3 py-1.5 text-sm outline-none font-medium"
-              value={selectedProjectId}
-              onChange={e => setSelectedProjectId(e.target.value)}
-            >
-              {projects.map(p => (
-                <option key={p.id} value={p.id} className="text-slate-900">
-                  {p.project_code} - {p.project_name}
-                </option>
-              ))}
-            </select>
-            <button
-              onClick={() => setShowModal(true)}
-              className="btn-success flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg shadow-sm"
-            >
-              <Plus size={16} /> Log Operating Hours
-            </button>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-3">
+          <select
+            className="input text-sm py-1.5 h-auto min-w-[180px]"
+            value={selectedProjectId}
+            onChange={e => setSelectedProjectId(e.target.value)}
+          >
+            {projects.map(p => (
+              <option key={p.id} value={p.id}>
+                {p.project_code} - {p.project_name}
+              </option>
+            ))}
+          </select>
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+            <input
+              type="text"
+              placeholder="Search equipment..."
+              className="input pl-9 pr-3 py-1.5 text-sm h-auto w-48"
+              value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
+            />
           </div>
+          <button
+            onClick={fetchLogs}
+            className="btn btn-secondary p-2"
+            title="Refresh"
+          >
+            <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
+          </button>
+          <button
+            onClick={() => setShowModal(true)}
+            className="btn btn-primary inline-flex items-center gap-2"
+          >
+            <Plus size={16} /> Log Operating Hours
+          </button>
         </div>
       </div>
 
       {/* KPI Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="card p-4 space-y-1">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Total Operating Hours</span>
+          <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Total Operating Hours</span>
           <p className="text-2xl font-bold font-mono text-slate-900 dark:text-white">{totalHoursWorked} Hours</p>
           <p className="text-[10px] text-slate-400">Recorded machine runtime</p>
         </div>
         <div className="card p-4 space-y-1">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Total Fuel Consumed</span>
+          <span className="text-xs font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider">Total Fuel Consumed</span>
           <p className="text-2xl font-bold font-mono text-amber-600">{totalFuel} Litres</p>
           <p className="text-[10px] text-slate-400">Diesel / Petrol dispensed</p>
         </div>
         <div className="card p-4 space-y-1">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Operating Plant Cost</span>
+          <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">Operating Plant Cost</span>
           <p className="text-2xl font-bold font-mono text-emerald-600">
             GHS {totalCost.toLocaleString(undefined, { minimumFractionDigits: 2 })}
           </p>
           <p className="text-[10px] text-slate-400">Hours * hourly charge rate</p>
         </div>
         <div className="card p-4 space-y-1">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Total Log Entries</span>
+          <span className="text-xs font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider">Total Log Entries</span>
           <p className="text-2xl font-bold font-mono text-blue-600">{logs.length} Entries</p>
           <p className="text-[10px] text-slate-400">Daily machine sheets</p>
         </div>
@@ -163,45 +191,47 @@ export default function EquipmentLogsPage() {
 
       {/* Logs Table */}
       <div className="card overflow-hidden">
-        <div className="p-4 bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center">
+        <div className="p-4 bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center">
           <h2 className="font-bold text-sm uppercase tracking-wider text-slate-900 dark:text-white">
-            Daily Equipment Deployment Sheets ({logs.length})
+            Daily Equipment Deployment Sheets ({filteredLogs.length})
           </h2>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
-            <thead className="bg-slate-100 dark:bg-slate-900 font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">
+          <table className="table">
+            <thead>
               <tr>
-                <th className="p-3">Date</th>
-                <th className="p-3">Equipment</th>
-                <th className="p-3">Operator</th>
-                <th className="p-3 text-right">Worked (Hrs)</th>
-                <th className="p-3 text-right">Idle (Hrs)</th>
-                <th className="p-3 text-right">Breakdown (Hrs)</th>
-                <th className="p-3 text-right">Fuel (Ltrs)</th>
-                <th className="p-3 text-right">Rate (GHS/hr)</th>
-                <th className="p-3 text-right">Calculated Cost (GHS)</th>
+                <th>Date</th>
+                <th>Equipment</th>
+                <th>Operator</th>
+                <th className="text-right">Worked (Hrs)</th>
+                <th className="text-right">Idle (Hrs)</th>
+                <th className="text-right">Breakdown (Hrs)</th>
+                <th className="text-right">Fuel (Ltrs)</th>
+                <th className="text-right">Rate (GHS/hr)</th>
+                <th className="text-right">Calculated Cost (GHS)</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-medium">
-              {logs.length === 0 ? (
+            <tbody>
+              {filteredLogs.length === 0 ? (
                 <tr>
                   <td colSpan={9} className="p-8 text-center text-slate-400 italic">
-                    No machine logs recorded for this project yet. Click "Log Operating Hours" to record daily runtime.
+                    {logs.length === 0
+                      ? 'No machine logs recorded for this project yet. Click "Log Operating Hours" to record daily runtime.'
+                      : 'No equipment logs match your search criteria.'}
                   </td>
                 </tr>
               ) : (
-                logs.map(l => (
-                  <tr key={l.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/40">
-                    <td className="p-3 font-mono">{l.log_date ? l.log_date.split("T")[0] : "-"}</td>
-                    <td className="p-3 font-bold text-slate-900 dark:text-white">{l.equipment_name || "Heavy Plant"}</td>
-                    <td className="p-3">{l.operator_name || "-"}</td>
-                    <td className="p-3 text-right font-mono font-bold text-brand-600">{l.hours_worked}</td>
-                    <td className="p-3 text-right font-mono text-slate-400">{l.hours_idle}</td>
-                    <td className="p-3 text-right font-mono text-rose-500">{l.hours_breakdown}</td>
-                    <td className="p-3 text-right font-mono text-amber-600">{l.fuel_consumed_litres}</td>
-                    <td className="p-3 text-right font-mono">{Number(l.hourly_rate || 0).toFixed(2)}</td>
-                    <td className="p-3 text-right font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                filteredLogs.map(l => (
+                  <tr key={l.id}>
+                    <td className="font-mono">{l.log_date ? l.log_date.split("T")[0] : "-"}</td>
+                    <td className="font-bold text-slate-900 dark:text-white">{l.equipment_name || "Heavy Plant"}</td>
+                    <td>{l.operator_name || "-"}</td>
+                    <td className="text-right font-mono font-bold text-brand-600 dark:text-brand-400">{l.hours_worked}</td>
+                    <td className="text-right font-mono text-slate-400">{l.hours_idle}</td>
+                    <td className="text-right font-mono text-rose-500">{l.hours_breakdown}</td>
+                    <td className="text-right font-mono text-amber-600">{l.fuel_consumed_litres}</td>
+                    <td className="text-right font-mono">{Number(l.hourly_rate || 0).toFixed(2)}</td>
+                    <td className="text-right font-mono font-bold text-emerald-600 dark:text-emerald-400">
                       GHS {Number(l.total_cost || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                     </td>
                   </tr>

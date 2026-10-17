@@ -283,17 +283,20 @@ export default function BudgetVsActualReportPage() {
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
       {/* Top Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white dark:bg-gray-800 p-6 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm print:hidden">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 print:hidden">
         <div>
-          <div className="flex items-center gap-2 mb-1">
-            <Link to="/finance" className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300">
-              <ArrowLeft className="w-5 h-5" />
+          <div className="flex items-center gap-3 mb-1">
+            <Link
+              to="/finance"
+              className="btn btn-secondary inline-flex items-center gap-1.5"
+            >
+              <ArrowLeft size={16} /> Back
             </Link>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+            <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
               <BarChart2 className="w-7 h-7 text-blue-600" /> Budget vs. Actual Cost Report
             </h1>
           </div>
-          <p className="text-sm text-gray-500 dark:text-gray-400">
+          <p className="text-slate-500 text-sm mt-0.5">
             Authoritative financial variance analysis comparing approved budgets against GAAP recognized actual voucher expenditure with transaction drilldown.
           </p>
         </div>
@@ -301,35 +304,35 @@ export default function BudgetVsActualReportPage() {
         <div className="flex flex-wrap items-center gap-3">
           <Link
             to="/finance/budget-dashboard"
-            className="btn btn-outline border-indigo-600 text-indigo-600 hover:bg-indigo-50 flex items-center gap-2"
+            className="btn btn-secondary inline-flex items-center gap-2"
           >
             <BarChart2 className="w-4 h-4" /> Executive Dashboard
           </Link>
           <button
             onClick={handleOpenControls}
-            className="btn btn-outline border-gray-400 text-gray-700 dark:text-gray-300 flex items-center gap-2"
+            className="btn btn-secondary inline-flex items-center gap-2"
             title="Configure Budget Policies"
           >
             <Sliders className="w-4 h-4" /> Policies
           </button>
           <button
             onClick={fetchReport}
-            className="btn btn-outline text-gray-700 dark:text-gray-300 flex items-center gap-2"
+            className="btn btn-secondary inline-flex items-center gap-2"
             title="Refresh"
           >
-            <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
+            <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} /> Refresh
           </button>
           <button
             onClick={handleExport}
-            className="btn btn-outline border-blue-600 text-blue-600 hover:bg-blue-50 flex items-center gap-2"
+            className="btn btn-secondary inline-flex items-center gap-2"
           >
-            <Download className="w-4 h-4" /> Excel
+            <Download className="w-4 h-4" /> Export Excel
           </button>
           <button
             onClick={() => window.print()}
-            className="btn btn-primary bg-blue-600 hover:bg-blue-700 border-none text-white flex items-center gap-2"
+            className="btn btn-primary inline-flex items-center gap-2"
           >
-            <Printer className="w-4 h-4" /> Print
+            <Printer className="w-4 h-4" /> Print Report
           </button>
         </div>
       </div>

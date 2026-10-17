@@ -334,7 +334,7 @@ export default function Sidebar() {
     },
     {
       key: "transport",
-      label: "Transport and Logistics",
+      label: "Transport & Logistics",
       icon: "🚛",
       path: "/transport",
       children: [

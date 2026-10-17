@@ -101,17 +101,21 @@ export default function MaintenanceReports() {
   return (
     <div className="p-8 max-w-6xl mx-auto space-y-10 animate-in fade-in duration-700">
       {/* Header with Back Button */}
-      <div className="flex items-center gap-6">
+      <div className="flex items-center gap-4">
         <Link 
           to="/maintenance?section=Setup %26 Reports" 
-          className="p-3 bg-white dark:bg-slate-800 rounded-2xl shadow-xs border border-slate-100 dark:border-slate-700 hover:bg-slate-50 transition-all text-slate-500"
+          className="btn btn-secondary inline-flex items-center gap-1.5"
           title="Back to Maintenance"
         >
-          <ArrowLeft size={20} />
+          <ArrowLeft size={16} /> Back
         </Link>
         <div>
-          <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">Maintenance & Facilities Analytics</h1>
-          <p className="text-slate-500 font-medium">Strategic intelligence for facility operations, SLA compliance, cost control, and asset longevity</p>
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+            Maintenance & Facilities Analytics
+          </h1>
+          <p className="text-slate-500 text-sm mt-0.5">
+            Strategic intelligence for facility operations, SLA compliance, cost control, and asset longevity
+          </p>
         </div>
       </div>
 

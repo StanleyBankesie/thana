@@ -72,21 +72,21 @@ export default function FMInspectionChecklistReport() {
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6 animate-in fade-in duration-500">
       {/* Header with Back Button */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-xs">
-        <div className="flex items-center gap-4">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
           <Link
             to="/maintenance/reports"
-            className="btn btn-secondary p-2.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 transition"
+            className="btn btn-secondary inline-flex items-center gap-1.5"
             title="Back to Reports Hub"
           >
-            <ArrowLeft size={20} />
+            <ArrowLeft size={16} /> Back
           </Link>
           <div>
-            <h1 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
+            <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
               <ClipboardList className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
               Equipment PPM & Inspection Checklists Compliance Report
             </h1>
-            <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+            <p className="text-slate-500 text-sm mt-0.5">
               Digital operating procedure execution logs, quality pass/fail rates, critical out-of-range sensor readings, and corrective actions.
             </p>
           </div>
@@ -96,14 +96,14 @@ export default function FMInspectionChecklistReport() {
           <button
             onClick={fetchReport}
             disabled={loading}
-            className="btn-outline px-3.5 py-2 text-xs font-semibold rounded-xl flex items-center gap-1.5"
+            className="btn btn-secondary inline-flex items-center gap-1.5"
           >
             <RefreshCw size={14} className={loading ? "animate-spin" : ""} />
             Refresh
           </button>
           <button
             onClick={handleExportCSV}
-            className="btn-primary px-3.5 py-2 text-xs font-semibold rounded-xl flex items-center gap-1.5"
+            className="btn btn-primary inline-flex items-center gap-1.5"
           >
             <Download size={14} />
             Export CSV

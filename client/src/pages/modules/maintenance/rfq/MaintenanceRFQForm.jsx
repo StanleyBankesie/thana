@@ -5,6 +5,7 @@
 
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate, useParams, useLocation } from "react-router-dom";
+import { ArrowLeft } from "lucide-react";
 import { toast } from "react-toastify";
 import { api } from "../../../../api/client";
 import { usePermission } from "@/auth/PermissionContext.jsx";
@@ -125,9 +126,9 @@ export default function MaintenanceRFQForm() {
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-3">
-        <button onClick={() => window.history.back()} className="btn-secondary">
-          ← Back
-        </button>
+        <Link to="/maintenance/rfqs" className="btn btn-secondary flex items-center gap-1.5">
+          <ArrowLeft size={16} /> Back
+        </Link>
         <div>
           <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
             {isEdit ? "Edit" : "New"} Request for Quotation

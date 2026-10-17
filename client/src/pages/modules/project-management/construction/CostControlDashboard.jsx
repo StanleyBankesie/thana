@@ -17,7 +17,8 @@ import {
   ArrowDownRight,
   ArrowLeft,
   FileText,
-  Activity
+  Activity,
+  RefreshCw
 } from "lucide-react";
 import { api } from "../../../../api/client.js";
 import { toast } from "react-toastify";
@@ -71,44 +72,50 @@ export default function CostControlDashboard() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="card">
-        <div className="card-header bg-brand text-white rounded-t-lg flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+      {/* Canonical Dashboard Header */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <Link to="/project-management" className="btn btn-secondary inline-flex items-center gap-1.5">
+            <ArrowLeft size={16} /> Back
+          </Link>
           <div>
-            <div className="flex items-center gap-2">
-              <Link to="/project-management" className="text-white/80 hover:text-white">
-                <ArrowLeft size={18} />
-              </Link>
-              <h1 className="text-2xl font-bold flex items-center gap-2">
-                <TrendingUp size={24} /> Construction Cost Control & EVM
-              </h1>
-            </div>
-            <p className="text-sm mt-1 opacity-80">
+            <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+              <TrendingUp size={24} className="text-brand-900 dark:text-brand-400" /> Construction Cost Control & EVM
+            </h1>
+            <p className="text-slate-500 text-sm mt-0.5">
               Earned Value Management, Budget vs Actual variance, and financial performance tracking
             </p>
           </div>
-          <div className="flex items-center gap-3">
-            <select
-              className="bg-white/10 text-white border border-white/20 rounded-lg px-3 py-1.5 text-sm outline-none font-medium"
-              value={selectedProjectId}
-              onChange={e => setSelectedProjectId(e.target.value)}
+        </div>
+
+        <div className="flex flex-wrap items-center gap-3">
+          <select
+            className="input text-sm py-1.5 h-auto min-w-[180px]"
+            value={selectedProjectId}
+            onChange={e => setSelectedProjectId(e.target.value)}
+          >
+            {projects.map(p => (
+              <option key={p.id} value={p.id}>
+                {p.project_code} - {p.project_name}
+              </option>
+            ))}
+          </select>
+          <button
+            onClick={fetchEVMData}
+            className="btn btn-secondary p-2"
+            title="Refresh"
+          >
+            <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
+          </button>
+          {selectedProjectId && (
+            <Link
+              to={`/finance/reports/budget-vs-actual?project_id=${selectedProjectId}`}
+              className="btn btn-outline inline-flex items-center gap-1.5"
+              title="View in Finance GL Budget vs Actual"
             >
-              {projects.map(p => (
-                <option key={p.id} value={p.id} className="text-slate-900">
-                  {p.project_code} - {p.project_name}
-                </option>
-              ))}
-            </select>
-            {selectedProjectId && (
-              <Link
-                to={`/finance/reports/budget-vs-actual?project_id=${selectedProjectId}`}
-                className="bg-white/20 hover:bg-white/30 text-white border border-white/30 rounded-lg px-3 py-1.5 text-xs font-semibold flex items-center gap-1.5 transition-colors"
-                title="View in Finance GL Budget vs Actual"
-              >
-                <FileText size={14} /> Finance GL Budget
-              </Link>
-            )}
-          </div>
+              <FileText size={16} /> Finance GL Budget
+            </Link>
+          )}
         </div>
       </div>
 

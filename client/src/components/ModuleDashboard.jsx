@@ -537,8 +537,8 @@ const ModuleDashboard = ({
   }, [location.pathname, location.search, location.hash, navigate]);
 
   return (
-    <div className="space-y-6 animate-fade-in px-3 sm:px-4 md:-mx-6 md:px-6 bg-transparent text-slate-900 dark:text-slate-100">
-      <div className="-mx-3 px-3 sm:-mx-4 sm:px-4 md:-mx-6 md:px-6 sticky top-0 z-40 bg-slate-50/75 dark:bg-slate-950/75 backdrop-blur-md pb-2 pt-2 -mt-2 transition-colors">
+    <div className="space-y-6 animate-fade-in bg-transparent text-slate-900 dark:text-slate-100">
+      <div className="sticky top-0 z-40 bg-transparent transition-colors">
         <ModuleTopNavBar sections={allSections} headerActions={resolvedHeaderActions} moduleKey={moduleKey} />
       </div>
 
@@ -577,7 +577,7 @@ const ModuleDashboard = ({
             <button
               key={i}
               onClick={(e) => handleNavigate(a.path, e)}
-              className="btn btn-primary"
+              className="btn btn-outline bg-white dark:bg-slate-800 text-brand-900 dark:text-brand-300 border border-brand-900/40 dark:border-brand-400 hover:bg-brand-900 hover:text-white dark:hover:bg-brand-800 dark:hover:text-white shadow-xs transition-all font-medium"
               title={a.title || a.label}
             >
               {a.icon ? <span className="mr-2">{typeof a.icon === "string" ? a.icon : React.createElement(a.icon, { className: "w-4 h-4 inline" })}</span> : null}

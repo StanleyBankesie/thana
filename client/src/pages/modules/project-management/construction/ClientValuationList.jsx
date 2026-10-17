@@ -13,7 +13,9 @@ import {
   Calendar,
   CheckCircle,
   X,
-  FileSpreadsheet
+  FileSpreadsheet,
+  Search,
+  RefreshCw
 } from "lucide-react";
 import { api } from "../../../../api/client.js";
 import { toast } from "react-toastify";
@@ -24,6 +26,7 @@ export default function ClientValuationList() {
   const [activeProject, setActiveProject] = useState(null);
   const [valuations, setValuations] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
 
   const [showModal, setShowModal] = useState(false);
   const [form, setForm] = useState({
@@ -104,43 +107,69 @@ export default function ClientValuationList() {
   const advanceRecovered = (currentClaim * advRecPct) / 100;
   const netCertified = Math.max(0, currentClaim - retentionDeducted - advanceRecovered);
 
+  const filteredValuations = valuations.filter(v => {
+    if (!searchTerm.trim()) return true;
+    const q = searchTerm.toLowerCase();
+    return (
+      v.application_number?.toLowerCase().includes(q) ||
+      v.client_name?.toLowerCase().includes(q) ||
+      v.status?.toLowerCase().includes(q)
+    );
+  });
+
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="card">
-        <div className="card-header bg-brand text-white rounded-t-lg flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+      {/* Canonical List Page Header */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <Link to="/project-management" className="btn btn-secondary inline-flex items-center gap-1.5">
+            <ArrowLeft size={16} /> Back
+          </Link>
           <div>
-            <div className="flex items-center gap-2">
-              <Link to="/project-management" className="text-white/80 hover:text-white">
-                <ArrowLeft size={18} />
-              </Link>
-              <h1 className="text-2xl font-bold flex items-center gap-2">
-                <FileCheck2 size={24} /> Client Interim Payment Applications (IPAs)
-              </h1>
-            </div>
-            <p className="text-sm mt-1 opacity-80">
+            <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+              <FileCheck2 size={24} className="text-brand-900 dark:text-brand-400" /> Client Interim Payment Applications (IPAs)
+            </h1>
+            <p className="text-slate-500 text-sm mt-0.5">
               Certify measured contract work, deduct statutory retention, and recover advance mobilisations
             </p>
           </div>
-          <div className="flex items-center gap-3">
-            <select
-              className="bg-white/10 text-white border border-white/20 rounded-lg px-3 py-1.5 text-sm outline-none font-medium"
-              value={selectedProjectId}
-              onChange={e => setSelectedProjectId(e.target.value)}
-            >
-              {projects.map(p => (
-                <option key={p.id} value={p.id} className="text-slate-900">
-                  {p.project_code} - {p.project_name}
-                </option>
-              ))}
-            </select>
-            <button
-              onClick={openNewValuationModal}
-              className="btn-success flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg shadow-sm"
-            >
-              <Plus size={16} /> New Application
-            </button>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-3">
+          <select
+            className="input text-sm py-1.5 h-auto min-w-[180px]"
+            value={selectedProjectId}
+            onChange={e => setSelectedProjectId(e.target.value)}
+          >
+            {projects.map(p => (
+              <option key={p.id} value={p.id}>
+                {p.project_code} - {p.project_name}
+              </option>
+            ))}
+          </select>
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+            <input
+              type="text"
+              placeholder="Search applications..."
+              className="input pl-9 pr-3 py-1.5 text-sm h-auto w-48"
+              value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
+            />
           </div>
+          <button
+            onClick={fetchValuations}
+            className="btn btn-secondary p-2"
+            title="Refresh"
+          >
+            <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
+          </button>
+          <button
+            onClick={openNewValuationModal}
+            className="btn btn-primary inline-flex items-center gap-2"
+          >
+            <Plus size={16} /> New Application
+          </button>
         </div>
       </div>
 
@@ -176,50 +205,52 @@ export default function ClientValuationList() {
 
       {/* Valuations Table */}
       <div className="card overflow-hidden">
-        <div className="p-4 bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center">
+        <div className="p-4 bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center">
           <h2 className="font-bold text-sm uppercase tracking-wider text-slate-900 dark:text-white">
-            Interim Payment Applications Register ({valuations.length})
+            Interim Payment Applications Register ({filteredValuations.length})
           </h2>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
-            <thead className="bg-slate-100 dark:bg-slate-900 font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">
+          <table className="table">
+            <thead>
               <tr>
-                <th className="p-3">Application #</th>
-                <th className="p-3">Date</th>
-                <th className="p-3">Client</th>
-                <th className="p-3 text-right">Cumulative Work</th>
-                <th className="p-3 text-right">Previous Certified</th>
-                <th className="p-3 text-right">Gross Claim</th>
-                <th className="p-3 text-right">Retention</th>
-                <th className="p-3 text-right">Advance Rec</th>
-                <th className="p-3 text-right">Net Certified (GHS)</th>
-                <th className="p-3 text-center">Status</th>
+                <th>Application #</th>
+                <th>Date</th>
+                <th>Client</th>
+                <th className="text-right">Cumulative Work</th>
+                <th className="text-right">Previous Certified</th>
+                <th className="text-right">Gross Claim</th>
+                <th className="text-right">Retention</th>
+                <th className="text-right">Advance Rec</th>
+                <th className="text-right">Net Certified (GHS)</th>
+                <th className="text-center">Status</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-medium">
-              {valuations.length === 0 ? (
+            <tbody>
+              {filteredValuations.length === 0 ? (
                 <tr>
                   <td colSpan={10} className="p-8 text-center text-slate-400 italic">
-                    No client payment applications submitted for this project yet. Click "New Application" to create one.
+                    {valuations.length === 0
+                      ? 'No client payment applications submitted for this project yet. Click "New Application" to create one.'
+                      : 'No payment applications match your search criteria.'}
                   </td>
                 </tr>
               ) : (
-                valuations.map(v => (
-                  <tr key={v.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/40">
-                    <td className="p-3 font-mono font-bold text-brand-600">{v.application_number}</td>
-                    <td className="p-3 font-mono">{v.valuation_date ? v.valuation_date.split("T")[0] : "-"}</td>
-                    <td className="p-3">{v.client_name || activeProject?.client_name || "Client"}</td>
-                    <td className="p-3 text-right font-mono">{Number(v.cumulative_work_done || 0).toLocaleString()}</td>
-                    <td className="p-3 text-right font-mono">{Number(v.previously_certified || 0).toLocaleString()}</td>
-                    <td className="p-3 text-right font-mono font-bold">{Number(v.current_claim || 0).toLocaleString()}</td>
-                    <td className="p-3 text-right font-mono text-rose-500">-{Number(v.retention_deducted || 0).toLocaleString()}</td>
-                    <td className="p-3 text-right font-mono text-amber-500">-{Number(v.advance_recovery || 0).toLocaleString()}</td>
-                    <td className="p-3 text-right font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                filteredValuations.map(v => (
+                  <tr key={v.id}>
+                    <td className="font-mono font-bold text-brand-600 dark:text-brand-400">{v.application_number}</td>
+                    <td className="font-mono">{v.valuation_date ? v.valuation_date.split("T")[0] : "-"}</td>
+                    <td>{v.client_name || activeProject?.client_name || "Client"}</td>
+                    <td className="text-right font-mono">{Number(v.cumulative_work_done || 0).toLocaleString()}</td>
+                    <td className="text-right font-mono">{Number(v.previously_certified || 0).toLocaleString()}</td>
+                    <td className="text-right font-mono font-bold">{Number(v.current_claim || 0).toLocaleString()}</td>
+                    <td className="text-right font-mono text-rose-500">-{Number(v.retention_deducted || 0).toLocaleString()}</td>
+                    <td className="text-right font-mono text-amber-500">-{Number(v.advance_recovery || 0).toLocaleString()}</td>
+                    <td className="text-right font-mono font-bold text-emerald-600 dark:text-emerald-400">
                       GHS {Number(v.net_certified_amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                     </td>
-                    <td className="p-3 text-center">
-                      <span className="px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-emerald-100 text-emerald-700">
+                    <td className="text-center">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800">
                         {v.status}
                       </span>
                     </td>
@@ -235,32 +266,32 @@ export default function ClientValuationList() {
       {showModal && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="card max-w-lg w-full p-6 space-y-4 animate-in fade-in zoom-in-95 duration-200">
-            <div className="flex justify-between items-center border-b pb-2">
+            <div className="flex justify-between items-center border-b border-slate-100 dark:border-slate-800 pb-2">
               <h3 className="font-bold text-lg text-slate-900 dark:text-white flex items-center gap-2">
-                <FileCheck2 size={18} className="text-brand-600" /> Interim Payment Application (IPA)
+                <FileCheck2 size={18} className="text-brand-900 dark:text-brand-400" /> Interim Payment Application (IPA)
               </h3>
               <button onClick={() => setShowModal(false)} className="text-slate-400 hover:text-slate-600">
                 <X size={20} />
               </button>
             </div>
-            <form onSubmit={handleCreateValuation} className="space-y-3">
+            <form onSubmit={handleCreateValuation} className="space-y-4">
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-500 uppercase">Application Ref</label>
+                  <label className="label text-xs uppercase font-bold text-slate-500">Application Ref</label>
                   <input
                     type="text"
                     required
-                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-slate-50 dark:bg-slate-900 font-mono"
+                    className="input w-full font-mono"
                     value={form.application_number}
                     onChange={e => setForm({ ...form, application_number: e.target.value })}
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-500 uppercase">Valuation Date</label>
+                  <label className="label text-xs uppercase font-bold text-slate-500">Valuation Date</label>
                   <input
                     type="date"
                     required
-                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-slate-50 dark:bg-slate-900 font-mono"
+                    className="input w-full font-mono"
                     value={form.valuation_date}
                     onChange={e => setForm({ ...form, valuation_date: e.target.value })}
                   />
@@ -269,20 +300,20 @@ export default function ClientValuationList() {
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-500 uppercase">Cumulative Work Done (GHS)</label>
+                  <label className="label text-xs uppercase font-bold text-slate-500">Cumulative Work Done (GHS)</label>
                   <input
                     type="number"
                     required
-                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-slate-50 dark:bg-slate-900 font-mono font-bold"
+                    className="input w-full font-mono font-bold"
                     value={form.cumulative_work_done}
                     onChange={e => setForm({ ...form, cumulative_work_done: Number(e.target.value) })}
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-500 uppercase">Previously Certified (GHS)</label>
+                  <label className="label text-xs uppercase font-bold text-slate-500">Previously Certified (GHS)</label>
                   <input
                     type="number"
-                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-slate-100 dark:bg-slate-800 font-mono"
+                    className="input w-full font-mono"
                     value={form.previously_certified}
                     onChange={e => setForm({ ...form, previously_certified: Number(e.target.value) })}
                   />
@@ -290,7 +321,7 @@ export default function ClientValuationList() {
               </div>
 
               {/* Deductions Breakdown */}
-              <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-xl space-y-2 text-xs">
+              <div className="p-3 bg-slate-50 dark:bg-slate-900/50 rounded-xl space-y-2 text-xs border border-slate-200 dark:border-slate-800">
                 <div className="flex justify-between items-center text-slate-600 dark:text-slate-300">
                   <span>Current Period Measured Claim:</span>
                   <span className="font-mono font-bold">GHS {currentClaim.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
@@ -315,11 +346,11 @@ export default function ClientValuationList() {
                 </div>
               </div>
 
-              <div className="flex justify-end gap-2 pt-2 border-t">
-                <button type="button" onClick={() => setShowModal(false)} className="btn btn-secondary text-xs">
+              <div className="flex justify-end gap-3 pt-3 border-t border-slate-100 dark:border-slate-800">
+                <button type="button" onClick={() => setShowModal(false)} className="btn btn-secondary">
                   Cancel
                 </button>
-                <button type="submit" className="btn-success text-xs font-bold">
+                <button type="submit" className="btn btn-primary inline-flex items-center gap-1.5">
                   Submit Payment Application
                 </button>
               </div>

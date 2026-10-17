@@ -15,7 +15,9 @@ import {
   XCircle,
   Clock,
   X,
-  AlertTriangle
+  AlertTriangle,
+  Search,
+  RefreshCw
 } from "lucide-react";
 import { api } from "../../../../api/client.js";
 import { toast } from "react-toastify";
@@ -25,6 +27,7 @@ export default function VariationRegister() {
   const [selectedProjectId, setSelectedProjectId] = useState("");
   const [variations, setVariations] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
 
   // Modals
   const [showModal, setShowModal] = useState(false);
@@ -126,70 +129,97 @@ export default function VariationRegister() {
   const totalClaimed = variations.reduce((a, c) => a + Number(c.amount_claimed || 0), 0);
   const totalApproved = variations.filter(v => v.status === "APPROVED").reduce((a, c) => a + Number(c.amount_approved || 0), 0);
 
+  const filteredVariations = variations.filter(v => {
+    if (!searchTerm.trim()) return true;
+    const q = searchTerm.toLowerCase();
+    return (
+      v.variation_number?.toLowerCase().includes(q) ||
+      v.title?.toLowerCase().includes(q) ||
+      v.initiator?.toLowerCase().includes(q) ||
+      v.status?.toLowerCase().includes(q)
+    );
+  });
+
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="card">
-        <div className="card-header bg-brand text-white rounded-t-lg flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+      {/* Canonical List Page Header */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <Link to="/project-management" className="btn btn-secondary inline-flex items-center gap-1.5">
+            <ArrowLeft size={16} /> Back
+          </Link>
           <div>
-            <div className="flex items-center gap-2">
-              <Link to="/project-management" className="text-white/80 hover:text-white">
-                <ArrowLeft size={18} />
-              </Link>
-              <h1 className="text-2xl font-bold flex items-center gap-2">
-                <FileEdit size={24} /> Variations & Change Orders Register
-              </h1>
-            </div>
-            <p className="text-sm mt-1 opacity-80">
+            <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+              <FileEdit size={24} className="text-brand-900 dark:text-brand-400" /> Variations & Change Orders Register
+            </h1>
+            <p className="text-slate-500 text-sm mt-0.5">
               Manage contract variations, scope additions, cost adjustments, and time impact claims
             </p>
           </div>
-          <div className="flex items-center gap-3">
-            <select
-              className="bg-white/10 text-white border border-white/20 rounded-lg px-3 py-1.5 text-sm outline-none font-medium"
-              value={selectedProjectId}
-              onChange={e => setSelectedProjectId(e.target.value)}
-            >
-              {projects.map(p => (
-                <option key={p.id} value={p.id} className="text-slate-900">
-                  {p.project_code} - {p.project_name}
-                </option>
-              ))}
-            </select>
-            <button
-              onClick={() => {
-                setForm(f => ({ ...f, variation_number: `VO-${Date.now().toString().slice(-4)}` }));
-                setShowModal(true);
-              }}
-              className="btn-success flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg shadow-sm"
-            >
-              <Plus size={16} /> New Variation Order
-            </button>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-3">
+          <select
+            className="input text-sm py-1.5 h-auto min-w-[180px]"
+            value={selectedProjectId}
+            onChange={e => setSelectedProjectId(e.target.value)}
+          >
+            {projects.map(p => (
+              <option key={p.id} value={p.id}>
+                {p.project_code} - {p.project_name}
+              </option>
+            ))}
+          </select>
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+            <input
+              type="text"
+              placeholder="Search variations..."
+              className="input pl-9 pr-3 py-1.5 text-sm h-auto w-48"
+              value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
+            />
           </div>
+          <button
+            onClick={fetchVariations}
+            className="btn btn-secondary p-2"
+            title="Refresh"
+          >
+            <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
+          </button>
+          <button
+            onClick={() => {
+              setForm(f => ({ ...f, variation_number: `VO-${Date.now().toString().slice(-4)}` }));
+              setShowModal(true);
+            }}
+            className="btn btn-primary inline-flex items-center gap-2"
+          >
+            <Plus size={16} /> New Variation Order
+          </button>
         </div>
       </div>
 
       {/* Summary Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="card p-4 space-y-1">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Total Variations</span>
-          <p className="text-xl font-bold text-slate-900 dark:text-white">{variations.length} Change Orders</p>
+          <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Total Variations</span>
+          <p className="text-2xl font-bold text-slate-900 dark:text-white">{variations.length}</p>
         </div>
         <div className="card p-4 space-y-1">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Total Value Claimed</span>
+          <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Total Value Claimed</span>
           <p className="text-xl font-bold font-mono text-slate-900 dark:text-white">
             GHS {totalClaimed.toLocaleString(undefined, { minimumFractionDigits: 2 })}
           </p>
         </div>
         <div className="card p-4 space-y-1">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Approved Variations Sum</span>
-          <p className="text-xl font-bold font-mono text-emerald-600">
+          <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">Approved Variations Sum</span>
+          <p className="text-xl font-bold font-mono text-emerald-600 dark:text-emerald-400">
             GHS {totalApproved.toLocaleString(undefined, { minimumFractionDigits: 2 })}
           </p>
         </div>
         <div className="card p-4 space-y-1">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Time Impact (Approved)</span>
-          <p className="text-xl font-bold font-mono text-blue-600">
+          <span className="text-xs font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider">Time Impact (Approved)</span>
+          <p className="text-xl font-bold font-mono text-blue-600 dark:text-blue-400">
             {variations.filter(v => v.status === "APPROVED").reduce((a, c) => a + Number(c.schedule_impact_days || 0), 0)} Days
           </p>
         </div>
@@ -197,66 +227,68 @@ export default function VariationRegister() {
 
       {/* Variations Table */}
       <div className="card overflow-hidden">
-        <div className="p-4 bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center">
+        <div className="p-4 bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center">
           <h2 className="font-bold text-sm uppercase tracking-wider text-slate-900 dark:text-white">
-            Change Orders & Scope Adjustments ({variations.length})
+            Change Orders & Scope Adjustments ({filteredVariations.length})
           </h2>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
-            <thead className="bg-slate-100 dark:bg-slate-900 font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">
+          <table className="table">
+            <thead>
               <tr>
-                <th className="p-3">VO #</th>
-                <th className="p-3">Title & Scope Change</th>
-                <th className="p-3">Initiated By</th>
-                <th className="p-3">Date</th>
-                <th className="p-3 text-right">Claimed (GHS)</th>
-                <th className="p-3 text-right">Approved (GHS)</th>
-                <th className="p-3 text-center">Days Impact</th>
-                <th className="p-3 text-center">Status</th>
-                <th className="p-3 text-center">Actions</th>
+                <th>VO #</th>
+                <th>Title & Scope Change</th>
+                <th>Initiated By</th>
+                <th>Date</th>
+                <th className="text-right">Claimed (GHS)</th>
+                <th className="text-right">Approved (GHS)</th>
+                <th className="text-center">Days Impact</th>
+                <th className="text-center">Status</th>
+                <th className="text-center">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-medium">
-              {variations.length === 0 ? (
+            <tbody>
+              {filteredVariations.length === 0 ? (
                 <tr>
                   <td colSpan={9} className="p-8 text-center text-slate-400 italic">
-                    No variation orders recorded for this project yet.
+                    {variations.length === 0
+                      ? 'No variation orders recorded for this project yet.'
+                      : 'No variations match your search criteria.'}
                   </td>
                 </tr>
               ) : (
-                variations.map(v => (
-                  <tr key={v.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/40">
-                    <td className="p-3 font-mono font-bold text-brand-600">{v.variation_number}</td>
-                    <td className="p-3">
+                filteredVariations.map(v => (
+                  <tr key={v.id}>
+                    <td className="font-mono font-bold text-brand-600 dark:text-brand-400">{v.variation_number}</td>
+                    <td>
                       <div className="font-bold text-slate-900 dark:text-white">{v.title}</div>
-                      {v.reason && <div className="text-[10px] text-slate-500 truncate max-w-xs">{v.reason}</div>}
+                      {v.reason && <div className="text-xs text-slate-500 truncate max-w-xs">{v.reason}</div>}
                     </td>
-                    <td className="p-3 uppercase text-[10px] font-bold text-slate-500">{v.initiator}</td>
-                    <td className="p-3 font-mono">{v.submission_date ? v.submission_date.split("T")[0] : "-"}</td>
-                    <td className="p-3 text-right font-mono font-bold">{Number(v.amount_claimed || 0).toLocaleString()}</td>
-                    <td className="p-3 text-right font-mono font-bold text-emerald-600">
+                    <td className="uppercase text-xs font-semibold text-slate-500">{v.initiator}</td>
+                    <td className="font-mono">{v.submission_date ? v.submission_date.split("T")[0] : "-"}</td>
+                    <td className="text-right font-mono font-bold">{Number(v.amount_claimed || 0).toLocaleString()}</td>
+                    <td className="text-right font-mono font-bold text-emerald-600 dark:text-emerald-400">
                       {v.status === "APPROVED" ? Number(v.amount_approved || 0).toLocaleString() : "-"}
                     </td>
-                    <td className="p-3 text-center font-mono">{v.schedule_impact_days || 0} d</td>
-                    <td className="p-3 text-center">
-                      <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider ${
+                    <td className="text-center font-mono">{v.schedule_impact_days || 0} d</td>
+                    <td className="text-center">
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${
                         v.status === "APPROVED"
-                          ? "bg-emerald-100 text-emerald-700"
+                          ? "bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800"
                           : v.status === "REJECTED"
-                          ? "bg-rose-100 text-rose-700"
-                          : "bg-amber-100 text-amber-700"
+                          ? "bg-rose-50 text-rose-700 border border-rose-200 dark:bg-rose-900/30 dark:text-rose-400 dark:border-rose-800"
+                          : "bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800"
                       }`}>
                         {v.status}
                       </span>
                     </td>
-                    <td className="p-3 text-center">
+                    <td className="text-center">
                       {v.status !== "APPROVED" && (
                         <button
                           onClick={() => openApproveModal(v)}
-                          className="btn-success text-[10px] py-1 px-2.5 rounded font-bold"
+                          className="btn btn-primary btn-sm inline-flex items-center gap-1"
                         >
-                          Approve
+                          Review & Certify
                         </button>
                       )}
                     </td>

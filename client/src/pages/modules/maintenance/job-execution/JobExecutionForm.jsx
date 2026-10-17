@@ -7,6 +7,7 @@
 
 import React, { useState, useEffect, useMemo } from "react";
 import { Link, useNavigate, useParams, useLocation } from "react-router-dom";
+import { ArrowLeft } from "lucide-react";
 import { toast } from "react-toastify";
 import { api } from "../../../../api/client";
 import { usePermission } from "@/auth/PermissionContext.jsx";
@@ -298,9 +299,9 @@ export default function JobExecutionForm() {
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <button onClick={() => window.history.back()} className="btn-secondary">
-            ← Back
-          </button>
+          <Link to="/maintenance/job-executions" className="btn btn-secondary flex items-center gap-1.5">
+            <ArrowLeft size={16} /> Back
+          </Link>
           <div>
             <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
               {isEdit ? "Edit" : "New"} Job Execution
