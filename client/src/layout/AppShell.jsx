@@ -79,6 +79,7 @@ import {
   Truck,
   Home,
   X,
+  WifiOff,
 } from "lucide-react";
 import FloatingChat from "../components/chat/FloatingChat.jsx";
 import BanksAiFloating from "../components/ai/BanksAiFloating.jsx";
@@ -391,15 +392,32 @@ export default function AppShell() {
   useEffect(() => {
     function onOnline() {
       setOnline(true);
+      touchLastActivity();
     }
     function onOffline() {
-      setOnline(false);
+      // Validate with network probe before assuming offline to prevent sleep/screen-lock glitches
+      fetch("/api/health", { method: "HEAD", cache: "no-store" })
+        .then(() => setOnline(true))
+        .catch(() => {
+          if (typeof navigator !== "undefined" && navigator.onLine === false) {
+            setOnline(false);
+          }
+        });
+    }
+    function onWakeOrFocus() {
+      touchLastActivity();
+      setOnline(true);
+      api.get("/auth/me", BACKGROUND_GET_CONFIG).catch(() => {});
     }
     window.addEventListener("online", onOnline);
     window.addEventListener("offline", onOffline);
+    window.addEventListener("focus", onWakeOrFocus);
+    document.addEventListener("visibilitychange", onWakeOrFocus);
     return () => {
       window.removeEventListener("online", onOnline);
       window.removeEventListener("offline", onOffline);
+      window.removeEventListener("focus", onWakeOrFocus);
+      document.removeEventListener("visibilitychange", onWakeOrFocus);
     };
   }, []);
   useEffect(() => {
@@ -989,6 +1007,16 @@ export default function AppShell() {
     return () => clearInterval(inactivityTimer);
   }, [token, logout]);
 
+  // Persistent Keep-Alive Heartbeat: keep connection alive and prevent disconnection when computer is inactive
+  useEffect(() => {
+    if (!token) return;
+    const keepAliveTimer = setInterval(() => {
+      touchLastActivity();
+      api.get("/auth/me", BACKGROUND_GET_CONFIG).catch(() => {});
+    }, 90000); // Heartbeat every 90 seconds
+    return () => clearInterval(keepAliveTimer);
+  }, [token]);
+
   useEffect(() => {
     if (!("serviceWorker" in navigator)) return;
     function onSwMessage(ev) {
@@ -1553,9 +1581,8 @@ export default function AppShell() {
         </div>
       )}
       {!online && (
-        <div className="px-6 py-2 bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200 border-b border-yellow-300 dark:border-yellow-800 text-sm">
-          Offline mode enabled. Pages and assets are cached. Actions queue for
-          sync.
+        <div className="px-6 py-2 bg-amber-50 dark:bg-amber-950/70 text-amber-900 dark:text-amber-200 border-b border-amber-200 dark:border-amber-800 text-sm flex items-center justify-between">
+          <span>Reconnecting to network. Your changes are saved and will sync automatically.</span>
         </div>
       )}
       {queueOpen && (
@@ -2023,27 +2050,9 @@ export default function AppShell() {
                 </div>
               </div>
             ) : null}
-            {!online && !isRootPage && !location.pathname.startsWith("/pos") ? (
-              <div className="min-h-[60vh] flex items-center justify-center">
-                <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-6 max-w-lg w-full text-center">
-                  <div className="text-4xl mb-2">ðŸ“¡</div>
-                  <div className="text-lg font-semibold mb-1">Offline</div>
-                  <div className="text-sm text-slate-600 dark:text-slate-400 mb-4">
-                    This module requires a network connection. Return to Home or
-                    reconnect to continue.
-                  </div>
-                  <div className="flex items-center justify-center gap-2">
-                    <Link to="/" className="btn">
-                      Home
-                    </Link>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <React.Suspense fallback={<div>Loading...</div>}>
-                <AppRoutes user={user} />
-              </React.Suspense>
-            )}
+            <React.Suspense fallback={<div>Loading...</div>}>
+              <AppRoutes user={user} />
+            </React.Suspense>
           </div>
         </main>
       </div>

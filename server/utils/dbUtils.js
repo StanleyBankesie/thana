@@ -700,12 +700,12 @@ export async function ensurePagesSeed() {
     { module: "Inventory", name: "Item Edit", path: "/inventory/items/:id" },
     {
       module: "Inventory",
-      name: "Item Groups",
+      name: "Item Classification",
       path: "/inventory/item-groups",
     },
     {
       module: "Inventory",
-      name: "Item Group Edit",
+      name: "Item Classification Edit",
       path: "/inventory/item-groups/:id",
     },
     {

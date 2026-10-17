@@ -276,13 +276,13 @@ export const inventorySections = [
         icon: "📦",
       },
       {
-        name: "Item Groups & Sub Groups",
+        name: "Item Classification",
         path: "/inventory/item-groups",
         actions: [
           { label: "View", path: "/inventory/item-groups", type: "outline" },
           { label: "New", path: "/inventory/item-groups/new", type: "primary" }
         ],
-        description: "Categorize items into groups",
+        description: "Categorize items into groups and classifications",
         icon: "🗂️",
       },
       {

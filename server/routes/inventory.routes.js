@@ -270,6 +270,7 @@ export async function ensureItemsTable() {
   await query(`ALTER TABLE inv_items ADD COLUMN purchase_account_id BIGINT UNSIGNED NULL`).catch(() => {});
   await query(`ALTER TABLE inv_items ADD COLUMN sales_account_id BIGINT UNSIGNED NULL`).catch(() => {});
   await query(`ALTER TABLE inv_items ADD COLUMN service_item CHAR(1) NOT NULL DEFAULT 'N'`).catch(() => {});
+  await query(`ALTER TABLE inv_items ADD COLUMN is_production_item VARCHAR(5) NOT NULL DEFAULT 'N'`).catch(() => {});
   await query(`ALTER TABLE inv_items ADD COLUMN is_stockable CHAR(1) NOT NULL DEFAULT 'Y'`).catch(() => {});
   await query(`ALTER TABLE inv_items ADD COLUMN is_sellable CHAR(1) NOT NULL DEFAULT 'Y'`).catch(() => {});
   await query(`ALTER TABLE inv_items ADD COLUMN is_purchasable CHAR(1) NOT NULL DEFAULT 'Y'`).catch(() => {});
@@ -339,6 +340,7 @@ export async function ensureItemGroupTables() {
       branch_id BIGINT UNSIGNED NOT NULL DEFAULT 1,
       group_code VARCHAR(50) NOT NULL,
       group_name VARCHAR(150) NOT NULL,
+      item_type_id BIGINT UNSIGNED NULL,
       parent_group_id BIGINT UNSIGNED NULL,
       is_active TINYINT(1) NOT NULL DEFAULT 1,
       created_by BIGINT UNSIGNED NULL,
@@ -354,6 +356,7 @@ export async function ensureItemGroupTables() {
       branch_id BIGINT UNSIGNED NOT NULL DEFAULT 1,
       category_code VARCHAR(50) NOT NULL,
       category_name VARCHAR(120) NOT NULL,
+      item_group_id BIGINT UNSIGNED NULL,
       parent_category_id BIGINT UNSIGNED NULL,
       is_active TINYINT(1) NOT NULL DEFAULT 1,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -361,6 +364,20 @@ export async function ensureItemGroupTables() {
       UNIQUE KEY uq_cat_code (company_id, branch_id, category_code)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
   `).catch(() => {});
+
+  const checkCol = async (tbl, col) => {
+    const r = await query(
+      "SELECT COUNT(*) AS c FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = :tbl AND column_name = :col",
+      { tbl, col }
+    ).catch(() => []);
+    return Number(r?.[0]?.c || 0) > 0;
+  };
+  if (!(await checkCol("inv_item_groups", "item_type_id"))) {
+    await query("ALTER TABLE inv_item_groups ADD COLUMN item_type_id BIGINT UNSIGNED NULL").catch(() => {});
+  }
+  if (!(await checkCol("inv_item_categories", "item_group_id"))) {
+    await query("ALTER TABLE inv_item_categories ADD COLUMN item_group_id BIGINT UNSIGNED NULL").catch(() => {});
+  }
   verifiedTables.add("inv_item_groups");
 }
 
@@ -1103,7 +1120,7 @@ router.delete("/uoms/:id", requireAuth, async (req, res, next) => {
   }
 });
 
-async function ensureItemTypesTable() {
+async function ensureItemTypesTable(companyId = null) {
   await query(`
     CREATE TABLE IF NOT EXISTS inv_item_types (
       id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -1118,21 +1135,35 @@ async function ensureItemTypesTable() {
     )
   `).catch(() => {});
 
-  // Insert defaults if empty, though application layer can add it.
-  const check = await query("SELECT 1 FROM inv_item_types LIMIT 1").catch(
-    () => [],
-  );
-  if (!check?.length) {
-    // Insert some defaults so the frontend isn't completely empty initially
-    await query(
-      `INSERT IGNORE INTO inv_item_types (company_id, type_code, type_name) VALUES (1, 'INVENTORY', 'Inventory Item')`,
-    ).catch(() => {});
-    await query(
-      `INSERT IGNORE INTO inv_item_types (company_id, type_code, type_name) VALUES (1, 'NON_INVENTORY', 'Non-Inventory Item')`,
-    ).catch(() => {});
-    await query(
-      `INSERT IGNORE INTO inv_item_types (company_id, type_code, type_name) VALUES (1, 'SERVICE', 'Service')`,
-    ).catch(() => {});
+  // Remove non-inventory preset if present
+  await query(
+    `DELETE FROM inv_item_types WHERE type_code = 'NON_INVENTORY' OR type_name = 'Non-Inventory Item'`
+  ).catch(() => {});
+
+  // Default presets: remove non inventory item, add production item, Fixed asset, raw material
+  const presets = [
+    { code: "RAW_MATERIAL", name: "Raw Material" },
+    { code: "PRODUCTION_ITEM", name: "Production Item" },
+    { code: "FIXED_ASSET", name: "Fixed Asset" },
+    { code: "FINISHED_GOOD", name: "Finished Good" },
+    { code: "SEMI_FINISHED", name: "Semi-Finished" },
+    { code: "CONSUMABLE", name: "Consumable" },
+    { code: "SERVICE", name: "Service" },
+  ];
+
+  const companies = await query("SELECT id FROM adm_companies").catch(() => []);
+  const companyIds = companies?.length ? companies.map((c) => Number(c.id)).filter(Boolean) : [1];
+  if (companyId && !companyIds.includes(Number(companyId))) {
+    companyIds.push(Number(companyId));
+  }
+
+  for (const cId of companyIds) {
+    for (const p of presets) {
+      await query(
+        `INSERT IGNORE INTO inv_item_types (company_id, type_code, type_name, is_active) VALUES (?, ?, ?, 1)`,
+        [cId, p.code, p.name],
+      ).catch(() => {});
+    }
   }
 }
 
@@ -1142,8 +1173,8 @@ router.get(
   requireCompanyScope,
   async (req, res, next) => {
     try {
-      await ensureItemTypesTable();
       const { companyId = null } = req.scope || {};
+      await ensureItemTypesTable(companyId);
       const rows = await query(
         `
       SELECT id, type_code, type_name, is_active,
@@ -1169,8 +1200,8 @@ router.post(
   requireCompanyScope,
   async (req, res, next) => {
     try {
-      await ensureItemTypesTable();
       const { companyId = null } = req.scope || {};
+      await ensureItemTypesTable(companyId);
       const body = req.body || {};
       const typeCode = String(body.type_code || "").trim();
       const typeName = String(body.type_name || "").trim();
@@ -1201,8 +1232,8 @@ router.put(
   requireCompanyScope,
   async (req, res, next) => {
     try {
-      await ensureItemTypesTable();
       const { companyId = null } = req.scope || {};
+      await ensureItemTypesTable(companyId);
       const id = Number(req.params.id);
       if (!Number.isFinite(id) || id <= 0) {
         throw httpError(400, "VALIDATION_ERROR", "Invalid id");
@@ -1242,8 +1273,8 @@ router.delete(
   requireCompanyScope,
   async (req, res, next) => {
     try {
-      await ensureItemTypesTable();
       const { companyId = null } = req.scope || {};
+      await ensureItemTypesTable(companyId);
       const id = Number(req.params.id);
       if (!Number.isFinite(id) || id <= 0) {
         throw httpError(400, "VALIDATION_ERROR", "Invalid id");
@@ -1281,6 +1312,7 @@ router.get(
     try {
       await ensureUomTable();
       await ensureItemTypesTable();
+      await ensureItemGroupTables();
       // Assuming other tables are ensured elsewhere, but we at least handle the basic ones.
       const { companyId = null } = req.scope || {};
 
@@ -1292,11 +1324,24 @@ router.get(
         { companyId },
       ).catch(() => []);
       const categories = await query(
-        "SELECT id, category_code, category_name FROM inv_item_categories WHERE company_id = :companyId AND is_active = 1",
+        `SELECT c.id, c.category_code, c.category_name, c.item_group_id,
+                g.group_code AS item_group_code, g.group_name AS item_group_name,
+                g.item_type_id,
+                t.type_code AS item_type_code, t.type_name AS item_type_name
+         FROM inv_item_categories c
+         LEFT JOIN inv_item_groups g ON g.id = c.item_group_id
+         LEFT JOIN inv_item_types t ON t.id = g.item_type_id
+         WHERE c.company_id = :companyId AND c.is_active = 1
+         ORDER BY c.category_name ASC`,
         { companyId },
       ).catch(() => []);
       const itemGroups = await query(
-        "SELECT id, group_code, group_name FROM inv_item_groups WHERE company_id = :companyId AND is_active = 1",
+        `SELECT g.id, g.group_code, g.group_name, g.item_type_id,
+                t.type_code AS item_type_code, t.type_name AS item_type_name
+         FROM inv_item_groups g
+         LEFT JOIN inv_item_types t ON t.id = g.item_type_id
+         WHERE g.company_id = :companyId AND g.is_active = 1
+         ORDER BY g.group_name ASC`,
         { companyId },
       ).catch(() => []);
 
@@ -1633,6 +1678,7 @@ router.get(
           i.reorder_level,
           i.safety_stock,
           i.service_item,
+          i.is_production_item,
           i.is_stockable,
           i.is_sellable,
           i.is_purchasable,
@@ -5689,12 +5735,15 @@ router.get(
       const { companyId, branchId = null } = req.scope || {};
       const rows = await query(
         `
-        SELECT g.id, g.group_code, g.group_name, g.parent_group_id,
+        SELECT g.id, g.group_code, g.group_name, g.item_type_id, g.parent_group_id,
                CASE WHEN g.is_active = 1 THEN 1 ELSE 0 END AS is_active,
+               t.type_code AS item_type_code,
+               t.type_name AS item_type_name,
                p.group_name AS parent_group_name,
           g.created_at,
           u.username AS created_by_name
          FROM inv_item_groups g
+          LEFT JOIN inv_item_types t ON t.id = g.item_type_id
           LEFT JOIN inv_item_groups p ON p.id = g.parent_group_id
         LEFT JOIN adm_users u ON u.id = g.created_by
          WHERE g.company_id = :companyId AND g.branch_id = :branchId
@@ -5720,16 +5769,23 @@ router.get(
       const { companyId, branchId = null } = req.scope || {};
       const rows = await query(
         `
-        SELECT g.id, g.group_code, g.group_name, g.group_name AS category_name, g.parent_group_id,
-               CASE WHEN g.is_active = 1 THEN 1 ELSE 0 END AS is_active,
-               p.group_name AS parent_group_name,
-          g.created_at,
+        SELECT c.id, c.category_code, c.category_name, c.item_group_id, c.parent_category_id,
+               CASE WHEN c.is_active = 1 THEN 1 ELSE 0 END AS is_active,
+               g.group_code AS item_group_code,
+               g.group_name AS item_group_name,
+               g.item_type_id,
+               t.type_code AS item_type_code,
+               t.type_name AS item_type_name,
+               p.category_name AS parent_category_name,
+          c.created_at,
           u.username AS created_by_name
-         FROM inv_item_groups g
-          LEFT JOIN inv_item_groups p ON p.id = g.parent_group_id
-        LEFT JOIN adm_users u ON u.id = g.created_by
-         WHERE g.company_id = :companyId AND g.branch_id = :branchId
-         ORDER BY g.group_name ASC
+         FROM inv_item_categories c
+          LEFT JOIN inv_item_groups g ON g.id = c.item_group_id
+          LEFT JOIN inv_item_types t ON t.id = g.item_type_id
+          LEFT JOIN inv_item_categories p ON p.id = c.parent_category_id
+        LEFT JOIN adm_users u ON u.id = c.created_by
+         WHERE c.company_id = :companyId AND c.branch_id = :branchId
+         ORDER BY c.category_name ASC
         `,
         { companyId, branchId },
       );
@@ -5752,6 +5808,7 @@ router.post(
       const body = req.body || {};
       const groupCode = String(body.group_code || "").trim();
       const groupName = String(body.group_name || "").trim();
+      const itemTypeId = body.item_type_id ? Number(body.item_type_id) : null;
       const parentGroupId = body.parent_group_id
         ? Number(body.parent_group_id)
         : null;
@@ -5764,10 +5821,17 @@ router.post(
           "group_code and group_name are required",
         );
       }
+      if (!itemTypeId) {
+        throw httpError(
+          400,
+          "VALIDATION_ERROR",
+          "item_type_id is required: an item group must fall under an item type",
+        );
+      }
 
       const ins = await query(
-        `INSERT INTO inv_item_groups (company_id, branch_id, group_code, group_name, parent_group_id, is_active) VALUES (:companyId, :branchId, :groupCode, :groupName, :parentGroupId, :isActive)`,
-        { companyId, branchId, groupCode, groupName, parentGroupId, isActive },
+        `INSERT INTO inv_item_groups (company_id, branch_id, group_code, group_name, item_type_id, parent_group_id, is_active) VALUES (:companyId, :branchId, :groupCode, :groupName, :itemTypeId, :parentGroupId, :isActive)`,
+        { companyId, branchId, groupCode, groupName, itemTypeId, parentGroupId, isActive },
       );
       res.status(201).json({ id: ins.insertId });
     } catch (e) {
@@ -5793,6 +5857,7 @@ router.put(
       const body = req.body || {};
       const groupCode = String(body.group_code || "").trim();
       const groupName = String(body.group_name || "").trim();
+      const itemTypeId = body.item_type_id ? Number(body.item_type_id) : null;
       const parentGroupId = body.parent_group_id
         ? Number(body.parent_group_id)
         : null;
@@ -5805,15 +5870,23 @@ router.put(
           "group_code and group_name are required",
         );
       }
+      if (!itemTypeId) {
+        throw httpError(
+          400,
+          "VALIDATION_ERROR",
+          "item_type_id is required: an item group must fall under an item type",
+        );
+      }
 
       const upd = await query(
-        `UPDATE inv_item_groups SET group_code = :groupCode, group_name = :groupName, parent_group_id = :parentGroupId, is_active = :isActive WHERE id = :id AND company_id = :companyId AND branch_id = :branchId`,
+        `UPDATE inv_item_groups SET group_code = :groupCode, group_name = :groupName, item_type_id = :itemTypeId, parent_group_id = :parentGroupId, is_active = :isActive WHERE id = :id AND company_id = :companyId AND branch_id = :branchId`,
         {
           id,
           companyId,
           branchId,
           groupCode,
           groupName,
+          itemTypeId,
           parentGroupId,
           isActive,
         },
@@ -5960,12 +6033,19 @@ router.get(
       const { companyId, branchId = null } = req.scope || {};
       const rows = await query(
         `
-        SELECT c.id, c.category_code, c.category_name, c.parent_category_id,
+        SELECT c.id, c.category_code, c.category_name, c.item_group_id, c.parent_category_id,
                CASE WHEN c.is_active = 1 THEN 1 ELSE 0 END AS is_active,
+               g.group_code AS item_group_code,
+               g.group_name AS item_group_name,
+               g.item_type_id,
+               t.type_code AS item_type_code,
+               t.type_name AS item_type_name,
                p.category_name AS parent_category_name,
           c.created_at,
           u.username AS created_by_name
          FROM inv_item_categories c
+          LEFT JOIN inv_item_groups g ON g.id = c.item_group_id
+          LEFT JOIN inv_item_types t ON t.id = g.item_type_id
           LEFT JOIN inv_item_categories p ON p.id = c.parent_category_id
         LEFT JOIN adm_users u ON u.id = c.created_by
          WHERE c.company_id = :companyId AND c.branch_id = :branchId
@@ -5992,6 +6072,7 @@ router.post(
       const body = req.body || {};
       const categoryCode = String(body.category_code || "").trim();
       const categoryName = String(body.category_name || "").trim();
+      const itemGroupId = body.item_group_id ? Number(body.item_group_id) : null;
       const parentCategoryId = body.parent_category_id
         ? Number(body.parent_category_id)
         : null;
@@ -6004,14 +6085,22 @@ router.post(
           "category_code and category_name are required",
         );
       }
+      if (!itemGroupId) {
+        throw httpError(
+          400,
+          "VALIDATION_ERROR",
+          "item_group_id is required: an item category must fall under an item group",
+        );
+      }
 
       const ins = await query(
-        `INSERT INTO inv_item_categories (company_id, branch_id, category_code, category_name, parent_category_id, is_active) VALUES (:companyId, :branchId, :categoryCode, :categoryName, :parentCategoryId, :isActive)`,
+        `INSERT INTO inv_item_categories (company_id, branch_id, category_code, category_name, item_group_id, parent_category_id, is_active) VALUES (:companyId, :branchId, :categoryCode, :categoryName, :itemGroupId, :parentCategoryId, :isActive)`,
         {
           companyId,
           branchId,
           categoryCode,
           categoryName,
+          itemGroupId,
           parentCategoryId,
           isActive,
         },
@@ -6040,6 +6129,7 @@ router.put(
       const body = req.body || {};
       const categoryCode = String(body.category_code || "").trim();
       const categoryName = String(body.category_name || "").trim();
+      const itemGroupId = body.item_group_id ? Number(body.item_group_id) : null;
       const parentCategoryId = body.parent_category_id
         ? Number(body.parent_category_id)
         : null;
@@ -6052,15 +6142,23 @@ router.put(
           "category_code and category_name are required",
         );
       }
+      if (!itemGroupId) {
+        throw httpError(
+          400,
+          "VALIDATION_ERROR",
+          "item_group_id is required: an item category must fall under an item group",
+        );
+      }
 
       const upd = await query(
-        `UPDATE inv_item_categories SET category_code = :categoryCode, category_name = :categoryName, parent_category_id = :parentCategoryId, is_active = :isActive WHERE id = :id AND company_id = :companyId AND branch_id = :branchId`,
+        `UPDATE inv_item_categories SET category_code = :categoryCode, category_name = :categoryName, item_group_id = :itemGroupId, parent_category_id = :parentCategoryId, is_active = :isActive WHERE id = :id AND company_id = :companyId AND branch_id = :branchId`,
         {
           id,
           companyId,
           branchId,
           categoryCode,
           categoryName,
+          itemGroupId,
           parentCategoryId,
           isActive,
         },
@@ -9995,8 +10093,11 @@ router.post(
           const vatOnSalesId = toNumber(item.vat_on_sales_id);
           const purchaseAccountId = toNumber(item.purchase_account_id);
           const salesAccountId = toNumber(item.sales_account_id);
-          const serviceItem =
-            String(item.service_item || "N").toUpperCase() === "Y" ? "Y" : "N";
+          const itemTypeUpper = String(itemType || "").toUpperCase().trim();
+          const isServiceItem = itemTypeUpper.includes("SERVICE");
+          const isProductionItem = itemTypeUpper.includes("PRODUCTION");
+          const serviceItem = isServiceItem ? "Y" : "N";
+          const isProductionItemVal = isProductionItem ? "Y" : "N";
           const isStockable =
             String(item.is_stockable ?? "Y").toUpperCase() === "Y" ? "Y" : "N";
           const isSellable =
@@ -10029,7 +10130,7 @@ router.post(
                 barcode = :barcode, currency_id = :currencyId, image_url = :imageUrl,
                 vat_on_purchase_id = :vatOnPurchaseId, vat_on_sales_id = :vatOnSalesId,
                 purchase_account_id = :purchaseAccountId, sales_account_id = :salesAccountId,
-                service_item = :serviceItem, is_stockable = :isStockable, is_sellable = :isSellable,
+                service_item = :serviceItem, is_production_item = :isProductionItem, is_stockable = :isStockable, is_sellable = :isSellable,
                 is_purchasable = :isPurchasable, min_stock_level = :minStockLevel,
                 max_stock_level = :maxStockLevel, reorder_level = :reorderLevel,
                 safety_stock = :safetyStock, description = :description
@@ -10051,6 +10152,7 @@ router.post(
                 purchaseAccountId,
                 salesAccountId,
                 serviceItem,
+                isProductionItem: isProductionItemVal,
                 isStockable,
                 isSellable,
                 isPurchasable,
@@ -10069,14 +10171,14 @@ router.post(
                 company_id, item_code, item_name, uom, item_type,
                 category_id, item_group_id, cost_price, selling_price, is_active, created_by,
                 barcode, currency_id, image_url, vat_on_purchase_id, vat_on_sales_id,
-                purchase_account_id, sales_account_id, service_item, is_stockable, is_sellable,
+                purchase_account_id, sales_account_id, service_item, is_production_item, is_stockable, is_sellable,
                 is_purchasable, min_stock_level, max_stock_level, reorder_level, safety_stock,
                 description
               ) VALUES (
                 :companyId, :itemCode, :itemName, :uom, :itemType,
                 :categoryId, :itemGroupId, :costPrice, :sellingPrice, :isActive, :createdBy,
                 :barcode, :currencyId, :imageUrl, :vatOnPurchaseId, :vatOnSalesId,
-                :purchaseAccountId, :salesAccountId, :serviceItem, :isStockable, :isSellable,
+                :purchaseAccountId, :salesAccountId, :serviceItem, :isProductionItem, :isStockable, :isSellable,
                 :isPurchasable, :minStockLevel, :maxStockLevel, :reorderLevel, :safetyStock,
                 :description
               )`,
@@ -10100,6 +10202,7 @@ router.post(
                 purchaseAccountId,
                 salesAccountId,
                 serviceItem,
+                isProductionItem: isProductionItemVal,
                 isStockable,
                 isSellable,
                 isPurchasable,
@@ -10178,8 +10281,11 @@ router.post(
       const purchaseAccountId = toNumber(body.purchase_account_id);
       const salesAccountId = toNumber(body.sales_account_id);
       const isActive = body.is_active === false || body.is_active === 0 ? 0 : 1;
-      const serviceItem =
-        String(body.service_item || "N").toUpperCase() === "Y" ? "Y" : "N";
+      const itemTypeUpper = String(itemType || "").toUpperCase().trim();
+      const isServiceItem = itemTypeUpper.includes("SERVICE");
+      const isProductionItem = itemTypeUpper.includes("PRODUCTION");
+      const serviceItem = isServiceItem ? "Y" : "N";
+      const isProductionItemVal = isProductionItem ? "Y" : "N";
       const isStockable =
         String(body.is_stockable ?? "Y").toUpperCase() === "Y" ? "Y" : "N";
       const isSellable =
@@ -10212,7 +10318,7 @@ router.post(
           barcode, image_url, cost_price, selling_price, currency_id,
           vat_on_purchase_id, vat_on_sales_id, purchase_account_id, sales_account_id,
           description, min_stock_level, max_stock_level, reorder_level, safety_stock,
-          service_item, is_stockable, is_sellable, is_purchasable, is_active
+          service_item, is_production_item, is_stockable, is_sellable, is_purchasable, is_active
           , created_by
         )
         VALUES (
@@ -10220,7 +10326,7 @@ router.post(
           :barcode, :imageUrl, :costPrice, :sellingPrice, :currencyId,
           :vatOnPurchaseId, :vatOnSalesId, :purchaseAccountId, :salesAccountId,
           :description, :minStockLevel, :maxStockLevel, :reorderLevel, :safetyStock,
-          :serviceItem, :isStockable, :isSellable, :isPurchasable, :isActive
+          :serviceItem, :isProductionItem, :isStockable, :isSellable, :isPurchasable, :isActive
           , :createdBy
         )
         `,
@@ -10248,6 +10354,7 @@ router.post(
           reorderLevel: Number.isFinite(reorderLevel) ? reorderLevel : 0,
           safetyStock: Number.isFinite(safetyStock) ? safetyStock : 0,
           serviceItem,
+          isProductionItem: isProductionItemVal,
           isStockable,
           isSellable,
           isPurchasable,
@@ -10383,8 +10490,11 @@ router.put(
       const purchaseAccountId = toNumber(body.purchase_account_id);
       const salesAccountId = toNumber(body.sales_account_id);
       const isActive = body.is_active === false || body.is_active === 0 ? 0 : 1;
-      const serviceItem =
-        String(body.service_item || "N").toUpperCase() === "Y" ? "Y" : "N";
+      const itemTypeUpper = String(itemType || "").toUpperCase().trim();
+      const isServiceItem = itemTypeUpper.includes("SERVICE");
+      const isProductionItem = itemTypeUpper.includes("PRODUCTION");
+      const serviceItem = isServiceItem ? "Y" : "N";
+      const isProductionItemVal = isProductionItem ? "Y" : "N";
       const isStockable =
         String(body.is_stockable ?? "Y").toUpperCase() === "Y" ? "Y" : "N";
       const isSellable =
@@ -10432,6 +10542,7 @@ router.put(
             reorder_level = :reorderLevel,
             safety_stock = :safetyStock,
             service_item = :serviceItem,
+            is_production_item = :isProductionItem,
             is_stockable = :isStockable,
             is_sellable = :isSellable,
             is_purchasable = :isPurchasable,
@@ -10464,6 +10575,7 @@ router.put(
           reorderLevel: Number.isFinite(reorderLevel) ? reorderLevel : 0,
           safetyStock: Number.isFinite(safetyStock) ? safetyStock : 0,
           serviceItem,
+          isProductionItem: isProductionItemVal,
           isStockable,
           isSellable,
           isPurchasable,

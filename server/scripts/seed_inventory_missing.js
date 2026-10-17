@@ -147,6 +147,8 @@ async function seedInventoryMissing() {
     console.log("Seeding inv_item_types...");
     const itemTypes = [
       { code: "RAW_MATERIAL", name: "Raw Material" },
+      { code: "PRODUCTION_ITEM", name: "Production Item" },
+      { code: "FIXED_ASSET", name: "Fixed Asset" },
       { code: "FINISHED_GOOD", name: "Finished Good" },
       { code: "SEMI_FINISHED", name: "Semi-Finished" },
       { code: "CONSUMABLE", name: "Consumable" },

@@ -65,6 +65,9 @@ export default {
           "0 20px 25px -5px rgba(15, 23, 42, 0.1), 0 10px 10px -5px rgba(15, 23, 42, 0.04)",
         glass: "0 8px 32px 0 rgba(31, 38, 135, 0.37)",
       },
+      fontSize: {
+        base: ["0.875rem", { lineHeight: "1.25rem" }], // 14px default base font size matching Item Setup form
+      },
     },
   },
   plugins: [],
