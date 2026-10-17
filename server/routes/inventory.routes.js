@@ -1137,7 +1137,7 @@ async function ensureItemTypesTable(companyId = null) {
 
   // Remove non-inventory preset if present
   await query(
-    `DELETE FROM inv_item_types WHERE type_code = 'NON_INVENTORY' OR type_name = 'Non-Inventory Item'`
+    `DELETE FROM inv_item_types WHERE type_code IN ('NON_INVENTORY', 'NON-INVENTORY') OR type_name LIKE '%Non-Inventory%'`
   ).catch(() => {});
 
   // Default presets: remove non inventory item, add production item, Fixed asset, raw material
@@ -1160,11 +1160,17 @@ async function ensureItemTypesTable(companyId = null) {
   for (const cId of companyIds) {
     for (const p of presets) {
       await query(
-        `INSERT IGNORE INTO inv_item_types (company_id, type_code, type_name, is_active) VALUES (?, ?, ?, 1)`,
+        `INSERT INTO inv_item_types (company_id, type_code, type_name, is_active)
+         VALUES (?, ?, ?, 1)
+         ON DUPLICATE KEY UPDATE type_name = VALUES(type_name), is_active = 1`,
         [cId, p.code, p.name],
       ).catch(() => {});
     }
   }
+
+  await query(
+    `UPDATE inv_item_types SET is_active = 1 WHERE type_code IN ('RAW_MATERIAL', 'PRODUCTION_ITEM', 'FIXED_ASSET', 'FINISHED_GOOD', 'SEMI_FINISHED', 'CONSUMABLE', 'SERVICE')`
+  ).catch(() => {});
 }
 
 router.get(

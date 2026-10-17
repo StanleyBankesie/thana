@@ -97,7 +97,7 @@ export default function ItemForm({ isModal = false, modalItemId, onClose, onSave
     currency_id: "1",
     image_url: "",
     is_active: true,
-    item_type: "INVENTORY",
+    item_type: isProductionMode ? "PRODUCTION_ITEM" : "",
     category_id: "",
     item_group_id: "",
     description: "",
@@ -706,7 +706,7 @@ export default function ItemForm({ isModal = false, modalItemId, onClose, onSave
       const payload = {
         item_code: formData.item_code,
         item_name: formData.item_name,
-        branch_id: formData.branch_id ? Number(formData.branch_id) : null,
+        branch_id: formData.branch_id ? Number(formData.branch_id) : (activeBranchId ? Number(activeBranchId) : null),
         uom: formData.uom || "PCS",
         barcode: formData.barcode || null,
         cost_price: Number(formData.cost_price) || 0,
@@ -1015,7 +1015,9 @@ export default function ItemForm({ isModal = false, modalItemId, onClose, onSave
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Branch is hidden from UI but auto-populated and submitted in background */}
+              <input type="hidden" name="branch_id" value={formData.branch_id || ""} />
               <div>
                 <label className="label">Unit of Measure</label>
                 <select
@@ -1041,25 +1043,6 @@ export default function ItemForm({ isModal = false, modalItemId, onClose, onSave
                         {u.uom_code || u.code || u.uom || "-"}
                       </option>
                     ))
-                  )}
-                </select>
-              </div>
-              <div>
-                <label className="label">Branch</label>
-                <select
-                  className="input"
-                  value={formData.branch_id || ""}
-                  onChange={(e) =>
-                    setFormData({ ...formData, branch_id: e.target.value })
-                  }
-                >
-                  <option value="">-- Select Branch --</option>
-                  {branches.map((b) =>
-                    b ? (
-                      <option key={b.id} value={String(b.id)}>
-                        {b.name} ({b.code || b.id})
-                      </option>
-                    ) : null,
                   )}
                 </select>
               </div>

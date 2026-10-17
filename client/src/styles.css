@@ -276,6 +276,64 @@
     visibility: hidden !important;
     pointer-events: none !important;
   }
+
+  /* ── Compact Classification Card Tables ──────────────── */
+  .classification-compact-table,
+  table.classification-compact-table {
+    width: 100% !important;
+    max-width: 100% !important;
+    table-layout: fixed !important;
+    border-collapse: collapse !important;
+  }
+  .classification-compact-table th,
+  .classification-compact-table td {
+    padding: 0.35rem 0.5rem !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+  .classification-compact-table th {
+    font-size: 0.75rem !important;
+    letter-spacing: 0.025em !important;
+  }
+  .classification-compact-table td {
+    font-size: 0.8125rem !important;
+  }
+  .classification-compact-table th:last-child,
+  .classification-compact-table td:last-child,
+  .classification-compact-table th:has(+ th:last-child),
+  .classification-compact-table td:has(+ td:last-child),
+  .classification-compact-table td:has(> .user-action-buttons),
+  .classification-compact-table td:has(> .ds-action-buttons),
+  .classification-compact-table td:has(> .flex > .btn),
+  .classification-compact-table td:has(> .flex > a),
+  .classification-compact-table td:has(> .btn),
+  .classification-compact-table td:has(> a.btn),
+  .classification-compact-table td:has(> button),
+  .classification-compact-table td:has(> a) {
+    min-width: 0 !important;
+    max-width: none !important;
+    white-space: nowrap !important;
+  }
+  .classification-compact-table td:last-child > .flex,
+  .classification-compact-table td:last-child > div.flex {
+    display: flex !important;
+    grid-auto-columns: auto !important;
+    grid-auto-flow: row !important;
+    min-width: 0 !important;
+    justify-content: flex-end !important;
+  }
+  .classification-compact-table td:last-child > .flex > *,
+  .classification-compact-table td:last-child > button,
+  .classification-compact-table td:last-child > a,
+  .classification-compact-table td > .flex > button,
+  .classification-compact-table td > .flex > a {
+    min-width: 0 !important;
+    width: auto !important;
+    text-align: inherit !important;
+  }
+
   /* Print / PDF / attachments — icon buttons share the same shell as the legacy PDF pill */
   .list-doc-action-btn {
     @apply w-full inline-flex items-center justify-center px-4 py-1.5 text-sm font-medium rounded-lg border border-slate-200 bg-white text-slate-700 transition-colors h-9 disabled:opacity-50 disabled:pointer-events-none gap-1;

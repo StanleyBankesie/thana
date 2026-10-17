@@ -69,14 +69,39 @@ export default function ItemGroupsList() {
     item_group_id: "",
   });
 
+const DEFAULT_PRESET_ITEM_TYPES = [
+  { id: 1, type_code: "RAW_MATERIAL", type_name: "Raw Material", is_active: 1 },
+  { id: 2, type_code: "PRODUCTION_ITEM", type_name: "Production Item", is_active: 1 },
+  { id: 3, type_code: "FIXED_ASSET", type_name: "Fixed Asset", is_active: 1 },
+  { id: 4, type_code: "FINISHED_GOOD", type_name: "Finished Good", is_active: 1 },
+  { id: 5, type_code: "SEMI_FINISHED", type_name: "Semi-Finished", is_active: 1 },
+  { id: 6, type_code: "CONSUMABLE", type_name: "Consumable", is_active: 1 },
+  { id: 7, type_code: "SERVICE", type_name: "Service", is_active: 1 },
+];
+
   const fetchTypes = useCallback(async () => {
     setTypesLoading(true);
     setTypesError("");
     try {
       const res = await api.get("/inventory/item-types");
-      setItemTypes(Array.isArray(res.data?.items) ? res.data.items : []);
+      const loaded = Array.isArray(res.data?.items) ? res.data.items : [];
+      if (!loaded.length) {
+        setItemTypes(DEFAULT_PRESET_ITEM_TYPES);
+      } else {
+        const existingCodes = new Set(
+          loaded.map((t) => String(t.type_code || t.code || "").toUpperCase())
+        );
+        const merged = [...loaded];
+        for (const preset of DEFAULT_PRESET_ITEM_TYPES) {
+          if (!existingCodes.has(preset.type_code)) {
+            merged.push(preset);
+          }
+        }
+        setItemTypes(merged);
+      }
     } catch (e) {
       setTypesError(e?.response?.data?.message || "Failed to load item types");
+      setItemTypes(DEFAULT_PRESET_ITEM_TYPES);
     } finally {
       setTypesLoading(false);
     }
@@ -426,7 +451,7 @@ export default function ItemGroupsList() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 w-full items-stretch">
         {/* Grid 1: Item Types */}
         <div className="card flex flex-col h-full w-full min-w-0 border border-slate-200 dark:border-slate-800 shadow-sm rounded-xl overflow-hidden">
-          <div className="card-header bg-slate-800 text-white p-4">
+          <div className="card-header bg-brand text-white p-4">
             <div className="flex justify-between items-center">
               <div className="flex items-center gap-2.5">
                 <div className="p-2 bg-indigo-500/20 text-indigo-300 rounded-lg">
@@ -458,47 +483,45 @@ export default function ItemGroupsList() {
               <div className="p-3 text-xs text-red-600 bg-red-50 border-b border-red-100">{typesError}</div>
             )}
             <div className="overflow-x-auto flex-1 max-h-[380px] overflow-y-auto">
-              <table className="table w-full table-fixed text-sm">
+              <table
+                className="w-full min-w-[520px] border-collapse text-sm"
+                style={{ width: "100%", tableLayout: "fixed" }}
+              >
                 <colgroup>
-                  <col className="w-[28%]" />
-                  <col className="w-[42%]" />
-                  <col className="w-[15%]" />
-                  <col className="w-[15%]" />
+                  <col style={{ width: "45%" }} />
+                  <col style={{ width: "25%" }} />
+                  <col style={{ width: "30%" }} />
                 </colgroup>
                 <thead className="sticky top-0 bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700 z-10">
                   <tr>
-                    <th className="py-2.5 px-4 text-left">Code</th>
-                    <th className="py-2.5 px-4 text-left">Name</th>
-                    <th className="py-2.5 px-4 text-center">Active</th>
-                    <th className="py-2.5 px-4 text-right">Actions</th>
+                    <th style={{ width: "45%" }} className="py-2.5 px-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Name</th>
+                    <th style={{ width: "25%" }} className="py-2.5 px-3 text-center text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Active</th>
+                    <th style={{ width: "30%" }} className="py-2.5 px-3 text-right text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                   {typesLoading ? (
                     <tr>
-                      <td colSpan="4" className="text-center py-8 text-slate-400">Loading item types...</td>
+                      <td colSpan="3" className="text-center py-8 text-slate-400">Loading item types...</td>
                     </tr>
                   ) : !filteredTypes.length ? (
                     <tr>
-                      <td colSpan="4" className="text-center py-8 text-slate-400">No item types found</td>
+                      <td colSpan="3" className="text-center py-8 text-slate-400">No item types found</td>
                     </tr>
                   ) : (
                     filteredTypes.map((t) => {
                       const isActive = t.is_active === 1 || t.is_active === true || t.is_active === "Y";
                       return (
                         <tr key={t.id || t.type_code} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/40">
-                          <td className="py-2.5 px-4 font-semibold text-brand-700 dark:text-brand-300 truncate" title={t.type_code || t.code}>
-                            {t.type_code || t.code}
-                          </td>
-                          <td className="py-2.5 px-4 text-slate-700 dark:text-slate-300 font-medium truncate" title={t.type_name || t.name}>
+                          <td style={{ width: "45%" }} className="py-2.5 px-3 text-slate-700 dark:text-slate-300 font-medium truncate" title={t.type_name || t.name}>
                             {t.type_name || t.name}
                           </td>
-                          <td className="py-2.5 px-4 text-center">
+                          <td style={{ width: "25%" }} className="py-2.5 px-3 text-center">
                             <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${isActive ? "bg-emerald-50 text-emerald-700 border border-emerald-200" : "bg-slate-100 text-slate-600"}`}>
                               {isActive ? "Active" : "Inactive"}
                             </span>
                           </td>
-                          <td className="py-2.5 px-4 text-right">
+                          <td style={{ width: "30%" }} className="py-2.5 px-3 text-right whitespace-nowrap">
                             <button
                               type="button"
                               onClick={() => handleOpenModal("type", "edit", t)}
@@ -519,7 +542,7 @@ export default function ItemGroupsList() {
 
         {/* Grid 2: Item Groups */}
         <div className="card flex flex-col h-full w-full min-w-0 border border-slate-200 dark:border-slate-800 shadow-sm rounded-xl overflow-hidden">
-          <div className="card-header bg-slate-800 text-white p-4">
+          <div className="card-header bg-brand text-white p-4">
             <div className="flex justify-between items-center">
               <div className="flex items-center gap-2.5">
                 <div className="p-2 bg-emerald-500/20 text-emerald-300 rounded-lg">
@@ -551,70 +574,68 @@ export default function ItemGroupsList() {
               <div className="p-3 text-xs text-red-600 bg-red-50 border-b border-red-100">{groupsError}</div>
             )}
             <div className="overflow-x-auto flex-1 max-h-[380px] overflow-y-auto">
-              <table className="table w-full table-fixed text-sm">
+              <table
+                className="w-full min-w-[560px] border-collapse text-sm"
+                style={{ width: "100%", tableLayout: "fixed" }}
+              >
                 <colgroup>
-                  <col className="w-[20%]" />
-                  <col className="w-[28%]" />
-                  <col className="w-[24%]" />
-                  <col className="w-[14%]" />
-                  <col className="w-[14%]" />
+                  <col style={{ width: "28%" }} />
+                  <col style={{ width: "32%" }} />
+                  <col style={{ width: "18%" }} />
+                  <col style={{ width: "22%" }} />
                 </colgroup>
                 <thead className="sticky top-0 bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700 z-10">
                   <tr>
-                    <th className="py-2.5 px-4 text-left">Code</th>
-                    <th className="py-2.5 px-4 text-left">Name</th>
-                    <th className="py-2.5 px-4 text-left">Item Type</th>
-                    <th className="py-2.5 px-4 text-center">Active</th>
-                    <th className="py-2.5 px-4 text-right">Actions</th>
+                    <th style={{ width: "28%" }} className="py-2.5 px-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Name</th>
+                    <th style={{ width: "32%" }} className="py-2.5 px-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Item Type</th>
+                    <th style={{ width: "18%" }} className="py-2.5 px-3 text-center text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Active</th>
+                    <th style={{ width: "22%" }} className="py-2.5 px-3 text-right text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                   {groupsLoading ? (
                     <tr>
-                      <td colSpan="5" className="text-center py-8 text-slate-400">Loading item groups...</td>
+                      <td colSpan="4" className="text-center py-8 text-slate-400">Loading item groups...</td>
                     </tr>
                   ) : !filteredGroups.length ? (
                     <tr>
-                      <td colSpan="5" className="text-center py-8 text-slate-400">No item groups found</td>
+                      <td colSpan="4" className="text-center py-8 text-slate-400">No item groups found</td>
                     </tr>
                   ) : (
                     filteredGroups.map((g) => {
                       const isActive = g.is_active === 1 || g.is_active === true || g.is_active === "Y";
                       return (
                         <tr key={g.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/40">
-                          <td className="py-2.5 px-4 font-semibold text-brand-700 dark:text-brand-300 truncate" title={g.group_code}>
-                            {g.group_code}
-                          </td>
-                          <td className="py-2.5 px-4 text-slate-700 dark:text-slate-300 font-medium truncate" title={g.group_name}>
+                          <td style={{ width: "28%" }} className="py-2.5 px-3 text-slate-700 dark:text-slate-300 font-medium truncate" title={g.group_name}>
                             {g.group_name}
                           </td>
-                          <td className="py-2.5 px-4 truncate">
+                          <td style={{ width: "32%" }} className="py-2.5 px-3 truncate">
                             {g.item_type_name || g.item_type_code ? (
-                              <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-indigo-50 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 truncate" title={g.item_type_name || g.item_type_code}>
+                              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-semibold bg-indigo-50 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 truncate" title={g.item_type_name || g.item_type_code}>
                                 {g.item_type_name || g.item_type_code}
                               </span>
                             ) : (
                               <span className="text-xs text-slate-400 italic">None</span>
                             )}
                           </td>
-                          <td className="py-2.5 px-4 text-center">
+                          <td style={{ width: "18%" }} className="py-2.5 px-3 text-center">
                             <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${isActive ? "bg-emerald-50 text-emerald-700 border border-emerald-200" : "bg-slate-100 text-slate-600"}`}>
                               {isActive ? "Active" : "Inactive"}
                             </span>
                           </td>
-                          <td className="py-2.5 px-4 text-right">
-                            <div className="flex items-center justify-end gap-1.5 whitespace-nowrap">
+                          <td style={{ width: "22%" }} className="py-2.5 px-3 text-right">
+                            <div className="flex items-center justify-end gap-1 whitespace-nowrap">
                               <button
                                 type="button"
                                 onClick={() => handleOpenModal("group", "view", g)}
-                                className="px-2 py-1 text-xs font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-md transition-colors"
+                                className="px-1.5 py-0.5 text-xs font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 rounded transition-colors"
                               >
                                 View
                               </button>
                               <button
                                 type="button"
                                 onClick={() => handleOpenModal("group", "edit", g)}
-                                className="px-2 py-1 text-xs font-medium text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-md transition-colors"
+                                className="px-1.5 py-0.5 text-xs font-medium text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded transition-colors"
                               >
                                 Edit
                               </button>
@@ -632,7 +653,7 @@ export default function ItemGroupsList() {
 
         {/* Grid 3: Item Categories */}
         <div className="card flex flex-col h-full w-full min-w-0 border border-slate-200 dark:border-slate-800 shadow-sm rounded-xl overflow-hidden">
-          <div className="card-header bg-slate-800 text-white p-4">
+          <div className="card-header bg-brand text-white p-4">
             <div className="flex justify-between items-center">
               <div className="flex items-center gap-2.5">
                 <div className="p-2 bg-amber-500/20 text-amber-300 rounded-lg">
@@ -664,58 +685,56 @@ export default function ItemGroupsList() {
               <div className="p-3 text-xs text-red-600 bg-red-50 border-b border-red-100">{categoriesError}</div>
             )}
             <div className="overflow-x-auto flex-1 max-h-[380px] overflow-y-auto">
-              <table className="table w-full table-fixed text-sm">
+              <table
+                className="w-full min-w-[560px] border-collapse text-sm"
+                style={{ width: "100%", tableLayout: "fixed" }}
+              >
                 <colgroup>
-                  <col className="w-[20%]" />
-                  <col className="w-[28%]" />
-                  <col className="w-[24%]" />
-                  <col className="w-[14%]" />
-                  <col className="w-[14%]" />
+                  <col style={{ width: "32%" }} />
+                  <col style={{ width: "34%" }} />
+                  <col style={{ width: "17%" }} />
+                  <col style={{ width: "17%" }} />
                 </colgroup>
                 <thead className="sticky top-0 bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700 z-10">
                   <tr>
-                    <th className="py-2.5 px-4 text-left">Code</th>
-                    <th className="py-2.5 px-4 text-left">Name</th>
-                    <th className="py-2.5 px-4 text-left">Item Group</th>
-                    <th className="py-2.5 px-4 text-center">Active</th>
-                    <th className="py-2.5 px-4 text-right">Actions</th>
+                    <th style={{ width: "32%" }} className="py-2.5 px-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Name</th>
+                    <th style={{ width: "34%" }} className="py-2.5 px-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Item Group</th>
+                    <th style={{ width: "17%" }} className="py-2.5 px-3 text-center text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Active</th>
+                    <th style={{ width: "17%" }} className="py-2.5 px-3 text-right text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                   {categoriesLoading ? (
                     <tr>
-                      <td colSpan="5" className="text-center py-8 text-slate-400">Loading item categories...</td>
+                      <td colSpan="4" className="text-center py-8 text-slate-400">Loading item categories...</td>
                     </tr>
                   ) : !filteredCategories.length ? (
                     <tr>
-                      <td colSpan="5" className="text-center py-8 text-slate-400">No item categories found</td>
+                      <td colSpan="4" className="text-center py-8 text-slate-400">No item categories found</td>
                     </tr>
                   ) : (
                     filteredCategories.map((c) => {
                       const isActive = c.is_active === 1 || c.is_active === true || c.is_active === "Y";
                       return (
                         <tr key={c.id || c.category_code} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/40">
-                          <td className="py-2.5 px-4 font-semibold text-brand-700 dark:text-brand-300 truncate" title={c.category_code}>
-                            {c.category_code}
-                          </td>
-                          <td className="py-2.5 px-4 text-slate-700 dark:text-slate-300 font-medium truncate" title={c.category_name}>
+                          <td style={{ width: "32%" }} className="py-2.5 px-3 text-slate-700 dark:text-slate-300 font-medium truncate" title={c.category_name}>
                             {c.category_name}
                           </td>
-                          <td className="py-2.5 px-4 truncate">
+                          <td style={{ width: "34%" }} className="py-2.5 px-3 truncate">
                             {c.item_group_name || c.item_group_code ? (
-                              <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 truncate" title={c.item_group_name || c.item_group_code}>
+                              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-semibold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 truncate" title={c.item_group_name || c.item_group_code}>
                                 {c.item_group_name || c.item_group_code}
                               </span>
                             ) : (
                               <span className="text-xs text-slate-400 italic">None</span>
                             )}
                           </td>
-                          <td className="py-2.5 px-4 text-center">
+                          <td style={{ width: "17%" }} className="py-2.5 px-3 text-center">
                             <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${isActive ? "bg-emerald-50 text-emerald-700 border border-emerald-200" : "bg-slate-100 text-slate-600"}`}>
                               {isActive ? "Active" : "Inactive"}
                             </span>
                           </td>
-                          <td className="py-2.5 px-4 text-right">
+                          <td style={{ width: "17%" }} className="py-2.5 px-3 text-right whitespace-nowrap">
                             <button
                               type="button"
                               onClick={() => handleOpenModal("category", "edit", c)}
@@ -736,7 +755,7 @@ export default function ItemGroupsList() {
 
         {/* Grid 4: Units of Measure */}
         <div className="card flex flex-col h-full w-full min-w-0 border border-slate-200 dark:border-slate-800 shadow-sm rounded-xl overflow-hidden">
-          <div className="card-header bg-slate-800 text-white p-4">
+          <div className="card-header bg-brand text-white p-4">
             <div className="flex justify-between items-center">
               <div className="flex items-center gap-2.5">
                 <div className="p-2 bg-blue-500/20 text-blue-300 rounded-lg">
@@ -768,54 +787,52 @@ export default function ItemGroupsList() {
               <div className="p-3 text-xs text-red-600 bg-red-50 border-b border-red-100">{uomsError}</div>
             )}
             <div className="overflow-x-auto flex-1 max-h-[380px] overflow-y-auto">
-              <table className="table w-full table-fixed text-sm">
+              <table
+                className="w-full min-w-[560px] border-collapse text-sm"
+                style={{ width: "100%", tableLayout: "fixed" }}
+              >
                 <colgroup>
-                  <col className="w-[20%]" />
-                  <col className="w-[28%]" />
-                  <col className="w-[24%]" />
-                  <col className="w-[14%]" />
-                  <col className="w-[14%]" />
+                  <col style={{ width: "34%" }} />
+                  <col style={{ width: "32%" }} />
+                  <col style={{ width: "17%" }} />
+                  <col style={{ width: "17%" }} />
                 </colgroup>
                 <thead className="sticky top-0 bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700 z-10">
                   <tr>
-                    <th className="py-2.5 px-4 text-left">Code</th>
-                    <th className="py-2.5 px-4 text-left">Name</th>
-                    <th className="py-2.5 px-4 text-left">Type</th>
-                    <th className="py-2.5 px-4 text-center">Active</th>
-                    <th className="py-2.5 px-4 text-right">Actions</th>
+                    <th style={{ width: "34%" }} className="py-2.5 px-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Name</th>
+                    <th style={{ width: "32%" }} className="py-2.5 px-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Type</th>
+                    <th style={{ width: "17%" }} className="py-2.5 px-3 text-center text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Active</th>
+                    <th style={{ width: "17%" }} className="py-2.5 px-3 text-right text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                   {uomsLoading ? (
                     <tr>
-                      <td colSpan="5" className="text-center py-8 text-slate-400">Loading units of measure...</td>
+                      <td colSpan="4" className="text-center py-8 text-slate-400">Loading units of measure...</td>
                     </tr>
                   ) : !filteredUoms.length ? (
                     <tr>
-                      <td colSpan="5" className="text-center py-8 text-slate-400">No units of measure found</td>
+                      <td colSpan="4" className="text-center py-8 text-slate-400">No units of measure found</td>
                     </tr>
                   ) : (
                     filteredUoms.map((u) => {
                       const isActive = u.is_active === 1 || u.is_active === true || u.is_active === "Y";
                       return (
                         <tr key={u.id || u.uom_code} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/40">
-                          <td className="py-2.5 px-4 font-semibold text-brand-700 dark:text-brand-300 truncate" title={u.uom_code || u.code}>
-                            {u.uom_code || u.code}
-                          </td>
-                          <td className="py-2.5 px-4 text-slate-700 dark:text-slate-300 font-medium truncate" title={u.uom_name || u.name}>
+                          <td style={{ width: "34%" }} className="py-2.5 px-3 text-slate-700 dark:text-slate-300 font-medium truncate" title={u.uom_name || u.name}>
                             {u.uom_name || u.name}
                           </td>
-                          <td className="py-2.5 px-4 truncate">
+                          <td style={{ width: "32%" }} className="py-2.5 px-3 truncate">
                             <span className="inline-flex px-2 py-0.5 rounded text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
                               {u.uom_type || u.type || "COUNT"}
                             </span>
                           </td>
-                          <td className="py-2.5 px-4 text-center">
+                          <td style={{ width: "17%" }} className="py-2.5 px-3 text-center">
                             <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${isActive ? "bg-emerald-50 text-emerald-700 border border-emerald-200" : "bg-slate-100 text-slate-600"}`}>
                               {isActive ? "Active" : "Inactive"}
                             </span>
                           </td>
-                          <td className="py-2.5 px-4 text-right">
+                          <td style={{ width: "17%" }} className="py-2.5 px-3 text-right whitespace-nowrap">
                             <button
                               type="button"
                               onClick={() => handleOpenModal("uom", "edit", u)}
