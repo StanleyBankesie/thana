@@ -12,6 +12,7 @@ import { usePermission } from "../../../../auth/PermissionContext.jsx";
 import { filterAndSort } from "@/utils/searchUtils.js";
 import { useViewMode } from "@/hooks/useViewMode";
 import ViewToggle from "@/components/ViewToggle";
+import { resolveImageUrl } from "@/utils/imageUrl.js";
 
 function normalizeBool(val) {
   if (!val) return false;
@@ -381,7 +382,7 @@ export default function EmployeeList() {
                       <td>
                         <div className="w-10 h-10 rounded-full bg-slate-100 overflow-hidden border border-slate-200">
                           {emp.picture_url ? (
-                            <img src={emp.picture_url} alt="" className="w-full h-full object-cover" />
+                            <img src={resolveImageUrl(emp.picture_url)} alt="" className="w-full h-full object-cover" />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center text-slate-400">👤</div>
                           )}

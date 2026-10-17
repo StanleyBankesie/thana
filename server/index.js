@@ -978,19 +978,32 @@ app.get(
   },
 );
 
-app.use(
-  "/uploads",
-  express.static(
-    path.join(path.dirname(fileURLToPath(import.meta.url)), "uploads"),
-  ),
-);
-// Expose uploads also under /api/uploads so dev proxies can access files
-app.use(
-  "/api/uploads",
-  express.static(
-    path.join(path.dirname(fileURLToPath(import.meta.url)), "uploads"),
-  ),
-);
+const serverBaseDir = path.dirname(fileURLToPath(import.meta.url));
+const serverUploadsDir = path.join(serverBaseDir, "uploads");
+const rootUploadsDir = path.join(serverBaseDir, "../uploads");
+
+for (const dir of [serverUploadsDir, rootUploadsDir]) {
+  try {
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  } catch {}
+}
+
+const staticUploadsOptions = {
+  setHeaders: (res) => {
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader("Access-Control-Allow-Methods", "GET, HEAD, OPTIONS");
+    res.setHeader("Access-Control-Allow-Headers", "*");
+    res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
+  },
+};
+
+// Serve from server/uploads first, then fallback to root /uploads
+app.use("/uploads", express.static(serverUploadsDir, staticUploadsOptions));
+app.use("/uploads", express.static(rootUploadsDir, staticUploadsOptions));
+
+// Expose uploads also under /api/uploads so dev proxies and API callers can access files
+app.use("/api/uploads", express.static(serverUploadsDir, staticUploadsOptions));
+app.use("/api/uploads", express.static(rootUploadsDir, staticUploadsOptions));
 // SECURITY: Debug endpoints require authentication
 app.get("/api/debug-crash-log", requireAuthMiddleware, (req, res) => {
   // SECURITY: Only allow admin users (ID 1) to access crash reports

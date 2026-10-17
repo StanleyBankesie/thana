@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { formatDistanceToNow, parseISO } from "date-fns";
 import { useAuth } from "../../auth/AuthContext";
 import api from "../../api/client";
+import { resolveImageUrl } from "../../utils/imageUrl";
 
 /**
  * SocialFeedPage / Post History Page
@@ -496,7 +497,7 @@ export default function SocialFeedPage() {
                 {post.image_url && (
                   <div className="mt-3 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-800 max-h-[420px] bg-slate-950 flex items-center justify-center">
                     <img
-                      src={post.image_url}
+                      src={resolveImageUrl(post.image_url)}
                       alt="Post Attachment"
                       className="w-full h-auto max-h-[420px] object-contain"
                       loading="lazy"

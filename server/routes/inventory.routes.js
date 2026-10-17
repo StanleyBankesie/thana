@@ -66,6 +66,24 @@ function toDateOnly(s) {
   return String(s).slice(0, 10) || null;
 }
 
+function formatItemImageUrl(url, req) {
+  if (!url) return null;
+  const s = String(url).trim();
+  if (!s) return null;
+  if (/^(data:|blob:|https?:|\/\/)/i.test(s)) return s;
+  const forwardedProto = req?.headers?.["x-forwarded-proto"];
+  const forwardedHost = req?.headers?.["x-forwarded-host"];
+  const host = forwardedHost || req?.get?.("host") || "";
+  const isHttps =
+    forwardedProto === "https" ||
+    req?.secure ||
+    (host && host.includes("omnisuite-erp.com"));
+  const protocol = isHttps ? "https" : (req?.protocol || "http");
+  const origin = host ? `${protocol}://${host}` : "";
+  const cleanPath = s.startsWith("/") ? s : `/${s}`;
+  return origin ? `${origin}${cleanPath}` : cleanPath;
+}
+
 async function userHasExceptionalAllow(userId, permissionCode = null) {
   const params = { uid: userId };
   if (permissionCode) params.code = permissionCode;
@@ -1744,7 +1762,11 @@ router.get(
         `,
         { companyId: companyId || null, warehouseId, branchFilterStr: branchFilterStr || "" },
       );
-      res.json({ items: rows });
+      const items = (rows || []).map((r) => ({
+        ...r,
+        image_url: formatItemImageUrl(r.image_url, req),
+      }));
+      res.json({ items });
     } catch (err) {
       next(err);
     }
@@ -10060,6 +10082,9 @@ router.get("/items/:id", requireAuth, async (req, res, next) => {
       { id: id || null },
     );
     if (!item) throw httpError(404, "NOT_FOUND", "Item not found");
+    if (item.image_url) {
+      item.image_url = formatItemImageUrl(item.image_url, req);
+    }
     res.json({ item });
   } catch (e) {
     next(e);
@@ -10156,12 +10181,13 @@ router.post(
           const purchaseAccountId = toNumber(item.purchase_account_id);
           const salesAccountId = toNumber(item.sales_account_id);
           const itemTypeUpper = String(itemType || "").toUpperCase().trim();
-          const isServiceItem = itemTypeUpper.includes("SERVICE");
-          const isProductionItem = itemTypeUpper.includes("PRODUCTION");
+          const normItemType = itemTypeUpper.replace(/[-_\s]/g, "");
+          const isServiceItem = normItemType.includes("SERVICE");
+          const isNonInventoryItem = normItemType.includes("NONINVENTORY");
+          const isProductionItem = normItemType.includes("PRODUCTION");
           const serviceItem = isServiceItem ? "Y" : "N";
           const isProductionItemVal = isProductionItem ? "Y" : "N";
-          const isStockable =
-            String(item.is_stockable ?? "Y").toUpperCase() === "Y" ? "Y" : "N";
+          const isStockable = (isServiceItem || isNonInventoryItem) ? "N" : "Y";
           const isSellable =
             String(item.is_sellable ?? "Y").toUpperCase() === "Y" ? "Y" : "N";
           const isPurchasable =
@@ -10417,12 +10443,13 @@ router.post(
       const salesAccountId = toNumber(body.sales_account_id);
       const isActive = body.is_active === false || body.is_active === 0 ? 0 : 1;
       const itemTypeUpper = String(itemType || "").toUpperCase().trim();
-      const isServiceItem = itemTypeUpper.includes("SERVICE");
-      const isProductionItem = itemTypeUpper.includes("PRODUCTION");
+      const normItemType = itemTypeUpper.replace(/[-_\s]/g, "");
+      const isServiceItem = normItemType.includes("SERVICE");
+      const isNonInventoryItem = normItemType.includes("NONINVENTORY");
+      const isProductionItem = normItemType.includes("PRODUCTION");
       const serviceItem = isServiceItem ? "Y" : "N";
       const isProductionItemVal = isProductionItem ? "Y" : "N";
-      const isStockable =
-        String(body.is_stockable ?? "Y").toUpperCase() === "Y" ? "Y" : "N";
+      const isStockable = (isServiceItem || isNonInventoryItem) ? "N" : "Y";
       const isSellable =
         String(body.is_sellable ?? "Y").toUpperCase() === "Y" ? "Y" : "N";
       const isPurchasable =
@@ -10638,12 +10665,13 @@ router.put(
       const salesAccountId = toNumber(body.sales_account_id);
       const isActive = body.is_active === false || body.is_active === 0 ? 0 : 1;
       const itemTypeUpper = String(itemType || "").toUpperCase().trim();
-      const isServiceItem = itemTypeUpper.includes("SERVICE");
-      const isProductionItem = itemTypeUpper.includes("PRODUCTION");
+      const normItemType = itemTypeUpper.replace(/[-_\s]/g, "");
+      const isServiceItem = normItemType.includes("SERVICE");
+      const isNonInventoryItem = normItemType.includes("NONINVENTORY");
+      const isProductionItem = normItemType.includes("PRODUCTION");
       const serviceItem = isServiceItem ? "Y" : "N";
       const isProductionItemVal = isProductionItem ? "Y" : "N";
-      const isStockable =
-        String(body.is_stockable ?? "Y").toUpperCase() === "Y" ? "Y" : "N";
+      const isStockable = (isServiceItem || isNonInventoryItem) ? "N" : "Y";
       const isSellable =
         String(body.is_sellable ?? "Y").toUpperCase() === "Y" ? "Y" : "N";
       const isPurchasable =

@@ -9,6 +9,7 @@ import { useNavigate } from "react-router-dom";
 import { formatDistanceToNow } from "date-fns";
 import "./PostCard.css";
 import api from "../../api/client";
+import { resolveImageUrl } from "../../utils/imageUrl";
 
 const avatarCache = new Map();
 
@@ -42,29 +43,7 @@ export default function PostCard({
   const { user } = useAuth();
   const navigate = useNavigate();
   const commentFileRef = useRef(null);
-  /**
-   * Resolves the full URL for an image.
-   * @param {string} u - The image URL or path.
-   * @returns {string|null} The resolved URL.
-   */
-  const resolveImageUrl = (u) => {
-    if (!u) return null;
-    if (/^(data:|https?:)/i.test(u)) return u;
-    if (u.startsWith("/uploads")) {
-      const base = String(api.defaults.baseURL || "");
-      let origin = "";
-      if (/^https?:\/\//i.test(base)) {
-        try {
-          const url = new URL(base);
-          origin = `${url.protocol}//${url.host}`;
-        } catch {}
-      } else if (typeof window !== "undefined" && window.location) {
-        origin = window.location.origin;
-      }
-      return origin ? origin + u : u;
-    }
-    return u;
-  };
+
   const [imageSrc, setImageSrc] = useState(resolveImageUrl(post.image_url));
   const [blobUrl, setBlobUrl] = useState(null);
   useEffect(() => {

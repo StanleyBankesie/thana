@@ -733,37 +733,84 @@ export default function ItemSettingsTab() {
         const groupName = groupResolved
           ? groupIdToName.get(Number(groupResolved)) || ""
           : "";
-        const errorsRow = [];
-        // Only annotate (do not block) basic issues; server will decide final result
-        const nameUpper = String(rowData.ITEM_NAME || "").toUpperCase();
+        // Validate required fields (all fields except barcode, description, safety stock, reorder level, Min Stock Level, Max Stock Level, opening quantity)
+        const nameUpper = String(rowData.ITEM_NAME || "").trim().toUpperCase();
         if (!nameUpper) errorsRow.push("Missing ITEM_NAME");
-        // Validate category, group, item type, and warehouse
-        const categoryProvided =
-          String(
-            rowData.ITEM_CATEGORY ||
-              rowData.ITEM_CATEGORY_CODE ||
-              rowData.ITEM_CATEGORY_ID ||
-              "",
-          ).trim() !== "";
-        const groupProvided =
-          String(
-            rowData.ITEM_GROUP ||
-              rowData.ITEM_GROUP_CODE ||
-              rowData.ITEM_GROUP_ID ||
-              "",
-          ).trim() !== "";
-        if (categoryProvided && !categoryResolved) {
-          errorsRow.push("Unknown CATEGORY (no match in system)");
-        }
-        if (groupProvided && !groupResolved) {
-          errorsRow.push("Unknown GROUP (no match in system)");
-        }
-        if (String(itemTypeRaw || "") && !itemTypeValid) {
+
+        const itemTypeUpper = String(itemTypeRaw || "").trim().toUpperCase();
+        if (!itemTypeUpper) {
+          errorsRow.push("Missing ITEM_TYPE");
+        } else if (!itemTypeValid) {
           errorsRow.push("Unknown ITEM_TYPE (no match in system)");
         }
-        if (warehouseRaw && !warehouseResolved) {
+
+        const categoryProvided = String(
+          rowData.ITEM_CATEGORY ||
+            rowData.ITEM_CATEGORY_CODE ||
+            rowData.ITEM_CATEGORY_ID ||
+            "",
+        ).trim() !== "";
+        if (!categoryProvided) {
+          errorsRow.push("Missing ITEM_CATEGORY");
+        } else if (!categoryResolved) {
+          errorsRow.push("Unknown CATEGORY (no match in system)");
+        }
+
+        const groupProvided = String(
+          rowData.ITEM_GROUP ||
+            rowData.ITEM_GROUP_CODE ||
+            rowData.ITEM_GROUP_ID ||
+            "",
+        ).trim() !== "";
+        if (!groupProvided) {
+          errorsRow.push("Missing ITEM_GROUP");
+        } else if (!groupResolved) {
+          errorsRow.push("Unknown GROUP (no match in system)");
+        }
+
+        if (!String(rowData.BASE_UOM || "").trim()) {
+          errorsRow.push("Missing UNIT_OF_MEASURE");
+        }
+
+        if (rowData.STANDARD_COST === "" || rowData.STANDARD_COST === null || rowData.STANDARD_COST === undefined) {
+          errorsRow.push("Missing STANDARD_COST");
+        }
+
+        if (rowData.SELLING_PRICE === "" || rowData.SELLING_PRICE === null || rowData.SELLING_PRICE === undefined) {
+          errorsRow.push("Missing SELLING_PRICE");
+        }
+
+        if (!String(rowData.CURRENCY_CODE || rowData.CURRENCY || "").trim()) {
+          errorsRow.push("Missing CURRENCY");
+        }
+
+        if (!warehouseRaw) {
+          errorsRow.push("Missing WAREHOUSE");
+        } else if (!warehouseResolved) {
           errorsRow.push("Unknown WAREHOUSE (no match in system)");
         }
+
+        if (!String(rowData.VAT_PURCHASE_CODE || "").trim()) {
+          errorsRow.push("Missing PURCHASE VAT CODE");
+        }
+
+        if (!String(rowData.VAT_SALES_CODE || "").trim()) {
+          errorsRow.push("Missing SALES VAT CODE");
+        }
+
+        if (!String(rowData.PURCHASE_ACCOUNT_ID || "").trim()) {
+          errorsRow.push("Missing PURCHASE_ACCOUNT_ID");
+        }
+
+        if (!String(rowData.SALES_ACCOUNT_ID || "").trim()) {
+          errorsRow.push("Missing SALES_ACCOUNT_ID");
+        }
+
+        // Auto determine is_stockable: if item type = service or non inventory item -> N, otherwise -> Y
+        const typeNorm = String(itemTypeResolved || itemTypeRaw || "").toUpperCase().replace(/[-_\s]/g, "");
+        const isServiceOrNonInv = typeNorm.includes("SERVICE") || typeNorm.includes("NONINVENTORY");
+        const autoIsStockable = isServiceOrNonInv ? "N" : "Y";
+
         if (nameUpper) seenNames.add(nameUpper);
         rows.push({
           index: i + 1,
@@ -772,6 +819,7 @@ export default function ItemSettingsTab() {
             item_code: nextItemCode,
             item_name: rowData.ITEM_NAME,
             item_type: itemTypeResolved || itemTypeRaw || "",
+            is_stockable: autoIsStockable,
             warehouse_id: warehouseResolved,
             warehouse_label: warehouseLabel || "-",
             opening_quantity: Number(rowData.OPENING_QUANTITY) || 0,
@@ -920,7 +968,10 @@ export default function ItemSettingsTab() {
             sales_account_code:
               rowData.SALES_ACCOUNT_CODE || rowData.SALES_ACCOUNT || "",
             description: rowData.DESCRIPTION || "",
-            is_stockable: rowData.IS_STOCKABLE === "Y",
+            is_stockable: (() => {
+              const t = String(r.preview.item_type || rowData.ITEM_TYPE || "").toUpperCase().replace(/[-_\s]/g, "");
+              return (t.includes("SERVICE") || t.includes("NONINVENTORY")) ? false : true;
+            })(),
             is_sellable: rowData.IS_SELLABLE === "Y",
             is_purchasable: rowData.IS_PURCHASABLE === "Y",
             is_active: String(rowData.STATUS || "").toUpperCase() === "INACTIVE" ? false : true,
@@ -1061,7 +1112,10 @@ export default function ItemSettingsTab() {
           purchase_account_id: Number(rowData.PURCHASE_ACCOUNT_ID || 0) || null,
           sales_account_id: Number(rowData.SALES_ACCOUNT_ID || 0) || null,
           description: rowData.DESCRIPTION,
-          is_stockable: rowData.IS_STOCKABLE === "Y",
+          is_stockable: (() => {
+            const t = String(r.preview.item_type || rowData.ITEM_TYPE || "").toUpperCase().replace(/[-_\s]/g, "");
+            return (t.includes("SERVICE") || t.includes("NONINVENTORY")) ? false : true;
+          })(),
           is_sellable: rowData.IS_SELLABLE === "Y",
           is_purchasable: rowData.IS_PURCHASABLE === "Y",
           is_active: String(rowData.STATUS || "").toUpperCase() === "INACTIVE" ? false : true,
@@ -1341,33 +1395,33 @@ export default function ItemSettingsTab() {
 
     lookupSheet.state = "hidden";
 
-    // Column definitions with all capitalized headings:
+    // Column definitions with all capitalized headings (asterisk on all required fields):
     worksheet.columns = [
-      { header: "ITEM_CODE", key: "ITEM_CODE", width: 18 },
+      { header: "ITEM_CODE*", key: "ITEM_CODE", width: 18 },
       { header: "ITEM_NAME*", key: "ITEM_NAME", width: 26 },
       { header: "ITEM TYPE*", key: "ITEM_TYPE", width: 20 },
-      { header: "ITEM CATEGORY", key: "ITEM_CATEGORY", width: 22 },
-      { header: "ITEM GROUP", key: "ITEM_GROUP", width: 22 },
+      { header: "ITEM CATEGORY*", key: "ITEM_CATEGORY", width: 22 },
+      { header: "ITEM GROUP*", key: "ITEM_GROUP", width: 22 },
       { header: "UNIT OF MEASURE*", key: "BASE_UOM", width: 18 },
       { header: "BARCODE", key: "BARCODE", width: 18 },
-      { header: "STANDARD_COST", key: "STANDARD_COST", width: 16 },
-      { header: "SELLING_PRICE", key: "SELLING_PRICE", width: 16 },
-      { header: "CURRENCY", key: "CURRENCY_CODE", width: 14 },
-      { header: "WAREHOUSE", key: "WAREHOUSE", width: 22 },
+      { header: "STANDARD_COST*", key: "STANDARD_COST", width: 16 },
+      { header: "SELLING_PRICE*", key: "SELLING_PRICE", width: 16 },
+      { header: "CURRENCY*", key: "CURRENCY_CODE", width: 14 },
+      { header: "WAREHOUSE*", key: "WAREHOUSE", width: 22 },
       { header: "OPENING_QUANTITY", key: "OPENING_QUANTITY", width: 18 },
-      { header: "PURCHAS VAT CODE", key: "VAT_PURCHASE_CODE", width: 20 },
-      { header: "SALES VAT CODE", key: "VAT_SALES_CODE", width: 20 },
-      { header: "PURCHASE_ACCOUNT_ID", key: "PURCHASE_ACCOUNT_ID", width: 22 },
-      { header: "SALES_ACCOUNT_ID", key: "SALES_ACCOUNT_ID", width: 20 },
+      { header: "PURCHASE VAT CODE*", key: "VAT_PURCHASE_CODE", width: 20 },
+      { header: "SALES VAT CODE*", key: "VAT_SALES_CODE", width: 20 },
+      { header: "PURCHASE_ACCOUNT_ID*", key: "PURCHASE_ACCOUNT_ID", width: 22 },
+      { header: "SALES_ACCOUNT_ID*", key: "SALES_ACCOUNT_ID", width: 20 },
       { header: "MIN_STOCK_LEVEL", key: "MIN_STOCK_LEVEL", width: 18 },
       { header: "MAX_STOCK_LEVEL", key: "MAX_STOCK_LEVEL", width: 18 },
       { header: "REORDER_LEVEL", key: "REORDER_LEVEL", width: 16 },
       { header: "SAFETY_STOCK", key: "SAFETY_STOCK", width: 16 },
       { header: "DESCRIPTION", key: "DESCRIPTION", width: 26 },
-      { header: "IS_STOCKABLE", key: "IS_STOCKABLE", width: 15 },
-      { header: "IS_SELLABLE", key: "IS_SELLABLE", width: 15 },
-      { header: "IS_PURCHASABLE", key: "IS_PURCHASABLE", width: 16 },
-      { header: "STATUS", key: "STATUS", width: 14 },
+      { header: "IS_STOCKABLE*", key: "IS_STOCKABLE", width: 15 },
+      { header: "IS_SELLABLE*", key: "IS_SELLABLE", width: 15 },
+      { header: "IS_PURCHASABLE*", key: "IS_PURCHASABLE", width: 16 },
+      { header: "STATUS*", key: "STATUS", width: 14 },
     ];
 
     // Style header row
@@ -1381,7 +1435,7 @@ export default function ItemSettingsTab() {
 
     // Add sample rows
     worksheet.addRow({
-      ITEM_CODE: "",
+      ITEM_CODE: "RM-0001",
       ITEM_NAME: "Raw Material 1",
       ITEM_TYPE: itemTypes[0] || "Raw Material",
       ITEM_CATEGORY: categories[0] || "",
@@ -1409,7 +1463,7 @@ export default function ItemSettingsTab() {
     });
 
     worksheet.addRow({
-      ITEM_CODE: "",
+      ITEM_CODE: "FG-0001",
       ITEM_NAME: "Finished Good 1",
       ITEM_TYPE: itemTypes[1] || "Finished Good",
       ITEM_CATEGORY: categories[1] || categories[0] || "",
@@ -1431,6 +1485,34 @@ export default function ItemSettingsTab() {
       SAFETY_STOCK: 8,
       DESCRIPTION: "Sample finished product",
       IS_STOCKABLE: "Y",
+      IS_SELLABLE: "Y",
+      IS_PURCHASABLE: "Y",
+      STATUS: "ACTIVE",
+    });
+
+    worksheet.addRow({
+      ITEM_CODE: "SRV-0001",
+      ITEM_NAME: "Consulting Service 1",
+      ITEM_TYPE: "Service",
+      ITEM_CATEGORY: categories[0] || "",
+      ITEM_GROUP: groups[0] || "",
+      BASE_UOM: uomList[0] || "PCS",
+      BARCODE: "",
+      STANDARD_COST: 50.0,
+      SELLING_PRICE: 100.0,
+      CURRENCY_CODE: currencies[0] || "GHS",
+      WAREHOUSE: warehouses[0] || "",
+      OPENING_QUANTITY: 0,
+      VAT_PURCHASE_CODE: taxCodes[0] || "No Tax",
+      VAT_SALES_CODE: taxCodes[0] || "No Tax",
+      PURCHASE_ACCOUNT_ID: samplePurchaseAccId,
+      SALES_ACCOUNT_ID: sampleSalesAccId,
+      MIN_STOCK_LEVEL: 0,
+      MAX_STOCK_LEVEL: 0,
+      REORDER_LEVEL: 0,
+      SAFETY_STOCK: 0,
+      DESCRIPTION: "Sample service item",
+      IS_STOCKABLE: "N",
       IS_SELLABLE: "Y",
       IS_PURCHASABLE: "Y",
       STATUS: "ACTIVE",

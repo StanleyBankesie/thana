@@ -10,6 +10,7 @@ import { toast } from "react-toastify";
 import * as XLSX from "xlsx";
 import { usePermission } from "@/auth/PermissionContext.jsx";
 import { useGhanaCities } from "@/hooks/useGhanaCities";
+import { resolveImageUrl } from "@/utils/imageUrl";
 
 const GHANA_REGIONS = [
   "Ahafo",
@@ -390,7 +391,8 @@ export default function EmployeeForm() {
     setUploading(true);
     try {
       const res = await api.post("/upload", formData);
-      update("picture_url", res.data.url);
+      const uploadedUrl = res?.data?.url || res?.data?.secure_url || "";
+      update("picture_url", resolveImageUrl(uploadedUrl));
       toast.success("Picture uploaded");
     } catch (err) {
       toast.error("Failed to upload picture");
@@ -591,7 +593,7 @@ export default function EmployeeForm() {
               <div className="w-16 h-16 bg-white/20 rounded-lg overflow-hidden flex items-center justify-center border-2 border-white/30">
                 {form.picture_url ? (
                   <img
-                    src={form.picture_url}
+                    src={resolveImageUrl(form.picture_url)}
                     alt="Profile"
                     className="w-full h-full object-cover"
                   />
@@ -837,7 +839,7 @@ export default function EmployeeForm() {
                   <div className="w-32 h-32 mx-auto bg-white dark:bg-slate-900 rounded shadow-inner mb-3 flex items-center justify-center overflow-hidden">
                     {form.picture_url ? (
                       <img
-                        src={form.picture_url}
+                        src={resolveImageUrl(form.picture_url)}
                         alt="Passport"
                         className="w-full h-full object-cover"
                       />

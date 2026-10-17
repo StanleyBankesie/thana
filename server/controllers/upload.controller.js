@@ -16,7 +16,7 @@ import { query } from "../db/pool.js";
 export const ensureUploadDir = () => {
   const __filename = fileURLToPath(import.meta.url);
   const __dirname = path.dirname(__filename);
-  const uploadDir = path.join(__dirname, "../../uploads");
+  const uploadDir = path.join(__dirname, "../uploads");
   if (!fs.existsSync(uploadDir)) {
     fs.mkdirSync(uploadDir, { recursive: true });
   }
@@ -167,11 +167,24 @@ export const uploadFile = async (req, res, next) => {
     }
     
     // Fallback: local file storage
-    const fileUrl = `/uploads/${req.file.filename}`;
+    const forwardedProto = req.headers["x-forwarded-proto"];
+    const forwardedHost = req.headers["x-forwarded-host"];
+    const host = forwardedHost || req.get("host") || "";
+    const isHttps =
+      forwardedProto === "https" ||
+      req.secure ||
+      (host && host.includes("omnisuite-erp.com"));
+    const protocol = isHttps ? "https" : (req.protocol || "http");
+    const origin = host ? `${protocol}://${host}` : "";
+
+    const relativeUrl = `/uploads/${req.file.filename}`;
+    const fileUrl = origin ? `${origin}${relativeUrl}` : relativeUrl;
+
     return res.json({
       message: "File uploaded successfully",
       url: fileUrl,
       path: fileUrl,
+      relativeUrl: relativeUrl,
       filename: req.file.originalname || req.file.filename,
     });
   } catch (e) {

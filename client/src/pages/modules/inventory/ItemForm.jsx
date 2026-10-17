@@ -9,6 +9,7 @@ import { toast } from "react-toastify";
 import { api } from "api/client";
 import { useAuth } from "../../../auth/AuthContext.jsx";
 import { readStoredAuth } from "../../../auth/authStorage.js";
+import { resolveImageUrl } from "../../../utils/imageUrl.js";
 
 function findTaxExemptId(taxList) {
   if (!Array.isArray(taxList) || taxList.length === 0) return "";
@@ -445,7 +446,7 @@ export default function ItemForm({ isModal = false, modalItemId, onClose, onSave
           cost_price: Number(it.cost_price || 0),
           selling_price: Number(it.selling_price || 0),
           currency_id: it.currency_id || "",
-          image_url: it.image_url || "",
+          image_url: resolveImageUrl(it.image_url || ""),
           is_active: Boolean(it.is_active),
           item_type: it.item_type || "",
           category_id: it.category_id || "",
@@ -491,15 +492,15 @@ export default function ItemForm({ isModal = false, modalItemId, onClose, onSave
   }, [id, isNew]);
 
   function getUploadedImageUrl(data) {
-    return (
+    const raw =
       data?.url ||
       data?.secure_url ||
       data?.data?.url ||
       data?.data?.secure_url ||
       data?.item?.url ||
       data?.item?.secure_url ||
-      ""
-    );
+      "";
+    return resolveImageUrl(raw);
   }
 
   const resolveItemGroupId = (cat, groups) => {
@@ -592,8 +593,10 @@ export default function ItemForm({ isModal = false, modalItemId, onClose, onSave
     const resolvedType = resolveItemTypeOptionValue(selectedCat, linkedGroup, itemTypes);
 
     const valUpper = String(resolvedType || "").toUpperCase().trim();
-    const isService = valUpper.includes("SERVICE");
-    const isProd = valUpper.includes("PRODUCTION");
+    const normType = valUpper.replace(/[-_\s]/g, "");
+    const isService = normType.includes("SERVICE");
+    const isNonInventory = normType.includes("NONINVENTORY");
+    const isProd = normType.includes("PRODUCTION");
 
     setFormData((prev) => ({
       ...prev,
@@ -602,7 +605,7 @@ export default function ItemForm({ isModal = false, modalItemId, onClose, onSave
       item_type: resolvedType || prev.item_type,
       service_item: isService ? true : (resolvedType ? false : prev.service_item),
       is_production_item: isProd ? true : (resolvedType ? false : prev.is_production_item),
-      is_stockable: isService ? false : prev.is_stockable,
+      is_stockable: (isService || isNonInventory) ? false : true,
     }));
   };
 
@@ -626,10 +629,13 @@ export default function ItemForm({ isModal = false, modalItemId, onClose, onSave
           if (resolvedType && (!prev.item_type || prev.item_type !== resolvedType)) {
             next.item_type = resolvedType;
             const valUpper = String(resolvedType).toUpperCase();
-            if (valUpper.includes("SERVICE")) {
+            const normType = valUpper.replace(/[-_\s]/g, "");
+            const isService = normType.includes("SERVICE");
+            const isNonInventory = normType.includes("NONINVENTORY");
+            if (isService) {
               next.service_item = true;
-              next.is_stockable = false;
             }
+            next.is_stockable = (isService || isNonInventory) ? false : true;
             if (valUpper.includes("PRODUCTION")) {
               next.is_production_item = true;
             }
@@ -732,9 +738,14 @@ export default function ItemForm({ isModal = false, modalItemId, onClose, onSave
         vat_on_purchase_id: formData.vat_on_purchase_id || null,
         vat_on_sales_id: formData.vat_on_sales_id || null,
         purchase_account_id: formData.purchase_account_id || null,
-        sales_account_id: formData.sales_account_id || null,
-        service_item: String(formData.item_type || "").toUpperCase().trim().includes("SERVICE") ? "Y" : "N",
-        is_stockable: formData.is_stockable ? "Y" : "N",
+        service_item: (() => {
+          const t = String(formData.item_type || "").toUpperCase().replace(/[-_\s]/g, "");
+          return t.includes("SERVICE") ? "Y" : "N";
+        })(),
+        is_stockable: (() => {
+          const t = String(formData.item_type || "").toUpperCase().replace(/[-_\s]/g, "");
+          return (t.includes("SERVICE") || t.includes("NONINVENTORY")) ? "N" : "Y";
+        })(),
         is_sellable: formData.is_sellable ? "Y" : "N",
         is_purchasable: formData.is_purchasable ? "Y" : "N",
         is_production_item: String(formData.item_type || "").toUpperCase().trim().includes("PRODUCTION") ? "Y" : "N",
@@ -867,7 +878,7 @@ export default function ItemForm({ isModal = false, modalItemId, onClose, onSave
                 {formData.image_url ? (
                   <div className="relative w-full h-40 mb-2">
                     <img
-                      src={formData.image_url}
+                      src={resolveImageUrl(formData.image_url)}
                       alt="Item"
                       className="w-full h-full object-contain"
                     />
