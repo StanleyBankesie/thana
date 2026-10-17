@@ -66,6 +66,22 @@ function toDateOnly(s) {
   return String(s).slice(0, 10) || null;
 }
 
+function toCharYorN(val, defaultVal = "Y") {
+  if (val === undefined || val === null || String(val).trim() === "") {
+    return defaultVal;
+  }
+  if (typeof val === "boolean") {
+    return val ? "Y" : "N";
+  }
+  if (typeof val === "number") {
+    return val === 1 ? "Y" : (val === 0 ? "N" : defaultVal);
+  }
+  const s = String(val).trim().toUpperCase();
+  if (["Y", "YES", "TRUE", "1", "T"].includes(s)) return "Y";
+  if (["N", "NO", "FALSE", "0", "F"].includes(s)) return "N";
+  return defaultVal;
+}
+
 function formatItemImageUrl(url, req) {
   if (!url) return null;
   const s = String(url).trim();
@@ -1401,6 +1417,10 @@ router.get(
         "SELECT id, name, code FROM adm_branches WHERE company_id = :companyId AND is_active = 1 ORDER BY name ASC",
         { companyId },
       ).catch(() => []);
+      const warehouses = await query(
+        "SELECT id, warehouse_code, warehouse_name, branch_id FROM inv_warehouses WHERE company_id = :companyId AND is_active = 1 ORDER BY warehouse_name ASC",
+        { companyId },
+      ).catch(() => []);
 
       res.json({
         uoms,
@@ -1411,6 +1431,7 @@ router.get(
         accounts,
         currencies,
         branches,
+        warehouses,
       });
     } catch (err) {
       next(err);
@@ -1815,6 +1836,11 @@ router.get(
         .trim()
         .toLowerCase();
       const activeOnly = !["0", "false", "all"].includes(activeParam);
+      const allowAllBranches =
+        req.query.all_branches === "1" ||
+        req.query.all === "1" ||
+        req.query.all_branches === "true";
+      const branchIdsStr = allowAllBranches ? "" : (req.scope?.branchIdsStr || "");
       const rows = await query(
         `
         SELECT 
@@ -1833,7 +1859,7 @@ router.get(
           AND (:activeOnly = 0 OR w.is_active = 1)
         ORDER BY w.warehouse_name ASC
         `,
-        { companyId, branchIdsStr: req.scope.branchIdsStr || '', activeOnly: activeOnly ? 1 : 0 },
+        { companyId, branchIdsStr, activeOnly: activeOnly ? 1 : 0 },
       ).catch((err) => {
         console.error("[warehouses-list] Query failed:", err);
         return [];
@@ -10075,6 +10101,7 @@ router.get("/items/:id", requireAuth, async (req, res, next) => {
     if (!id) throw httpError(400, "VALIDATION_ERROR", "Invalid id");
     const [item] = await query(
       `SELECT i.*,
+          (SELECT sb.warehouse_id FROM inv_stock_balances sb WHERE sb.item_id = i.id AND sb.company_id = i.company_id ORDER BY sb.qty DESC LIMIT 1) AS warehouse_id,
           u.username AS created_by_name
          FROM inv_items i
         LEFT JOIN adm_users u ON u.id = i.created_by
@@ -10141,8 +10168,44 @@ router.post(
       const whMap = new Map();
       (whRows || []).forEach((w) => {
         whMap.set(String(w.id), w);
-        if (w.warehouse_code) whMap.set(String(w.warehouse_code).toUpperCase(), w);
-        if (w.warehouse_name) whMap.set(String(w.warehouse_name).toUpperCase(), w);
+        if (w.warehouse_code) whMap.set(String(w.warehouse_code).trim().toUpperCase(), w);
+        if (w.warehouse_name) whMap.set(String(w.warehouse_name).trim().toUpperCase(), w);
+      });
+
+      // Fetch currencies for mapping
+      const [curRows] = await conn.execute(
+        `SELECT id, code, name FROM fin_currencies WHERE company_id = :companyId OR company_id IS NULL OR company_id = 0`,
+        { companyId },
+      ).catch(() => [[]]);
+      const curMap = new Map();
+      (curRows || []).forEach((c) => {
+        curMap.set(String(c.id), Number(c.id));
+        if (c.code) curMap.set(String(c.code).trim().toUpperCase(), Number(c.id));
+        if (c.name) curMap.set(String(c.name).trim().toUpperCase(), Number(c.id));
+      });
+
+      // Fetch tax codes for mapping
+      const [taxRows] = await conn.execute(
+        `SELECT id, code, name FROM fin_tax_codes WHERE (company_id = :companyId OR company_id IS NULL OR company_id = 0) AND is_active = 1`,
+        { companyId },
+      ).catch(() => [[]]);
+      const taxMap = new Map();
+      (taxRows || []).forEach((t) => {
+        taxMap.set(String(t.id), Number(t.id));
+        if (t.code) taxMap.set(String(t.code).trim().toUpperCase(), Number(t.id));
+        if (t.name) taxMap.set(String(t.name).trim().toUpperCase(), Number(t.id));
+      });
+
+      // Fetch accounts for mapping
+      const [accRows] = await conn.execute(
+        `SELECT id, code, name FROM fin_accounts WHERE (company_id = :companyId OR company_id IS NULL OR company_id = 0) AND is_active = 1`,
+        { companyId },
+      ).catch(() => [[]]);
+      const accMap = new Map();
+      (accRows || []).forEach((a) => {
+        accMap.set(String(a.id), Number(a.id));
+        if (a.code) accMap.set(String(a.code).trim().toUpperCase(), Number(a.id));
+        if (a.name) accMap.set(String(a.name).trim().toUpperCase(), Number(a.id));
       });
 
       for (const item of items) {
@@ -10172,14 +10235,24 @@ router.post(
           const barcode = item.barcode
             ? String(item.barcode).trim() || null
             : null;
-          const currencyId = toNumber(item.currency_id);
+          const rawCur = String(item.currency_id || item.currency_code || item.currency || "").trim().toUpperCase();
+          const currencyId = toNumber(item.currency_id) || (rawCur ? curMap.get(rawCur) : null) || 1;
           const imageUrl = item.image_url
             ? String(item.image_url).trim() || null
             : null;
-          const vatOnPurchaseId = toNumber(item.vat_on_purchase_id);
-          const vatOnSalesId = toNumber(item.vat_on_sales_id);
-          const purchaseAccountId = toNumber(item.purchase_account_id);
-          const salesAccountId = toNumber(item.sales_account_id);
+
+          const rawVatPur = String(item.vat_on_purchase_id || item.vat_on_purchase_code || item.vat_purchase_code || item.vat_on_purchase || "").trim().toUpperCase();
+          const vatOnPurchaseId = toNumber(item.vat_on_purchase_id) || (rawVatPur ? taxMap.get(rawVatPur) : null) || null;
+
+          const rawVatSal = String(item.vat_on_sales_id || item.vat_on_sales_code || item.vat_sales_code || item.vat_on_sales || "").trim().toUpperCase();
+          const vatOnSalesId = toNumber(item.vat_on_sales_id) || (rawVatSal ? taxMap.get(rawVatSal) : null) || null;
+
+          const rawPurAcc = String(item.purchase_account_id || item.purchase_account_code || item.purchase_account || "").trim().toUpperCase();
+          const purchaseAccountId = toNumber(item.purchase_account_id) || (rawPurAcc ? accMap.get(rawPurAcc) : null) || null;
+
+          const rawSalAcc = String(item.sales_account_id || item.sales_account_code || item.sales_account || "").trim().toUpperCase();
+          const salesAccountId = toNumber(item.sales_account_id) || (rawSalAcc ? accMap.get(rawSalAcc) : null) || null;
+
           const itemTypeUpper = String(itemType || "").toUpperCase().trim();
           const normItemType = itemTypeUpper.replace(/[-_\s]/g, "");
           const isServiceItem = normItemType.includes("SERVICE");
@@ -10187,13 +10260,9 @@ router.post(
           const isProductionItem = normItemType.includes("PRODUCTION");
           const serviceItem = isServiceItem ? "Y" : "N";
           const isProductionItemVal = isProductionItem ? "Y" : "N";
-          const isStockable = (isServiceItem || isNonInventoryItem) ? "N" : "Y";
-          const isSellable =
-            String(item.is_sellable ?? "Y").toUpperCase() === "Y" ? "Y" : "N";
-          const isPurchasable =
-            String(item.is_purchasable ?? "Y").toUpperCase() === "Y"
-              ? "Y"
-              : "N";
+          const isStockable = (isServiceItem || isNonInventoryItem) ? "N" : toCharYorN(item.is_stockable, "Y");
+          const isSellable = toCharYorN(item.is_sellable, "Y");
+          const isPurchasable = toCharYorN(item.is_purchasable, "Y");
           const minStockLevel = Number(item.min_stock_level || 0);
           const maxStockLevel = Number(item.max_stock_level || 0);
           const reorderLevel = Number(item.reorder_level || 0);
@@ -10229,6 +10298,7 @@ router.post(
             itemId = existing[0].id;
             await conn.execute(
               `UPDATE inv_items SET
+                branch_id = COALESCE(:branchId, branch_id),
                 item_name = :itemName, uom = :uom, item_type = :itemType,
                 category_id = :categoryId, item_group_id = :itemGroupId,
                 cost_price = :costPrice, selling_price = :sellingPrice, is_active = :isActive,
@@ -10241,6 +10311,7 @@ router.post(
                 safety_stock = :safetyStock, description = :description
                WHERE id = :itemId`,
               {
+                branchId: whBranchId || null,
                 itemName,
                 uom,
                 itemType,
@@ -10402,7 +10473,7 @@ router.post(
     try {
       await ensureItemsTable();
       const { companyId = null } = req.scope || {};
-      const branchId = toNumber(req.body?.branch_id || req.scope?.branchId) || 1;
+      let branchId = toNumber(req.body?.branch_id || req.scope?.branchId) || 1;
       const userId = toNumber(req.scope?.userId ?? req.user?.sub) || null;
       const body = req.body || {};
       let itemCode = body.item_code ? String(body.item_code).trim() : null;
@@ -10436,11 +10507,57 @@ router.post(
       const imageUrl = body.image_url ? String(body.image_url).trim() : null;
       const costPrice = Number(body.cost_price || 0);
       const sellingPrice = Number(body.selling_price || 0);
-      const currencyId = toNumber(body.currency_id);
-      const vatOnPurchaseId = toNumber(body.vat_on_purchase_id);
-      const vatOnSalesId = toNumber(body.vat_on_sales_id);
-      const purchaseAccountId = toNumber(body.purchase_account_id);
-      const salesAccountId = toNumber(body.sales_account_id);
+      let currencyId = toNumber(body.currency_id);
+      if (!currencyId && (body.currency_code || body.currency)) {
+        const cCode = String(body.currency_code || body.currency).trim().toUpperCase();
+        const [cRow] = await query(
+          "SELECT id FROM fin_currencies WHERE (company_id = :companyId OR company_id IS NULL OR company_id = 0) AND (code = :cCode OR name = :cCode) LIMIT 1",
+          { companyId, cCode },
+        ).catch(() => []);
+        if (cRow?.id) currencyId = cRow.id;
+      }
+      if (!currencyId) currencyId = 1;
+
+      let vatOnPurchaseId = toNumber(body.vat_on_purchase_id);
+      if (!vatOnPurchaseId && (body.vat_on_purchase_code || body.vat_purchase_code || body.vat_on_purchase)) {
+        const vCode = String(body.vat_on_purchase_code || body.vat_purchase_code || body.vat_on_purchase).trim().toUpperCase();
+        const [tRow] = await query(
+          "SELECT id FROM fin_tax_codes WHERE (company_id = :companyId OR company_id IS NULL OR company_id = 0) AND (code = :vCode OR name = :vCode) LIMIT 1",
+          { companyId, vCode },
+        ).catch(() => []);
+        if (tRow?.id) vatOnPurchaseId = tRow.id;
+      }
+
+      let vatOnSalesId = toNumber(body.vat_on_sales_id);
+      if (!vatOnSalesId && (body.vat_on_sales_code || body.vat_sales_code || body.vat_on_sales)) {
+        const vCode = String(body.vat_on_sales_code || body.vat_sales_code || body.vat_on_sales).trim().toUpperCase();
+        const [tRow] = await query(
+          "SELECT id FROM fin_tax_codes WHERE (company_id = :companyId OR company_id IS NULL OR company_id = 0) AND (code = :vCode OR name = :vCode) LIMIT 1",
+          { companyId, vCode },
+        ).catch(() => []);
+        if (tRow?.id) vatOnSalesId = tRow.id;
+      }
+
+      let purchaseAccountId = toNumber(body.purchase_account_id);
+      if (!purchaseAccountId && (body.purchase_account_code || body.purchase_account)) {
+        const aCode = String(body.purchase_account_code || body.purchase_account).trim().toUpperCase();
+        const [aRow] = await query(
+          "SELECT id FROM fin_accounts WHERE (company_id = :companyId OR company_id IS NULL OR company_id = 0) AND (code = :aCode OR name = :aCode) LIMIT 1",
+          { companyId, aCode },
+        ).catch(() => []);
+        if (aRow?.id) purchaseAccountId = aRow.id;
+      }
+
+      let salesAccountId = toNumber(body.sales_account_id);
+      if (!salesAccountId && (body.sales_account_code || body.sales_account)) {
+        const aCode = String(body.sales_account_code || body.sales_account).trim().toUpperCase();
+        const [aRow] = await query(
+          "SELECT id FROM fin_accounts WHERE (company_id = :companyId OR company_id IS NULL OR company_id = 0) AND (code = :aCode OR name = :aCode) LIMIT 1",
+          { companyId, aCode },
+        ).catch(() => []);
+        if (aRow?.id) salesAccountId = aRow.id;
+      }
+
       const isActive = body.is_active === false || body.is_active === 0 ? 0 : 1;
       const itemTypeUpper = String(itemType || "").toUpperCase().trim();
       const normItemType = itemTypeUpper.replace(/[-_\s]/g, "");
@@ -10449,11 +10566,9 @@ router.post(
       const isProductionItem = normItemType.includes("PRODUCTION");
       const serviceItem = isServiceItem ? "Y" : "N";
       const isProductionItemVal = isProductionItem ? "Y" : "N";
-      const isStockable = (isServiceItem || isNonInventoryItem) ? "N" : "Y";
-      const isSellable =
-        String(body.is_sellable ?? "Y").toUpperCase() === "Y" ? "Y" : "N";
-      const isPurchasable =
-        String(body.is_purchasable ?? "Y").toUpperCase() === "Y" ? "Y" : "N";
+      const isStockable = (isServiceItem || isNonInventoryItem) ? "N" : toCharYorN(body.is_stockable, "Y");
+      const isSellable = toCharYorN(body.is_sellable, "Y");
+      const isPurchasable = toCharYorN(body.is_purchasable, "Y");
       const minStockLevel = Number(body.min_stock_level || 0);
       const maxStockLevel = Number(body.max_stock_level || 0);
       const reorderLevel = Number(body.reorder_level || 0);
@@ -10462,8 +10577,18 @@ router.post(
         ? String(body.description).trim() || null
         : null;
       const openingQuantity = Number(body.opening_quantity || 0);
-      let openingWarehouseId = body.opening_warehouse_id ? toNumber(body.opening_warehouse_id) : null;
-      if (!openingWarehouseId && (body.warehouse_name || body.warehouse || body.warehouse_code)) {
+      let openingWarehouseId = body.opening_warehouse_id
+        ? toNumber(body.opening_warehouse_id)
+        : (body.warehouse_id ? toNumber(body.warehouse_id) : null);
+      if (openingWarehouseId) {
+        const foundWh = await query(
+          `SELECT id, branch_id FROM inv_warehouses WHERE id = :id LIMIT 1`,
+          { id: openingWarehouseId },
+        );
+        if (foundWh && foundWh.length > 0 && foundWh[0].branch_id) {
+          branchId = foundWh[0].branch_id;
+        }
+      } else if (body.warehouse_name || body.warehouse || body.warehouse_code) {
         const whQuery = String(body.warehouse_name || body.warehouse || body.warehouse_code).trim();
         const foundWh = await query(
           `SELECT id, branch_id FROM inv_warehouses 
@@ -10473,6 +10598,9 @@ router.post(
         );
         if (foundWh && foundWh.length > 0) {
           openingWarehouseId = foundWh[0].id;
+          if (foundWh[0].branch_id) {
+            branchId = foundWh[0].branch_id;
+          }
         }
       }
 
@@ -10644,7 +10772,30 @@ router.put(
       const id = toNumber(req.params.id);
       if (!id) throw httpError(400, "VALIDATION_ERROR", "Invalid id");
       const body = req.body || {};
-      const branchId = toNumber(body.branch_id);
+      let branchId = toNumber(body.branch_id);
+      const openingWarehouseId = body.opening_warehouse_id
+        ? toNumber(body.opening_warehouse_id)
+        : (body.warehouse_id ? toNumber(body.warehouse_id) : null);
+      if (openingWarehouseId) {
+        const foundWh = await query(
+          `SELECT id, branch_id FROM inv_warehouses WHERE id = :id LIMIT 1`,
+          { id: openingWarehouseId },
+        );
+        if (foundWh && foundWh.length > 0 && foundWh[0].branch_id) {
+          branchId = foundWh[0].branch_id;
+        }
+      } else if (body.warehouse_name || body.warehouse || body.warehouse_code) {
+        const whQuery = String(body.warehouse_name || body.warehouse || body.warehouse_code).trim();
+        const foundWh = await query(
+          `SELECT id, branch_id FROM inv_warehouses 
+           WHERE company_id = :companyId AND (warehouse_name = :whQuery OR warehouse_code = :whQuery)
+           LIMIT 1`,
+          { companyId, whQuery },
+        );
+        if (foundWh && foundWh.length > 0 && foundWh[0].branch_id) {
+          branchId = foundWh[0].branch_id;
+        }
+      }
       const hasImageUrl = body.image_url !== undefined ? 1 : 0;
       const imageUrl = body.image_url ? String(body.image_url).trim() : null;
       const itemCode = body.item_code ? String(body.item_code).trim() : null;
@@ -10658,11 +10809,57 @@ router.put(
       const barcode = body.barcode ? String(body.barcode).trim() || null : null;
       const costPrice = Number(body.cost_price || 0);
       const sellingPrice = Number(body.selling_price || 0);
-      const currencyId = toNumber(body.currency_id);
-      const vatOnPurchaseId = toNumber(body.vat_on_purchase_id);
-      const vatOnSalesId = toNumber(body.vat_on_sales_id);
-      const purchaseAccountId = toNumber(body.purchase_account_id);
-      const salesAccountId = toNumber(body.sales_account_id);
+      let currencyId = toNumber(body.currency_id);
+      if (!currencyId && (body.currency_code || body.currency)) {
+        const cCode = String(body.currency_code || body.currency).trim().toUpperCase();
+        const [cRow] = await query(
+          "SELECT id FROM fin_currencies WHERE (company_id = :companyId OR company_id IS NULL OR company_id = 0) AND (code = :cCode OR name = :cCode) LIMIT 1",
+          { companyId, cCode },
+        ).catch(() => []);
+        if (cRow?.id) currencyId = cRow.id;
+      }
+      if (!currencyId) currencyId = 1;
+
+      let vatOnPurchaseId = toNumber(body.vat_on_purchase_id);
+      if (!vatOnPurchaseId && (body.vat_on_purchase_code || body.vat_purchase_code || body.vat_on_purchase)) {
+        const vCode = String(body.vat_on_purchase_code || body.vat_purchase_code || body.vat_on_purchase).trim().toUpperCase();
+        const [tRow] = await query(
+          "SELECT id FROM fin_tax_codes WHERE (company_id = :companyId OR company_id IS NULL OR company_id = 0) AND (code = :vCode OR name = :vCode) LIMIT 1",
+          { companyId, vCode },
+        ).catch(() => []);
+        if (tRow?.id) vatOnPurchaseId = tRow.id;
+      }
+
+      let vatOnSalesId = toNumber(body.vat_on_sales_id);
+      if (!vatOnSalesId && (body.vat_on_sales_code || body.vat_sales_code || body.vat_on_sales)) {
+        const vCode = String(body.vat_on_sales_code || body.vat_sales_code || body.vat_on_sales).trim().toUpperCase();
+        const [tRow] = await query(
+          "SELECT id FROM fin_tax_codes WHERE (company_id = :companyId OR company_id IS NULL OR company_id = 0) AND (code = :vCode OR name = :vCode) LIMIT 1",
+          { companyId, vCode },
+        ).catch(() => []);
+        if (tRow?.id) vatOnSalesId = tRow.id;
+      }
+
+      let purchaseAccountId = toNumber(body.purchase_account_id);
+      if (!purchaseAccountId && (body.purchase_account_code || body.purchase_account)) {
+        const aCode = String(body.purchase_account_code || body.purchase_account).trim().toUpperCase();
+        const [aRow] = await query(
+          "SELECT id FROM fin_accounts WHERE (company_id = :companyId OR company_id IS NULL OR company_id = 0) AND (code = :aCode OR name = :aCode) LIMIT 1",
+          { companyId, aCode },
+        ).catch(() => []);
+        if (aRow?.id) purchaseAccountId = aRow.id;
+      }
+
+      let salesAccountId = toNumber(body.sales_account_id);
+      if (!salesAccountId && (body.sales_account_code || body.sales_account)) {
+        const aCode = String(body.sales_account_code || body.sales_account).trim().toUpperCase();
+        const [aRow] = await query(
+          "SELECT id FROM fin_accounts WHERE (company_id = :companyId OR company_id IS NULL OR company_id = 0) AND (code = :aCode OR name = :aCode) LIMIT 1",
+          { companyId, aCode },
+        ).catch(() => []);
+        if (aRow?.id) salesAccountId = aRow.id;
+      }
+
       const isActive = body.is_active === false || body.is_active === 0 ? 0 : 1;
       const itemTypeUpper = String(itemType || "").toUpperCase().trim();
       const normItemType = itemTypeUpper.replace(/[-_\s]/g, "");
@@ -10671,11 +10868,9 @@ router.put(
       const isProductionItem = normItemType.includes("PRODUCTION");
       const serviceItem = isServiceItem ? "Y" : "N";
       const isProductionItemVal = isProductionItem ? "Y" : "N";
-      const isStockable = (isServiceItem || isNonInventoryItem) ? "N" : "Y";
-      const isSellable =
-        String(body.is_sellable ?? "Y").toUpperCase() === "Y" ? "Y" : "N";
-      const isPurchasable =
-        String(body.is_purchasable ?? "Y").toUpperCase() === "Y" ? "Y" : "N";
+      const isStockable = (isServiceItem || isNonInventoryItem) ? "N" : toCharYorN(body.is_stockable, "Y");
+      const isSellable = toCharYorN(body.is_sellable, "Y");
+      const isPurchasable = toCharYorN(body.is_purchasable, "Y");
       const minStockLevel = Number(body.min_stock_level || 0);
       const maxStockLevel = Number(body.max_stock_level || 0);
       const reorderLevel = Number(body.reorder_level || 0);

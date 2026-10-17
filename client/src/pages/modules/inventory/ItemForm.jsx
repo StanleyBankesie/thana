@@ -122,17 +122,33 @@ export default function ItemForm({ isModal = false, modalItemId, onClose, onSave
   useEffect(() => {
     let cancelled = false;
     async function loadLookups() {
-      setLookupLoading(true);
-      if (isNew) {
-        api.get("/inventory/warehouses").then(r => {
-          if (Array.isArray(r.data?.items)) setWarehouses(r.data.items);
-        }).catch(() => {});
-      }
+      // Always load warehouses across all branches for warehouse & branch linking
+      api
+        .get("/inventory/warehouses?all_branches=1")
+        .then((r) => {
+          const list = Array.isArray(r.data?.items)
+            ? r.data.items
+            : Array.isArray(r.data)
+              ? r.data
+              : [];
+          if (list.length) setWarehouses(list);
+        })
+        .catch(() => {
+          api
+            .get("/inventory/warehouses")
+            .then((r) => {
+              if (Array.isArray(r.data?.items)) setWarehouses(r.data.items);
+            })
+            .catch(() => {});
+        });
       try {
         const res = await api.get("/inventory/item-setup-lookups");
         console.log("Consolidated lookup response:", res.data);
         if (cancelled) return;
         const d = res.data || {};
+        if (Array.isArray(d.warehouses) && d.warehouses.length) {
+          setWarehouses(d.warehouses);
+        }
         const loadedItemGroups = Array.isArray(d.itemGroups)
           ? d.itemGroups
           : [];
@@ -474,6 +490,8 @@ export default function ItemForm({ isModal = false, modalItemId, onClose, onSave
               ? (String(it.is_purchasable).toUpperCase() === "Y" || it.is_purchasable === 1 || it.is_purchasable === true)
               : true,
           is_production_item: String(it.is_production_item ?? (isProductionMode ? "Y" : "N")).toUpperCase() === "Y",
+          opening_quantity: Number(it.opening_quantity || it.stock_qty || 0),
+          opening_warehouse_id: it.warehouse_id ? String(it.warehouse_id) : (it.opening_warehouse_id ? String(it.opening_warehouse_id) : ""),
         });
       })
       .catch((e) => {
@@ -661,7 +679,7 @@ export default function ItemForm({ isModal = false, modalItemId, onClose, onSave
         null;
       if (match) {
         setFormData((prev) => {
-          if (!prev.branch_id || (activeBranchId && String(prev.branch_id) !== String(match.id))) {
+          if (!prev.branch_id) {
             return { ...prev, branch_id: String(match.id) };
           }
           return prev;
@@ -669,6 +687,17 @@ export default function ItemForm({ isModal = false, modalItemId, onClose, onSave
       }
     }
   }, [isNew, activeBranchId, branches]);
+
+  const handleWarehouseChange = (whId) => {
+    const selectedWh = warehouses.find((w) => String(w.id) === String(whId));
+    setFormData((prev) => {
+      const next = { ...prev, opening_warehouse_id: whId };
+      if (selectedWh?.branch_id) {
+        next.branch_id = String(selectedWh.branch_id);
+      }
+      return next;
+    });
+  };
 
   const handleImageUpload = async (e) => {
     const file = e.target.files[0];
@@ -1026,9 +1055,28 @@ export default function ItemForm({ isModal = false, modalItemId, onClose, onSave
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Branch is hidden from UI but auto-populated and submitted in background */}
-              <input type="hidden" name="branch_id" value={formData.branch_id || ""} />
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="label">Branch *</label>
+                <select
+                  className="input"
+                  value={formData.branch_id || ""}
+                  onChange={(e) =>
+                    setFormData({ ...formData, branch_id: e.target.value })
+                  }
+                  required
+                >
+                  <option value="">-- Select Branch --</option>
+                  {branches.map((b) => (
+                    <option key={b.id} value={b.id}>
+                      {b.name || b.branch_name || b.code || `Branch ${b.id}`}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-xs text-slate-500 mt-1">
+                  Auto-populated when selecting a warehouse, or select manually.
+                </p>
+              </div>
               <div>
                 <label className="label">Unit of Measure</label>
                 <select
@@ -1246,42 +1294,47 @@ export default function ItemForm({ isModal = false, modalItemId, onClose, onSave
               </div>
             </div>
 
-            {isNew && !isProductionMode && (
+            {!isProductionMode && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-t pt-4">
                 <h3 className="col-span-full font-semibold text-gray-700">
-                  Quantity (Optional)
+                  {isNew ? "Opening Stock & Warehouse (Optional)" : "Warehouse"}
                 </h3>
-                <div>
-                  <label className="label">Quantity</label>
-                  <input
-                    type="number"
-                    className="input"
-                    value={formData.opening_quantity}
-                    onChange={(e) =>
-                      setFormData({ ...formData, opening_quantity: e.target.value })
-                    }
-                    min="0"
-                  />
-                </div>
+                {isNew && (
+                  <div>
+                    <label className="label">Opening Quantity</label>
+                    <input
+                      type="number"
+                      className="input"
+                      value={formData.opening_quantity}
+                      onChange={(e) =>
+                        setFormData({ ...formData, opening_quantity: e.target.value })
+                      }
+                      min="0"
+                    />
+                  </div>
+                )}
                 <div>
                   <label className="label">Warehouse</label>
                   <select
                     className="input"
-                    value={formData.opening_warehouse_id}
-                    onChange={(e) =>
-                      setFormData({ ...formData, opening_warehouse_id: e.target.value })
-                    }
-                    required={Number(formData.opening_quantity) > 0}
+                    value={formData.opening_warehouse_id || ""}
+                    onChange={(e) => handleWarehouseChange(e.target.value)}
+                    required={isNew && Number(formData.opening_quantity) > 0}
                   >
                     <option value="">-- Select Warehouse --</option>
-                    {warehouses
-                      .filter((w) => !formData.branch_id || !w.branch_id || String(w.branch_id) === String(formData.branch_id))
-                      .map((w) => (
-                      <option key={w.id} value={w.id}>
-                        {w.warehouse_name}
-                      </option>
-                    ))}
+                    {warehouses.map((w) => {
+                      const branchObj = branches.find((b) => String(b.id) === String(w.branch_id));
+                      const branchSuffix = branchObj?.name ? ` (${branchObj.name})` : (w.branch_name ? ` (${w.branch_name})` : "");
+                      return (
+                        <option key={w.id} value={w.id}>
+                          {w.warehouse_name || w.name || w.warehouse_code}{branchSuffix}
+                        </option>
+                      );
+                    })}
                   </select>
+                  <p className="text-xs text-slate-500 mt-1">
+                    Selecting a warehouse automatically updates the linked branch.
+                  </p>
                 </div>
               </div>
             )}

@@ -25,6 +25,22 @@ import {
   X,
 } from "lucide-react";
 
+function toCharYorN(val, defaultVal = "Y") {
+  if (val === undefined || val === null || String(val).trim() === "") {
+    return defaultVal;
+  }
+  if (typeof val === "boolean") {
+    return val ? "Y" : "N";
+  }
+  if (typeof val === "number") {
+    return val === 1 ? "Y" : (val === 0 ? "N" : defaultVal);
+  }
+  const s = String(val).trim().toUpperCase();
+  if (["Y", "YES", "TRUE", "1", "T"].includes(s)) return "Y";
+  if (["N", "NO", "FALSE", "0", "F"].includes(s)) return "N";
+  return defaultVal;
+}
+
 /**
  * ItemsList component
  * Displays inventory items and manages search, filter, and pagination states.
@@ -351,6 +367,8 @@ export default function ItemsList() {
       let priceTypeNameToId = new Map();
       let warehouseCodeToId = new Map();
       let warehouseIdToName = new Map();
+      let warehouseIdToBranchId = new Map();
+      let warehouseCodeToBranchId = new Map();
       let itemTypeSet = new Set();
       let itemTypeCodeToCode = new Map();
       let itemTypeNameToCode = new Map();
@@ -440,10 +458,18 @@ export default function ItemsList() {
           const id = Number(w.id);
           const code = String(w.warehouse_code || "").toUpperCase();
           const name = String(w.warehouse_name || "").toUpperCase();
+          const bId = w.branch_id ? Number(w.branch_id) : null;
           if (id > 0) {
-            if (code) warehouseCodeToId.set(code, id);
-            if (name) warehouseCodeToId.set(name, id);
+            if (code) {
+              warehouseCodeToId.set(code, id);
+              if (bId) warehouseCodeToBranchId.set(code, bId);
+            }
+            if (name) {
+              warehouseCodeToId.set(name, id);
+              if (bId) warehouseCodeToBranchId.set(name, bId);
+            }
             warehouseIdToName.set(id, String(w.warehouse_name || w.warehouse_code || ""));
+            if (bId) warehouseIdToBranchId.set(id, bId);
           }
         });
         const pts = Array.isArray(ptRes?.data?.items) ? ptRes.data.items : [];
@@ -652,6 +678,9 @@ export default function ItemsList() {
         const warehouseResolved = warehouseRaw
           ? (warehouseCodeToId.get(warehouseRaw) || (Number(warehouseRaw) > 0 ? Number(warehouseRaw) : null))
           : null;
+        const branchResolved = warehouseResolved
+          ? (warehouseIdToBranchId.get(Number(warehouseResolved)) || null)
+          : (warehouseRaw ? (warehouseCodeToBranchId.get(warehouseRaw) || null) : null);
         const warehouseLabel = warehouseResolved
           ? (warehouseIdToName.get(Number(warehouseResolved)) || rowData.WAREHOUSE)
           : rowData.WAREHOUSE;
@@ -800,6 +829,7 @@ export default function ItemsList() {
             item_type: itemTypeResolved || itemTypeRaw || "",
             is_stockable: autoIsStockable,
             warehouse_id: warehouseResolved,
+            branch_id: branchResolved,
             warehouse_label: warehouseLabel || "-",
             opening_quantity: Number(rowData.OPENING_QUANTITY) || 0,
             safety_stock: Number(rowData.SAFETY_STOCK) || 0,
@@ -847,35 +877,55 @@ export default function ItemsList() {
       // Rebuild lookup maps here (upload runs independently of file-parse scope)
       const currencyCodeToId = new Map();
       const taxCodeToId = new Map();
+      const accountCodeToId = new Map();
       const priceTypeNameToId = new Map();
       const whNameToId = new Map();
+      const whIdToBranchId = new Map();
+      const whNameToBranchId = new Map();
       try {
-        const [curRes, taxRes, ptRes, whRes] = await Promise.all([
+        const [curRes, taxRes, ptRes, whRes, accRes] = await Promise.all([
           api.get("/finance/currencies"),
           api.get("/finance/tax-codes"),
           api.get("/sales/price-types?active=true"),
-          api.get("/inventory/warehouses").catch(() => ({ data: { items: [] } })),
+          api
+            .get("/inventory/warehouses?all_branches=1")
+            .catch(() => api.get("/inventory/warehouses").catch(() => ({ data: { items: [] } }))),
+          api.get("/finance/accounts").catch(() => ({ data: { items: [] } })),
         ]);
         const curs = Array.isArray(curRes?.data?.items) ? curRes.data.items : [];
         const taxes = Array.isArray(taxRes?.data?.items) ? taxRes.data.items : [];
         const pts = Array.isArray(ptRes?.data?.items) ? ptRes.data.items : [];
         const whs = Array.isArray(whRes?.data?.items) ? whRes.data.items : Array.isArray(whRes?.data) ? whRes.data : [];
+        const accs = Array.isArray(accRes?.data?.items) ? accRes.data.items : [];
+
         curs.forEach((c) => {
           const id = Number(c.id);
-          const code = String(c.code || "").toUpperCase();
-          const name = String(c.name || "").toUpperCase();
+          const code = String(c.code || "").trim().toUpperCase();
+          const name = String(c.name || "").trim().toUpperCase();
           if (id > 0) {
             if (code) currencyCodeToId.set(code, id);
             if (name) currencyCodeToId.set(name, id);
+            currencyCodeToId.set(String(id), id);
           }
         });
         taxes.forEach((t) => {
           const id = Number(t.id);
-          const code = String(t.code || "").toUpperCase();
-          const name = String(t.name || "").toUpperCase();
+          const code = String(t.code || "").trim().toUpperCase();
+          const name = String(t.name || "").trim().toUpperCase();
           if (id > 0) {
             if (code) taxCodeToId.set(code, id);
             if (name) taxCodeToId.set(name, id);
+            taxCodeToId.set(String(id), id);
+          }
+        });
+        accs.forEach((a) => {
+          const id = Number(a.id);
+          const code = String(a.code || "").trim().toUpperCase();
+          const name = String(a.name || "").trim().toUpperCase();
+          if (id > 0) {
+            if (code) accountCodeToId.set(code, id);
+            if (name) accountCodeToId.set(name, id);
+            accountCodeToId.set(String(id), id);
           }
         });
         pts.forEach((p) => {
@@ -887,9 +937,17 @@ export default function ItemsList() {
           const id = Number(w.id);
           const code = String(w.warehouse_code || "").toUpperCase();
           const name = String(w.warehouse_name || "").toUpperCase();
+          const bId = Number(w.branch_id) || null;
           if (id > 0) {
-            if (code) whNameToId.set(code, id);
-            if (name) whNameToId.set(name, id);
+            if (code) {
+              whNameToId.set(code, id);
+              if (bId) whNameToBranchId.set(code, bId);
+            }
+            if (name) {
+              whNameToId.set(name, id);
+              if (bId) whNameToBranchId.set(name, bId);
+            }
+            if (bId) whIdToBranchId.set(id, bId);
           }
         });
       } catch {
@@ -910,6 +968,30 @@ export default function ItemsList() {
           const rowData = r.raw || {};
           const warehouseRaw = String(rowData.WAREHOUSE || "").trim().toUpperCase();
           const resolvedWhId = r.preview?.warehouse_id || (warehouseRaw ? (whNameToId.get(warehouseRaw) || (Number(warehouseRaw) > 0 ? Number(warehouseRaw) : null)) : null);
+          const resolvedBranchId = r.preview?.branch_id || (resolvedWhId ? whIdToBranchId.get(resolvedWhId) : null) || (warehouseRaw ? whNameToBranchId.get(warehouseRaw) : null) || null;
+
+          const rawCur = String(rowData.CURRENCY_ID || rowData.CURRENCY_CODE || rowData.CURRENCY || "").trim().toUpperCase();
+          const resolvedCurId = (Number(rawCur) > 0 ? Number(rawCur) : null) || currencyCodeToId.get(rawCur) || 1;
+
+          const rawVatPur = String(rowData.VAT_ON_PURCHASE_ID || rowData.VAT_PURCHASE_CODE || rowData.VAT_ON_PURCHASE || rowData.VAT_PURCHASE || "").trim().toUpperCase();
+          const resolvedVatPurId = (Number(rawVatPur) > 0 ? Number(rawVatPur) : null) || taxCodeToId.get(rawVatPur) || null;
+
+          const rawVatSal = String(rowData.VAT_ON_SALES_ID || rowData.VAT_SALES_CODE || rowData.VAT_ON_SALES || rowData.VAT_SALES || "").trim().toUpperCase();
+          const resolvedVatSalId = (Number(rawVatSal) > 0 ? Number(rawVatSal) : null) || taxCodeToId.get(rawVatSal) || null;
+
+          const rawPurAcc = String(rowData.PURCHASE_ACCOUNT_ID || rowData.PURCHASE_ACCOUNT_CODE || rowData.PURCHASE_ACCOUNT || "").trim().toUpperCase();
+          const resolvedPurAccId = (Number(rawPurAcc) > 0 ? Number(rawPurAcc) : null) || accountCodeToId.get(rawPurAcc) || null;
+
+          const rawSalAcc = String(rowData.SALES_ACCOUNT_ID || rowData.SALES_ACCOUNT_CODE || rowData.SALES_ACCOUNT || "").trim().toUpperCase();
+          const resolvedSalAccId = (Number(rawSalAcc) > 0 ? Number(rawSalAcc) : null) || accountCodeToId.get(rawSalAcc) || null;
+
+          const itemTypeStr = r.preview?.item_type || rowData.ITEM_TYPE || "";
+          const typeNorm = String(itemTypeStr).toUpperCase().replace(/[-_\s]/g, "");
+          const isServiceOrNonInv = typeNorm.includes("SERVICE") || typeNorm.includes("NONINVENTORY");
+          const resolvedIsStockable = isServiceOrNonInv ? "N" : toCharYorN(rowData.IS_STOCKABLE || r.preview?.is_stockable, "Y");
+          const resolvedIsSellable = toCharYorN(rowData.IS_SELLABLE, "Y");
+          const resolvedIsPurchasable = toCharYorN(rowData.IS_PURCHASABLE, "Y");
+
           return {
             item_code: rowData.ITEM_CODE || r.preview.item_code || "",
             item_name: rowData.ITEM_NAME || "",
@@ -926,33 +1008,33 @@ export default function ItemsList() {
             barcode: r.preview.barcode || "",
             cost_price: Number(rowData.STANDARD_COST) || 0,
             selling_price: Number(rowData.SELLING_PRICE) || 0,
+            currency_id: resolvedCurId,
             currency_code: rowData.CURRENCY_CODE || rowData.CURRENCY || "",
             warehouse_id: resolvedWhId,
             opening_warehouse_id: resolvedWhId,
             warehouse_name: rowData.WAREHOUSE || "",
+            branch_id: resolvedBranchId,
             opening_quantity: Number(rowData.OPENING_QUANTITY) || 0,
             safety_stock: Number(rowData.SAFETY_STOCK) || 0,
             price_type: rowData.PRICE_TYPE || "",
             price_type_name: rowData.PRICE_TYPE_NAME || "",
             image_url: rowData.IMAGE_URL || rowData.IMAGE || "",
+            vat_on_purchase_id: resolvedVatPurId,
             vat_on_purchase_code:
               rowData.VAT_ON_PURCHASE || rowData.VAT_PURCHASE_CODE || "",
-            purchase_account_id:
-              Number(rowData.PURCHASE_ACCOUNT_ID || 0) || null,
-            sales_account_id: Number(rowData.SALES_ACCOUNT_ID || 0) || null,
+            vat_on_sales_id: resolvedVatSalId,
             vat_on_sales_code:
               rowData.VAT_ON_SALES || rowData.VAT_SALES_CODE || "",
+            purchase_account_id: resolvedPurAccId,
+            sales_account_id: resolvedSalAccId,
             purchase_account_code:
               rowData.PURCHASE_ACCOUNT_CODE || rowData.PURCHASE_ACCOUNT || "",
             sales_account_code:
               rowData.SALES_ACCOUNT_CODE || rowData.SALES_ACCOUNT || "",
             description: rowData.DESCRIPTION || "",
-            is_stockable: (() => {
-              const t = String(r.preview.item_type || rowData.ITEM_TYPE || "").toUpperCase().replace(/[-_\s]/g, "");
-              return (t.includes("SERVICE") || t.includes("NONINVENTORY")) ? false : true;
-            })(),
-            is_sellable: rowData.IS_SELLABLE === "Y",
-            is_purchasable: rowData.IS_PURCHASABLE === "Y",
+            is_stockable: resolvedIsStockable,
+            is_sellable: resolvedIsSellable,
+            is_purchasable: resolvedIsPurchasable,
             is_active: String(rowData.STATUS || "").toUpperCase() === "INACTIVE" ? false : true,
             min_stock_level: Number(rowData.MIN_STOCK_LEVEL) || 0,
             max_stock_level: Number(rowData.MAX_STOCK_LEVEL) || 0,
@@ -1020,6 +1102,30 @@ export default function ItemsList() {
         }
         const warehouseRaw = String(rowData.WAREHOUSE || "").trim().toUpperCase();
         const resolvedWhId = r.preview?.warehouse_id || (warehouseRaw ? (whNameToId.get(warehouseRaw) || (Number(warehouseRaw) > 0 ? Number(warehouseRaw) : null)) : null);
+        const resolvedBranchId = r.preview?.branch_id || (resolvedWhId ? whIdToBranchId.get(resolvedWhId) : null) || (warehouseRaw ? whNameToBranchId.get(warehouseRaw) : null) || null;
+
+        const rawCur = String(rowData.CURRENCY_ID || rowData.CURRENCY_CODE || rowData.CURRENCY || "").trim().toUpperCase();
+        const resolvedCurId = (Number(rawCur) > 0 ? Number(rawCur) : null) || currencyCodeToId.get(rawCur) || 1;
+
+        const rawVatPur = String(rowData.VAT_ON_PURCHASE_ID || rowData.VAT_PURCHASE_CODE || rowData.VAT_ON_PURCHASE || rowData.VAT_PURCHASE || "").trim().toUpperCase();
+        const resolvedVatPurId = (Number(rawVatPur) > 0 ? Number(rawVatPur) : null) || taxCodeToId.get(rawVatPur) || null;
+
+        const rawVatSal = String(rowData.VAT_ON_SALES_ID || rowData.VAT_SALES_CODE || rowData.VAT_ON_SALES || rowData.VAT_SALES || "").trim().toUpperCase();
+        const resolvedVatSalId = (Number(rawVatSal) > 0 ? Number(rawVatSal) : null) || taxCodeToId.get(rawVatSal) || null;
+
+        const rawPurAcc = String(rowData.PURCHASE_ACCOUNT_ID || rowData.PURCHASE_ACCOUNT_CODE || rowData.PURCHASE_ACCOUNT || "").trim().toUpperCase();
+        const resolvedPurAccId = (Number(rawPurAcc) > 0 ? Number(rawPurAcc) : null) || accountCodeToId.get(rawPurAcc) || null;
+
+        const rawSalAcc = String(rowData.SALES_ACCOUNT_ID || rowData.SALES_ACCOUNT_CODE || rowData.SALES_ACCOUNT || "").trim().toUpperCase();
+        const resolvedSalAccId = (Number(rawSalAcc) > 0 ? Number(rawSalAcc) : null) || accountCodeToId.get(rawSalAcc) || null;
+
+        const itemTypeStr = r.preview?.item_type || rowData.ITEM_TYPE || "";
+        const typeNorm = String(itemTypeStr).toUpperCase().replace(/[-_\s]/g, "");
+        const isServiceOrNonInv = typeNorm.includes("SERVICE") || typeNorm.includes("NONINVENTORY");
+        const resolvedIsStockable = isServiceOrNonInv ? "N" : toCharYorN(rowData.IS_STOCKABLE || r.preview?.is_stockable, "Y");
+        const resolvedIsSellable = toCharYorN(rowData.IS_SELLABLE, "Y");
+        const resolvedIsPurchasable = toCharYorN(rowData.IS_PURCHASABLE, "Y");
+
         const basePayload = {
           item_code: nextItemCode,
           item_name: rowData.ITEM_NAME,
@@ -1034,31 +1140,29 @@ export default function ItemsList() {
           group_name: r.preview.group_name,
           category_code: rowData.ITEM_CATEGORY_CODE || null,
           group_code: rowData.ITEM_GROUP_CODE || null,
+          currency_id: resolvedCurId,
           currency_code: rowData.CURRENCY_CODE || rowData.CURRENCY || null,
           warehouse_name: rowData.WAREHOUSE || null,
           opening_warehouse_id: resolvedWhId,
+          warehouse_id: resolvedWhId,
+          branch_id: resolvedBranchId,
           opening_quantity: Number(rowData.OPENING_QUANTITY) || 0,
+          vat_on_purchase_id: resolvedVatPurId,
           vat_on_purchase_code:
             rowData.VAT_ON_PURCHASE || rowData.VAT_PURCHASE_CODE || null,
+          vat_on_sales_id: resolvedVatSalId,
           vat_on_sales_code:
             rowData.VAT_ON_SALES || rowData.VAT_SALES_CODE || null,
+          purchase_account_id: resolvedPurAccId,
           purchase_account_code:
             rowData.PURCHASE_ACCOUNT_CODE || rowData.PURCHASE_ACCOUNT || null,
+          sales_account_id: resolvedSalAccId,
           sales_account_code:
             rowData.SALES_ACCOUNT_CODE || rowData.SALES_ACCOUNT || null,
           uom: rowData.BASE_UOM,
           barcode: r.preview.barcode || null,
           cost_price: Number(rowData.STANDARD_COST) || 0,
           selling_price: Number(rowData.SELLING_PRICE) || 0,
-          currency_id:
-            currencyCodeToId.get(
-              String(
-                rowData.CURRENCY_ID ||
-                  rowData.CURRENCY_CODE ||
-                  rowData.CURRENCY ||
-                  "",
-              ).toUpperCase(),
-            ) || null,
           price_type_id:
             priceTypeNameToId.get(
               String(
@@ -1068,35 +1172,10 @@ export default function ItemsList() {
             Number(rowData.PRICE_TYPE_ID || 0) ||
             null,
           image_url: rowData.IMAGE_URL || rowData.IMAGE || null,
-          vat_on_purchase_id:
-            taxCodeToId.get(
-              String(
-                rowData.VAT_ON_PURCHASE_ID ||
-                  rowData.VAT_ON_PURCHASE ||
-                  rowData.VAT_PURCHASE ||
-                  rowData.VAT_PURCHASE_CODE ||
-                  "",
-              ).toUpperCase(),
-            ) || null,
-          vat_on_sales_id:
-            taxCodeToId.get(
-              String(
-                rowData.VAT_ON_SALES_ID ||
-                  rowData.VAT_ON_SALES ||
-                  rowData.VAT_SALES ||
-                  rowData.VAT_SALES_CODE ||
-                  "",
-              ).toUpperCase(),
-            ) || null,
-          purchase_account_id: Number(rowData.PURCHASE_ACCOUNT_ID || 0) || null,
-          sales_account_id: Number(rowData.SALES_ACCOUNT_ID || 0) || null,
           description: rowData.DESCRIPTION,
-          is_stockable: (() => {
-            const t = String(r.preview.item_type || rowData.ITEM_TYPE || "").toUpperCase().replace(/[-_\s]/g, "");
-            return (t.includes("SERVICE") || t.includes("NONINVENTORY")) ? false : true;
-          })(),
-          is_sellable: rowData.IS_SELLABLE === "Y",
-          is_purchasable: rowData.IS_PURCHASABLE === "Y",
+          is_stockable: resolvedIsStockable,
+          is_sellable: resolvedIsSellable,
+          is_purchasable: resolvedIsPurchasable,
           is_active: String(rowData.STATUS || "").toUpperCase() === "INACTIVE" ? false : true,
           min_stock_level: Number(rowData.MIN_STOCK_LEVEL) || 0,
           max_stock_level: Number(rowData.MAX_STOCK_LEVEL) || 0,
