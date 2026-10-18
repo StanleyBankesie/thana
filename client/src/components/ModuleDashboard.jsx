@@ -577,7 +577,7 @@ const ModuleDashboard = ({
             <button
               key={i}
               onClick={(e) => handleNavigate(a.path, e)}
-              className="btn btn-outline bg-white dark:bg-slate-800 text-brand-900 dark:text-brand-300 border border-brand-900/40 dark:border-brand-400 hover:bg-brand-900 hover:text-white dark:hover:bg-brand-800 dark:hover:text-white shadow-xs transition-all font-medium"
+              className="btn btn-primary"
               title={a.title || a.label}
             >
               {a.icon ? <span className="mr-2">{typeof a.icon === "string" ? a.icon : React.createElement(a.icon, { className: "w-4 h-4 inline" })}</span> : null}
@@ -653,13 +653,17 @@ const ModuleDashboard = ({
               })
               .map((stat, index) => {
                 const cardType = index % 4;
+                const isClickable = Boolean(stat.path);
+
                 if (cardType === 0) {
                   // Card 1: Amber Gold
                   return (
                     <div
                       key={index}
-                      className="relative overflow-hidden rounded-[24px] p-6 shadow-[0_15px_30px_-5px_rgba(178,110,23,0.3)] dark:shadow-[0_15px_30px_-5px_rgba(0,0,0,0.4)] border border-white/10 hover:border-white/20 hover:-translate-y-1.5 hover:scale-[1.02] hover:shadow-[0_25px_50px_-12px_rgba(178,110,23,0.5)] active:scale-[0.98] transition-all duration-300 ease-out group bg-[#b26e17] text-white"
-
+                      onClick={() => isClickable && handleNavigate(stat.path)}
+                      className={`relative overflow-hidden rounded-[24px] p-6 shadow-[0_15px_30px_-5px_rgba(178,110,23,0.3)] dark:shadow-[0_15px_30px_-5px_rgba(0,0,0,0.4)] border border-white/10 hover:border-white/20 hover:-translate-y-1.5 hover:scale-[1.02] hover:shadow-[0_25px_50px_-12px_rgba(178,110,23,0.5)] active:scale-[0.98] transition-all duration-300 ease-out group bg-[#b26e17] text-white ${
+                        isClickable ? "cursor-pointer" : ""
+                      }`}
                     >
                       <div className="flex flex-col h-full justify-between">
                         <div className="flex justify-end min-h-[22px]">
@@ -689,8 +693,10 @@ const ModuleDashboard = ({
                   return (
                     <div
                       key={index}
-                      className="relative overflow-hidden rounded-[24px] p-6 shadow-[0_15px_30px_-5px_rgba(36,82,109,0.3)] dark:shadow-[0_15px_30px_-5px_rgba(0,0,0,0.4)] border border-white/10 hover:border-white/20 hover:-translate-y-1.5 hover:scale-[1.02] hover:shadow-[0_25px_50px_-12px_rgba(36,82,109,0.5)] active:scale-[0.98] transition-all duration-300 ease-out group bg-[#24526d] text-white"
-
+                      onClick={() => isClickable && handleNavigate(stat.path)}
+                      className={`relative overflow-hidden rounded-[24px] p-6 shadow-[0_15px_30px_-5px_rgba(36,82,109,0.3)] dark:shadow-[0_15px_30px_-5px_rgba(0,0,0,0.4)] border border-white/10 hover:border-white/20 hover:-translate-y-1.5 hover:scale-[1.02] hover:shadow-[0_25px_50px_-12px_rgba(36,82,109,0.5)] active:scale-[0.98] transition-all duration-300 ease-out group bg-[#24526d] text-white ${
+                        isClickable ? "cursor-pointer" : ""
+                      }`}
                     >
                       <div className="flex flex-col h-full justify-between">
                         <div className="flex justify-end min-h-[22px]">
@@ -704,9 +710,9 @@ const ModuleDashboard = ({
                           <div className="text-3xl font-extrabold text-white tracking-tight">
                             {stat.value}
                           </div>
-                          <div className="mt-2.5 text-[10px] font-bold text-white/80 uppercase tracking-widest leading-none flex items-center">
+                          <div className="mt-2.5 text-[10px] font-bold text-white/80 uppercase tracking-widest leading-none flex items-center justify-between">
                             <span>{stat.label}</span>
-                            <svg className="w-8 h-4 text-white/20 ml-2 group-hover:text-white/40 transition-colors" viewBox="0 0 50 20" fill="none" stroke="currentColor" strokeWidth="2">
+                            <svg className="w-8 h-4 text-white/30 ml-2 group-hover:text-white/50 transition-colors" viewBox="0 0 50 20" fill="none" stroke="currentColor" strokeWidth="2">
                               <path d="M0 15 L10 12 L20 18 L30 8 L40 10 L50 2" strokeLinecap="round" strokeLinejoin="round" />
                             </svg>
                           </div>
@@ -720,8 +726,10 @@ const ModuleDashboard = ({
                   return (
                     <div
                       key={index}
-                      className="relative overflow-hidden rounded-[24px] p-6 shadow-[0_15px_30px_-5px_rgba(24,117,92,0.3)] dark:shadow-[0_15px_30px_-5px_rgba(0,0,0,0.4)] border border-white/10 hover:border-white/20 hover:-translate-y-1.5 hover:scale-[1.02] hover:shadow-[0_25px_50px_-12px_rgba(24,117,92,0.5)] active:scale-[0.98] transition-all duration-300 ease-out group bg-[#18755c] text-white"
-
+                      onClick={() => isClickable && handleNavigate(stat.path)}
+                      className={`relative overflow-hidden rounded-[24px] p-6 shadow-[0_15px_30px_-5px_rgba(24,117,92,0.3)] dark:shadow-[0_15px_30px_-5px_rgba(0,0,0,0.4)] border border-white/10 hover:border-white/20 hover:-translate-y-1.5 hover:scale-[1.02] hover:shadow-[0_25px_50px_-12px_rgba(24,117,92,0.5)] active:scale-[0.98] transition-all duration-300 ease-out group bg-[#18755c] text-white ${
+                        isClickable ? "cursor-pointer" : ""
+                      }`}
                     >
                       <div className="flex flex-col h-full justify-between">
                         <div className="flex justify-end min-h-[22px]">
@@ -751,8 +759,10 @@ const ModuleDashboard = ({
                   return (
                     <div
                       key={index}
-                      className="relative overflow-hidden rounded-[24px] p-6 shadow-[0_15px_30px_-5px_rgba(0,0,0,0.2)] dark:shadow-[0_15px_30px_-5px_rgba(0,0,0,0.5)] border border-white/5 hover:border-white/15 hover:-translate-y-1.5 hover:scale-[1.02] hover:shadow-[0_25px_50px_-12px_rgba(0,0,0,0.4)] active:scale-[0.98] transition-all duration-300 ease-out group bg-[#1d1f22] bg-[radial-gradient(#ffffff06_1px,transparent_1px)] [background-size:8px_8px] text-white"
-
+                      onClick={() => isClickable && handleNavigate(stat.path)}
+                      className={`relative overflow-hidden rounded-[24px] p-6 shadow-[0_15px_30px_-5px_rgba(0,0,0,0.2)] dark:shadow-[0_15px_30px_-5px_rgba(0,0,0,0.5)] border border-white/5 hover:border-white/15 hover:-translate-y-1.5 hover:scale-[1.02] hover:shadow-[0_25px_50px_-12px_rgba(0,0,0,0.4)] active:scale-[0.98] transition-all duration-300 ease-out group bg-[#1d1f22] bg-[radial-gradient(#ffffff06_1px,transparent_1px)] [background-size:8px_8px] text-white ${
+                        isClickable ? "cursor-pointer" : ""
+                      }`}
                     >
                       <div className="flex flex-col h-full justify-between">
                         <div className="flex justify-end min-h-[22px]">

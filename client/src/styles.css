@@ -25,7 +25,7 @@
 @layer base {
   /* ERP Theme Base Styles - Default font size matching Item Setup form (14px / 0.875rem) */
   body {
-    @apply antialiased font-sans text-sm text-slate-900 dark:text-slate-100;
+    @apply antialiased font-sans text-sm text-slate-900 dark:text-slate-100 bg-slate-50 dark:bg-[#0b0f19];
     font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
     font-size: 0.875rem; /* 14px default base font size */
     line-height: 1.5;
@@ -67,12 +67,25 @@
 
 @layer components {
   /* ── ERP Button Styles (Apple HIG Compliant) ───────── */
+  .btn {
+    @apply inline-flex items-center justify-center font-medium transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98];
+    min-height: 40px;
+  }
+
   .btn-primary {
     @apply inline-flex items-center justify-center px-5 py-2.5 rounded-xl font-medium text-white bg-brand-900 hover:bg-brand-800 active:bg-brand-950 transition-all duration-150 shadow-apple-xs disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98];
     min-height: 42px;
   }
   .btn-primary:focus-visible {
     @apply outline-none ring-2 ring-brand-900/40 ring-offset-2 ring-offset-white dark:ring-offset-slate-800;
+  }
+
+  .btn-danger {
+    @apply inline-flex items-center justify-center px-4 py-2 rounded-xl font-medium text-white bg-rose-600 hover:bg-rose-700 active:bg-rose-800 transition-all duration-150 shadow-apple-xs disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98];
+    min-height: 40px;
+  }
+  .btn-danger:focus-visible {
+    @apply outline-none ring-2 ring-rose-500/40 ring-offset-2 ring-offset-white dark:ring-offset-slate-800;
   }
 
   .btn-secondary {
@@ -224,72 +237,24 @@
     @apply bg-slate-50 dark:bg-slate-800/50;
   }
 
-  /* Keep actions columns visually stable across list pages */
+  /* Clean, proportional table actions (Apple HIG) */
   .table th:last-child,
-  .table td:last-child,
-  .table th:has(+ th:last-child),
-  .table td:has(+ td:last-child) {
+  .table td:last-child {
     white-space: nowrap;
   }
-  .table td:last-child,
-  .table td:has(> .user-action-buttons),
-  .table td:has(> .ds-action-buttons),
-  .table td:has(> .flex > .btn),
-  .table td:has(> .flex > a),
-  .table td:has(> .btn),
-  .table td:has(> a.btn) {
-    min-width: 13.5rem;
-  }
-  /* Keep actions columns visually stable across list pages */
-  .table th:last-child,
-  .table td:last-child,
-  .table th:has(+ th:last-child),
-  .table td:has(+ td:last-child) {
-    white-space: nowrap;
-  }
-  .table td:last-child,
-  .table td:has(> .user-action-buttons),
-  .table td:has(> .ds-action-buttons),
-  .table td:has(> .flex > .btn),
-  .table td:has(> .flex > a),
-  .table td:has(> .btn),
-  .table td:has(> a.btn) {
-    min-width: 28rem;
-  }
-  /* Use grid layout to maintain button positions */
   .table td:last-child > .flex,
   .table td:last-child > div.flex,
   .table td > .user-action-buttons,
-  .table td > .ds-action-buttons,
-  .table td:has(> .flex > .btn) > .flex,
-  .table td:has(> .flex > a) > .flex {
-    display: inline-grid;
-    grid-auto-flow: column;
-    grid-auto-columns: minmax(4.5rem, max-content);
-    align-items: center;
-    gap: 0.5rem;
-    justify-content: start;
-  }
-  /* Fixed min-width for all direct children to prevent shifting */
-  .table td:last-child > .flex > *,
-  .table td > .user-action-buttons > *,
-  .table td > .ds-action-buttons > *,
-  .table td > .flex > a,
-  .table td > .flex > button {
-    min-width: 4.5rem;
-    text-align: center;
-  }
-  .table td:last-child > a,
-  .table td:last-child > button,
-  .table td > .user-action-buttons > a,
-  .table td > .user-action-buttons > button,
-  .table td > .ds-action-buttons > a,
-  .table td > .ds-action-buttons > button,
-  .table td > .flex > a,
-  .table td > .flex > button {
+  .table td > .ds-action-buttons {
     display: inline-flex;
-    justify-content: center;
-    min-width: 4.25rem;
+    align-items: center;
+    gap: 0.375rem;
+  }
+  .table td:last-child > .btn,
+  .table td:last-child > a.btn,
+  .table td:last-child > .flex > .btn,
+  .table td:last-child > .flex > a.btn {
+    min-width: 3.75rem;
   }
   .table td .hidden {
     display: inline-flex !important;

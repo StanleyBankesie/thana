@@ -1,18 +1,21 @@
 import React, { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { 
   Building2, Plus, Search, Filter, Layers, MapPin, 
   User, CheckCircle2, AlertTriangle, ChevronRight, X, Eye, ArrowLeft
 } from "lucide-react";
 import { api } from "../../../../api/client.js";
 import { toast } from "react-toastify";
+import ViewToggle from "../../../../components/ViewToggle.jsx";
 
 export default function PropertiesList() {
+  const navigate = useNavigate();
   const [properties, setProperties] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
+  const [viewMode, setViewMode] = useState("table");
   
   // Modals
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -134,23 +137,19 @@ export default function PropertiesList() {
     { value: "OTHER", label: "Other" }
   ];
 
-  const totalProps = properties.length;
-  const activeProps = properties.filter((p) => p.status === "ACTIVE").length;
-  const totalBuildings = properties.reduce((acc, p) => acc + (parseInt(p.building_count) || 0), 0);
-  const totalAssets = properties.reduce((acc, p) => acc + (parseInt(p.asset_count) || 0), 0);
-
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div className="flex items-center gap-3">
-          <Link
-            to="/maintenance?section=Facilities Management"
-            className="btn btn-secondary inline-flex items-center gap-1.5"
-            title="Back to Facilities Management"
+          <button
+            type="button"
+            onClick={() => navigate(-1)}
+            className="btn btn-secondary inline-flex items-center gap-2 px-3.5 py-2 text-sm"
+            title="Go Back"
           >
             <ArrowLeft size={16} /> Back
-          </Link>
+          </button>
           <div>
             <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
               <Building2 className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
@@ -169,38 +168,6 @@ export default function PropertiesList() {
         </button>
       </div>
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="card p-4 space-y-1">
-          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Properties Managed</p>
-          <div className="flex items-baseline justify-between">
-            <span className="text-2xl font-bold text-slate-900 dark:text-slate-100">{totalProps}</span>
-            <span className="badge badge-sm badge-info">Sites</span>
-          </div>
-        </div>
-        <div className="card p-4 space-y-1">
-          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Active Portfolios</p>
-          <div className="flex items-baseline justify-between">
-            <span className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{activeProps}</span>
-            <span className="badge badge-sm badge-success">Operational</span>
-          </div>
-        </div>
-        <div className="card p-4 space-y-1">
-          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total Buildings</p>
-          <div className="flex items-baseline justify-between">
-            <span className="text-2xl font-bold text-blue-600 dark:text-blue-400">{totalBuildings}</span>
-            <span className="badge badge-sm badge-ghost">Structures</span>
-          </div>
-        </div>
-        <div className="card p-4 space-y-1">
-          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Assets & Systems</p>
-          <div className="flex items-baseline justify-between">
-            <span className="text-2xl font-bold text-purple-600 dark:text-purple-400">{totalAssets}</span>
-            <span className="badge badge-sm badge-primary">Tracked</span>
-          </div>
-        </div>
-      </div>
-
       {/* Filter and Search Bar */}
       <div className="bg-white dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col md:flex-row gap-3 items-center justify-between">
         <form onSubmit={handleSearchSubmit} className="relative flex-1 w-full">
@@ -214,7 +181,7 @@ export default function PropertiesList() {
           />
         </form>
 
-        <div className="flex flex-wrap gap-2 w-full md:w-auto">
+        <div className="flex flex-wrap gap-2 w-full md:w-auto items-center">
           <select
             className="input text-sm py-1.5"
             value={typeFilter}
@@ -236,6 +203,8 @@ export default function PropertiesList() {
             <option value="UNDER_MAINTENANCE">Under Maintenance</option>
             <option value="INACTIVE">Inactive</option>
           </select>
+
+          <ViewToggle viewMode={viewMode} setViewMode={setViewMode} />
         </div>
       </div>
 
@@ -251,10 +220,82 @@ export default function PropertiesList() {
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Get started by registering a client facility or site.</p>
           <button
             onClick={() => setShowCreateModal(true)}
-            className="btn-primary mt-4 text-xs px-3 py-1.5 inline-flex items-center gap-1.5"
+            className="btn btn-primary mt-4 text-xs px-3 py-1.5 inline-flex items-center gap-1.5"
           >
             <Plus size={14} /> Add Property
           </button>
+        </div>
+      ) : viewMode === "table" ? (
+        <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden shadow-sm">
+          <div className="overflow-x-auto">
+            <table className="table w-full">
+              <thead className="bg-slate-50 dark:bg-slate-900/50 text-slate-500 text-xs border-b border-slate-200 dark:border-slate-700 uppercase tracking-wider">
+                <tr>
+                  <th className="py-3 px-4">Code</th>
+                  <th className="py-3 px-4">Property Name</th>
+                  <th className="py-3 px-4">Property Type</th>
+                  <th className="py-3 px-4">Client</th>
+                  <th className="py-3 px-4">Address / City</th>
+                  <th className="py-3 px-4">Area</th>
+                  <th className="py-3 px-4 text-center">Structures</th>
+                  <th className="py-3 px-4 text-center">Status</th>
+                  <th className="py-3 px-4 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-slate-700 dark:text-slate-300 text-sm">
+                {properties.map((prop) => (
+                  <tr key={prop.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-750 transition-colors">
+                    <td className="py-3 px-4 font-mono font-bold text-xs text-brand-600 dark:text-brand-400">
+                      <span className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600">
+                        {prop.property_code}
+                      </span>
+                    </td>
+                    <td className="py-3 px-4 font-semibold text-slate-900 dark:text-white">
+                      {prop.property_name}
+                    </td>
+                    <td className="py-3 px-4 text-xs">
+                      <span className="px-2 py-0.5 rounded-full font-medium bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">
+                        {prop.property_type?.replace(/_/g, " ")}
+                      </span>
+                    </td>
+                    <td className="py-3 px-4 text-xs text-slate-600 dark:text-slate-300">
+                      {prop.client_name || "—"}
+                    </td>
+                    <td className="py-3 px-4 text-xs text-slate-500">
+                      {prop.address ? `${prop.address}, ` : ""}{prop.city || "Accra"}
+                    </td>
+                    <td className="py-3 px-4 text-xs font-mono text-slate-500">
+                      {prop.total_area_sqm ? `${Number(prop.total_area_sqm).toLocaleString()} m²` : "—"}
+                    </td>
+                    <td className="py-3 px-4 text-center text-xs">
+                      <span className="font-mono text-slate-600 dark:text-slate-300">
+                        {prop.building_count || 0} bld • {prop.space_count || 0} spc • {prop.asset_count || 0} ast
+                      </span>
+                    </td>
+                    <td className="py-3 px-4 text-center">
+                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                        prop.status === "ACTIVE" 
+                          ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                          : "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
+                      }`}>
+                        {prop.status}
+                      </span>
+                    </td>
+                    <td className="py-3 px-4 text-right">
+                      <button
+                        onClick={() => handleOpenHierarchy(prop)}
+                        className="btn-secondary text-xs px-2.5 py-1 inline-flex items-center gap-1.5"
+                        title="View Hierarchy"
+                      >
+                        <Layers size={13} />
+                        <span>Hierarchy</span>
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">

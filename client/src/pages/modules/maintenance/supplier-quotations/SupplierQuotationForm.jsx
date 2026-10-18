@@ -4,7 +4,7 @@
  */
 
 import React, { useEffect, useMemo, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams, useLocation } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 
 import { api } from "api/client";
@@ -21,8 +21,11 @@ export default function SupplierQuotationForm() {
   const { hasExceptional } = usePermission();
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const { getExchangeRate } = useExchangeRate();
   const isEdit = Boolean(id) && id !== "new";
+  const isView = new URLSearchParams(location.search).get("mode") === "view";
+  const readOnly = isView;
 
   const [formData, setFormData] = useState({
     quotation_no: "",

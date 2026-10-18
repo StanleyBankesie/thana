@@ -1,17 +1,21 @@
 import React, { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { 
   ClipboardList, Plus, Search, CheckSquare, 
   Settings, ChevronRight, X, AlertCircle, ArrowLeft
 } from "lucide-react";
 import { api } from "../../../../api/client.js";
 import { toast } from "react-toastify";
+import ViewToggle from "../../../../components/ViewToggle.jsx";
 
 export default function ChecklistTemplatesList() {
+  const navigate = useNavigate();
   const [templates, setTemplates] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedTemplate, setSelectedTemplate] = useState(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [viewMode, setViewMode] = useState("table");
+  const [searchTerm, setSearchTerm] = useState("");
 
   const [formData, setFormData] = useState({
     template_name: "",
@@ -23,6 +27,17 @@ export default function ChecklistTemplatesList() {
     ]
   });
   const [saving, setSaving] = useState(false);
+
+  const filteredTemplates = templates.filter((tpl) => {
+    if (!searchTerm) return true;
+    const term = searchTerm.toLowerCase();
+    return (
+      (tpl.template_name && tpl.template_name.toLowerCase().includes(term)) ||
+      (tpl.template_code && tpl.template_code.toLowerCase().includes(term)) ||
+      (tpl.service_line && tpl.service_line.toLowerCase().includes(term)) ||
+      (tpl.description && tpl.description.toLowerCase().includes(term))
+    );
+  });
 
   useEffect(() => {
     fetchTemplates();
@@ -98,22 +113,19 @@ export default function ChecklistTemplatesList() {
     { value: "GENERAL_BUILDING_FABRIC", label: "Building Fabric & Civil" }
   ];
 
-  const totalTemplates = templates.length;
-  const totalCheckpoints = templates.reduce((acc, t) => acc + (parseInt(t.item_count) || 0), 0);
-  const totalServiceLines = new Set(templates.map((t) => t.service_line)).size;
-
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div className="flex items-center gap-3">
-          <Link
-            to="/maintenance?section=Inspections %26 Soft Services"
-            className="btn btn-secondary inline-flex items-center gap-1.5"
-            title="Back to Inspections & Soft Services"
+          <button
+            type="button"
+            onClick={() => navigate(-1)}
+            className="btn btn-secondary inline-flex items-center gap-2 px-3.5 py-2 text-sm"
+            title="Go Back"
           >
             <ArrowLeft size={16} /> Back
-          </Link>
+          </button>
           <div>
             <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
               <ClipboardList className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
@@ -132,45 +144,103 @@ export default function ChecklistTemplatesList() {
         </button>
       </div>
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="card p-4 space-y-1">
-          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Checklist Templates</p>
-          <div className="flex items-baseline justify-between">
-            <span className="text-2xl font-bold text-slate-900 dark:text-slate-100">{totalTemplates}</span>
-            <span className="badge badge-sm badge-info">SOPs</span>
-          </div>
+      {/* Filter and Search Bar */}
+      <div className="bg-white dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col md:flex-row gap-3 items-center justify-between">
+        <div className="relative flex-1 w-full">
+          <Search className="w-4 h-4 absolute left-3 top-3 text-slate-400" />
+          <input
+            type="text"
+            className="input w-full pl-9 text-sm"
+            placeholder="Search by template name, code, service line..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
         </div>
-        <div className="card p-4 space-y-1">
-          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Active Checkpoints</p>
-          <div className="flex items-baseline justify-between">
-            <span className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{totalCheckpoints}</span>
-            <span className="badge badge-sm badge-success">Auditable</span>
-          </div>
-        </div>
-        <div className="card p-4 space-y-1">
-          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Covered Disciplines</p>
-          <div className="flex items-baseline justify-between">
-            <span className="text-2xl font-bold text-blue-600 dark:text-blue-400">{totalServiceLines}</span>
-            <span className="badge badge-sm badge-ghost">Trades</span>
-          </div>
-        </div>
-        <div className="card p-4 space-y-1">
-          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Field Readiness</p>
-          <div className="flex items-baseline justify-between">
-            <span className="text-2xl font-bold text-purple-600 dark:text-purple-400">100%</span>
-            <span className="badge badge-sm badge-primary">Standardized</span>
-          </div>
+
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-slate-400 hidden sm:inline">
+            {filteredTemplates.length} {filteredTemplates.length === 1 ? "template" : "templates"}
+          </span>
+          <ViewToggle viewMode={viewMode} setViewMode={setViewMode} />
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {loading ? (
-          <div className="col-span-3 p-12 flex justify-center bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">
-            <div className="w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+      {loading ? (
+        <div className="p-12 flex justify-center bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">
+          <div className="w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+        </div>
+      ) : filteredTemplates.length === 0 ? (
+        <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-12 text-center">
+          <ClipboardList className="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
+          <h3 className="text-base font-semibold text-slate-800 dark:text-slate-200">
+            {searchTerm ? "No matching templates found" : "No checklist templates found"}
+          </h3>
+          <p className="text-slate-500 text-sm max-w-sm mx-auto mt-1 mb-4">
+            {searchTerm ? "Try searching with a different keyword." : "Create SOP checklist forms to standardize technician workflows."}
+          </p>
+          {!searchTerm && (
+            <button
+              onClick={() => setShowCreateModal(true)}
+              className="btn btn-primary inline-flex items-center gap-2"
+            >
+              <Plus size={16} /> Create Template
+            </button>
+          )}
+        </div>
+      ) : viewMode === "table" ? (
+        <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden shadow-sm">
+          <div className="overflow-x-auto">
+            <table className="table w-full">
+              <thead className="bg-slate-50 dark:bg-slate-900/50 text-slate-500 text-xs border-b border-slate-200 dark:border-slate-700 uppercase tracking-wider">
+                <tr>
+                  <th className="py-3 px-4">Template Code</th>
+                  <th className="py-3 px-4">Template Name</th>
+                  <th className="py-3 px-4">Service Line / Trade</th>
+                  <th className="py-3 px-4 text-center">Checkpoints</th>
+                  <th className="py-3 px-4">Description</th>
+                  <th className="py-3 px-4 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-slate-700 dark:text-slate-300 text-sm">
+                {filteredTemplates.map((tpl) => (
+                  <tr key={tpl.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-750 transition-colors">
+                    <td className="py-3 px-4 font-mono font-bold text-xs text-brand-600 dark:text-brand-400">
+                      <span className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600">
+                        {tpl.template_code}
+                      </span>
+                    </td>
+                    <td className="py-3 px-4 font-semibold text-slate-900 dark:text-white">
+                      {tpl.template_name}
+                    </td>
+                    <td className="py-3 px-4 text-xs">
+                      <span className="px-2.5 py-0.5 rounded-full font-medium bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300 border border-blue-200/80 dark:border-blue-800/80">
+                        {tpl.service_line?.replace(/_/g, " ")}
+                      </span>
+                    </td>
+                    <td className="py-3 px-4 text-center font-mono font-bold text-xs text-emerald-600 dark:text-emerald-400">
+                      {tpl.item_count} items
+                    </td>
+                    <td className="py-3 px-4 text-xs text-slate-500 max-w-xs truncate">
+                      {tpl.description || "—"}
+                    </td>
+                    <td className="py-3 px-4 text-right">
+                      <button
+                        onClick={() => handleViewTemplate(tpl)}
+                        className="btn-secondary text-xs px-2.5 py-1 inline-flex items-center gap-1.5"
+                      >
+                        <span>Checkpoints</span>
+                        <ChevronRight size={13} />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-        ) : (
-          templates.map((tpl) => (
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filteredTemplates.map((tpl) => (
             <div
               key={tpl.id}
               className="bg-white dark:bg-slate-800 p-5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col justify-between hover:border-emerald-500/50 transition-all"
@@ -205,9 +275,9 @@ export default function ChecklistTemplatesList() {
                 </button>
               </div>
             </div>
-          ))
-        )}
-      </div>
+          ))}
+        </div>
+      )}
 
       {/* Template View Modal */}
       {selectedTemplate && (

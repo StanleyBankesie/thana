@@ -5,6 +5,7 @@
 
 import React, { useEffect, useState, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { ArrowLeft } from "lucide-react";
 import client from "../../../../api/client";
 
 /**
@@ -42,8 +43,17 @@ export default function ApprovedDocuments() {
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-slate-800 dark:text-white">Approved Documents</h1>
-        <Link to="/" className="btn btn-secondary">Return to Home</Link>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => navigate(-1)}
+            className="btn-secondary inline-flex items-center gap-2 px-3.5 py-2 text-sm"
+            title="Go Back"
+          >
+            <ArrowLeft size={16} /> Back
+          </button>
+          <h1 className="text-2xl font-bold text-slate-800 dark:text-white">Approved Documents</h1>
+        </div>
+        <Link to="/" className="btn btn-secondary text-xs">Return to Home</Link>
       </div>
 
       {loading ? (

@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useEffect } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams, useLocation } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { toast } from "react-toastify";
 import { api } from "../../../../api/client";
@@ -20,8 +20,10 @@ const STATUSES = ["ACTIVE", "INACTIVE", "UNDER_REPAIR", "DECOMMISSIONED"];
 export default function EquipmentForm() {
   const { hasExceptional } = usePermission();
   const navigate = useNavigate();
+  const location = useLocation();
   const { id } = useParams();
   const isEdit = !!id;
+  const readOnly = new URLSearchParams(location.search).get("mode") === "view";
   const [form, setForm] = useState({
     equipment_code: "",
     equipment_name: "",
@@ -136,17 +138,18 @@ export default function EquipmentForm() {
         </Link>
         <div>
           <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
-            {isEdit ? "Edit" : "New"} Equipment
+            {readOnly ? "View" : isEdit ? "Edit" : "New"} Equipment & Asset
           </h1>
-          <p className="text-sm mt-1">
-            Register equipment and assets for maintenance tracking
+          <p className="text-sm mt-1 text-slate-500 dark:text-slate-400">
+            Register and manage equipment and assets for enterprise maintenance tracking
           </p>
         </div>
       </div>
       <form onSubmit={handleSubmit} className="space-y-4">
+        <fieldset disabled={readOnly} className="space-y-4">
         <div className="card">
           <div className="card-header bg-brand text-white rounded-t-lg font-semibold">
-            Equipment Details
+            Equipment & Asset Details
           </div>
           <div className="card-body grid grid-cols-1 md:grid-cols-3 gap-3">
             <div>
@@ -321,18 +324,21 @@ export default function EquipmentForm() {
                 value={form.warranty_expiry}
                 onChange={(e) => update("warranty_expiry", e.target.value)}
               
-                disabled={isEdit && !hasExceptional("DOCUMENT.EDIT_DATE")}
+                disabled={readOnly || (isEdit && !hasExceptional("DOCUMENT.EDIT_DATE"))}
               />
             </div>
           </div>
         </div>
+        </fieldset>
         <div className="flex justify-end gap-2">
-          <button onClick={() => window.history.back()} className="btn-secondary">
+          <button type="button" onClick={() => window.history.back()} className="btn-secondary">
             Cancel
           </button>
-          <button type="submit" className="btn-primary" disabled={saving}>
-            {saving ? "Saving..." : "Save Equipment"}
-          </button>
+          {!readOnly && (
+            <button type="submit" className="btn-primary" disabled={saving}>
+              {saving ? "Saving..." : isEdit ? "Update Equipment / Asset" : "Save Equipment / Asset"}
+            </button>
+          )}
         </div>
       </form>
     </div>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { 
   Building2, ShieldCheck, Wrench, AlertTriangle, 
   CheckCircle, Clock, Sparkles, TrendingUp, ArrowUpRight, 
@@ -9,6 +9,7 @@ import { api } from "../../../../api/client.js";
 import { toast } from "react-toastify";
 
 export default function FacilitiesOperationsDashboard() {
+  const navigate = useNavigate();
   const [kpiData, setKpiData] = useState(null);
   const [tickets, setTickets] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -42,13 +43,14 @@ export default function FacilitiesOperationsDashboard() {
       {/* Page Title & Quick Navigation */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div className="flex items-center gap-3">
-          <Link
-            to="/maintenance?section=Facilities Management"
-            className="btn btn-secondary inline-flex items-center gap-1.5"
-            title="Back to Facilities Management"
+          <button
+            type="button"
+            onClick={() => navigate(-1)}
+            className="btn btn-secondary inline-flex items-center gap-2 px-3.5 py-2 text-sm"
+            title="Go Back"
           >
             <ArrowLeft size={16} /> Back
-          </Link>
+          </button>
           <div>
             <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
               <Building2 className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
@@ -61,13 +63,13 @@ export default function FacilitiesOperationsDashboard() {
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <Link to="/maintenance/field-service" className="btn btn-primary inline-flex items-center gap-1.5 text-xs">
+          <Link to="/facilities/field-service" className="btn btn-primary inline-flex items-center gap-1.5 text-xs">
             <Wrench size={14} /> Technician Workspace
           </Link>
-          <Link to="/maintenance/properties" className="btn btn-secondary inline-flex items-center gap-1.5 text-xs">
+          <Link to="/facilities/properties" className="btn btn-secondary inline-flex items-center gap-1.5 text-xs">
             <Layers size={14} /> Properties
           </Link>
-          <Link to="/maintenance/fm-contracts" className="btn btn-secondary inline-flex items-center gap-1.5 text-xs">
+          <Link to="/facilities/contracts" className="btn btn-secondary inline-flex items-center gap-1.5 text-xs">
             <ShieldCheck size={14} /> FM Contracts
           </Link>
         </div>
@@ -226,7 +228,7 @@ export default function FacilitiesOperationsDashboard() {
                   <Sparkles className="w-5 h-5 text-emerald-500" />
                   Soft Services Activity Today
                 </h3>
-                <Link to="/maintenance/soft-services" className="text-xs text-emerald-600 hover:underline">
+                <Link to="/facilities/soft-services" className="text-xs text-emerald-600 hover:underline">
                   Manage
                 </Link>
               </div>

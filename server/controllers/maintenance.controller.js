@@ -5,7 +5,7 @@
 import { query, pool } from "../db/pool.js";
 import { httpError } from "../utils/httpError.js";
 import { recordMovementTx } from "../services/stock.service.js";
-import { sendMail } from "../utils/mailer.js";
+import { sendMail, isMailerConfigured } from "../utils/mailer.js";
 import { cacheGet, cacheSet, cacheDelPattern } from "../utils/redis.js";
 
 // Utility: safely parse a value to a finite number
@@ -117,6 +117,8 @@ function ensureTables(companyId, branchId) {
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`);
 
   await query(`ALTER TABLE maint_supplier_quotations ADD COLUMN IF NOT EXISTS valid_until DATE`).catch(() => {});
+  await query(`ALTER TABLE maint_supplier_quotations ADD COLUMN IF NOT EXISTS created_by BIGINT UNSIGNED NULL`).catch(() => {});
+  await query(`ALTER TABLE maint_quotation_lines ADD COLUMN IF NOT EXISTS created_by BIGINT UNSIGNED NULL`).catch(() => {});
   await query(`ALTER TABLE maint_quotation_lines ADD COLUMN IF NOT EXISTS item_id INT, ADD COLUMN IF NOT EXISTS item_name VARCHAR(200), ADD COLUMN IF NOT EXISTS delivery_date DATE`).catch(() => {});
 
   await query(`CREATE TABLE IF NOT EXISTS maint_quotation_lines (
@@ -431,11 +433,8 @@ async function getCurrentUserName(req, companyId) {
   }
 
   try {
-    const rows = await query(`SELECT full_name, username,
-          created_at,
-          u.username AS created_by_name
+    const rows = await query(`SELECT full_name, username
          FROM adm_users
-        LEFT JOIN adm_users u ON u.id = created_by
          WHERE id = :userId
          AND company_id = :companyId
        LIMIT 1`,
@@ -456,15 +455,12 @@ async function getCurrentUserName(req, companyId) {
 }
 
 // Auto-generate the next maintenance request number string
-async function getNextMaintenanceRequestNo(companyId, branchId) {
-  const existing = await query(`SELECT request_no AS no,
-          created_at,
-          u.username AS created_by_name
+async function getNextMaintenanceRequestNo(companyId, branchId, branchIdsStr = '') {
+  const existing = await query(`SELECT request_no AS no
          FROM maint_requests
-        LEFT JOIN adm_users u ON u.id = created_by
          WHERE company_id = :companyId
        AND (:branchIdsStr = '' OR FIND_IN_SET(branch_id, :branchIdsStr))`,
-    { companyId, branchId },
+    { companyId, branchId, branchIdsStr },
   );
   return nextNo("MTR", existing);
 }
@@ -758,11 +754,8 @@ async function listSetupItems(companyId, branchId, branchIdsStr = '', itemType =
 // Comprehensive endpoint helper that retrieves parameters, setups, catalogs, and user assignments
 async function getSetupSummary(companyId, branchId, branchIdsStr = '') {
   const [paramsRows, itemRows, linkRows, userRows] = await Promise.all([
-    query(`SELECT param_key, param_value,
-          created_at,
-          u.username AS created_by_name
+    query(`SELECT param_key, param_value
          FROM maint_parameters
-        LEFT JOIN adm_users u ON u.id = created_by
          WHERE company_id = :companyId
          AND (:branchIdsStr = '' OR FIND_IN_SET(branch_id, :branchIdsStr))`,
        { companyId, branchId, branchIdsStr },
@@ -792,14 +785,13 @@ async function getSetupSummary(companyId, branchId, branchIdsStr = '') {
        ORDER BY si.item_name ASC, COALESCE(uw.full_name, uw.username) ASC`,
       { companyId, branchId, branchIdsStr },
     ),
-    query(`SELECT id, username, email, full_name, is_active,
-          created_at,
-          cu.username AS created_by_name
-         FROM adm_users
-        LEFT JOIN adm_users cu ON cu.id = created_by
-         WHERE company_id = :companyId
-         AND is_active = 1
-       ORDER BY COALESCE(full_name, username) ASC, id ASC`,
+    query(`SELECT u.id, u.username, u.email, u.full_name, u.is_active,
+          u.created_at,
+          (SELECT username FROM adm_users WHERE id = u.created_by) AS created_by_name
+         FROM adm_users u
+         WHERE u.company_id = :companyId
+         AND u.is_active = 1
+       ORDER BY COALESCE(u.full_name, u.username) ASC, u.id ASC`,
       { companyId },
     ),
   ]);
@@ -1113,12 +1105,10 @@ export const getRequestById = async (req, res, next) => {
     const { companyId, branchId = null, branchIdsStr = '' } = req.scope || {};
     const id = toNumber(req.params.id);
     await ensureTables(companyId, branchId);
-    const rows = await query(`SELECT *,
-          created_at,
-          u.username AS created_by_name
-         FROM maint_requests
-        LEFT JOIN adm_users u ON u.id = created_by
-         WHERE id=:id AND company_id=:companyId AND (:branchIdsStr = '' OR FIND_IN_SET(branch_id, :branchIdsStr)) LIMIT 1`,
+    const rows = await query(`SELECT r.*,
+          (SELECT username FROM adm_users WHERE id = r.created_by) AS created_by_name
+         FROM maint_requests r
+         WHERE r.id=:id AND r.company_id=:companyId AND (:branchIdsStr = '' OR FIND_IN_SET(r.branch_id, :branchIdsStr)) LIMIT 1`,
       { id, companyId, branchId, branchIdsStr },
     );
     if (!rows.length) throw httpError(404, "NOT_FOUND", "Not found");
@@ -1262,12 +1252,10 @@ export const listJobOrders = async (req, res, next) => {
     if (cached) return res.json({ items: cached });
 
     await ensureTables(companyId, branchId);
-    const items = await query(`SELECT *,
-          created_at,
-          u.username AS created_by_name
-         FROM maint_job_orders
-        LEFT JOIN adm_users u ON u.id = created_by
-         WHERE company_id=:companyId AND (:branchIdsStr = '' OR FIND_IN_SET(branch_id, :branchIdsStr)) ORDER BY created_at DESC LIMIT 200`,
+    const items = await query(`SELECT o.*,
+          (SELECT username FROM adm_users WHERE id = o.created_by) AS created_by_name
+         FROM maint_job_orders o
+         WHERE o.company_id=:companyId AND (:branchIdsStr = '' OR FIND_IN_SET(o.branch_id, :branchIdsStr)) ORDER BY o.created_at DESC LIMIT 200`,
       { companyId, branchId, branchIdsStr },
     );
     await cacheSet(`maint_job_orders:company:${companyId}:branches:${branchIdsStr}`, items, 300);
@@ -1283,12 +1271,10 @@ export const getJobOrderById = async (req, res, next) => {
     const { companyId, branchId = null, branchIdsStr = '' } = req.scope || {};
     const id = toNumber(req.params.id);
     await ensureTables(companyId, branchId);
-    const rows = await query(`SELECT *,
-          created_at,
-          u.username AS created_by_name
-         FROM maint_job_orders
-        LEFT JOIN adm_users u ON u.id = created_by
-         WHERE id=:id AND company_id=:companyId AND (:branchIdsStr = '' OR FIND_IN_SET(branch_id, :branchIdsStr)) LIMIT 1`,
+    const rows = await query(`SELECT o.*,
+          (SELECT username FROM adm_users WHERE id = o.created_by) AS created_by_name
+         FROM maint_job_orders o
+         WHERE o.id=:id AND o.company_id=:companyId AND (:branchIdsStr = '' OR FIND_IN_SET(o.branch_id, :branchIdsStr)) LIMIT 1`,
       { id, companyId, branchId, branchIdsStr },
     );
     if (!rows.length) throw httpError(404, "NOT_FOUND", "Not found");
@@ -1304,11 +1290,8 @@ export const createJobOrder = async (req, res, next) => {
     const { companyId, branchId = null, branchIdsStr = '', userId } = req.scope || {};
     await ensureTables(companyId, branchId);
     const b = req.body || {};
-    const existing = await query(`SELECT order_no AS no,
-          created_at,
-          u.username AS created_by_name
+    const existing = await query(`SELECT order_no AS no
          FROM maint_job_orders
-        LEFT JOIN adm_users u ON u.id = created_by
          WHERE company_id=:companyId AND (:branchIdsStr = '' OR FIND_IN_SET(branch_id, :branchIdsStr))`,
       { companyId, branchId, branchIdsStr },
     );
@@ -1388,10 +1371,8 @@ export const listRFQs = async (req, res, next) => {
 
     await ensureTables(companyId, branchId);
     const items = await query(`SELECT r.*, GROUP_CONCAT(s.supplier_name) AS supplier_names,
-          r.created_at,
-          u.username AS created_by_name
+          (SELECT username FROM adm_users WHERE id = r.created_by) AS created_by_name
          FROM maint_rfqs r LEFT JOIN maint_rfq_suppliers s ON s.rfq_id=r.id
-        LEFT JOIN adm_users u ON u.id = r.created_by
          WHERE r.company_id = :companyId AND (:branchIdsStr = '' OR FIND_IN_SET(r.branch_id, :branchIdsStr)) GROUP BY r.id ORDER BY r.created_at DESC LIMIT 200`,
       { companyId, branchId, branchIdsStr },
     );
@@ -1408,21 +1389,17 @@ export const getRFQById = async (req, res, next) => {
     const { companyId, branchId = null, branchIdsStr = '' } = req.scope || {};
     const id = toNumber(req.params.id);
     await ensureTables(companyId, branchId);
-    const rows = await query(`SELECT *,
-          created_at,
-          u.username AS created_by_name
-         FROM maint_rfqs
-        LEFT JOIN adm_users u ON u.id = created_by
-         WHERE id=:id AND company_id=:companyId AND (:branchIdsStr = '' OR FIND_IN_SET(branch_id, :branchIdsStr)) LIMIT 1`,
+    const rows = await query(`SELECT r.*,
+          (SELECT username FROM adm_users WHERE id = r.created_by) AS created_by_name
+         FROM maint_rfqs r
+         WHERE r.id=:id AND r.company_id=:companyId AND (:branchIdsStr = '' OR FIND_IN_SET(r.branch_id, :branchIdsStr)) LIMIT 1`,
       { id, companyId, branchId, branchIdsStr },
     );
     if (!rows.length) throw httpError(404, "NOT_FOUND", "Not found");
-    const suppliers = await query(`SELECT *,
-          created_at,
-          u.username AS created_by_name
-         FROM maint_rfq_suppliers
-        LEFT JOIN adm_users u ON u.id = created_by
-         WHERE rfq_id=:id`,
+    const suppliers = await query(`SELECT s.*,
+          (SELECT username FROM adm_users WHERE id = s.created_by) AS created_by_name
+         FROM maint_rfq_suppliers s
+         WHERE s.rfq_id=:id`,
       { id },
     );
     res.json({ item: rows[0], suppliers });
@@ -1437,11 +1414,8 @@ export const createRFQ = async (req, res, next) => {
     const { companyId, branchId = null, branchIdsStr = '', userId = null } = req.scope || {};
     await ensureTables(companyId, branchId);
     const b = req.body || {};
-    const existing = await query(`SELECT rfq_no AS no,
-          created_at,
-          u.username AS created_by_name
+    const existing = await query(`SELECT rfq_no AS no
          FROM maint_rfqs
-        LEFT JOIN adm_users u ON u.id = created_by
          WHERE company_id=:companyId AND (:branchIdsStr = '' OR FIND_IN_SET(branch_id, :branchIdsStr))`,
       { companyId, branchId, branchIdsStr },
     );
@@ -1527,12 +1501,10 @@ export const listSupplierQuotations = async (req, res, next) => {
     if (cached) return res.json({ items: cached });
 
     await ensureTables(companyId, branchId);
-    const items = await query(`SELECT *,
-          created_at,
-          u.username AS created_by_name
-         FROM maint_supplier_quotations
-        LEFT JOIN adm_users u ON u.id = created_by
-         WHERE company_id=:companyId AND (:branchIdsStr = '' OR FIND_IN_SET(branch_id, :branchIdsStr)) ORDER BY created_at DESC LIMIT 200`,
+    const items = await query(`SELECT q.*,
+          (SELECT username FROM adm_users WHERE id = q.created_by) AS created_by_name
+         FROM maint_supplier_quotations q
+         WHERE q.company_id=:companyId AND (:branchIdsStr = '' OR FIND_IN_SET(q.branch_id, :branchIdsStr)) ORDER BY q.created_at DESC LIMIT 200`,
       { companyId, branchId, branchIdsStr },
     );
     await cacheSet(`maint_supplier_quotations:company:${companyId}:branches:${branchIdsStr}`, items, 300);
@@ -1548,21 +1520,17 @@ export const getSupplierQuotationById = async (req, res, next) => {
     const { companyId, branchId = null, branchIdsStr = '' } = req.scope || {};
     const id = toNumber(req.params.id);
     await ensureTables(companyId, branchId);
-    const rows = await query(`SELECT *,
-          created_at,
-          u.username AS created_by_name
-         FROM maint_supplier_quotations
-        LEFT JOIN adm_users u ON u.id = created_by
-         WHERE id=:id AND company_id=:companyId AND (:branchIdsStr = '' OR FIND_IN_SET(branch_id, :branchIdsStr)) LIMIT 1`,
+    const rows = await query(`SELECT q.*,
+          (SELECT username FROM adm_users WHERE id = q.created_by) AS created_by_name
+         FROM maint_supplier_quotations q
+         WHERE q.id=:id AND q.company_id=:companyId AND (:branchIdsStr = '' OR FIND_IN_SET(q.branch_id, :branchIdsStr)) LIMIT 1`,
       { id, companyId, branchId, branchIdsStr },
     );
     if (!rows.length) throw httpError(404, "NOT_FOUND", "Not found");
     const lines = await query(`SELECT l.*, i.item_name, i.item_code,
-          l.created_at,
-          u.username AS created_by_name
+          (SELECT username FROM adm_users WHERE id = l.created_by) AS created_by_name
          FROM maint_quotation_lines l
          LEFT JOIN inv_items i ON i.id = l.item_id
-        LEFT JOIN adm_users u ON u.id = l.created_by
          WHERE l.quotation_id=:id`,
       { id },
     );
@@ -1573,22 +1541,34 @@ export const getSupplierQuotationById = async (req, res, next) => {
   }
 };
 
-// Record a new supplier quotation with its specific line items
-export const createSupplierQuotation = async (req, res, next) => {
+// Generate next supplier quotation number
+export const getNextSupplierQuotationNo = async (req, res, next) => {
   try {
     const { companyId, branchId = null, branchIdsStr = '' } = req.scope || {};
     await ensureTables(companyId, branchId);
+    const existing = await query(
+      `SELECT quotation_no AS no FROM maint_supplier_quotations WHERE company_id=:companyId AND (:branchIdsStr = '' OR FIND_IN_SET(branch_id, :branchIdsStr))`,
+      { companyId, branchId, branchIdsStr },
+    );
+    res.json({ nextNo: nextNo("MSQ", existing) });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// Record a new supplier quotation with its specific line items
+export const createSupplierQuotation = async (req, res, next) => {
+  try {
+    const { companyId, branchId = null, branchIdsStr = '', userId = null } = req.scope || {};
+    await ensureTables(companyId, branchId);
     const b = req.body || {};
-    const existing = await query(`SELECT quotation_no AS no,
-          created_at,
-          u.username AS created_by_name
+    const existing = await query(`SELECT quotation_no AS no
          FROM maint_supplier_quotations
-        LEFT JOIN adm_users u ON u.id = created_by
          WHERE company_id=:companyId AND (:branchIdsStr = '' OR FIND_IN_SET(branch_id, :branchIdsStr))`,
       { companyId, branchId, branchIdsStr },
     );
     const quotation_no = b.quotation_no || nextNo("MSQ", existing);
-    const r = await query(`INSERT INTO maint_supplier_quotations (company_id,branch_id,quotation_no,quotation_date,rfq_id,supplier_id,supplier_name,subtotal,tax_amount,total_amount,currency,exchange_rate,status,notes,valid_until) VALUES (:companyId,:branchId,:quotation_no,:quotation_date,:rfq_id,:supplier_id,:supplier_name,:subtotal,:tax_amount,:total_amount,:currency,:exchange_rate,:status,:notes,:valid_until)`,
+    const r = await query(`INSERT INTO maint_supplier_quotations (company_id,branch_id,quotation_no,quotation_date,rfq_id,supplier_id,supplier_name,subtotal,tax_amount,total_amount,currency,exchange_rate,status,notes,valid_until,created_by) VALUES (:companyId,:branchId,:quotation_no,:quotation_date,:rfq_id,:supplier_id,:supplier_name,:subtotal,:tax_amount,:total_amount,:currency,:exchange_rate,:status,:notes,:valid_until,:created_by)`,
       {
         companyId,
         branchId, branchIdsStr,
@@ -1605,6 +1585,7 @@ export const createSupplierQuotation = async (req, res, next) => {
         status: b.status || "DRAFT",
         notes: b.remarks || b.notes || null,
         valid_until: b.valid_until || null,
+        created_by: userId,
       },
     );
     const qId = r.insertId;
@@ -1910,12 +1891,10 @@ export const listBills = async (req, res, next) => {
     if (cached) return res.json({ items: cached });
 
     await ensureTables(companyId, branchId);
-    const items = await query(`SELECT *,
-          created_at,
-          u.username AS created_by_name
-         FROM maint_bills
-        LEFT JOIN adm_users u ON u.id = created_by
-         WHERE company_id=:companyId AND (:branchIdsStr = '' OR FIND_IN_SET(branch_id, :branchIdsStr)) ORDER BY created_at DESC LIMIT 200`,
+    const items = await query(`SELECT b.*,
+          (SELECT username FROM adm_users WHERE id = b.created_by) AS created_by_name
+         FROM maint_bills b
+         WHERE b.company_id=:companyId AND (:branchIdsStr = '' OR FIND_IN_SET(b.branch_id, :branchIdsStr)) ORDER BY b.created_at DESC LIMIT 200`,
       { companyId, branchId, branchIdsStr },
     );
     await cacheSet(`maint_bills:company:${companyId}:branches:${branchIdsStr}`, items, 300);
@@ -1931,21 +1910,17 @@ export const getBillById = async (req, res, next) => {
     const { companyId, branchId = null, branchIdsStr = '' } = req.scope || {};
     const id = toNumber(req.params.id);
     await ensureTables(companyId, branchId);
-    const rows = await query(`SELECT *,
-          created_at,
-          u.username AS created_by_name
-         FROM maint_bills
-        LEFT JOIN adm_users u ON u.id = created_by
-         WHERE id=:id AND company_id=:companyId AND (:branchIdsStr = '' OR FIND_IN_SET(branch_id, :branchIdsStr)) LIMIT 1`,
+    const rows = await query(`SELECT b.*,
+          (SELECT username FROM adm_users WHERE id = b.created_by) AS created_by_name
+         FROM maint_bills b
+         WHERE b.id=:id AND b.company_id=:companyId AND (:branchIdsStr = '' OR FIND_IN_SET(b.branch_id, :branchIdsStr)) LIMIT 1`,
       { id, companyId, branchId, branchIdsStr },
     );
     if (!rows.length) throw httpError(404, "NOT_FOUND", "Not found");
-    const lines = await query(`SELECT *,
-          created_at,
-          u.username AS created_by_name
-         FROM maint_bill_lines
-        LEFT JOIN adm_users u ON u.id = created_by
-         WHERE bill_id=:id`,
+    const lines = await query(`SELECT l.*,
+          (SELECT username FROM adm_users WHERE id = l.created_by) AS created_by_name
+         FROM maint_bill_lines l
+         WHERE l.bill_id=:id`,
       { id },
     );
     res.json({ item: rows[0], lines });
@@ -1959,11 +1934,8 @@ export const getNextBillNo = async (req, res, next) => {
   try {
     const { companyId, branchId = null, branchIdsStr = '' } = req.scope || {};
     await ensureTables(companyId, branchId);
-    const existing = await query(`SELECT bill_no AS no,
-          created_at,
-          u.username AS created_by_name
+    const existing = await query(`SELECT bill_no AS no
          FROM maint_bills
-        LEFT JOIN adm_users u ON u.id = created_by
          WHERE company_id=:companyId AND (:branchIdsStr = '' OR FIND_IN_SET(branch_id, :branchIdsStr))`,
       { companyId, branchId, branchIdsStr },
     );
@@ -1976,14 +1948,11 @@ export const getNextBillNo = async (req, res, next) => {
 // Record a new maintenance bill and its individual line items
 export const createBill = async (req, res, next) => {
   try {
-    const { companyId, branchId = null, branchIdsStr = '' } = req.scope || {};
+    const { companyId, branchId = null, branchIdsStr = '', userId = null } = req.scope || {};
     await ensureTables(companyId, branchId);
     const b = req.body || {};
-    const existing = await query(`SELECT bill_no AS no,
-          created_at,
-          u.username AS created_by_name
+    const existing = await query(`SELECT bill_no AS no
          FROM maint_bills
-        LEFT JOIN adm_users u ON u.id = created_by
          WHERE company_id=:companyId AND (:branchIdsStr = '' OR FIND_IN_SET(branch_id, :branchIdsStr))`,
       { companyId, branchId, branchIdsStr },
     );
@@ -2138,9 +2107,8 @@ export const listSchedules = async (req, res, next) => {
     const items = await query(`SELECT m.id, m.company_id, m.branch_id, m.schedule_name, 
           m.asset_id, m.asset_name, m.frequency, m.start_date, m.end_date, m.classification, m.category, m.group_name, m.maintenance_days, m.maintenance_routine, m.assigned_to, 
           m.status, m.created_at, m.created_by, m.tasks,
-          u.username AS created_by_name
+          (SELECT username FROM adm_users WHERE id = m.created_by) AS created_by_name
          FROM maint_schedules m
-        LEFT JOIN adm_users u ON u.id = m.created_by
          WHERE m.company_id=:companyId AND (:branchIdsStr = '' OR FIND_IN_SET(m.branch_id, :branchIdsStr)) ORDER BY m.start_date ASC LIMIT 200`,
       { companyId, branchId, branchIdsStr },
     );
@@ -2157,12 +2125,10 @@ export const getScheduleById = async (req, res, next) => {
     const { companyId, branchId = null, branchIdsStr = '' } = req.scope || {};
     const id = toNumber(req.params.id);
     await ensureTables(companyId, branchId);
-    const rows = await query(`SELECT *,
-          created_at,
-          u.username AS created_by_name
-         FROM maint_schedules
-        LEFT JOIN adm_users u ON u.id = created_by
-         WHERE id=:id AND company_id=:companyId AND (:branchIdsStr = '' OR FIND_IN_SET(branch_id, :branchIdsStr)) LIMIT 1`,
+    const rows = await query(`SELECT s.*,
+          (SELECT username FROM adm_users WHERE id = s.created_by) AS created_by_name
+         FROM maint_schedules s
+         WHERE s.id=:id AND s.company_id=:companyId AND (:branchIdsStr = '' OR FIND_IN_SET(s.branch_id, :branchIdsStr)) LIMIT 1`,
       { id, companyId, branchId, branchIdsStr },
     );
     if (!rows.length) throw httpError(404, "NOT_FOUND", "Not found");
@@ -2272,10 +2238,9 @@ export const listRosters = async (req, res, next) => {
           r.task_description,
           r.estimated_duration,
           r.created_at,
-          u.username AS created_by_name,
+          (SELECT username FROM adm_users WHERE id = r.created_by) AS created_by_name,
           s.schedule_name
          FROM maint_rosters r
-        LEFT JOIN adm_users u ON u.id = r.created_by
         LEFT JOIN maint_schedules s ON s.id = r.schedule_id
          WHERE r.company_id=:companyId
            AND (:branchIdsStr = '' OR FIND_IN_SET(r.branch_id, :branchIdsStr))
@@ -2296,12 +2261,10 @@ export const getRosterById = async (req, res, next) => {
     const { companyId, branchId = null, branchIdsStr = '' } = req.scope || {};
     const id = toNumber(req.params.id);
     await ensureTables(companyId, branchId);
-    const rows = await query(`SELECT *,
-          created_at,
-          u.username AS created_by_name
-         FROM maint_rosters
-        LEFT JOIN adm_users u ON u.id = created_by
-         WHERE id=:id AND company_id=:companyId AND (:branchIdsStr = '' OR FIND_IN_SET(branch_id, :branchIdsStr)) LIMIT 1`,
+    const rows = await query(`SELECT r.*,
+          (SELECT username FROM adm_users WHERE id = r.created_by) AS created_by_name
+         FROM maint_rosters r
+         WHERE r.id=:id AND r.company_id=:companyId AND (:branchIdsStr = '' OR FIND_IN_SET(r.branch_id, :branchIdsStr)) LIMIT 1`,
       { id, companyId, branchId, branchIdsStr },
     );
     if (!rows.length) throw httpError(404, "NOT_FOUND", "Not found");
@@ -2520,12 +2483,10 @@ export const listEquipment = async (req, res, next) => {
     if (cached) return res.json({ items: cached });
 
     await ensureTables(companyId, branchId);
-    const items = await query(`SELECT *,
-          created_at,
-          u.username AS created_by_name
-         FROM maint_equipment
-        LEFT JOIN adm_users u ON u.id = created_by
-         WHERE company_id=:companyId AND (:branchIdsStr = '' OR FIND_IN_SET(branch_id, :branchIdsStr)) ORDER BY equipment_name ASC LIMIT 500`,
+    const items = await query(`SELECT e.*,
+          (SELECT username FROM adm_users WHERE id = e.created_by) AS created_by_name
+         FROM maint_equipment e
+         WHERE e.company_id=:companyId AND (:branchIdsStr = '' OR FIND_IN_SET(e.branch_id, :branchIdsStr)) ORDER BY e.equipment_name ASC LIMIT 500`,
       { companyId, branchId, branchIdsStr },
     );
     await cacheSet(`maint_equipment:company:${companyId}:branches:${branchIdsStr}`, items, 300);
@@ -2541,12 +2502,10 @@ export const getEquipmentById = async (req, res, next) => {
     const { companyId, branchId = null, branchIdsStr = '' } = req.scope || {};
     const id = toNumber(req.params.id);
     await ensureTables(companyId, branchId);
-    const rows = await query(`SELECT *,
-          created_at,
-          u.username AS created_by_name
-         FROM maint_equipment
-        LEFT JOIN adm_users u ON u.id = created_by
-         WHERE id=:id AND company_id=:companyId AND (:branchIdsStr = '' OR FIND_IN_SET(branch_id, :branchIdsStr)) LIMIT 1`,
+    const rows = await query(`SELECT e.*,
+          (SELECT username FROM adm_users WHERE id = e.created_by) AS created_by_name
+         FROM maint_equipment e
+         WHERE e.id=:id AND e.company_id=:companyId AND (:branchIdsStr = '' OR FIND_IN_SET(e.branch_id, :branchIdsStr)) LIMIT 1`,
       { id, companyId, branchId, branchIdsStr },
     );
     if (!rows.length) throw httpError(404, "NOT_FOUND", "Not found");
@@ -2629,11 +2588,8 @@ export const getParameters = async (req, res, next) => {
   try {
     const { companyId, branchId = null, branchIdsStr = '' } = req.scope || {};
     await ensureTables(companyId, branchId);
-    const rows = await query(`SELECT param_key, param_value,
-          created_at,
-          u.username AS created_by_name
+    const rows = await query(`SELECT param_key, param_value
          FROM maint_parameters
-        LEFT JOIN adm_users u ON u.id = created_by
          WHERE company_id=:companyId AND (:branchIdsStr = '' OR FIND_IN_SET(branch_id, :branchIdsStr))`,
       { companyId, branchId, branchIdsStr },
     );
@@ -2809,11 +2765,8 @@ export const createSectionUser = async (req, res, next) => {
     }
 
     await ensureTables(companyId, branchId);
-    const [section] = await query(`SELECT id,
-          created_at,
-          u.username AS created_by_name
+    const [section] = await query(`SELECT id
          FROM maint_setup_items
-        LEFT JOIN adm_users u ON u.id = created_by
          WHERE id = :sectionItemId
          AND company_id = :companyId
          AND (:branchIdsStr = '' OR FIND_IN_SET(branch_id, :branchIdsStr))
@@ -2898,10 +2851,8 @@ export const listContracts = async (req, res, next) => {
     const { companyId, branchId = null, branchIdsStr = '' } = req.scope || {};
     await ensureTables(companyId, branchId);
     const items = await query(`SELECT c.*, GROUP_CONCAT(a.asset_name) AS asset_names,
-          c.created_at,
-          u.username AS created_by_name
+          (SELECT username FROM adm_users WHERE id = c.created_by) AS created_by_name
          FROM maint_contracts c LEFT JOIN maint_contract_assets a ON a.contract_id=c.id
-        LEFT JOIN adm_users u ON u.id = c.created_by
          WHERE c.company_id = :companyId AND (:branchIdsStr = '' OR FIND_IN_SET(c.branch_id, :branchIdsStr)) GROUP BY c.id ORDER BY c.created_at DESC LIMIT 200`,
       { companyId, branchId, branchIdsStr },
     );
@@ -2917,21 +2868,17 @@ export const getContractById = async (req, res, next) => {
     const { companyId, branchId = null, branchIdsStr = '' } = req.scope || {};
     const id = toNumber(req.params.id);
     await ensureTables(companyId, branchId);
-    const rows = await query(`SELECT *,
-          created_at,
-          u.username AS created_by_name
-         FROM maint_contracts
-        LEFT JOIN adm_users u ON u.id = created_by
-         WHERE id=:id AND company_id=:companyId AND (:branchIdsStr = '' OR FIND_IN_SET(branch_id, :branchIdsStr)) LIMIT 1`,
+    const rows = await query(`SELECT c.*,
+          (SELECT username FROM adm_users WHERE id = c.created_by) AS created_by_name
+         FROM maint_contracts c
+         WHERE c.id=:id AND c.company_id=:companyId AND (:branchIdsStr = '' OR FIND_IN_SET(c.branch_id, :branchIdsStr)) LIMIT 1`,
       { id, companyId, branchId, branchIdsStr },
     );
     if (!rows.length) throw httpError(404, "NOT_FOUND", "Not found");
-    const assets = await query(`SELECT *,
-          created_at,
-          u.username AS created_by_name
-         FROM maint_contract_assets
-        LEFT JOIN adm_users u ON u.id = created_by
-         WHERE contract_id=:id`,
+    const assets = await query(`SELECT a.*,
+          (SELECT username FROM adm_users WHERE id = a.created_by) AS created_by_name
+         FROM maint_contract_assets a
+         WHERE a.contract_id=:id`,
       { id },
     );
     res.json({ item: rows[0], assets });
@@ -2946,11 +2893,8 @@ export const createContract = async (req, res, next) => {
     const { companyId, branchId = null, branchIdsStr = '' } = req.scope || {};
     await ensureTables(companyId, branchId);
     const b = req.body || {};
-    const existing = await query(`SELECT contract_no AS no,
-          created_at,
-          u.username AS created_by_name
+    const existing = await query(`SELECT contract_no AS no
          FROM maint_contracts
-        LEFT JOIN adm_users u ON u.id = created_by
          WHERE company_id=:companyId AND (:branchIdsStr = '' OR FIND_IN_SET(branch_id, :branchIdsStr))`,
       { companyId, branchId, branchIdsStr },
     );
@@ -3687,31 +3631,118 @@ export const sendRFQEmail = async (req, res, next) => {
     if (!rfq) throw httpError(404, "NOT_FOUND", "RFQ not found");
 
     // 2. Get invited suppliers
-    const suppliers = await query(`SELECT supplier_name FROM maint_rfq_suppliers WHERE rfq_id = :id`, { id });
-    if (!suppliers.length) throw httpError(400, "BAD_REQUEST", "No suppliers invited to this RFQ");
+    const suppliers = await query(`SELECT supplier_id, supplier_name FROM maint_rfq_suppliers WHERE rfq_id = :id`, { id });
+    if (!suppliers.length) throw httpError(400, "BAD_REQUEST", "No suppliers invited to this RFQ. Please edit the RFQ and select suppliers.");
 
-    const names = suppliers.map(s => s.supplier_name);
+    const supplierIds = suppliers.map(s => Number(s.supplier_id)).filter(sid => Boolean(sid) && Number.isFinite(sid));
+    const names = suppliers.map(s => String(s.supplier_name || "").trim()).filter(Boolean);
 
-    // 3. Match with setup items
-    const setupItems = await query(
-      `SELECT item_name, email FROM maint_setup_items WHERE company_id = :companyId AND item_type = 'SERVICE_PROVIDER' AND item_name IN (:names)`,
-      { companyId, names }
-    );
+    // 3. Match emails from:
+    // a. pur_suppliers (where suppliers are created in Purchase module)
+    // b. maint_setup_items (where service providers are created in Maintenance setup)
+    const emailsSet = new Set();
 
-    const emails = setupItems.filter(s => s.email).map(s => s.email);
-    if (!emails.length) {
-      throw httpError(400, "BAD_REQUEST", "None of the selected suppliers have an email configured in Setup > Service Providers");
+    if (supplierIds.length > 0) {
+      const purSuppliers = await query(
+        `SELECT email, supplier_name FROM pur_suppliers WHERE company_id = :companyId AND id IN (${supplierIds.map((_, i) => `:sid${i}`).join(",")}) AND email IS NOT NULL AND email != ''`,
+        supplierIds.reduce((acc, sid, i) => ({ ...acc, [`sid${i}`]: sid }), { companyId })
+      ).catch(() => []);
+      for (const s of purSuppliers) {
+        if (s.email && s.email.includes("@")) emailsSet.add(s.email.trim());
+      }
     }
 
-    // 4. Send email
-    await sendMail({
-      to: emails.join(','),
-      subject: `Maintenance RFQ: ${rfq.rfq_no}`,
-      text: `Dear Service Provider,\n\nPlease find the details for RFQ ${rfq.rfq_no}.\n\nScope of Work:\n${rfq.scope_of_work}\n\nResponse Deadline: ${rfq.response_deadline || 'N/A'}\n\nBest Regards.`,
-      html: `<p>Dear Service Provider,</p><p>Please find the details for RFQ <b>${rfq.rfq_no}</b>.</p><p><b>Scope of Work:</b><br/>${String(rfq.scope_of_work).replace(/\n/g, '<br/>')}</p><p><b>Response Deadline:</b> ${rfq.response_deadline || 'N/A'}</p><p>Best Regards.</p>`,
-    });
+    if (names.length > 0) {
+      const nameParams = names.reduce((acc, name, i) => ({ ...acc, [`sn${i}`]: name }), { companyId });
+      const placeholders = names.map((_, i) => `:sn${i}`).join(",");
 
-    res.json({ ok: true, message: "Emails sent successfully to: " + emails.join(', ') });
+      const purSuppliersByName = await query(
+        `SELECT email, supplier_name FROM pur_suppliers WHERE company_id = :companyId AND supplier_name IN (${placeholders}) AND email IS NOT NULL AND email != ''`,
+        nameParams
+      ).catch(() => []);
+      for (const s of purSuppliersByName) {
+        if (s.email && s.email.includes("@")) emailsSet.add(s.email.trim());
+      }
+
+      const setupItems = await query(
+        `SELECT item_name, email FROM maint_setup_items WHERE company_id = :companyId AND item_type = 'SERVICE_PROVIDER' AND item_name IN (${placeholders}) AND email IS NOT NULL AND email != ''`,
+        nameParams
+      ).catch(() => []);
+      for (const s of setupItems) {
+        if (s.email && s.email.includes("@")) emailsSet.add(s.email.trim());
+      }
+    }
+
+    const emails = Array.from(emailsSet);
+    if (!emails.length) {
+      throw httpError(
+        400,
+        "SUPPLIER_EMAIL_MISSING",
+        `None of the invited suppliers (${names.join(", ")}) have an email configured. Please configure email addresses in Purchasing > Suppliers or Maintenance > Setup > Service Providers before requesting quotation.`
+      );
+    }
+
+    // 4. Verify SMTP configuration
+    if (!isMailerConfigured()) {
+      throw httpError(
+        503,
+        "MAILER_NOT_CONFIGURED",
+        "SMTP email server is not configured in the server environment (missing SMTP_HOST or SMTP_FROM). The quotation request email could not be sent and the RFQ remains in Draft. Please configure SMTP settings in System Configuration."
+      );
+    }
+
+    // 5. Transmit email and verify delivery
+    let mailResult;
+    try {
+      mailResult = await sendMail({
+        to: emails.join(','),
+        subject: `Request for Quotation: ${rfq.rfq_no}`,
+        text: `Dear Service Provider,\n\nYou are invited to submit a quotation for Maintenance RFQ: ${rfq.rfq_no}.\n\nScope of Work:\n${rfq.scope_of_work}\n\nResponse Deadline: ${rfq.response_deadline || 'N/A'}\n\nThank you,\nMaintenance Department`,
+        html: `<div style="font-family: Arial, sans-serif; color: #1e293b; max-width: 600px; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px;">
+          <h2 style="color: #0f172a; margin-top: 0;">Request for Quotation</h2>
+          <p>Dear Service Provider,</p>
+          <p>You have been invited to submit a quotation for Maintenance RFQ <strong>${rfq.rfq_no}</strong>.</p>
+          <div style="background-color: #f8fafc; padding: 14px; border-radius: 6px; margin: 16px 0;">
+            <p style="margin: 0 0 8px 0;"><strong>Scope of Work:</strong></p>
+            <p style="margin: 0; white-space: pre-wrap;">${String(rfq.scope_of_work || 'As described').replace(/\n/g, '<br/>')}</p>
+          </div>
+          <p><strong>Response Deadline:</strong> ${rfq.response_deadline ? new Date(rfq.response_deadline).toLocaleDateString() : 'Immediate'}</p>
+          <p style="margin-top: 24px; font-size: 13px; color: #64748b;">Please submit your formal quotation before the response deadline.<br/>Thank you,<br/>Maintenance Department</p>
+        </div>`,
+      });
+    } catch (mailErr) {
+      console.error("[sendRFQEmail] SMTP error:", mailErr);
+      let detail = mailErr.message || "Connection refused";
+      if (mailErr.code === 'EAUTH' || mailErr.responseCode === 535 || String(mailErr.message).includes('535') || String(mailErr.message).toLowerCase().includes('authentication failed')) {
+        detail = `SMTP Authentication Failed (535 5.7.8 Invalid Credentials on ${process.env.SMTP_HOST || 'mail server'}). Check SMTP_USER / SMTP_PASS in server .env or System Configuration`;
+      } else if (mailErr.code === 'ECONNREFUSED' || mailErr.code === 'ESOCKET' || mailErr.code === 'ETIMEDOUT' || mailErr.code === 'ENOTFOUND') {
+        detail = `Cannot connect to SMTP server (${process.env.SMTP_HOST || 'host'}:${process.env.SMTP_PORT || '587'} - ${mailErr.code || mailErr.message})`;
+      }
+      throw httpError(
+        502,
+        "EMAIL_DELIVERY_FAILED",
+        `Email dispatch failed for suppliers (${emails.join(", ")}): ${detail}. The RFQ remains in Draft.`
+      );
+    }
+
+    if (!mailResult) {
+      throw httpError(
+        502,
+        "EMAIL_DELIVERY_FAILED",
+        `Mail server failed to confirm delivery to recipients: ${emails.join(", ")}. The RFQ remains in Draft.`
+      );
+    }
+
+    // 6. Only update to SENT when mail actually went out successfully
+    if (rfq.status === 'DRAFT') {
+      await query(`UPDATE maint_rfqs SET status = 'SENT' WHERE id = :id`, { id }).catch(() => {});
+    }
+
+    res.json({
+      ok: true,
+      message: `Quotation request email sent successfully to: ${emails.join(', ')}`,
+      messageId: mailResult?.messageId
+    });
   } catch (err) {
     next(err);
   }

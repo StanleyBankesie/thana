@@ -24,6 +24,7 @@ import financeRoutes from "./routes/finance.routes.js";
 import hrRoutes from "./routes/hr.routes.js";
 import maintenanceRoutes from "./routes/maintenance.routes.js";
 import facilitiesRoutes from "./routes/facilities.routes.js";
+import assetManagementRoutes from "./routes/asset-management.routes.js";
 import projectsRoutes from "./routes/projects.routes.js";
 import constructionRoutes from "./routes/construction.routes.js";
 import productionRoutes from "./routes/production.routes.js";
@@ -87,6 +88,7 @@ import { ensureIndexes } from "./utils/ensureIndexes.js";
 import { ensureConstructionTables } from "./utils/constructionTables.js";
 import { ensureFinanceBudgetTables } from "./utils/financeBudgetTables.js";
 import { ensureFacilitiesManagementTables } from "./utils/facilitiesManagementTables.js";
+import { ensureAssetManagementTables } from "./utils/assetManagementTables.js";
 import { initCronJobs } from "./utils/cronJobs.js";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -866,6 +868,13 @@ app.get("/api/ping", (_req, res) => res.json({ ok: true }));
     } catch (e) {
       console.warn("Could not ensure facilities management tables:", e.message);
     }
+
+    // Asset Management Tables & Schema (Fixed Assets & Depreciation)
+    try {
+      await ensureAssetManagementTables();
+    } catch (e) {
+      console.warn("Could not ensure asset management tables:", e.message);
+    }
   } catch (err) {
     logDbError("Error during database initialization", err);
   }
@@ -1057,6 +1066,8 @@ const apiPaths = [
   { path: "/hr", router: hrRoutes },
   { path: "/maintenance", router: maintenanceRoutes },
   { path: "/facilities", router: facilitiesRoutes },
+  { path: "/assets", router: assetManagementRoutes },
+  { path: "/asset-management", router: assetManagementRoutes },
   { path: "/projects", router: projectsRoutes },
   { path: "/construction", router: constructionRoutes },
   { path: "/production", router: productionRoutes },

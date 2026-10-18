@@ -13,69 +13,23 @@ import {
   Trash2,
   ExternalLink,
 } from "lucide-react";
-
-export const BACKGROUND_PRESETS = [
-  {
-    id: "silk-waves",
-    name: "Silk Waves",
-    subtitle: "Recommended",
-    description: "Translucent frosted 3D silk ribbons in deep indigo & cyan",
-    url: "/backgrounds/abstract-silk-waves.jpg",
-    previewUrl: "/backgrounds/abstract-silk-waves.jpg",
-    theme: "Dark & Vibrant",
-  },
-  {
-    id: "pastel-silk",
-    name: "Pastel Silk",
-    subtitle: "Ethereal Flow",
-    description: "Translucent frosted violet & sky blue ribbons on pearlescent backdrop",
-    url: "/backgrounds/pastel-silk-waves.jpg",
-    previewUrl: "/backgrounds/pastel-silk-waves.jpg",
-    theme: "Pastel Iridescent",
-  },
-  {
-    id: "amber-apricot",
-    name: "Amber Apricot",
-    subtitle: "Warm Luster",
-    description: "Luminous flowing golden apricot waveforms on warm cream backdrop",
-    url: "/backgrounds/amber-apricot-flow.jpg",
-    previewUrl: "/backgrounds/amber-apricot-flow.jpg",
-    theme: "Warm Apricot",
-  },
-  {
-    id: "solid-white",
-    name: "Solid White Color",
-    subtitle: "Pure Minimal",
-    description: "Clean, glare-free pure solid white background (#ffffff) with maximum contrast and readability",
-    url: "/backgrounds/solid-white.svg",
-    previewUrl: "/backgrounds/solid-white.svg",
-    theme: "Solid White",
-  },
-  {
-    id: "digital-aura",
-    name: "Digital Aura",
-    subtitle: "Light Tech",
-    description: "Warm ivory background with vibrant golden cybernetic ribbons & constellation mesh",
-    url: "/backgrounds/digital-aura-light.jpg",
-    previewUrl: "/backgrounds/digital-aura-light.jpg",
-    theme: "Light Cybernetic",
-  },
-  {
-    id: "none",
-    name: "Clean Solid",
-    subtitle: "Classic",
-    description: "No background image (minimalist clean slate background)",
-    url: "",
-    previewUrl: null,
-    theme: "Solid Color",
-  },
-];
+import { useTheme } from "../theme/ThemeContext.jsx";
+import {
+  BACKGROUND_PRESETS,
+  resolveBackgroundForTheme,
+} from "../utils/appBackground.js";
 
 export default function AppBackgroundControlSection() {
+  const { theme } = useTheme();
+  const isDark = theme === "dark" || (typeof document !== "undefined" && document.documentElement.classList.contains("dark"));
   const [selectedPreset, setSelectedPreset] = useState("silk-waves");
   const [backgroundUrl, setBackgroundUrl] = useState("/backgrounds/abstract-silk-waves.jpg");
   const [opacity, setOpacity] = useState(40);
   const [blur, setBlur] = useState(0);
+  const resolvedPreviewBg = resolveBackgroundForTheme(
+    { preset: selectedPreset, url: backgroundUrl, opacity, blur },
+    isDark
+  );
   const [hasCustom, setHasCustom] = useState(false);
   const [customUrl, setCustomUrl] = useState(null);
   const [urlInput, setUrlInput] = useState("");
@@ -388,16 +342,40 @@ export default function AppBackgroundControlSection() {
                     {/* Thumbnail Preview Banner */}
                     <div className="h-28 w-full relative bg-slate-900 overflow-hidden flex items-center justify-center">
                       {preset.id === "solid-white" ? (
-                        <div className="w-full h-full bg-white flex flex-col items-center justify-center border-b border-slate-200">
-                          <div className="w-8 h-8 rounded-full bg-white border-2 border-slate-300 shadow-xs flex items-center justify-center mb-1">
-                            <span className="w-4 h-4 rounded-full bg-slate-100 border border-slate-200"></span>
+                        <div
+                          className={`w-full h-full flex flex-col items-center justify-center border-b transition-colors ${
+                            isDark ? "bg-[#0b0f19] border-slate-800" : "bg-white border-slate-200"
+                          }`}
+                        >
+                          <div
+                            className={`w-8 h-8 rounded-full border-2 shadow-xs flex items-center justify-center mb-1 ${
+                              isDark ? "bg-[#0f172a] border-slate-700" : "bg-white border-slate-300"
+                            }`}
+                          >
+                            <span
+                              className={`w-4 h-4 rounded-full border ${
+                                isDark ? "bg-[#0b0f19] border-slate-600" : "bg-slate-100 border-slate-200"
+                              }`}
+                            ></span>
                           </div>
-                          <span className="text-[11px] font-bold text-slate-800 tracking-wider">#FFFFFF</span>
-                          <span className="text-[9px] font-medium text-slate-500">Solid White</span>
+                          <span
+                            className={`text-[11px] font-bold tracking-wider ${
+                              isDark ? "text-slate-200" : "text-slate-800"
+                            }`}
+                          >
+                            {isDark ? "#0B0F19" : "#FFFFFF"}
+                          </span>
+                          <span
+                            className={`text-[9px] font-medium ${
+                              isDark ? "text-slate-400" : "text-slate-500"
+                            }`}
+                          >
+                            {isDark ? "Dark Slate" : "Solid White"}
+                          </span>
                         </div>
                       ) : preset.previewUrl ? (
                         <img
-                          src={preset.previewUrl}
+                          src={isDark && preset.darkUrl ? preset.darkUrl : preset.previewUrl}
                           alt={preset.name}
                           onError={(e) => {
                             if (e.target.src.endsWith(".jfif")) {
@@ -408,7 +386,7 @@ export default function AppBackgroundControlSection() {
                         />
                       ) : (
                         <div className="w-full h-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-xs font-semibold text-slate-400">
-                          Solid Slate Theme
+                          {isDark ? "Dark Slate Theme" : "Solid Slate Theme"}
                         </div>
                       )}
 
@@ -690,17 +668,33 @@ export default function AppBackgroundControlSection() {
               </span>
             </div>
 
-            <div className={`relative p-6 min-h-[160px] flex items-center justify-center overflow-hidden transition-colors duration-300 ${selectedPreset === "solid-white" || backgroundUrl === "/backgrounds/solid-white.svg" ? "bg-slate-100" : "bg-slate-900"}`}>
+            <div
+              className={`relative p-6 min-h-[160px] flex items-center justify-center overflow-hidden transition-colors duration-300 ${
+                resolvedPreviewBg.isSolid
+                  ? resolvedPreviewBg.isSolidDark
+                    ? "bg-[#0b0f19]"
+                    : "bg-white"
+                  : "bg-slate-100 dark:bg-[#0b0f19]"
+              }`}
+            >
               {/* Background behind preview */}
-              {selectedPreset === "solid-white" || backgroundUrl === "/backgrounds/solid-white.svg" ? (
-                <div className="absolute inset-0 bg-white" />
-              ) : backgroundUrl ? (
+              {resolvedPreviewBg.isSolid ? (
+                <div
+                  className="absolute inset-0 transition-colors duration-300"
+                  style={{ backgroundColor: resolvedPreviewBg.color }}
+                />
+              ) : resolvedPreviewBg.url ? (
                 <div
                   className="absolute inset-0 bg-cover bg-center transition-all duration-300"
                   style={{
-                    backgroundImage: `url(${backgroundUrl})`,
+                    backgroundImage: `url(${resolvedPreviewBg.url})`,
                     opacity: opacity / 100,
-                    filter: blur ? `blur(${blur}px)` : undefined,
+                    filter: [
+                      blur ? `blur(${blur}px)` : "",
+                      resolvedPreviewBg.isCustom && isDark ? "brightness(0.38) contrast(1.15)" : "",
+                    ]
+                      .filter(Boolean)
+                      .join(" ") || undefined,
                   }}
                 />
               ) : (

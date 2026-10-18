@@ -34,6 +34,20 @@ router.get(
   workflowController.getPendingApprovals,
 );
 
+// Get Sent Approvals / Documents for Current User
+router.get(
+  "/approvals/sent",
+  requireAuth,
+  requireCompanyScope,
+  workflowController.getSentApprovals,
+);
+router.get(
+  "/sent",
+  requireAuth,
+  requireCompanyScope,
+  workflowController.getSentApprovals,
+);
+
 // Get Workflow Instance Detail
 router.get(
   "/approvals/instance/:instanceId",

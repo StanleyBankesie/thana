@@ -37,6 +37,7 @@ export default function HomePage() {
   const navigate = useNavigate();
   const [pendingItems, setPendingItems] = useState([]);
   const [notifications, setNotifications] = useState([]);
+  const [sentDocuments, setSentDocuments] = useState([]);
   const [showPostAlerts, setShowPostAlerts] = useState(false);
   const [postAlerts, setPostAlerts] = useState([]);
   const [postAlertsLoading, setPostAlertsLoading] = useState(false);
@@ -307,6 +308,23 @@ export default function HomePage() {
       .catch(() => {
         if (cancelled) return;
         setNotifications([]);
+      });
+
+    client
+      .get("/workflows/approvals/sent")
+      .then((res) => {
+        if (cancelled) return;
+        setSentDocuments(
+          Array.isArray(res.data?.items)
+            ? res.data.items
+            : Array.isArray(res.data?.data)
+            ? res.data.data
+            : []
+        );
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setSentDocuments([]);
       });
 
     client
@@ -799,6 +817,13 @@ export default function HomePage() {
     });
     return filtered;
   }, [notifications, user?.sub, user?.id]);
+
+  const sentSummary = useMemo(() => {
+    const total = sentDocuments.length;
+    const pending = sentDocuments.filter((d) => d.status === "PENDING" || !d.status).length;
+    const approved = sentDocuments.filter((d) => d.status === "APPROVED").length;
+    return { total, pending, approved };
+  }, [sentDocuments]);
   const postNotificationsUnread = useMemo(
     () =>
       notifications.filter(
@@ -1550,6 +1575,24 @@ export default function HomePage() {
                   type="button"
                   className="btn-secondary"
                   onClick={() => navigate("/administration/workflows/approved")}
+                >
+                  View Details
+                </button>
+              </div>
+
+              <div className="rounded-lg border border-slate-200 p-4 flex items-center justify-between">
+                <div>
+                  <div className="text-sm font-bold text-slate-800">
+                    Sent Documents
+                  </div>
+                  <div className="text-xs text-slate-500">
+                    {sentDocuments.length} Sent ({sentSummary.approved} Approved, {sentSummary.pending} In Review)
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  onClick={() => navigate("/administration/workflows/sent")}
                 >
                   View Details
                 </button>

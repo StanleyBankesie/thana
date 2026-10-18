@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { 
   Wrench, Navigation, CheckCircle, Clock, MapPin, 
   ShieldAlert, Camera, Star, UserCheck, AlertTriangle, FileCheck, ArrowRight, ArrowLeft
@@ -8,6 +8,7 @@ import { api } from "../../../../api/client.js";
 import { toast } from "react-toastify";
 
 export default function FieldTechnicianJobCard() {
+  const navigate = useNavigate();
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeJob, setActiveJob] = useState(null);
@@ -184,13 +185,14 @@ export default function FieldTechnicianJobCard() {
       {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div className="flex items-center gap-3">
-          <Link
-            to="/maintenance?section=Facilities Management"
-            className="btn btn-secondary inline-flex items-center gap-1.5"
-            title="Back to Facilities Management"
+          <button
+            type="button"
+            onClick={() => navigate(-1)}
+            className="btn btn-secondary inline-flex items-center gap-2 px-3.5 py-2 text-sm"
+            title="Go Back"
           >
             <ArrowLeft size={16} /> Back
-          </Link>
+          </button>
           <div>
             <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
               <Wrench className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />

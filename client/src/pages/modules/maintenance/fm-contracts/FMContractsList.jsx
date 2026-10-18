@@ -1,17 +1,20 @@
 import React, { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { 
   FileText, Plus, Search, Calendar, ShieldCheck, 
   Receipt, Clock, CheckCircle, AlertCircle, Building2, X, ArrowLeft
 } from "lucide-react";
 import { api } from "../../../../api/client.js";
 import { toast } from "react-toastify";
+import ViewToggle from "../../../../components/ViewToggle.jsx";
 
 export default function FMContractsList() {
+  const navigate = useNavigate();
   const [contracts, setContracts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
+  const [viewMode, setViewMode] = useState("table");
 
   // Create Modal
   const [showModal, setShowModal] = useState(false);
@@ -119,23 +122,19 @@ export default function FMContractsList() {
     }
   };
 
-  const totalContracts = contracts.length;
-  const activeContracts = contracts.filter((c) => c.contract_status === "ACTIVE").length;
-  const totalBilling = contracts.reduce((sum, c) => sum + (Number(c.billing_amount) || 0), 0);
-  const totalPropertiesCovered = contracts.reduce((sum, c) => sum + (parseInt(c.property_count) || 0), 0);
-
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div className="flex items-center gap-3">
-          <Link
-            to="/maintenance?section=Facilities Management"
-            className="btn btn-secondary inline-flex items-center gap-1.5"
-            title="Back to Facilities Management"
+          <button
+            type="button"
+            onClick={() => navigate(-1)}
+            className="btn btn-secondary inline-flex items-center gap-2 px-3.5 py-2 text-sm"
+            title="Go Back"
           >
             <ArrowLeft size={16} /> Back
-          </Link>
+          </button>
           <div>
             <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
               <ShieldCheck className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
@@ -154,38 +153,6 @@ export default function FMContractsList() {
         </button>
       </div>
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="card p-4 space-y-1">
-          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Service Contracts</p>
-          <div className="flex items-baseline justify-between">
-            <span className="text-2xl font-bold text-slate-900 dark:text-slate-100">{totalContracts}</span>
-            <span className="badge badge-sm badge-info">Total</span>
-          </div>
-        </div>
-        <div className="card p-4 space-y-1">
-          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Active Agreements</p>
-          <div className="flex items-baseline justify-between">
-            <span className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{activeContracts}</span>
-            <span className="badge badge-sm badge-success">SLA Active</span>
-          </div>
-        </div>
-        <div className="card p-4 space-y-1">
-          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Recurring Monthly</p>
-          <div className="flex items-baseline justify-between">
-            <span className="text-2xl font-bold text-blue-600 dark:text-blue-400">₵{totalBilling.toLocaleString()}</span>
-            <span className="badge badge-sm badge-ghost">Billable</span>
-          </div>
-        </div>
-        <div className="card p-4 space-y-1">
-          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Covered Sites</p>
-          <div className="flex items-baseline justify-between">
-            <span className="text-2xl font-bold text-purple-600 dark:text-purple-400">{totalPropertiesCovered}</span>
-            <span className="badge badge-sm badge-primary">Locations</span>
-          </div>
-        </div>
-      </div>
-
       {/* Filter and Search */}
       <div className="bg-white dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col md:flex-row gap-3 items-center justify-between">
         <div className="relative flex-1 w-full">
@@ -200,20 +167,23 @@ export default function FMContractsList() {
           />
         </div>
 
-        <select
-          className="input text-sm py-1.5"
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-        >
-          <option value="">All Statuses</option>
-          <option value="ACTIVE">Active</option>
-          <option value="DRAFT">Draft</option>
-          <option value="UNDER_REVIEW">Under Review</option>
-          <option value="EXPIRED">Expired</option>
-        </select>
+        <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
+          <select
+            className="input text-sm py-1.5"
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+          >
+            <option value="">All Statuses</option>
+            <option value="ACTIVE">Active</option>
+            <option value="DRAFT">Draft</option>
+            <option value="UNDER_REVIEW">Under Review</option>
+            <option value="EXPIRED">Expired</option>
+          </select>
+          <ViewToggle viewMode={viewMode} setViewMode={setViewMode} />
+        </div>
       </div>
 
-      {/* Contracts Table */}
+      {/* Contracts View */}
       {loading ? (
         <div className="flex items-center justify-center p-12 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">
           <div className="w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
@@ -230,7 +200,7 @@ export default function FMContractsList() {
             <Plus size={14} /> Create Contract
           </button>
         </div>
-      ) : (
+      ) : viewMode === "table" ? (
         <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden shadow-sm">
           <div className="overflow-x-auto">
             <table className="table w-full">
@@ -303,6 +273,67 @@ export default function FMContractsList() {
               </tbody>
             </table>
           </div>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {contracts.map((ctr) => (
+            <div
+              key={ctr.id}
+              className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-5 shadow-sm hover:border-slate-300 dark:hover:border-slate-600 transition-all flex flex-col justify-between"
+            >
+              <div>
+                <div className="flex items-start justify-between gap-2 mb-2">
+                  <div className="min-w-0">
+                    <h3 className="font-semibold text-slate-900 dark:text-white text-base truncate" title={ctr.contract_title}>
+                      {ctr.contract_title}
+                    </h3>
+                    <div className="text-xs font-mono text-slate-400 mt-0.5">
+                      {ctr.contract_no}
+                    </div>
+                  </div>
+                  <span className={`text-xs px-2.5 py-0.5 rounded-full font-medium whitespace-nowrap ${
+                    ctr.contract_status === "ACTIVE"
+                      ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                      : "bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300"
+                  }`}>
+                    {ctr.contract_status}
+                  </span>
+                </div>
+
+                <div className="text-xs text-slate-600 dark:text-slate-300 font-medium mb-3">
+                  Client: {ctr.client_name || "Enterprise Client"}
+                </div>
+
+                <div className="space-y-2 text-xs text-slate-500 bg-slate-50 dark:bg-slate-900/50 p-3 rounded-lg border border-slate-100 dark:border-slate-800 mb-4">
+                  <div className="flex items-center justify-between">
+                    <span>Coverage:</span>
+                    <span className="font-semibold text-slate-700 dark:text-slate-200">{ctr.property_count || 0} Property(ies)</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span>Duration:</span>
+                    <span className="text-slate-700 dark:text-slate-300">{ctr.start_date?.slice(0, 10)} to {ctr.end_date?.slice(0, 10)}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span>Recurring Fee:</span>
+                    <span className="font-bold text-slate-900 dark:text-white">
+                      ₵{Number(ctr.billing_amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })} ({ctr.billing_frequency})
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex justify-end">
+                <button
+                  onClick={() => { setBillingContract(ctr); setBillingPeriod(`Monthly FM Fee (${new Date().toLocaleString('default', { month: 'long', year: 'numeric' })})`); }}
+                  className="btn btn-secondary text-xs inline-flex items-center gap-1.5 w-full justify-center"
+                  title="Generate Finance Invoice"
+                >
+                  <Receipt size={13} />
+                  Invoice Client
+                </button>
+              </div>
+            </div>
+          ))}
         </div>
       )}
 

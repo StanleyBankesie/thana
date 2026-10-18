@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { 
   Sparkles, Shield, Bug, Trash2, Plus, 
   Calendar, CheckCircle2, AlertTriangle, Star, Building2, User, ArrowLeft
@@ -8,6 +8,7 @@ import { api } from "../../../../api/client.js";
 import { toast } from "react-toastify";
 
 export default function SoftServicesPage() {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("janitorial");
   const [properties, setProperties] = useState([]);
 
@@ -140,13 +141,14 @@ export default function SoftServicesPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div className="flex items-center gap-3">
-          <Link
-            to="/maintenance?section=Inspections %26 Soft Services"
-            className="btn btn-secondary inline-flex items-center gap-1.5"
-            title="Back to Inspections & Soft Services"
+          <button
+            type="button"
+            onClick={() => navigate(-1)}
+            className="btn btn-secondary inline-flex items-center gap-2 px-3.5 py-2 text-sm"
+            title="Go Back"
           >
             <ArrowLeft size={16} /> Back
-          </Link>
+          </button>
           <div>
             <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
               <Sparkles className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
@@ -164,38 +166,6 @@ export default function SoftServicesPage() {
           <Plus size={16} />
           Log {activeTab === "janitorial" ? "Hygiene Audit" : activeTab === "security" ? "Security Patrol" : activeTab === "pest" ? "Pest Treatment" : "Waste Manifest"}
         </button>
-      </div>
-
-      {/* KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="card p-4 space-y-1">
-          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Janitorial Audits</p>
-          <div className="flex items-baseline justify-between">
-            <span className="text-2xl font-bold text-slate-900 dark:text-slate-100">{janitorialLogs.length}</span>
-            <span className="badge badge-sm badge-info">Cleaning</span>
-          </div>
-        </div>
-        <div className="card p-4 space-y-1">
-          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Security Rounds</p>
-          <div className="flex items-baseline justify-between">
-            <span className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{securityLogs.length}</span>
-            <span className="badge badge-sm badge-success">Patrols</span>
-          </div>
-        </div>
-        <div className="card p-4 space-y-1">
-          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Pest Treatments</p>
-          <div className="flex items-baseline justify-between">
-            <span className="text-2xl font-bold text-blue-600 dark:text-blue-400">{pestLogs.length}</span>
-            <span className="badge badge-sm badge-ghost">Treatments</span>
-          </div>
-        </div>
-        <div className="card p-4 space-y-1">
-          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Waste Manifests</p>
-          <div className="flex items-baseline justify-between">
-            <span className="text-2xl font-bold text-purple-600 dark:text-purple-400">{wasteLogs.length}</span>
-            <span className="badge badge-sm badge-primary">Collections</span>
-          </div>
-        </div>
       </div>
 
       {/* Tabs */}

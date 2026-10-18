@@ -47,6 +47,7 @@ router.post("/rfqs/:id/send-email", ...auth, mc.sendRFQEmail);
 
 // ===== SUPPLIER QUOTATIONS =====
 router.get("/supplier-quotations", ...auth, mc.listSupplierQuotations);
+router.get("/supplier-quotations/next-no", ...auth, mc.getNextSupplierQuotationNo);
 router.get("/supplier-quotations/:id", ...auth, mc.getSupplierQuotationById);
 router.post("/supplier-quotations", ...auth, mc.createSupplierQuotation);
 router.put("/supplier-quotations/:id", ...auth, mc.updateSupplierQuotation);

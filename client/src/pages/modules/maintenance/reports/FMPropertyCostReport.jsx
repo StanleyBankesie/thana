@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { 
   ArrowLeft, Download, RefreshCw, Calendar, DollarSign, 
   Building2, Wrench, Layers, BarChart2, TrendingUp, Filter
@@ -8,6 +8,7 @@ import { api } from "../../../../api/client.js";
 import { toast } from "react-toastify";
 
 export default function FMPropertyCostReport() {
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [reportData, setReportData] = useState(null);
   const [properties, setProperties] = useState([]);
@@ -78,13 +79,14 @@ export default function FMPropertyCostReport() {
       {/* Header with Back Button */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <Link
-            to="/maintenance/reports"
-            className="btn btn-secondary inline-flex items-center gap-1.5"
-            title="Back to Reports Hub"
+          <button
+            type="button"
+            onClick={() => navigate(-1)}
+            className="btn btn-secondary inline-flex items-center gap-2 px-3.5 py-2 text-sm"
+            title="Go Back"
           >
             <ArrowLeft size={16} /> Back
-          </Link>
+          </button>
           <div>
             <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
               <DollarSign className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />

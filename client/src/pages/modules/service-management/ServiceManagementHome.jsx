@@ -35,65 +35,6 @@ import FacilitiesOperationsDashboard from "../maintenance/operations-dashboard/F
 
 export const serviceManagementSections = [
   {
-    title: "Facilities Management",
-    items: [
-      {
-        title: "Facilities Command Center",
-        description: "Live SLA tracking and operations KPIs",
-        path: "/service-management/facilities-dashboard",
-        icon: "📊",
-        actions: [
-          { label: "View", path: "/service-management/facilities-dashboard", type: "outline", featureKey: "SERVICE.MANAGE", action: "view" }
-        ]
-      },
-      {
-        title: "Client Properties & Sites",
-        description: "Multi-tier facility property register and hierarchy",
-        path: "/service-management/properties",
-        icon: "🏢",
-        actions: [
-          { label: "View", path: "/service-management/properties", type: "outline", featureKey: "SERVICE.MANAGE", action: "view" }
-        ]
-      },
-      {
-        title: "FM Service Contracts",
-        description: "Client service contracts, SLA rules, and recurring billing",
-        path: "/service-management/fm-contracts",
-        icon: "📜",
-        actions: [
-          { label: "View", path: "/service-management/fm-contracts", type: "outline", featureKey: "SERVICE.MANAGE", action: "view" }
-        ]
-      },
-      {
-        title: "Field Technician Workspace",
-        description: "Mobile job card, step transitions, and client sign-off",
-        path: "/service-management/field-service",
-        icon: "👨‍🔧",
-        actions: [
-          { label: "Open", path: "/service-management/field-service", type: "outline", featureKey: "SERVICE.MANAGE", action: "view" }
-        ]
-      },
-      {
-        title: "Inspection Checklists",
-        description: "Configurable audit templates across all service lines",
-        path: "/service-management/checklists",
-        icon: "📋",
-        actions: [
-          { label: "View", path: "/service-management/checklists", type: "outline", featureKey: "SERVICE.MANAGE", action: "view" }
-        ]
-      },
-      {
-        title: "Soft Facilities Services",
-        description: "Janitorial audits, security patrol rounds, pest and waste",
-        path: "/service-management/soft-services",
-        icon: "✨",
-        actions: [
-          { label: "View", path: "/service-management/soft-services", type: "outline", featureKey: "SERVICE.MANAGE", action: "view" }
-        ]
-      }
-    ]
-  },
-  {
     title: "Service Requests",
     items: [
       {
@@ -351,8 +292,8 @@ function ServiceManagementLanding() {
 
   return (
     <ModuleDashboard
-      title="Service Management"
-      description="End-to-end service request, confirmation, and billing"
+      title="Field Service Management"
+      description="End-to-end customer & supplier service requests, work orders, field execution, confirmations, and billing"
       stats={stats}
       moduleKey="service-management"
       useSectionNavigation={true}

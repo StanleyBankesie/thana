@@ -86,27 +86,8 @@ export const maintenanceSections = [
     title: "Equipment & Assets",
     icon: "🏗️",
     items: [
-      buildFeature("Maintenance Assets", "/maintenance/assets", "Manage assets and equipment details", "🏢"),
-      buildFeature("Equipment", "/maintenance/equipment", "Equipment setup", "🚜"),
+      buildFeature("Equipment & Assets", "/maintenance/equipment", "Register and manage enterprise equipment, assets, telemetry meters, and specifications", "🚜"),
       buildFeature("Maintenance Contracts", "/maintenance/contracts", "Contract management", "📜"),
-    ],
-  },
-  {
-    title: "Facilities Management",
-    icon: "🏢",
-    items: [
-      buildFeature("Facilities Command Center", "/maintenance/facilities-dashboard", "Live SLA tracking and operations KPIs", "📊"),
-      buildFeature("Client Properties & Sites", "/maintenance/properties", "Multi-tier facility property register & hierarchy", "🏛️"),
-      buildFeature("FM Service Contracts", "/maintenance/fm-contracts", "Client service contracts, SLA rules, and recurring billing", "📜"),
-      buildFeature("Field Technician Workspace", "/maintenance/field-service", "Mobile job card, step transitions, and client sign-off", "👨‍🔧"),
-    ],
-  },
-  {
-    title: "Inspections & Soft Services",
-    icon: "✨",
-    items: [
-      buildFeature("Inspection Checklists", "/maintenance/checklists", "Configurable audit templates across all service lines", "📋"),
-      buildFeature("Soft Facilities Services", "/maintenance/soft-services", "Janitorial audits, security patrol rounds, pest & waste", "🧹"),
     ],
   },
   {
@@ -139,16 +120,21 @@ export const maintenanceSections = [
     ],
   },
   {
-    title: "Setup & Reports",
+    title: "Reports & Analytics",
+    icon: "📊",
+    items: [
+      buildFeature("Downtime Analysis", "/maintenance/reports/downtime", "Analyze MTBF, MTTR, and asset downtime", "📉"),
+      buildFeature("FM SLA Compliance", "/maintenance/reports/sla-compliance", "Ticket response benchmarks, resolution times, and breach audits", "🛡️"),
+      buildFeature("Property Maintenance Costs", "/maintenance/reports/property-costs", "Labor vs materials, cost per sqm, and service expenses", "💰"),
+      buildFeature("Contract Profitability", "/maintenance/reports/contract-profitability", "Contract margins and renewal pipelines", "📈"),
+      buildFeature("Soft Services Audit", "/maintenance/reports/soft-services", "Janitorial hygiene, security patrols, and service standards", "✨"),
+      buildFeature("PPM Checklists Audit", "/maintenance/reports/checklist-inspections", "Audit SOP checklists, pass/fail rates, and telemetry", "📋"),
+    ],
+  },
+  {
+    title: "System Setup",
     icon: "⚙️",
     items: [
-      buildFeature("Maintenance Reports", "/maintenance/reports", "Asset performance and facilities analytics", "📊"),
-      buildFeature("FM SLA Compliance", "/maintenance/reports/sla-compliance", "Response & resolution SLA benchmarks", "🛡️"),
-      buildFeature("Property Costs", "/maintenance/reports/property-costs", "Portfolio maintenance cost and expense allocation", "💵"),
-      buildFeature("Contract Margins", "/maintenance/reports/contract-profitability", "FM contract profitability & renewals", "📜"),
-      buildFeature("Soft Services Audit", "/maintenance/reports/soft-services", "Janitorial, security, pest, and waste audits", "✨"),
-      buildFeature("Inspection Audit", "/maintenance/reports/checklist-inspections", "PPM inspection checklist compliance", "📋"),
-      buildFeature("Downtime Analysis", "/maintenance/reports/downtime", "Analyze MTBF, MTTR, and asset downtime", "📉"),
       buildFeature("Maintenance Setup", "/maintenance/setup", "Configure maintenance categories, work centers, and parameters", "⚙️"),
     ],
   },
@@ -159,7 +145,7 @@ function MaintenanceLanding() {
     { rbac_key: "open-requests", value: "—", label: "New Requests", change: "Loading…", changeType: "neutral", path: "/maintenance/maintenance-requests", actions: [{ label: "View", path: "/maintenance/maintenance-requests", type: "outline" }] },
     { rbac_key: "in-progress-jobs", value: "—", label: "Active Job Orders", change: "Loading…", changeType: "neutral", path: "/maintenance/job-orders", actions: [{ label: "View", path: "/maintenance/job-orders", type: "outline" }] },
     { rbac_key: "overdue-pm", value: "—", label: "Overdue PM Tasks", change: "Loading…", changeType: "neutral", path: "/maintenance/pm-schedules", actions: [{ label: "View", path: "/maintenance/pm-schedules", type: "outline" }] },
-    { rbac_key: "total-assets", value: "—", label: "Total Assets", change: "Loading…", changeType: "neutral", path: "/maintenance/assets", actions: [{ label: "View", path: "/maintenance/assets", type: "outline" }] },
+    { rbac_key: "total-assets", value: "—", label: "Equipment & Assets", change: "Loading…", changeType: "neutral", path: "/maintenance/equipment", actions: [{ label: "View", path: "/maintenance/equipment", type: "outline" }] },
   ]);
 
   React.useEffect(() => {
@@ -168,13 +154,13 @@ function MaintenanceLanding() {
       api.get("/maintenance/requests").catch(() => ({ data: [] })),
       api.get("/maintenance/work-orders").catch(() => ({ data: [] })),
       api.get("/maintenance/pm-schedules").catch(() => ({ data: [] })),
-      api.get("/maintenance/assets").catch(() => ({ data: [] })),
-    ]).then(([reqRes, woRes, pmRes, assetRes]) => {
+      api.get("/maintenance/equipment").catch(() => ({ data: [] })),
+    ]).then(([reqRes, woRes, pmRes, eqRes]) => {
       if (!mounted) return;
       const reqs = Array.isArray(reqRes.data) ? reqRes.data : reqRes.data?.items || reqRes.data?.data || [];
       const wos = Array.isArray(woRes.data) ? woRes.data : woRes.data?.items || woRes.data?.data || [];
       const pms = Array.isArray(pmRes.data) ? pmRes.data : pmRes.data?.items || pmRes.data?.data || [];
-      const assets = Array.isArray(assetRes.data) ? assetRes.data : assetRes.data?.items || assetRes.data?.data || [];
+      const eqs = Array.isArray(eqRes.data) ? eqRes.data : eqRes.data?.items || eqRes.data?.data || [];
       const openReqs = reqs.filter(r => r.status === "NEW" || r.status === "OPEN" || r.status === "PENDING");
       const activeWos = wos.filter(w => w.status === "IN_PROGRESS" || w.status === "ASSIGNED" || w.status === "OPEN");
       const overduePms = pms.filter(p => p.status === "OVERDUE");
@@ -182,7 +168,7 @@ function MaintenanceLanding() {
         { rbac_key: "open-requests", value: openReqs.length.toString(), label: "New Requests", change: "Requires Action", changeType: openReqs.length > 0 ? "negative" : "positive", path: "/maintenance/maintenance-requests", actions: [{ label: "View", path: "/maintenance/maintenance-requests", type: "outline" }] },
         { rbac_key: "in-progress-jobs", value: activeWos.length.toString(), label: "Active Job Orders", change: "In Progress", changeType: "neutral", path: "/maintenance/job-orders", actions: [{ label: "View", path: "/maintenance/job-orders", type: "outline" }] },
         { rbac_key: "overdue-pm", value: overduePms.length.toString(), label: "Overdue PM Tasks", change: "Action Required", changeType: overduePms.length > 0 ? "negative" : "positive", path: "/maintenance/pm-schedules", actions: [{ label: "View", path: "/maintenance/pm-schedules", type: "outline" }] },
-        { rbac_key: "total-assets", value: assets.length.toString(), label: "Total Assets", change: "Managed", changeType: "positive", path: "/maintenance/assets", actions: [{ label: "View", path: "/maintenance/assets", type: "outline" }] },
+        { rbac_key: "total-assets", value: eqs.length.toString(), label: "Equipment & Assets", change: "Managed", changeType: "positive", path: "/maintenance/equipment", actions: [{ label: "View", path: "/maintenance/equipment", type: "outline" }] },
       ]);
     });
     return () => { mounted = false; };
@@ -207,9 +193,9 @@ export default function MaintenanceHome() {
       <Routes>
         <Route path="/" element={<MaintenanceLanding />} />
         <Route path="/dashboard" element={<MaintenanceDashboardPage />} />
-        <Route path="/assets" element={<AssetList />} />
-        <Route path="/assets/new" element={<AssetForm />} />
-        <Route path="/assets/:id" element={<AssetForm />} />
+        <Route path="/assets" element={<EquipmentList />} />
+        <Route path="/assets/new" element={<EquipmentForm />} />
+        <Route path="/assets/:id" element={<EquipmentForm />} />
         <Route path="/maintenance-requests" element={<MaintenanceRequestsList />} />
         <Route path="/maintenance-requests/new" element={<MaintenanceRequestForm />} />
         <Route path="/maintenance-requests/:id" element={<MaintenanceRequestForm />} />
@@ -222,12 +208,18 @@ export default function MaintenanceHome() {
         <Route path="/rfq" element={<MaintenanceRFQList />} />
         <Route path="/rfq/new" element={<MaintenanceRFQForm />} />
         <Route path="/rfq/:id" element={<MaintenanceRFQForm />} />
+        <Route path="/rfqs" element={<MaintenanceRFQList />} />
+        <Route path="/rfqs/new" element={<MaintenanceRFQForm />} />
+        <Route path="/rfqs/:id" element={<MaintenanceRFQForm />} />
         <Route path="/supplier-quotations" element={<SupplierQuotationsList />} />
         <Route path="/supplier-quotations/new" element={<SupplierQuotationForm />} />
         <Route path="/supplier-quotations/:id" element={<SupplierQuotationForm />} />
         <Route path="/bills" element={<MaintenanceBillList />} />
         <Route path="/bills/new" element={<MaintenanceBillForm />} />
         <Route path="/bills/:id" element={<MaintenanceBillForm />} />
+        <Route path="/maintenance-bills" element={<MaintenanceBillList />} />
+        <Route path="/maintenance-bills/new" element={<MaintenanceBillForm />} />
+        <Route path="/maintenance-bills/:id" element={<MaintenanceBillForm />} />
         <Route path="/schedules" element={<MaintenanceScheduleList />} />
         <Route path="/schedules/new" element={<MaintenanceScheduleForm />} />
         <Route path="/schedules/:id" element={<MaintenanceScheduleForm />} />

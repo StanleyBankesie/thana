@@ -282,12 +282,49 @@ export const MODULES_REGISTRY = {
       { key: "material-receipts", label: "Material Receipts", type: "feature" },
     ],
     dashboards: [
-
-
-          { key: "maint-open-work-orders", label: "Open Work Orders", type: "dashboard" },
+      { key: "maint-open-work-orders", label: "Open Work Orders", type: "dashboard" },
       { key: "maint-assets-in-maint", label: "Assets in Maintenance", type: "dashboard" },
       { key: "maint-total-assets", label: "Total Assets", type: "dashboard" },
-]
+    ]
+  },
+
+  facilities: {
+    name: "Facilities Management",
+    icon: "🏢",
+    features: [
+      { key: "dashboard", label: "Facilities Command Center", type: "feature" },
+      { key: "properties", label: "Properties & Estates", type: "feature" },
+      { key: "contracts", label: "FM Service Contracts", type: "feature" },
+      { key: "field-service", label: "Field Technician Workspace", type: "feature" },
+      { key: "checklists", label: "Inspection Checklists", type: "feature" },
+      { key: "soft-services", label: "Soft Facilities Services", type: "feature" },
+      { key: "reports", label: "Facilities Reports", type: "feature" },
+    ],
+    dashboards: [
+      { key: "fac-sla-compliance", label: "SLA Compliance Rate", type: "dashboard" },
+      { key: "fac-open-tickets", label: "Open Helpdesk Tickets", type: "dashboard" },
+      { key: "fac-active-contracts", label: "Active FM Contracts", type: "dashboard" },
+    ]
+  },
+
+  assets: {
+    name: "Asset Management",
+    icon: "🏛️",
+    features: [
+      { key: "register", label: "Fixed Asset Register", type: "feature" },
+      { key: "categories", label: "Asset Categories & Policies", type: "feature" },
+      { key: "setup", label: "Master Setup & Tagging Rules", type: "feature" },
+      { key: "depreciation", label: "Asset Depreciation Engine", type: "feature" },
+      { key: "revaluations", label: "Asset Value Adjustments", type: "feature" },
+      { key: "transfers", label: "Asset Transfers", type: "feature" },
+      { key: "disposals", label: "Asset Disposals & Retirements", type: "feature" },
+      { key: "schedule-report", label: "Fixed Asset Schedule", type: "feature" },
+    ],
+    dashboards: [
+      { key: "ast-total-cost", label: "Total Historical Cost", type: "dashboard" },
+      { key: "ast-total-nbv", label: "Portfolio Net Book Value", type: "dashboard" },
+      { key: "ast-active-count", label: "Active Capitalized Assets", type: "dashboard" },
+    ]
   },
 
   production: {
@@ -410,8 +447,8 @@ export const MODULES_REGISTRY = {
   },
 
   "service-management": {
-    name: "Service Management",
-    icon: "🔧",
+    name: "Field Service Management",
+    icon: "🛠️",
     features: [
       { key: "customer-service-requests", label: "Customer Service Requests", type: "feature" },
       { key: "supplier-service-requests", label: "Supplier Service Requests", type: "feature" },

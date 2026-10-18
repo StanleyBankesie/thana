@@ -25,6 +25,8 @@ export default function MaintenanceBillForm() {
   const location = useLocation();
   const params = new URLSearchParams(location.search);
   const isEdit = !!id;
+  const isView = params.get("mode") === "view";
+  const readOnly = isView;
 
   const [form, setForm] = useState({
     bill_no: "", bill_date: new Date().toISOString().slice(0,10), due_date: "",

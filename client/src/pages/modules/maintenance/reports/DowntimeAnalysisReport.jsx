@@ -15,7 +15,8 @@ import {
   AlertTriangle,
   Clock,
   ChevronRight,
-  BarChart2
+  BarChart2,
+  Activity
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { api } from "../../../../api/client";
@@ -69,7 +70,7 @@ export default function DowntimeAnalysisReport() {
     <div className="p-8 max-w-7xl mx-auto space-y-10 animate-in fade-in duration-700">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div className="flex items-center gap-3">
-          <Link to="/maintenance/reports" className="btn btn-secondary inline-flex items-center gap-1.5">
+          <Link to="/maintenance?section=Reports %26 Analytics" className="btn btn-secondary inline-flex items-center gap-1.5">
             <ArrowLeft size={16} /> Back
           </Link>
           <div>

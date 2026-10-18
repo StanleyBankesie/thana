@@ -54,6 +54,7 @@ export default function GRNLocalForm() {
         }
       })());
   const isView = Boolean(id) && id !== "new" && !isEdit;
+  const readOnly = isView;
 
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);

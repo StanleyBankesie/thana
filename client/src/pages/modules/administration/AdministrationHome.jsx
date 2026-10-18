@@ -15,6 +15,7 @@ import WorkflowList from "./workflows/WorkflowList.jsx";
 import WorkflowForm from "./workflows/WorkflowForm.jsx";
 import MyApprovals from "./workflows/MyApprovals.jsx";
 import ApprovedDocuments from "./workflows/ApprovedDocuments.jsx";
+import SentDocuments from "./workflows/SentDocuments.jsx";
 import DocumentReview from "./workflows/DocumentReview.jsx";
 import SystemLogBookPage from "./reports/SystemLogBookPage.jsx";
 import UserLoginActivityReportPage from "./reports/UserLoginActivityReportPage.jsx";
@@ -388,6 +389,7 @@ export default function AdministrationHome() {
       <Route path="/workflows/approvals" element={<MyApprovals />} />
       <Route path="/notifications" element={<NotificationSettings />} />
       <Route path="/workflows/approved" element={<ApprovedDocuments />} />
+      <Route path="/workflows/sent" element={<SentDocuments />} />
       <Route
         path="/workflows/approvals/:instanceId"
         element={<DocumentReview />}

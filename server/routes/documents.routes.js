@@ -244,6 +244,18 @@ function canonicalDocumentType(type) {
   if (t === "supplier-quotation" || t === "supplier quotation" || t === "supplier_quotation") {
     return "supplier-quotation";
   }
+  if (
+    t === "maintenance-rfq" ||
+    t === "maintenance rfq" ||
+    t === "maintenance_rfq" ||
+    t === "rfq" ||
+    t === "maint-rfq" ||
+    t === "maint_rfq" ||
+    t === "MAINTENANCE_RFQ" ||
+    t === "RFQ"
+  ) {
+    return "maintenance-rfq";
+  }
   return t;
 }
 
@@ -380,6 +392,9 @@ function expandDocumentTypeAliases(type) {
   }
   if (c === "supplier-quotation") {
     return ["supplier-quotation", "supplier quotation", "Supplier Quotation", "SUPPLIER_QUOTATION"];
+  }
+  if (c === "maintenance-rfq") {
+    return ["maintenance-rfq", "maintenance rfq", "Maintenance RFQ", "MAINTENANCE_RFQ", "rfq", "RFQ", "maint-rfq"];
   }
   return [c];
 }
@@ -520,6 +535,125 @@ async function getCompanyLogoDataUri(companyId) {
     return null;
   }
 }
+
+const defaultMaintenanceRFQHtml = `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8" />
+<style>
+  @page { size: A4; margin: 12mm 15mm; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color: #1e293b; margin: 0; padding: 20px; font-size: 13px; line-height: 1.5; background: #fff; }
+  .header-container { display: flex; justify-content: space-between; align-items: flex-start; padding-bottom: 18px; border-bottom: 2px solid #0f172a; margin-bottom: 22px; }
+  .company-title { font-size: 22px; font-weight: 800; color: #0f172a; margin: 0 0 4px 0; }
+  .company-meta { font-size: 11px; color: #64748b; line-height: 1.4; }
+  .doc-title-badge { display: inline-block; background-color: #0f172a; color: #ffffff; padding: 6px 14px; border-radius: 6px; font-weight: 700; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .doc-no { margin-top: 8px; font-size: 16px; font-weight: 800; color: #0f172a; font-family: monospace; }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 22px; }
+  .card-box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px 16px; }
+  .card-title { font-size: 11px; font-weight: 700; text-transform: uppercase; color: #64748b; margin-bottom: 10px; letter-spacing: 0.5px; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px; }
+  .meta-row { display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 12px; }
+  .meta-label { color: #64748b; font-weight: 500; }
+  .meta-val { color: #0f172a; font-weight: 600; }
+  .section-title { font-size: 13px; font-weight: 700; color: #0f172a; margin: 20px 0 8px 0; border-bottom: 1px solid #cbd5e1; padding-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .scope-box { background: #ffffff; border: 1px solid #cbd5e1; border-radius: 8px; padding: 14px; font-size: 12px; line-height: 1.6; white-space: pre-wrap; margin-bottom: 18px; }
+  table.data-table { width: 100%; border-collapse: collapse; margin-top: 8px; margin-bottom: 20px; }
+  table.data-table th { background: #f1f5f9; color: #475569; font-size: 11px; font-weight: 700; text-transform: uppercase; text-align: left; padding: 8px 10px; border: 1px solid #e2e8f0; }
+  table.data-table td { padding: 8px 10px; border: 1px solid #e2e8f0; font-size: 12px; }
+  .signatures-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; margin-top: 45px; padding-top: 15px; }
+  .sign-line { border-top: 1px dashed #94a3b8; text-align: center; padding-top: 8px; font-size: 11px; color: #64748b; font-weight: 600; }
+  .status-badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 700; background: #e0f2fe; color: #0369a1; text-transform: uppercase; }
+</style>
+</head>
+<body>
+<div class="header-container">
+  <div>
+    <h1 class="company-title">{{company.name}}</h1>
+    <div class="company-meta">
+      {{#if company.address}}{{company.address}}<br/>{{/if}}
+      {{#if company.telephone}}Tel: {{company.telephone}} &nbsp;|&nbsp; {{/if}}
+      {{#if company.email}}Email: {{company.email}}{{/if}}
+    </div>
+  </div>
+  <div style="text-align: right;">
+    <div class="doc-title-badge">Request For Quotation</div>
+    <div class="doc-no">{{rfq.rfq_no}}</div>
+    <div style="margin-top: 4px; font-size: 11px; color: #64748b;">Date: <strong>{{rfq.date}}</strong></div>
+  </div>
+</div>
+
+<div class="grid-2">
+  <div class="card-box">
+    <div class="card-title">RFQ Details</div>
+    <div class="meta-row"><span class="meta-label">RFQ Number:</span><span class="meta-val">{{rfq.rfq_no}}</span></div>
+    <div class="meta-row"><span class="meta-label">RFQ Date:</span><span class="meta-val">{{rfq.date}}</span></div>
+    <div class="meta-row"><span class="meta-label">Submission Deadline:</span><span class="meta-val" style="color: #b91c1c;">{{rfq.response_deadline}}</span></div>
+    <div class="meta-row"><span class="meta-label">Status:</span><span class="status-badge">{{rfq.status}}</span></div>
+    {{#if rfq.request_no}}<div class="meta-row"><span class="meta-label">Maintenance Request Ref:</span><span class="meta-val">{{rfq.request_no}}</span></div>{{/if}}
+    {{#if rfq.asset_name}}<div class="meta-row"><span class="meta-label">Target Asset:</span><span class="meta-val">{{rfq.asset_name}}</span></div>{{/if}}
+  </div>
+  <div class="card-box">
+    <div class="card-title">Invited Service Providers</div>
+    <div style="font-size: 12px; color: #334155; line-height: 1.6;">
+      {{#if rfq.suppliers.length}}
+        <ul style="margin: 0; padding-left: 18px;">
+          {{#each rfq.suppliers}}
+            <li><strong>{{name}}</strong> {{#if phone}}({{phone}}){{/if}} {{#if email}}- {{email}}{{/if}}</li>
+          {{/each}}
+        </ul>
+      {{else}}
+        <em>{{rfq.supplier_names}}</em>
+      {{/if}}
+    </div>
+  </div>
+</div>
+
+<div class="section-title">Scope of Work & Technical Specifications</div>
+<div class="scope-box">{{rfq.scope_of_work}}</div>
+
+{{#if rfq.notes}}
+<div class="section-title">Special Instructions & Guidelines</div>
+<div class="scope-box" style="background: #f8fafc;">{{rfq.notes}}</div>
+{{/if}}
+
+{{#if rfq.suppliers.length}}
+<div class="section-title">Invited Contractors / Suppliers Schedule</div>
+<table class="data-table">
+  <thead>
+    <tr>
+      <th style="width: 35px;">#</th>
+      <th>Supplier / Contractor</th>
+      <th>Contact Person</th>
+      <th>Phone</th>
+      <th>Email</th>
+    </tr>
+  </thead>
+  <tbody>
+    {{#each rfq.suppliers}}
+    <tr>
+      <td>{{index}}</td>
+      <td><strong>{{name}}</strong></td>
+      <td>{{contact_person}}</td>
+      <td>{{phone}}</td>
+      <td>{{email}}</td>
+    </tr>
+    {{/each}}
+  </tbody>
+</table>
+{{/if}}
+
+<div class="signatures-grid">
+  <div>
+    <div class="sign-line">Prepared By: {{rfq.created_by_name}}</div>
+  </div>
+  <div>
+    <div class="sign-line">Maintenance Engineer / Supervisor</div>
+  </div>
+  <div>
+    <div class="sign-line">Procurement / Facilities Head</div>
+  </div>
+</div>
+</body>
+</html>`;
 
 /**
  * Returns mock/dummy preview data for various document types.
@@ -1006,6 +1140,31 @@ async function loadPreviewData(type, companyId, branchId) {
       received_by: "Kofi Mensah",
       inspected_by: "Samuel Quaye",
       store_manager: "Ama Serwaa",
+    };
+  }
+  if (type === "maintenance-rfq") {
+    return {
+      company: company || {},
+      rfq: {
+        id: 101,
+        rfq_no: "RFQ-2026-0001",
+        date: new Date().toISOString().slice(0, 10),
+        response_deadline: new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10),
+        status: "SENT",
+        scope_of_work: "Comprehensive overhaul and servicing of 500kVA Cummins Backup Diesel Generator, including oil filter replacement, fuel line flushing, valve timing check, and 2-hour full load test.",
+        notes: "Suppliers must include all labor, spare parts, and warranty terms in their formal quotation.",
+        request_no: "MR-2026-0042",
+        asset_name: "Diesel Generator - Cummins 500kVA",
+        priority: "HIGH",
+        request_description: "Periodic preventative maintenance and emergency run check.",
+        created_by_name: "Chief Engineer",
+        created_at: new Date().toISOString(),
+        suppliers: [
+          { index: 1, name: "Apex Power & Engineering Ltd", address: "14 Industrial Area, Accra", phone: "+233 24 123 4567", email: "info@apexpower.com", contact_person: "Kwame Boateng" },
+          { index: 2, name: "VoltMech Industrial Services", address: "8 Harbour Road, Tema", phone: "+233 20 987 6543", email: "sales@voltmech.com", contact_person: "Abena Mansa" },
+        ],
+        supplier_names: "Apex Power & Engineering Ltd, VoltMech Industrial Services"
+      }
     };
   }
   if (canonicalDocumentType(type) === "general-template") {
@@ -3109,6 +3268,60 @@ async function loadData(type, id, companyId, branchId) {
       },
     };
   }
+  if (type === "maintenance-rfq") {
+    const [hdr] = await query(`
+      SELECT r.*,
+        mr.request_no, mr.asset_name, mr.priority, mr.request_description,
+        (SELECT username FROM adm_users WHERE id = r.created_by) AS created_by_name
+      FROM maint_rfqs r
+      LEFT JOIN maint_requests mr ON mr.id = r.request_id
+      WHERE r.id = :id AND r.company_id = :companyId
+      LIMIT 1
+    `, { id, companyId }).catch(() => []);
+    if (!hdr) throw httpError(404, "NOT_FOUND", "RFQ not found");
+
+    const suppliers = await query(`
+      SELECT s.id, s.supplier_id, s.supplier_name,
+        ps.address AS supplier_address, ps.phone AS supplier_phone, ps.email AS supplier_email, ps.contact_person
+      FROM maint_rfq_suppliers s
+      LEFT JOIN pur_suppliers ps ON ps.id = s.supplier_id
+      WHERE s.rfq_id = :id ORDER BY s.id ASC
+    `, { id }).catch(() => []);
+
+    const [company] = await query(`
+      SELECT c.* FROM adm_companies c WHERE c.id = :companyId LIMIT 1
+    `, { companyId }).catch(() => []);
+
+    const supplierNames = suppliers.map(s => s.supplier_name).filter(Boolean).join(", ");
+
+    return {
+      company: company || {},
+      rfq: {
+        id: hdr.id,
+        rfq_no: hdr.rfq_no,
+        date: hdr.rfq_date ? ((hdr.rfq_date instanceof Date) ? hdr.rfq_date.toISOString().slice(0, 10) : String(hdr.rfq_date).slice(0, 10)) : null,
+        response_deadline: hdr.response_deadline ? ((hdr.response_deadline instanceof Date) ? hdr.response_deadline.toISOString().slice(0, 10) : String(hdr.response_deadline).slice(0, 10)) : null,
+        status: hdr.status,
+        scope_of_work: hdr.scope_of_work || "",
+        notes: hdr.notes || "",
+        request_no: hdr.request_no || "",
+        asset_name: hdr.asset_name || "",
+        priority: hdr.priority || "",
+        request_description: hdr.request_description || "",
+        created_by_name: hdr.created_by_name || "",
+        created_at: hdr.created_at,
+        suppliers: (suppliers || []).map((s, idx) => ({
+          index: idx + 1,
+          name: s.supplier_name,
+          address: s.supplier_address || "",
+          phone: s.supplier_phone || "",
+          email: s.supplier_email || "",
+          contact_person: s.contact_person || ""
+        })),
+        supplier_names: supplierNames
+      }
+    };
+  }
   throw httpError(400, "VALIDATION_ERROR", "Unsupported document type");
 }
 
@@ -3255,6 +3468,15 @@ router.get(
           paramsAny,
         ).catch(() => []);
         if (Array.isArray(anyItems) && anyItems.length) tplObj = anyItems[0];
+      }
+
+      if (!tplObj && canonical === "maintenance-rfq") {
+        tplObj = {
+          id: 0,
+          document_type: "maintenance-rfq",
+          name: "Default Maintenance RFQ",
+          html_content: defaultMaintenanceRFQHtml,
+        };
       }
 
       // If still no template, return blank
@@ -3701,6 +3923,15 @@ router.post(
           paramsAny,
         ).catch(() => []);
         if (Array.isArray(anyItems) && anyItems.length) tplObj = anyItems[0];
+      }
+
+      if (!tplObj && canonical === "maintenance-rfq") {
+        tplObj = {
+          id: 0,
+          document_type: "maintenance-rfq",
+          name: "Default Maintenance RFQ",
+          html_content: defaultMaintenanceRFQHtml,
+        };
       }
 
       // If still no template, return blank

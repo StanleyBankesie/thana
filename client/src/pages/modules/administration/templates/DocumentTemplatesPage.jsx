@@ -25,6 +25,9 @@ const DOC_TYPES = [
   { value: "grn", label: "Goods Receipt Note" },
   { value: "purchase-bill", label: "Purchase Bill" },
   { value: "direct-purchase", label: "Direct Purchase" },
+  { value: "maintenance-rfq", label: "Maintenance RFQ" },
+  { value: "supplier-quotation", label: "Supplier Quotation" },
+  { value: "maintenance-bill", label: "Maintenance Bill" },
 ];
 
 // All available feature/page names across the system
@@ -1701,5 +1704,156 @@ ${commonHead}
 </div>
 `;
   }
+
+  if (type === "maintenance-rfq") {
+    return `
+${commonHead}
+<div class="doc">
+  <div class="header">
+    {{#if company.logo}}<img src="{{company.logo}}" class="logo" />{{/if}}
+    <div class="company">
+      <div class="name">{{company.name}}</div>
+      <div>{{company.address}}</div>
+      <div>Tel: {{company.telephone}} &nbsp;|&nbsp; Email: {{company.email}}</div>
+    </div>
+  </div>
+
+  <div class="titlebar">
+    <div class="line"></div>
+    <div class="title">REQUEST FOR QUOTATION (MAINTENANCE)</div>
+    <div class="line"></div>
+  </div>
+
+  <div class="info">
+    <div class="info-left">
+      <div class="kv">
+        <div class="kv-row"><div class="kv-label">RFQ NO</div><div class="kv-sep">:</div><div class="kv-val">{{rfq.rfq_no}}</div></div>
+        <div class="kv-row"><div class="kv-label">RFQ DATE</div><div class="kv-sep">:</div><div class="kv-val">{{rfq.date}}</div></div>
+        <div class="kv-row"><div class="kv-label">DEADLINE</div><div class="kv-sep">:</div><div class="kv-val" style="color: #b91c1c; font-weight: bold;">{{rfq.response_deadline}}</div></div>
+        <div class="kv-row"><div class="kv-label">STATUS</div><div class="kv-sep">:</div><div class="kv-val">{{rfq.status}}</div></div>
+      </div>
+    </div>
+    <div class="info-mid">
+      <div class="kv">
+        {{#if rfq.request_no}}<div class="kv-row"><div class="kv-label">REQUEST REF</div><div class="kv-sep">:</div><div class="kv-val">{{rfq.request_no}}</div></div>{{/if}}
+        {{#if rfq.asset_name}}<div class="kv-row"><div class="kv-label">TARGET ASSET</div><div class="kv-sep">:</div><div class="kv-val">{{rfq.asset_name}}</div></div>{{/if}}
+        <div class="kv-row"><div class="kv-label">INVITED SUPPLIERS</div><div class="kv-sep">:</div><div class="kv-val">{{rfq.supplier_names}}</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div style="font-weight: bold; font-size: 11px; margin-bottom: 6px; text-transform: uppercase;">Scope of Work & Technical Specifications</div>
+  <div style="border: 1px solid #000; padding: 12px; margin-bottom: 16px; font-size: 11px; line-height: 1.5; white-space: pre-wrap; background-color: #fafafa;">{{rfq.scope_of_work}}</div>
+
+  {{#if rfq.notes}}
+  <div style="font-weight: bold; font-size: 11px; margin-bottom: 6px; text-transform: uppercase;">Instructions & Guidelines</div>
+  <div style="border: 1px dashed #666; padding: 10px; margin-bottom: 16px; font-size: 10px; line-height: 1.4; background-color: #fff;">{{rfq.notes}}</div>
+  {{/if}}
+
+  {{#if rfq.suppliers.length}}
+  <div style="font-weight: bold; font-size: 11px; margin-bottom: 6px; text-transform: uppercase;">Invited Contractors / Suppliers</div>
+  <table>
+    <thead>
+      <tr>
+        <th class="left" style="width: 30px;">#</th>
+        <th class="left">Supplier / Contractor Name</th>
+        <th class="left">Contact Person</th>
+        <th class="left">Phone</th>
+        <th class="left">Email</th>
+      </tr>
+    </thead>
+    <tbody>
+      {{#each rfq.suppliers}}
+      <tr>
+        <td>{{index}}</td>
+        <td style="font-weight: bold;">{{name}}</td>
+        <td>{{contact_person}}</td>
+        <td>{{phone}}</td>
+        <td>{{email}}</td>
+      </tr>
+      {{/each}}
+    </tbody>
+  </table>
+  {{/if}}
+
+  <div style="display: flex; justify-content: space-between; margin-top: 40px; font-size: 10px;">
+    <div style="border-top: 1px dashed #000; width: 140px; text-align: center; padding-top: 4px;">Prepared By: {{rfq.created_by_name}}</div>
+    <div style="border-top: 1px dashed #000; width: 140px; text-align: center; padding-top: 4px;">Maintenance Supervisor</div>
+    <div style="border-top: 1px dashed #000; width: 140px; text-align: center; padding-top: 4px;">Head of Facilities</div>
+  </div>
+</div>
+`;
+  }
+
+  if (type === "maintenance-bill") {
+    return `
+${commonHead}
+<div class="doc">
+  <div class="header">
+    {{#if company.logo}}<img src="{{company.logo}}" class="logo" />{{/if}}
+    <div class="company">
+      <div class="name">{{company.name}}</div>
+      <div>{{company.address}}</div>
+      <div>Tel: {{company.telephone}} &nbsp;|&nbsp; Email: {{company.email}}</div>
+    </div>
+  </div>
+
+  <div class="titlebar">
+    <div class="line"></div>
+    <div class="title">MAINTENANCE BILL</div>
+    <div class="line"></div>
+  </div>
+
+  <div class="info">
+    <div class="info-left">
+      <div class="kv">
+        <div class="kv-row"><div class="kv-label">BILL NO</div><div class="kv-sep">:</div><div class="kv-val">{{maintenance_bill.number}}</div></div>
+        <div class="kv-row"><div class="kv-label">DATE</div><div class="kv-sep">:</div><div class="kv-val">{{maintenance_bill.date}}</div></div>
+        <div class="kv-row"><div class="kv-label">STATUS</div><div class="kv-sep">:</div><div class="kv-val">{{maintenance_bill.status}}</div></div>
+      </div>
+    </div>
+    <div class="info-mid">
+      <div class="kv">
+        <div class="kv-row"><div class="kv-label">SUPPLIER</div><div class="kv-sep">:</div><div class="kv-val">{{supplier.name}}</div></div>
+        <div class="kv-row"><div class="kv-label">PHONE</div><div class="kv-sep">:</div><div class="kv-val">{{supplier.phone}}</div></div>
+        <div class="kv-row"><div class="kv-label">EMAIL</div><div class="kv-sep">:</div><div class="kv-val">{{supplier.email}}</div></div>
+      </div>
+    </div>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th class="left">Description</th>
+        <th class="center" style="width: 50px;">Qty</th>
+        <th class="num" style="width: 70px;">Rate</th>
+        <th class="num" style="width: 50px;">Disc %</th>
+        <th class="num" style="width: 80px;">Amount</th>
+      </tr>
+    </thead>
+    <tbody>
+      {{#each maintenance_bill.items}}
+      <tr>
+        <td>{{description}}</td>
+        <td class="center">{{quantity}}</td>
+        <td class="num">{{price}}</td>
+        <td class="num">{{discount}}</td>
+        <td class="num">{{amount}}</td>
+      </tr>
+      {{/each}}
+    </tbody>
+  </table>
+
+  <div style="display: flex; justify-content: flex-end; margin-top: 10px;">
+    <div style="width: 220px; font-size: 11px;">
+      <div style="display: flex; justify-content: space-between; padding: 3px 0;"><span>Subtotal:</span><strong>{{maintenance_bill.sub_total}}</strong></div>
+      <div style="display: flex; justify-content: space-between; padding: 3px 0;"><span>Tax:</span><strong>{{maintenance_bill.tax_amount}}</strong></div>
+      <div style="display: flex; justify-content: space-between; padding: 4px 0; border-top: 2px solid #000; font-size: 13px;"><span>Total:</span><strong>{{maintenance_bill.total}}</strong></div>
+    </div>
+  </div>
+</div>
+`;
+  }
+
   return "<div>Define your template here</div>";
 }

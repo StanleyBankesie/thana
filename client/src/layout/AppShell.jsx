@@ -26,6 +26,7 @@ import {
 } from "../auth/authStorage.js";
 import { usePermission } from "../auth/PermissionContext.jsx";
 import { useTheme } from "../theme/ThemeContext.jsx";
+import { resolveBackgroundForTheme } from "../utils/appBackground.js";
 import ThemeToggle from "../components/ThemeToggle.jsx";
 const DashboardPage = React.lazy(() => import("../pages/dashboard/DashboardPage.jsx"));
 const HomePage = React.lazy(() => import("../pages/home/HomePage.jsx"));
@@ -36,6 +37,8 @@ const PurchaseHome = React.lazy(() => import("../pages/modules/purchase/Purchase
 const FinanceRoutes = React.lazy(() => import("../pages/modules/finance/FinanceRoutes.jsx"));
 const HumanResourcesHome = React.lazy(() => import("../pages/modules/human-resources/HumanResourcesHome.jsx"));
 const MaintenanceHome = React.lazy(() => import("../pages/modules/maintenance/MaintenanceHome.jsx"));
+const FacilitiesHome = React.lazy(() => import("../pages/modules/facilities/FacilitiesHome.jsx"));
+const AssetManagementHome = React.lazy(() => import("../pages/modules/asset-management/AssetManagementHome.jsx"));
 const ProjectManagementHome = React.lazy(() => import("../pages/modules/project-management/ProjectManagementHome.jsx"));
 const ProductionHome = React.lazy(() => import("../pages/modules/production/ProductionHome.jsx"));
 const PosHome = React.lazy(() => import("../pages/modules/pos/PosHome.jsx"));
@@ -78,6 +81,8 @@ import {
   Presentation,
   Truck,
   Home,
+  Building2,
+  Calculator,
   X,
   WifiOff,
 } from "lucide-react";
@@ -108,6 +113,9 @@ const AppRoutes = React.memo(function AppRoutes({ user }) {
         <Route path="/finance/*" element={<FinanceRoutes />} />
         <Route path="/human-resources/*" element={<HumanResourcesHome />} />
         <Route path="/maintenance/*" element={<MaintenanceHome />} />
+        <Route path="/facilities/*" element={<FacilitiesHome />} />
+        <Route path="/assets/*" element={<AssetManagementHome />} />
+        <Route path="/asset-management/*" element={<AssetManagementHome />} />
         <Route path="/project-management/*" element={<ProjectManagementHome />} />
         <Route path="/production/*" element={<ProductionHome />} />
         <Route path="/pos/*" element={<PosHome />} />
@@ -160,6 +168,18 @@ const modules = [
     icon: <Wrench />,
   },
   {
+    key: "facilities",
+    label: "Facilities Management",
+    path: "/facilities",
+    icon: <Building2 />,
+  },
+  {
+    key: "assets",
+    label: "Asset Management",
+    path: "/assets",
+    icon: <Calculator />,
+  },
+  {
     key: "project-management",
     label: "Project Management",
     path: "/project-management",
@@ -175,7 +195,7 @@ const modules = [
   },
   {
     key: "service-management",
-    label: "Service Management",
+    label: "Field Service Management",
     path: "/service-management",
     icon: <Headset />,
   },
@@ -261,6 +281,11 @@ export default function AppShell() {
     appBackground,
   } = usePermission();
   const { theme } = useTheme();
+  const isDark = theme === "dark" || (typeof document !== "undefined" && document.documentElement.classList.contains("dark"));
+  const resolvedBg = useMemo(
+    () => resolveBackgroundForTheme(appBackground, isDark),
+    [appBackground, isDark]
+  );
   const { pending, failed, completed, items, lastEvent } = useOfflineQueue();
   const navigate = useNavigate();
   const location = useLocation();
@@ -1962,14 +1987,14 @@ export default function AppShell() {
               to="/"
               end
               className={({ isActive }) =>
-                `flex items-center px-3 py-2.5 rounded-lg text-base font-medium transition-all duration-200 group ` +
+                `flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 group ` +
                 (isActive
-                  ? "bg-brand-800 text-white shadow-lg border-l-4 border-secondary"
-                  : "text-brand-200 hover:bg-brand-800 hover:text-white border-l-4 border-transparent")
+                  ? "bg-brand-900 text-white shadow-apple-xs dark:bg-white/15 dark:text-white"
+                  : "text-slate-300 dark:text-slate-400 hover:bg-white/10 hover:text-white")
               }
             >
               <span
-                className="w-6 text-lg leading-none opacity-80 group-hover:opacity-100 transition-opacity"
+                className="w-5 h-5 flex items-center justify-center shrink-0 [&>svg]:w-[18px] [&>svg]:h-[18px] opacity-80 group-hover:opacity-100 transition-opacity"
                 aria-hidden="true"
               >
                 <Home />
@@ -1989,44 +2014,57 @@ export default function AppShell() {
                   key={m.key}
                   to={m.path}
                   className={({ isActive }) =>
-                    `flex items-center px-3 py-2.5 rounded-lg text-base font-medium transition-all duration-200 group ` +
+                    `flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 group ` +
                     (isActive
-                      ? "bg-brand-800 text-white shadow-lg border-l-4 border-secondary"
-                      : "text-brand-200 hover:bg-brand-800 hover:text-white border-l-4 border-transparent")
+                      ? "bg-brand-900 text-white shadow-apple-xs dark:bg-white/15 dark:text-white"
+                      : "text-slate-300 dark:text-slate-400 hover:bg-white/10 hover:text-white")
                   }
                 >
                   <span
-                    className="w-6 text-lg leading-none opacity-80 group-hover:opacity-100 transition-opacity"
+                    className="w-5 h-5 flex items-center justify-center shrink-0 [&>svg]:w-[18px] [&>svg]:h-[18px] opacity-80 group-hover:opacity-100 transition-opacity"
                     aria-hidden="true"
                   >
                     {m.icon}
                   </span>
-                  <span className="ml-3">{m.label}</span>
+                  <span>{m.label}</span>
                 </NavLink>
               ))}
           </nav>
         </aside>
 
-        <main className={`flex-1 overflow-x-hidden min-w-0 relative min-h-[calc(100vh-56px)] pb-20 md:pb-6 ${appBackground?.preset === "solid-white" || appBackground?.url?.includes("solid-white") ? "bg-white" : "bg-slate-100 dark:bg-slate-900"}`}>
+        <main
+          className={`flex-1 overflow-x-hidden min-w-0 relative min-h-[calc(100vh-56px)] pb-20 md:pb-6 ${
+            resolvedBg.isSolid
+              ? resolvedBg.isSolidDark
+                ? "bg-[#0b0f19]"
+                : "bg-white"
+              : "bg-slate-100 dark:bg-[#0b0f19]"
+          }`}
+        >
           {/* Main Application Background Image Layer (strictly inside main application area) */}
-          {appBackground?.preset === "solid-white" || appBackground?.url?.includes("solid-white") ? (
+          {resolvedBg.isSolid ? (
             <div
               aria-hidden="true"
-              className="fixed top-[56px] bottom-0 right-0 pointer-events-none z-0 bg-white transition-all duration-300 ease-in-out"
+              className="fixed top-[56px] bottom-0 right-0 pointer-events-none z-0 transition-colors duration-300 ease-in-out"
               style={{
                 left: sidebarOpen ? "280px" : "0px",
-                backgroundColor: "#ffffff",
+                backgroundColor: resolvedBg.color,
               }}
             />
-          ) : appBackground?.url ? (
+          ) : resolvedBg.url ? (
             <div
               aria-hidden="true"
               className="fixed top-[56px] bottom-0 right-0 pointer-events-none z-0 bg-cover bg-center bg-no-repeat transition-all duration-300 ease-in-out"
               style={{
                 left: sidebarOpen ? "280px" : "0px",
-                backgroundImage: `url(${appBackground.url})`,
-                opacity: Math.max(0, Math.min(1, Number(appBackground.opacity ?? 40) / 100)),
-                filter: appBackground.blur ? `blur(${appBackground.blur}px)` : undefined,
+                backgroundImage: `url(${resolvedBg.url})`,
+                opacity: Math.max(0, Math.min(1, Number(resolvedBg.opacity ?? 40) / 100)),
+                filter: [
+                  resolvedBg.blur ? `blur(${resolvedBg.blur}px)` : "",
+                  resolvedBg.isCustom && isDark ? "brightness(0.38) contrast(1.15)" : "",
+                ]
+                  .filter(Boolean)
+                  .join(" ") || undefined,
               }}
             />
           ) : null}

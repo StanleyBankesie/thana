@@ -13,6 +13,7 @@ import DocumentAttachmentsModal from "../../../../components/attachments/Documen
 import { Guard } from "../../../../hooks/usePermissions";
 import { useViewMode } from "@/hooks/useViewMode";
 import ViewToggle from "@/components/ViewToggle";
+import { printDocument, downloadDocumentPdf } from "@/utils/pdfUtils";
 
 const statusColors = { DRAFT:"bg-slate-100 text-slate-600", SENT:"bg-blue-100 text-blue-700", RESPONDED:"bg-green-100 text-green-700", CLOSED:"bg-slate-200 text-slate-700" };
 function Badge({ value, colorMap }) {
@@ -81,7 +82,7 @@ export default function MaintenanceRFQList() {
                   <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 whitespace-nowrap">Suppliers Invited</th>
                   <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 whitespace-nowrap">Deadline</th>
                   <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 whitespace-nowrap">Status</th>
-                  <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 whitespace-nowrap">Approval Email</th>
+                  <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 whitespace-nowrap">Request Quotation / Approval</th>
                   <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 whitespace-nowrap">Created By</th>
                   <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 whitespace-nowrap">Created Date</th>
                   <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 whitespace-nowrap">Actions</th>
@@ -117,18 +118,19 @@ export default function MaintenanceRFQList() {
                       </button>
                       <button
                         type="button"
-                        className="px-2 py-1 text-xs rounded font-medium bg-blue-100 text-blue-700 hover:bg-blue-200"
+                        className="px-2.5 py-1 text-xs rounded font-medium bg-blue-100 text-blue-700 hover:bg-blue-200 transition-colors inline-flex items-center gap-1"
+                        title="Send Request for Quotation to invited suppliers"
                         onClick={async () => {
                           try {
                             const res = await api.post(`/maintenance/rfqs/${r.id}/send-email`);
-                            toast.success(res.data?.message || "Email sent successfully");
+                            toast.success(res.data?.message || "Quotation request sent successfully");
                             api.get("/maintenance/rfqs").then(res => setItems(Array.isArray(res.data?.items) ? res.data.items : []));
                           } catch(e) {
-                            toast.error(e?.response?.data?.message || "Failed to send email");
+                            toast.error(e?.response?.data?.message || "Failed to request quotation");
                           }
                         }}
                       >
-                        Send Email
+                        <Mail size={13} /> Request Quotation
                       </button>
                     </td>
                     <td className="px-4 py-3 text-sm whitespace-nowrap">{r.created_by_name || "-"}</td>
@@ -137,8 +139,8 @@ export default function MaintenanceRFQList() {
                       <div className="flex items-center gap-1">
                         <button type="button" className="p-1.5 text-slate-400 hover:text-brand-600 hover:bg-brand-50 rounded transition-colors" title="View" onClick={() => navigate(`/maintenance/rfq/${r.id}?mode=view`)}><Eye size={15} /></button>
                         <button type="button" className="p-1.5 text-slate-400 hover:text-brand-600 hover:bg-brand-50 rounded transition-colors" title="Edit" onClick={() => navigate(`/maintenance/rfq/${r.id}`)}><Pencil size={15} /></button>
-                        <ListPrintIconButton onClick={() => toast.info("Print coming soon")} />
-                        <ListPdfIconButton onClick={() => toast.info("PDF coming soon")} />
+                        <ListPrintIconButton onClick={() => printDocument(api, "maintenance-rfq", r.id, toast, "maintenance-rfqlist")} />
+                        <ListPdfIconButton onClick={() => downloadDocumentPdf(api, "maintenance-rfq", r.id, `RFQ-${r.rfq_no || r.id}.pdf`, toast, "maintenance-rfqlist")} />
                         <ListAttachmentIconButton onClick={() => { setActiveDocId(r.id); setShowAttach(true); }} />
                         <Link to={`/maintenance/supplier-quotations/new?rfq_id=${r.id}&rfq_no=${r.rfq_no}`} className="text-emerald-600 hover:underline">Record Quotation</Link>
                       </div>
