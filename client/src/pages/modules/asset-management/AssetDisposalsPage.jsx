@@ -156,7 +156,7 @@ export default function AssetDisposalsPage() {
             placeholder="Search by disposal code, asset tag, asset name, or buyer..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+            className="w-full pl-10 pr-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
           />
         </div>
 
@@ -164,7 +164,7 @@ export default function AssetDisposalsPage() {
           <select
             value={typeFilter}
             onChange={(e) => setTypeFilter(e.target.value)}
-            className="px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-500"
+            className="px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-500"
           >
             <option value="">All Disposal Types</option>
             <option value="SALE">Sale</option>
@@ -209,46 +209,46 @@ export default function AssetDisposalsPage() {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead className="bg-slate-50 dark:bg-slate-800/60 text-slate-500 dark:text-slate-400 font-semibold border-b border-slate-200 dark:border-slate-800 text-xs">
+            <table className="table">
+              <thead>
                 <tr>
-                  <th className="py-3 px-4">Disposal Code</th>
-                  <th className="py-3 px-4">Asset Name</th>
-                  <th className="py-3 px-4">Type</th>
-                  <th className="py-3 px-4">Disposal Date</th>
-                  <th className="py-3 px-4 text-right">NBV at Disposal</th>
-                  <th className="py-3 px-4 text-right">Sale Proceeds</th>
-                  <th className="py-3 px-4 text-right">Gain / (Loss)</th>
-                  <th className="py-3 px-4">Buyer / Notes</th>
+                  <th>Disposal Code</th>
+                  <th>Asset Name</th>
+                  <th>Type</th>
+                  <th>Disposal Date</th>
+                  <th className="text-right">NBV at Disposal</th>
+                  <th className="text-right">Sale Proceeds</th>
+                  <th className="text-right">Gain / (Loss)</th>
+                  <th>Buyer / Notes</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-xs">
+              <tbody>
                 {filteredDisposals.map((d) => (
                   <tr key={d.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40">
-                    <td className="py-2.5 px-4 font-mono font-bold text-slate-800 dark:text-slate-200">
+                    <td className="font-medium text-slate-800 dark:text-slate-200">
                       {d.disposal_code}
                     </td>
-                    <td className="py-2.5 px-4">
-                      <div className="font-semibold text-slate-900 dark:text-slate-100">
+                    <td>
+                      <div className="font-medium text-slate-900 dark:text-slate-100">
                         {d.asset_name}
                       </div>
-                      <div className="text-[11px] font-mono text-slate-400">
+                      <div className="text-xs text-slate-500">
                         {d.asset_code}
                       </div>
                     </td>
-                    <td className="py-2.5 px-4 font-medium text-slate-700 dark:text-slate-300">
+                    <td>
                       {d.disposal_type}
                     </td>
-                    <td className="py-2.5 px-4 text-slate-500 whitespace-nowrap">
+                    <td className="text-slate-500 whitespace-nowrap">
                       {new Date(d.disposal_date).toLocaleDateString()}
                     </td>
-                    <td className="py-2.5 px-4 text-right text-slate-700 dark:text-slate-300 font-mono">
+                    <td className="text-right text-slate-700 dark:text-slate-300">
                       {formatCurrency(d.nbv_at_disposal)}
                     </td>
-                    <td className="py-2.5 px-4 text-right text-slate-700 dark:text-slate-300 font-mono">
+                    <td className="text-right text-slate-700 dark:text-slate-300">
                       {formatCurrency(d.sale_proceeds)}
                     </td>
-                    <td className="py-2.5 px-4 text-right font-mono font-bold whitespace-nowrap">
+                    <td className="text-right font-semibold whitespace-nowrap">
                       {Number(d.gain_or_loss_on_disposal) >= 0 ? (
                         <span className="text-emerald-600 dark:text-emerald-400">
                           +{formatCurrency(d.gain_or_loss_on_disposal)}
@@ -259,7 +259,7 @@ export default function AssetDisposalsPage() {
                         </span>
                       )}
                     </td>
-                    <td className="py-2.5 px-4 text-slate-500 max-w-xs truncate">
+                    <td className="text-slate-500 max-w-xs truncate">
                       {d.buyer_or_recipient || d.disposal_reason || "—"}
                     </td>
                   </tr>
@@ -296,7 +296,7 @@ export default function AssetDisposalsPage() {
                   required
                   value={form.asset_id}
                   onChange={(e) => setForm({ ...form, asset_id: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                  className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
                 >
                   <option value="">Choose an active asset...</option>
                   {activeAssets.map((a) => (
@@ -332,7 +332,7 @@ export default function AssetDisposalsPage() {
                   <select
                     value={form.disposal_type}
                     onChange={(e) => setForm({ ...form, disposal_type: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                    className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
                   >
                     <option value="SALE">Sale to Third Party</option>
                     <option value="SCRAP">Scrap / Salvage</option>
@@ -350,7 +350,7 @@ export default function AssetDisposalsPage() {
                     required
                     value={form.disposal_date}
                     onChange={(e) => setForm({ ...form, disposal_date: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                    className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
                   />
                 </div>
               </div>
@@ -365,7 +365,7 @@ export default function AssetDisposalsPage() {
                     step="0.01"
                     value={form.sale_proceeds}
                     onChange={(e) => setForm({ ...form, sale_proceeds: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-brand-500"
+                    className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-brand-500"
                   />
                 </div>
 
@@ -378,7 +378,7 @@ export default function AssetDisposalsPage() {
                     step="0.01"
                     value={form.disposal_cost}
                     onChange={(e) => setForm({ ...form, disposal_cost: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                    className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
                   />
                 </div>
               </div>
@@ -404,7 +404,7 @@ export default function AssetDisposalsPage() {
                   value={form.buyer_or_recipient}
                   onChange={(e) => setForm({ ...form, buyer_or_recipient: e.target.value })}
                   placeholder="e.g. Acme Scrap Dealers Ltd."
-                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                  className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
                 />
               </div>
 

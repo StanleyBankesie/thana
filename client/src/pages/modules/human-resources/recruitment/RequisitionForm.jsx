@@ -136,7 +136,7 @@ export default function RequisitionForm() {
           <div>
             <label className="block text-sm font-medium mb-1">Req No</label>
             <input
-              className="input bg-slate-50 dark:bg-slate-700/50 font-mono"
+              className="input bg-white dark:bg-slate-900 font-mono"
               value={form.req_no}
               readOnly
               placeholder="Auto-generated"

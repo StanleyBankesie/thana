@@ -444,7 +444,7 @@ export default function ReturnToStoresForm() {
                   <label className="label">Return Number</label>
                   <input
                     type="text"
-                    className="input bg-slate-100 dark:bg-slate-700"
+                    className="input bg-white dark:bg-slate-900"
                     value={formData.rtsNo}
                     disabled
                   />

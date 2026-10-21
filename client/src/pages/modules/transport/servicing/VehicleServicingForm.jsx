@@ -256,17 +256,17 @@ export default function VehicleServicingForm() {
             
             <div className="form-group">
               <label className="form-label">Registration Number</label>
-              <input type="text" readOnly className="input bg-slate-100" value={selectedVehicle ? selectedVehicle.reg_number : ""} />
+              <input type="text" readOnly className="input bg-white dark:bg-slate-900" value={selectedVehicle ? selectedVehicle.reg_number : ""} />
             </div>
 
             <div className="form-group">
               <label className="form-label">Vehicle Brand/Make</label>
-              <input type="text" readOnly className="input bg-slate-100" value={selectedVehicle ? `${selectedVehicle.make || ""} ${selectedVehicle.model || ""}` : ""} />
+              <input type="text" readOnly className="input bg-white dark:bg-slate-900" value={selectedVehicle ? `${selectedVehicle.make || ""} ${selectedVehicle.model || ""}` : ""} />
             </div>
             
             <div className="form-group">
               <label className="form-label">Current Vehicle Odometer</label>
-              <input type="text" readOnly className="input bg-slate-100" value={selectedVehicle ? selectedVehicle.current_odometer : ""} />
+              <input type="text" readOnly className="input bg-white dark:bg-slate-900" value={selectedVehicle ? selectedVehicle.current_odometer : ""} />
             </div>
 
             {/* Service Information */}
@@ -437,7 +437,7 @@ export default function VehicleServicingForm() {
             
             <div className="form-group">
               <label className="form-label">Parts Cost</label>
-              <input type="number" step="0.01" readOnly className="input bg-slate-100" value={formData.parts_cost} />
+              <input type="number" step="0.01" readOnly className="input bg-white dark:bg-slate-900" value={formData.parts_cost} />
               <p className="text-xs text-slate-500 mt-1">Calculated from Parts Replaced table</p>
             </div>
             

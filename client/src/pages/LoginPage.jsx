@@ -383,8 +383,8 @@ export default function LoginPage() {
             html: `
               <p class="text-slate-500 text-sm mb-5">Your company license has expired. Please log in to renew your license.</p>
               <div class="space-y-4">
-                <input id="swal-login-username-retry" class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all outline-none text-slate-700 placeholder-slate-400 bg-slate-50 focus:bg-white" placeholder="Username" value="${submittedUsername}">
-                <input id="swal-login-password-retry" type="password" class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all outline-none text-slate-700 placeholder-slate-400 bg-slate-50 focus:bg-white" placeholder="Password">
+                <input id="swal-login-username-retry" class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all outline-none text-slate-700 placeholder-slate-400 bg-white dark:bg-slate-900 focus:bg-white" placeholder="Username" value="${submittedUsername}">
+                <input id="swal-login-password-retry" type="password" class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all outline-none text-slate-700 placeholder-slate-400 bg-white dark:bg-slate-900 focus:bg-white" placeholder="Password">
               </div>
             `,
             icon: "warning",

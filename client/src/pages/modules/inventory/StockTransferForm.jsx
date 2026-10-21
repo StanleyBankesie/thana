@@ -487,7 +487,7 @@ export default function StockTransferForm() {
                 <label className="label">Transfer No</label>
                 <input
                   type="text"
-                  className="input bg-slate-100 dark:bg-slate-700"
+                  className="input bg-white dark:bg-slate-900"
                   value={formData.transferNo}
                   disabled
                 />
@@ -909,7 +909,7 @@ export default function StockTransferForm() {
                         <td>
                           <input
                             type="number"
-                            className="input bg-slate-50 dark:bg-slate-700/40"
+                            className="input bg-white dark:bg-slate-900"
                             value={item.availableQty}
                             readOnly
                           />

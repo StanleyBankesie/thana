@@ -78,18 +78,18 @@ export default function MaintenanceScheduleList() {
                   <ViewToggle viewMode={viewMode} setViewMode={setViewMode} />
                 </div>
                 <div className="overflow-x-auto">
-            <table className={ "min-w-full " + (viewMode === 'grid' ? 'table-grid-mode' : '') }>
-              <thead className="bg-[#f8fafc] dark:bg-slate-900/50">
-                <tr className="text-left bg-slate-50 dark:bg-slate-900/50">
-                  <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 whitespace-nowrap">Schedule Name</th>
-                  <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 whitespace-nowrap">Asset</th>
-                  <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 whitespace-nowrap">Frequency</th>
-                  <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 whitespace-nowrap">Start Date</th>
-                  <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 whitespace-nowrap">Assigned To</th>
-                  <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 whitespace-nowrap">Status</th>
-                  <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 whitespace-nowrap">Created By</th>
-                  <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 whitespace-nowrap">Created Date</th>
-                  <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 whitespace-nowrap">Actions</th>
+            <table className={ "table " + (viewMode === 'grid' ? 'table-grid-mode' : '') }>
+              <thead>
+                <tr>
+                  <th className="whitespace-nowrap">Schedule Name</th>
+                  <th className="whitespace-nowrap">Asset</th>
+                  <th className="whitespace-nowrap">Frequency</th>
+                  <th className="whitespace-nowrap">Start Date</th>
+                  <th className="whitespace-nowrap">Assigned To</th>
+                  <th className="whitespace-nowrap">Status</th>
+                  <th className="whitespace-nowrap">Created By</th>
+                  <th className="whitespace-nowrap">Created Date</th>
+                  <th className="whitespace-nowrap">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200 dark:divide-slate-700">

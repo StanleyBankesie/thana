@@ -73,19 +73,19 @@ export default function MaintenanceRFQList() {
                   <ViewToggle viewMode={viewMode} setViewMode={setViewMode} />
                 </div>
                 <div className="overflow-x-auto">
-            <table className={ "min-w-full " + (viewMode === 'grid' ? 'table-grid-mode' : '') }>
-              <thead className="bg-[#f8fafc] dark:bg-slate-900/50">
-                <tr className="text-left bg-slate-50 dark:bg-slate-900/50">
-                  <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 whitespace-nowrap">RFQ No</th>
-                  <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 whitespace-nowrap">Date</th>
-                  <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 whitespace-nowrap">Request Ref</th>
-                  <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 whitespace-nowrap">Suppliers Invited</th>
-                  <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 whitespace-nowrap">Deadline</th>
-                  <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 whitespace-nowrap">Status</th>
-                  <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 whitespace-nowrap">Request Quotation / Approval</th>
-                  <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 whitespace-nowrap">Created By</th>
-                  <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 whitespace-nowrap">Created Date</th>
-                  <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 whitespace-nowrap">Actions</th>
+            <table className={ "table " + (viewMode === 'grid' ? 'table-grid-mode' : '') }>
+              <thead>
+                <tr>
+                  <th className="whitespace-nowrap">RFQ No</th>
+                  <th className="whitespace-nowrap">Date</th>
+                  <th className="whitespace-nowrap">Request Ref</th>
+                  <th className="whitespace-nowrap">Suppliers Invited</th>
+                  <th className="whitespace-nowrap">Deadline</th>
+                  <th className="whitespace-nowrap">Status</th>
+                  <th className="whitespace-nowrap">Request Quotation / Approval</th>
+                  <th className="whitespace-nowrap">Created By</th>
+                  <th className="whitespace-nowrap">Created Date</th>
+                  <th className="whitespace-nowrap">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
@@ -93,7 +93,7 @@ export default function MaintenanceRFQList() {
                 {!loading && !filtered.length && <tr><td colSpan="10" className="px-4 py-8 text-center text-slate-500 whitespace-nowrap">No RFQs found</td></tr>}
                 {!loading && filtered.map(r => (
                   <tr key={r.id} className="hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
-                    <td className="px-4 py-3 font-mono text-sm whitespace-nowrap">{r.rfq_no}</td>
+                    <td className="font-medium whitespace-nowrap">{r.rfq_no}</td>
                     <td className="px-4 py-3 text-sm whitespace-nowrap">{r.rfq_date ? new Date(r.rfq_date).toLocaleDateString() : "-"}</td>
                     <td className="px-4 py-3 text-sm whitespace-nowrap">{r.request_id}</td>
                     <td className="px-4 py-3 text-sm whitespace-nowrap">{r.supplier_names}</td>

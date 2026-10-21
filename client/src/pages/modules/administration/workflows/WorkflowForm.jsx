@@ -383,7 +383,7 @@ const WorkflowForm = () => {
                 required
                 value={formData.workflow_code}
                 readOnly
-                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 bg-gray-100 text-gray-500 cursor-not-allowed"
+                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 bg-white dark:bg-slate-900 text-gray-500 cursor-not-allowed"
               />
             </div>
             <div>

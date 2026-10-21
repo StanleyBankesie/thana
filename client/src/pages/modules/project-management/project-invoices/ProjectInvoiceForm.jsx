@@ -1234,7 +1234,7 @@ export default function ProjectInvoiceForm() {
               <div className="hidden">
                 <label className="label">Invoice #</label>
                 <input
-                  className="input bg-gray-50"
+                  className="input bg-white dark:bg-slate-900"
                   value={form.invoice_no}
                   onChange={(e) => update("invoice_no", e.target.value)}
                   placeholder="Auto-generated"
@@ -1424,7 +1424,7 @@ export default function ProjectInvoiceForm() {
               <div className="hidden">
                 <label className="label">City</label>
                 <input
-                  className="input bg-gray-50 w-56"
+                  className="input bg-white dark:bg-slate-900 w-56"
                   value={form.city}
                   onChange={(e) => update("city", e.target.value)}
                   placeholder="Auto"
@@ -1434,7 +1434,7 @@ export default function ProjectInvoiceForm() {
               <div className="hidden">
                 <label className="label">State</label>
                 <input
-                  className="input bg-gray-50 w-56"
+                  className="input bg-white dark:bg-slate-900 w-56"
                   value={form.state}
                   onChange={(e) => update("state", e.target.value)}
                   placeholder="Auto"
@@ -1444,7 +1444,7 @@ export default function ProjectInvoiceForm() {
               <div className="hidden">
                 <label className="label">Country</label>
                 <input
-                  className="input bg-gray-50 w-56"
+                  className="input bg-white dark:bg-slate-900 w-56"
                   value={form.country}
                   onChange={(e) => update("country", e.target.value)}
                   placeholder="Auto"
@@ -1454,7 +1454,7 @@ export default function ProjectInvoiceForm() {
               <div className="hidden">
                 <label className="label">Phone</label>
                 <input
-                  className="input bg-gray-50 w-56"
+                  className="input bg-white dark:bg-slate-900 w-56"
                   value={form.phone}
                   onChange={(e) => update("phone", e.target.value)}
                   placeholder="Auto"

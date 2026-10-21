@@ -168,14 +168,14 @@ export default function OfferForm() {
             </div>
             <div>
               <label className="label font-semibold">Job Requisition</label>
-              <select className="input bg-slate-50" value={form.requisition_id} disabled>
+              <select className="input bg-white dark:bg-slate-900" value={form.requisition_id} disabled>
                 <option value="">Linked from Candidate</option>
                 {requisitions.map(r => <option key={r.id} value={r.id}>{r.req_no} - {r.title}</option>)}
               </select>
             </div>
             <div>
               <label className="label font-semibold">Position</label>
-              <select className="input bg-slate-50" value={form.position_id} disabled>
+              <select className="input bg-white dark:bg-slate-900" value={form.position_id} disabled>
                 <option value="">Auto-populated</option>
                 {positions.map(p => <option key={p.id} value={p.id}>{p.pos_name}</option>)}
               </select>

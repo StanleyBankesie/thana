@@ -198,7 +198,7 @@ export default function FuelLogForm() {
               <input
                 type="number"
                 name="total_cost"
-                className="input input-bordered w-full bg-slate-50"
+                className="input input-bordered w-full bg-white dark:bg-slate-900"
                 value={formData.total_cost}
                 readOnly
               />

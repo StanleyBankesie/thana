@@ -369,7 +369,7 @@ export default function GanttScheduleView() {
               <div className="space-y-1">
                 <label className="text-xs font-bold text-slate-500 uppercase">Delay Category</label>
                 <select
-                  className="w-full px-3 py-2 border rounded-lg text-sm bg-slate-50 dark:bg-slate-900"
+                  className="w-full px-3 py-2 border rounded-lg text-sm bg-white dark:bg-slate-900"
                   value={eotForm.delay_category}
                   onChange={e => setEotForm({ ...eotForm, delay_category: e.target.value })}
                 >
@@ -387,7 +387,7 @@ export default function GanttScheduleView() {
                   type="text"
                   required
                   placeholder="e.g. Late issuance of revised foundation drawings"
-                  className="w-full px-3 py-2 border rounded-lg text-sm bg-slate-50 dark:bg-slate-900"
+                  className="w-full px-3 py-2 border rounded-lg text-sm bg-white dark:bg-slate-900"
                   value={eotForm.delay_cause}
                   onChange={e => setEotForm({ ...eotForm, delay_cause: e.target.value })}
                 />
@@ -400,7 +400,7 @@ export default function GanttScheduleView() {
                     type="number"
                     min="1"
                     required
-                    className="w-full px-3 py-2 border rounded-lg text-sm bg-slate-50 dark:bg-slate-900 font-mono"
+                    className="w-full px-3 py-2 border rounded-lg text-sm bg-white dark:bg-slate-900 font-mono"
                     value={eotForm.days_requested}
                     onChange={e => setEotForm({ ...eotForm, days_requested: Number(e.target.value) })}
                   />
@@ -409,7 +409,7 @@ export default function GanttScheduleView() {
                   <label className="text-xs font-bold text-slate-500 uppercase">Financial Claim (GHS)</label>
                   <input
                     type="number"
-                    className="w-full px-3 py-2 border rounded-lg text-sm bg-slate-50 dark:bg-slate-900 font-mono"
+                    className="w-full px-3 py-2 border rounded-lg text-sm bg-white dark:bg-slate-900 font-mono"
                     value={eotForm.financial_claim_amount}
                     onChange={e => setEotForm({ ...eotForm, financial_claim_amount: Number(e.target.value) })}
                   />
@@ -419,7 +419,7 @@ export default function GanttScheduleView() {
               <div className="space-y-1">
                 <label className="text-xs font-bold text-slate-500 uppercase">Justification & Contract Clause</label>
                 <textarea
-                  className="w-full px-3 py-2 border rounded-lg text-sm bg-slate-50 dark:bg-slate-900 min-h-[90px]"
+                  className="w-full px-3 py-2 border rounded-lg text-sm bg-white dark:bg-slate-900 min-h-[90px]"
                   placeholder="Reference contract clause, timeline impact, and supporting site records..."
                   value={eotForm.justification}
                   onChange={e => setEotForm({ ...eotForm, justification: e.target.value })}

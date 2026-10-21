@@ -3301,7 +3301,7 @@ export default function DebitNoteForm() {
                     <div className="relative md:w-64 w-full">
                       <label className="label">Supplier *</label>
                       <input
-                        className={`input w-full ${readOnly ? "bg-slate-100" : ""}`}
+                        className={`input w-full ${readOnly ? "bg-white dark:bg-slate-900" : ""}`}
                         value={dnSupplierName || supplierSearch}
                         placeholder="Search supplier/creditor account..."
                         readOnly={readOnly}
@@ -3368,7 +3368,7 @@ export default function DebitNoteForm() {
                         <div className="w-24">
                           <label className="label">Currency</label>
                           <input
-                            className="input w-full bg-slate-50 dark:bg-slate-800"
+                            className="input w-full bg-white dark:bg-slate-900"
                             value={dnCurrencyCode || ""}
                             readOnly
                             placeholder="—"
@@ -3377,7 +3377,7 @@ export default function DebitNoteForm() {
                         <div className="w-24">
                           <label className="label">Balance</label>
                           <input
-                            className="input w-full bg-slate-50 dark:bg-slate-800"
+                            className="input w-full bg-white dark:bg-slate-900"
                             value={
                               dnAccountBalance !== null &&
                               dnAccountBalance !== undefined

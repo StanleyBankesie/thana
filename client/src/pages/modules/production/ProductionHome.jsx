@@ -441,9 +441,10 @@ function ProductionPlaceholder({ title }) {
       </p>
       <Link
         to="/production"
-        className="inline-flex items-center gap-2 px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold transition-all"
+        className="btn-dashboard inline-flex items-center gap-2 px-6 py-2.5 font-bold transition-all"
       >
-        Return to Dashboard
+        <span>📊</span>
+        <span>Return to Dashboard</span>
       </Link>
     </div>
   );

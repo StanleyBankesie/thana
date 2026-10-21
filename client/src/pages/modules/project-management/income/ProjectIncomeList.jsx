@@ -327,7 +327,7 @@ export default function ProjectIncomeList() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 block">Project</label>
-                  <select required className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none font-medium text-sm" value={form.project_id} onChange={e => setForm({...form, project_id: e.target.value})}>
+                  <select required className="w-full px-4 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none font-medium text-sm" value={form.project_id} onChange={e => setForm({...form, project_id: e.target.value})}>
                     <option value="">Select Project...</option>
                     {projects.map(p => <option key={p.id} value={p.id}>{p.project_name}</option>)}
                   </select>
@@ -336,7 +336,7 @@ export default function ProjectIncomeList() {
                   <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 block">Client</label>
                   <input
                     type="text"
-                    className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-sm"
+                    className="w-full px-4 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-sm"
                     placeholder="Type to search clients"
                     value={customerSearch || form.customer_name || ""}
                     onChange={(e) => {
@@ -377,15 +377,15 @@ export default function ProjectIncomeList() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 block">Date</label>
-                  <input type="date" required className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-sm" value={form.income_date} onChange={e => setForm({...form, income_date: e.target.value})} />
+                  <input type="date" required className="w-full px-4 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-sm" value={form.income_date} onChange={e => setForm({...form, income_date: e.target.value})} />
                 </div>
                 <div>
                   <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 block">Amount (GHS)</label>
-                  <input type="number" step="0.01" required className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-sm" value={form.amount} onChange={e => setForm({...form, amount: e.target.value})} />
+                  <input type="number" step="0.01" required className="w-full px-4 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-sm" value={form.amount} onChange={e => setForm({...form, amount: e.target.value})} />
                 </div>
                 <div>
                   <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 block">Cost Center</label>
-                  <select className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none font-medium text-sm" value={form.cost_center_id} onChange={e => setForm({...form, cost_center_id: e.target.value})}>
+                  <select className="w-full px-4 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none font-medium text-sm" value={form.cost_center_id} onChange={e => setForm({...form, cost_center_id: e.target.value})}>
                     <option value="">Select Cost Center...</option>
                     {costCenters.map(cc => <option key={cc.id} value={cc.id}>{cc.name}</option>)}
                   </select>
@@ -395,7 +395,7 @@ export default function ProjectIncomeList() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 block">Receipt Method</label>
-                  <select className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none font-medium text-sm" value={form.payment_method} onChange={e => {
+                  <select className="w-full px-4 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none font-medium text-sm" value={form.payment_method} onChange={e => {
                     const newMethod = e.target.value;
                     setForm({...form, payment_method: newMethod, payment_account_id: ""});
                   }}>
@@ -407,7 +407,7 @@ export default function ProjectIncomeList() {
                 </div>
                 <div>
                   <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 block">Receipt Account</label>
-                  <select className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none font-medium text-sm" value={form.payment_account_id} onChange={e => setForm({...form, payment_account_id: e.target.value})}>
+                  <select className="w-full px-4 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none font-medium text-sm" value={form.payment_account_id} onChange={e => setForm({...form, payment_account_id: e.target.value})}>
                     <option value="">Select Account...</option>
                     {accounts.filter(a => {
                       const gc = String(a.group_code || "").toUpperCase();
@@ -424,11 +424,11 @@ export default function ProjectIncomeList() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 block">Reference / Cheque No</label>
-                    <input type="text" className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-sm" value={form.reference_no} onChange={e => setForm({...form, reference_no: e.target.value})} />
+                    <input type="text" className="w-full px-4 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-sm" value={form.reference_no} onChange={e => setForm({...form, reference_no: e.target.value})} />
                   </div>
                   <div>
                     <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 block">Cheque Date</label>
-                    <input type="date" className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-sm" value={form.cheque_date} onChange={e => setForm({...form, cheque_date: e.target.value})} />
+                    <input type="date" className="w-full px-4 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-sm" value={form.cheque_date} onChange={e => setForm({...form, cheque_date: e.target.value})} />
                   </div>
                 </div>
               )}
@@ -441,7 +441,7 @@ export default function ProjectIncomeList() {
                 {form.is_tax_included && (
                   <div>
                     <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 block">Tax Code</label>
-                    <select className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none font-medium text-sm" value={form.tax_code_id} onChange={e => setForm({...form, tax_code_id: e.target.value})}>
+                    <select className="w-full px-4 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none font-medium text-sm" value={form.tax_code_id} onChange={e => setForm({...form, tax_code_id: e.target.value})}>
                       <option value="">Select Tax Code...</option>
                       {taxCodes.map(t => <option key={t.id} value={t.id}>{t.name || t.tax_name || t.code}</option>)}
                     </select>
@@ -451,7 +451,7 @@ export default function ProjectIncomeList() {
 
               <div>
                 <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 block">Description</label>
-                <textarea className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-sm" rows="2" value={form.description} onChange={e => setForm({...form, description: e.target.value})} />
+                <textarea className="w-full px-4 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-sm" rows="2" value={form.description} onChange={e => setForm({...form, description: e.target.value})} />
               </div>
               <button type="submit" disabled={saving} className="w-full py-3 bg-brand-600 hover:bg-brand-700 text-white rounded-xl transition-all font-bold text-sm uppercase tracking-wider shadow-sm">
                 {saving ? <Loader2 size={18} className="animate-spin mx-auto" /> : editing ? "Update Income" : "Confirm Income"}

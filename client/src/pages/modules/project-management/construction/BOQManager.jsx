@@ -529,7 +529,7 @@ export default function BOQManager() {
                   type="text"
                   required
                   placeholder="e.g. Architectural & Structural Works BOQ"
-                  className="w-full px-3 py-2 border rounded-lg text-sm bg-slate-50 dark:bg-slate-900"
+                  className="w-full px-3 py-2 border rounded-lg text-sm bg-white dark:bg-slate-900"
                   value={newBOQ.title}
                   onChange={e => setNewBOQ({ ...newBOQ, title: e.target.value })}
                 />
@@ -539,7 +539,7 @@ export default function BOQManager() {
                 <input
                   type="text"
                   placeholder="e.g. BOQ-2026-001"
-                  className="w-full px-3 py-2 border rounded-lg text-sm bg-slate-50 dark:bg-slate-900"
+                  className="w-full px-3 py-2 border rounded-lg text-sm bg-white dark:bg-slate-900"
                   value={newBOQ.boq_number}
                   onChange={e => setNewBOQ({ ...newBOQ, boq_number: e.target.value })}
                 />
@@ -547,7 +547,7 @@ export default function BOQManager() {
               <div className="space-y-1">
                 <label className="text-xs font-bold text-slate-500 uppercase">Remarks</label>
                 <textarea
-                  className="w-full px-3 py-2 border rounded-lg text-sm bg-slate-50 dark:bg-slate-900 min-h-[80px]"
+                  className="w-full px-3 py-2 border rounded-lg text-sm bg-white dark:bg-slate-900 min-h-[80px]"
                   placeholder="Notes, tender basis, specification standards..."
                   value={newBOQ.remarks}
                   onChange={e => setNewBOQ({ ...newBOQ, remarks: e.target.value })}
@@ -590,7 +590,7 @@ export default function BOQManager() {
                   <label className="text-xs font-bold text-slate-500">Material Cost / Unit</label>
                   <input
                     type="number"
-                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-slate-50 dark:bg-slate-900 font-mono"
+                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-white dark:bg-slate-900 font-mono"
                     value={rateForm.material_cost}
                     onChange={e => setRateForm({ ...rateForm, material_cost: Number(e.target.value) })}
                   />
@@ -599,7 +599,7 @@ export default function BOQManager() {
                   <label className="text-xs font-bold text-slate-500">Direct Labour / Unit</label>
                   <input
                     type="number"
-                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-slate-50 dark:bg-slate-900 font-mono"
+                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-white dark:bg-slate-900 font-mono"
                     value={rateForm.labour_cost}
                     onChange={e => setRateForm({ ...rateForm, labour_cost: Number(e.target.value) })}
                   />
@@ -608,7 +608,7 @@ export default function BOQManager() {
                   <label className="text-xs font-bold text-slate-500">Plant / Equipment Cost</label>
                   <input
                     type="number"
-                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-slate-50 dark:bg-slate-900 font-mono"
+                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-white dark:bg-slate-900 font-mono"
                     value={rateForm.plant_cost}
                     onChange={e => setRateForm({ ...rateForm, plant_cost: Number(e.target.value) })}
                   />
@@ -617,7 +617,7 @@ export default function BOQManager() {
                   <label className="text-xs font-bold text-slate-500">Subcontract / Specialist</label>
                   <input
                     type="number"
-                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-slate-50 dark:bg-slate-900 font-mono"
+                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-white dark:bg-slate-900 font-mono"
                     value={rateForm.subcontract_cost}
                     onChange={e => setRateForm({ ...rateForm, subcontract_cost: Number(e.target.value) })}
                   />
@@ -634,7 +634,7 @@ export default function BOQManager() {
                   <label className="text-xs font-bold text-slate-500">Overhead Rate (%)</label>
                   <input
                     type="number"
-                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-slate-50 dark:bg-slate-900 font-mono"
+                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-white dark:bg-slate-900 font-mono"
                     value={rateForm.overhead_percent}
                     onChange={e => setRateForm({ ...rateForm, overhead_percent: Number(e.target.value) })}
                   />
@@ -643,7 +643,7 @@ export default function BOQManager() {
                   <label className="text-xs font-bold text-slate-500">Profit Margin (%)</label>
                   <input
                     type="number"
-                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-slate-50 dark:bg-slate-900 font-mono"
+                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-white dark:bg-slate-900 font-mono"
                     value={rateForm.profit_percent}
                     onChange={e => setRateForm({ ...rateForm, profit_percent: Number(e.target.value) })}
                   />

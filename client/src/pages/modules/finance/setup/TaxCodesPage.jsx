@@ -1387,7 +1387,7 @@ export default function TaxCodesPage() {
                 <div className="md:col-span-4">
                   <label className="label">Code</label>
                   <input
-                    className="input w-full bg-slate-100 dark:bg-slate-800 text-slate-500 font-mono"
+                    className="input w-full bg-white dark:bg-slate-900 text-slate-500 font-mono"
                     value={items.find((i) => i.id === editingTaxId)?.code || ""}
                     disabled
                   />

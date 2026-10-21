@@ -372,7 +372,7 @@ export default function SubcontractorManager() {
                     type="text"
                     required
                     placeholder="SC-2026-001"
-                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-slate-50 dark:bg-slate-900"
+                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-white dark:bg-slate-900"
                     value={contractForm.subcontract_number}
                     onChange={e => setContractForm({ ...contractForm, subcontract_number: e.target.value })}
                   />
@@ -381,7 +381,7 @@ export default function SubcontractorManager() {
                   <label className="text-xs font-bold text-slate-500 uppercase">Subcontractor</label>
                   <select
                     required
-                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-slate-50 dark:bg-slate-900"
+                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-white dark:bg-slate-900"
                     value={contractForm.subcontractor_id}
                     onChange={e => setContractForm({ ...contractForm, subcontractor_id: e.target.value })}
                   >
@@ -400,7 +400,7 @@ export default function SubcontractorManager() {
                     type="text"
                     required
                     placeholder="e.g. Electrical / Formwork"
-                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-slate-50 dark:bg-slate-900"
+                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-white dark:bg-slate-900"
                     value={contractForm.trade}
                     onChange={e => setContractForm({ ...contractForm, trade: e.target.value })}
                   />
@@ -410,7 +410,7 @@ export default function SubcontractorManager() {
                   <input
                     type="number"
                     required
-                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-slate-50 dark:bg-slate-900 font-mono"
+                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-white dark:bg-slate-900 font-mono"
                     value={contractForm.contract_sum}
                     onChange={e => setContractForm({ ...contractForm, contract_sum: Number(e.target.value) })}
                   />
@@ -423,7 +423,7 @@ export default function SubcontractorManager() {
                   <input
                     type="number"
                     step="0.5"
-                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-slate-50 dark:bg-slate-900 font-mono"
+                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-white dark:bg-slate-900 font-mono"
                     value={contractForm.retention_percent}
                     onChange={e => setContractForm({ ...contractForm, retention_percent: Number(e.target.value) })}
                   />
@@ -432,7 +432,7 @@ export default function SubcontractorManager() {
                   <label className="text-xs font-bold text-slate-500 uppercase">Advance Sum (GHS)</label>
                   <input
                     type="number"
-                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-slate-50 dark:bg-slate-900 font-mono"
+                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-white dark:bg-slate-900 font-mono"
                     value={contractForm.advance_payment}
                     onChange={e => setContractForm({ ...contractForm, advance_payment: Number(e.target.value) })}
                   />
@@ -442,7 +442,7 @@ export default function SubcontractorManager() {
                   <input
                     type="number"
                     step="0.5"
-                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-slate-50 dark:bg-slate-900 font-mono"
+                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-white dark:bg-slate-900 font-mono"
                     value={contractForm.advance_recovery_percent}
                     onChange={e => setContractForm({ ...contractForm, advance_recovery_percent: Number(e.target.value) })}
                   />
@@ -452,7 +452,7 @@ export default function SubcontractorManager() {
               <div className="space-y-1">
                 <label className="text-xs font-bold text-slate-500 uppercase">Scope of Work</label>
                 <textarea
-                  className="w-full px-3 py-2 border rounded-lg text-sm bg-slate-50 dark:bg-slate-900 min-h-[70px]"
+                  className="w-full px-3 py-2 border rounded-lg text-sm bg-white dark:bg-slate-900 min-h-[70px]"
                   placeholder="Summary of deliverables, specifications, milestones..."
                   value={contractForm.scope_of_work}
                   onChange={e => setContractForm({ ...contractForm, scope_of_work: e.target.value })}
@@ -497,7 +497,7 @@ export default function SubcontractorManager() {
                   <input
                     type="text"
                     required
-                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-slate-50 dark:bg-slate-900 font-mono"
+                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-white dark:bg-slate-900 font-mono"
                     value={valuationForm.valuation_number}
                     onChange={e => setValuationForm({ ...valuationForm, valuation_number: e.target.value })}
                   />
@@ -507,7 +507,7 @@ export default function SubcontractorManager() {
                   <input
                     type="date"
                     required
-                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-slate-50 dark:bg-slate-900 font-mono"
+                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-white dark:bg-slate-900 font-mono"
                     value={valuationForm.period_to}
                     onChange={e => setValuationForm({ ...valuationForm, period_to: e.target.value })}
                   />
@@ -520,7 +520,7 @@ export default function SubcontractorManager() {
                   <input
                     type="number"
                     required
-                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-slate-50 dark:bg-slate-900 font-mono font-bold"
+                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-white dark:bg-slate-900 font-mono font-bold"
                     value={valuationForm.cumulative_work_done}
                     onChange={e => setValuationForm({ ...valuationForm, cumulative_work_done: Number(e.target.value) })}
                   />
@@ -529,7 +529,7 @@ export default function SubcontractorManager() {
                   <label className="text-xs font-bold text-slate-500 uppercase">Previous Certified (GHS)</label>
                   <input
                     type="number"
-                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-slate-100 dark:bg-slate-800 font-mono"
+                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-white dark:bg-slate-900 font-mono"
                     value={valuationForm.previous_certified}
                     onChange={e => setValuationForm({ ...valuationForm, previous_certified: Number(e.target.value) })}
                   />

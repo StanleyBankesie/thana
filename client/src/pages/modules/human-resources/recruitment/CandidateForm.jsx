@@ -208,7 +208,7 @@ export default function CandidateForm() {
           <div>
             <label className="block text-sm font-medium mb-1">Position Applied For</label>
             <input
-              className="input bg-slate-50 dark:bg-slate-700/50"
+              className="input bg-white dark:bg-slate-900"
               value={form.position_applied}
               readOnly
               placeholder="Select requisition first"
@@ -217,7 +217,7 @@ export default function CandidateForm() {
           <div>
             <label className="block text-sm font-medium mb-1">Recruitment Type</label>
             <input
-              className="input bg-slate-50 dark:bg-slate-700/50"
+              className="input bg-white dark:bg-slate-900"
               value={form.recruitment_type}
               readOnly
               placeholder="Select requisition first"

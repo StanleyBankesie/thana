@@ -577,10 +577,15 @@ const ModuleDashboard = ({
             <button
               key={i}
               onClick={(e) => handleNavigate(a.path, e)}
-              className="btn btn-primary"
+              className={a.className || ((!a.variant && (String(a.label || a.title || "").toLowerCase().includes("dashboard") || String(a.path || "").toLowerCase().includes("dashboard"))) ? "btn-dashboard" : "btn btn-primary")}
+              data-action={(!a.variant && (String(a.label || a.title || "").toLowerCase().includes("dashboard") || String(a.path || "").toLowerCase().includes("dashboard"))) ? "dashboard" : undefined}
               title={a.title || a.label}
             >
-              {a.icon ? <span className="mr-2">{typeof a.icon === "string" ? a.icon : React.createElement(a.icon, { className: "w-4 h-4 inline" })}</span> : null}
+              {(a.icon || (!a.variant && (String(a.label || a.title || "").toLowerCase().includes("dashboard") || String(a.path || "").toLowerCase().includes("dashboard")) ? "📊" : null)) ? (
+                <span className="mr-2">
+                  {typeof (a.icon || "📊") === "string" ? (a.icon || "📊") : React.createElement(a.icon, { className: "w-4 h-4 inline" })}
+                </span>
+              ) : null}
               {a.label || "Open"}
             </button>
           ))}

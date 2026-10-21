@@ -312,7 +312,7 @@ export default function FinishedGoodsTransferForm() {
                   value={formData.qc_number || (formData.qc_id ? `QC-${String(formData.qc_id).padStart(5, '0')}` : "")}
                   readOnly
                   placeholder="Auto-populated from passed QC inspection"
-                  className="input w-full text-xs font-mono font-bold bg-slate-50 dark:bg-slate-900/60 text-emerald-600 pl-8"
+                  className="input w-full text-xs font-mono font-bold bg-white dark:bg-slate-900 text-emerald-600 pl-8"
                 />
                 <CheckCircle2 size={16} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-emerald-500" />
               </div>

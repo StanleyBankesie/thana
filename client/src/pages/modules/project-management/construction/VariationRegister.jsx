@@ -319,7 +319,7 @@ export default function VariationRegister() {
                   <input
                     type="text"
                     required
-                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-slate-50 dark:bg-slate-900 font-mono"
+                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-white dark:bg-slate-900 font-mono"
                     value={form.variation_number}
                     onChange={e => setForm({ ...form, variation_number: e.target.value })}
                   />
@@ -327,7 +327,7 @@ export default function VariationRegister() {
                 <div className="space-y-1">
                   <label className="text-xs font-bold text-slate-500 uppercase">Initiated By</label>
                   <select
-                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-slate-50 dark:bg-slate-900"
+                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-white dark:bg-slate-900"
                     value={form.initiator}
                     onChange={e => setForm({ ...form, initiator: e.target.value })}
                   >
@@ -345,7 +345,7 @@ export default function VariationRegister() {
                   type="text"
                   required
                   placeholder="e.g. Addition of acoustic ceiling in conference room"
-                  className="w-full px-3 py-1.5 border rounded-lg text-sm bg-slate-50 dark:bg-slate-900"
+                  className="w-full px-3 py-1.5 border rounded-lg text-sm bg-white dark:bg-slate-900"
                   value={form.title}
                   onChange={e => setForm({ ...form, title: e.target.value })}
                 />
@@ -357,7 +357,7 @@ export default function VariationRegister() {
                   <input
                     type="number"
                     required
-                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-slate-50 dark:bg-slate-900 font-mono font-bold"
+                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-white dark:bg-slate-900 font-mono font-bold"
                     value={form.amount_claimed}
                     onChange={e => setForm({ ...form, amount_claimed: Number(e.target.value) })}
                   />
@@ -366,7 +366,7 @@ export default function VariationRegister() {
                   <label className="text-xs font-bold text-slate-500 uppercase">Schedule Impact (Days)</label>
                   <input
                     type="number"
-                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-slate-50 dark:bg-slate-900 font-mono"
+                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-white dark:bg-slate-900 font-mono"
                     value={form.schedule_impact_days}
                     onChange={e => setForm({ ...form, schedule_impact_days: Number(e.target.value) })}
                   />
@@ -376,7 +376,7 @@ export default function VariationRegister() {
               <div className="space-y-1">
                 <label className="text-xs font-bold text-slate-500 uppercase">Detailed Justification & Scope</label>
                 <textarea
-                  className="w-full px-3 py-2 border rounded-lg text-sm bg-slate-50 dark:bg-slate-900 min-h-[80px]"
+                  className="w-full px-3 py-2 border rounded-lg text-sm bg-white dark:bg-slate-900 min-h-[80px]"
                   placeholder="Reason for change, drawing reference, specification change..."
                   value={form.reason}
                   onChange={e => setForm({ ...form, reason: e.target.value })}
@@ -418,7 +418,7 @@ export default function VariationRegister() {
                 <input
                   type="number"
                   required
-                  className="w-full px-3 py-1.5 border rounded-lg text-sm bg-slate-50 dark:bg-slate-900 font-mono font-bold text-emerald-600"
+                  className="w-full px-3 py-1.5 border rounded-lg text-sm bg-white dark:bg-slate-900 font-mono font-bold text-emerald-600"
                   value={approvalData.amount_approved}
                   onChange={e => setApprovalData({ ...approvalData, amount_approved: Number(e.target.value) })}
                 />
@@ -428,7 +428,7 @@ export default function VariationRegister() {
                 <label className="text-xs font-bold text-slate-500 uppercase">Approved Time Extension (Days)</label>
                 <input
                   type="number"
-                  className="w-full px-3 py-1.5 border rounded-lg text-sm bg-slate-50 dark:bg-slate-900 font-mono"
+                  className="w-full px-3 py-1.5 border rounded-lg text-sm bg-white dark:bg-slate-900 font-mono"
                   value={approvalData.schedule_impact_days}
                   onChange={e => setApprovalData({ ...approvalData, schedule_impact_days: Number(e.target.value) })}
                 />

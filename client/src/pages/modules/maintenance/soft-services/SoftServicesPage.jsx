@@ -226,37 +226,37 @@ export default function SoftServicesPage() {
         </div>
       ) : activeTab === "janitorial" ? (
         <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden shadow-sm">
-          <table className="table w-full">
-            <thead className="bg-slate-50 dark:bg-slate-900/50 text-slate-500 text-xs uppercase tracking-wider border-b border-slate-200 dark:border-slate-700">
+          <table className="table">
+            <thead>
               <tr>
-                <th className="py-3 px-4">Date / Shift</th>
-                <th className="py-3 px-4">Property</th>
-                <th className="py-3 px-4">Cleaner</th>
-                <th className="py-3 px-4">Checkpoints Completed</th>
-                <th className="py-3 px-4">Supervisor Rating</th>
+                <th>Date / Shift</th>
+                <th>Property</th>
+                <th>Cleaner</th>
+                <th>Checkpoints Completed</th>
+                <th>Supervisor Rating</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-xs">
+            <tbody>
               {janitorialLogs.map((j) => (
                 <tr key={j.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-750">
-                  <td className="py-3 px-4 font-mono">
+                  <td className="text-slate-600 dark:text-slate-400">
                     {j.log_date?.slice(0, 10)} <span className="text-slate-400">({j.shift})</span>
                   </td>
-                  <td className="py-3 px-4 font-semibold text-slate-900 dark:text-white">
+                  <td className="font-medium text-slate-900 dark:text-white">
                     {j.property_name || "Facility"}
                   </td>
-                  <td className="py-3 px-4">{j.cleaner_name}</td>
-                  <td className="py-3 px-4">
+                  <td>{j.cleaner_name}</td>
+                  <td>
                     <div className="flex items-center gap-2">
-                      <span className={`px-2 py-0.5 rounded text-[11px] ${j.restrooms_sanitized ? "bg-green-100 text-green-700" : "bg-slate-100"}`}>
+                      <span className={`badge ${j.restrooms_sanitized ? "badge-success" : ""}`}>
                         Restrooms Sanitized
                       </span>
-                      <span className={`px-2 py-0.5 rounded text-[11px] ${j.soap_paper_restocked ? "bg-green-100 text-green-700" : "bg-slate-100"}`}>
+                      <span className={`badge ${j.soap_paper_restocked ? "badge-success" : ""}`}>
                         Restocked
                       </span>
                     </div>
                   </td>
-                  <td className="py-3 px-4">
+                  <td>
                     <div className="flex items-center gap-1 text-amber-500">
                       {[...Array(j.supervisor_rating || 5)].map((_, i) => (
                         <Star key={i} size={14} fill="currentColor" />
@@ -270,28 +270,28 @@ export default function SoftServicesPage() {
         </div>
       ) : activeTab === "security" ? (
         <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden shadow-sm">
-          <table className="table w-full">
-            <thead className="bg-slate-50 dark:bg-slate-900/50 text-slate-500 text-xs uppercase tracking-wider border-b border-slate-200 dark:border-slate-700">
+          <table className="table">
+            <thead>
               <tr>
-                <th className="py-3 px-4">Patrol Time</th>
-                <th className="py-3 px-4">Property</th>
-                <th className="py-3 px-4">Guard Name</th>
-                <th className="py-3 px-4">Checkpoint</th>
-                <th className="py-3 px-4">Status</th>
+                <th>Patrol Time</th>
+                <th>Property</th>
+                <th>Guard Name</th>
+                <th>Checkpoint</th>
+                <th>Status</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-xs">
+            <tbody>
               {securityLogs.map((s) => (
                 <tr key={s.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-750">
-                  <td className="py-3 px-4 font-mono">{s.patrol_time?.slice(0, 19).replace('T', ' ')}</td>
-                  <td className="py-3 px-4 font-semibold text-slate-900 dark:text-white">{s.property_name}</td>
-                  <td className="py-3 px-4">{s.guard_name}</td>
-                  <td className="py-3 px-4 font-medium">{s.checkpoint_name}</td>
-                  <td className="py-3 px-4">
-                    <span className={`px-2 py-0.5 rounded-full text-[11px] font-medium ${
+                  <td className="text-slate-600 dark:text-slate-400">{s.patrol_time?.slice(0, 19).replace('T', ' ')}</td>
+                  <td className="font-medium text-slate-900 dark:text-white">{s.property_name}</td>
+                  <td>{s.guard_name}</td>
+                  <td className="font-medium">{s.checkpoint_name}</td>
+                  <td>
+                    <span className={`badge ${
                       s.checkpoint_status === "SECURE"
-                        ? "bg-green-100 text-green-700"
-                        : "bg-red-100 text-red-700"
+                        ? "badge-success"
+                        : "badge-error"
                     }`}>
                       {s.checkpoint_status}
                     </span>
@@ -303,28 +303,28 @@ export default function SoftServicesPage() {
         </div>
       ) : activeTab === "pest" ? (
         <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden shadow-sm">
-          <table className="table w-full">
-            <thead className="bg-slate-50 dark:bg-slate-900/50 text-slate-500 text-xs uppercase tracking-wider border-b border-slate-200 dark:border-slate-700">
+          <table className="table">
+            <thead>
               <tr>
-                <th className="py-3 px-4">Treatment Date</th>
-                <th className="py-3 px-4">Property</th>
-                <th className="py-3 px-4">Target Pest</th>
-                <th className="py-3 px-4">Chemical Applied</th>
-                <th className="py-3 px-4">Bait Stations Checked</th>
-                <th className="py-3 px-4">Risk Level</th>
+                <th>Treatment Date</th>
+                <th>Property</th>
+                <th>Target Pest</th>
+                <th>Chemical Applied</th>
+                <th>Bait Stations Checked</th>
+                <th>Risk Level</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-xs">
+            <tbody>
               {pestLogs.map((p) => (
                 <tr key={p.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-750">
-                  <td className="py-3 px-4 font-mono">{p.treatment_date?.slice(0, 10)}</td>
-                  <td className="py-3 px-4 font-semibold text-slate-900 dark:text-white">{p.property_name}</td>
-                  <td className="py-3 px-4 font-medium">{p.target_pest}</td>
-                  <td className="py-3 px-4 text-slate-500">{p.chemicals_applied || "Standard Block"}</td>
-                  <td className="py-3 px-4 font-mono">{p.bait_stations_checked} Stations</td>
-                  <td className="py-3 px-4">
-                    <span className={`px-2 py-0.5 rounded-full text-[11px] font-medium ${
-                      p.risk_level === "LOW" ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"
+                  <td className="text-slate-600 dark:text-slate-400">{p.treatment_date?.slice(0, 10)}</td>
+                  <td className="font-medium text-slate-900 dark:text-white">{p.property_name}</td>
+                  <td className="font-medium">{p.target_pest}</td>
+                  <td className="text-slate-500">{p.chemicals_applied || "Standard Block"}</td>
+                  <td>{p.bait_stations_checked} Stations</td>
+                  <td>
+                    <span className={`badge ${
+                      p.risk_level === "LOW" ? "badge-success" : "badge-warning"
                     }`}>
                       {p.risk_level}
                     </span>
@@ -336,26 +336,26 @@ export default function SoftServicesPage() {
         </div>
       ) : (
         <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden shadow-sm">
-          <table className="table w-full">
-            <thead className="bg-slate-50 dark:bg-slate-900/50 text-slate-500 text-xs uppercase tracking-wider border-b border-slate-200 dark:border-slate-700">
+          <table className="table">
+            <thead>
               <tr>
-                <th className="py-3 px-4">Collection Date</th>
-                <th className="py-3 px-4">Property</th>
-                <th className="py-3 px-4">Waste Type</th>
-                <th className="py-3 px-4">Quantity</th>
-                <th className="py-3 px-4">Disposal Contractor</th>
+                <th>Collection Date</th>
+                <th>Property</th>
+                <th>Waste Type</th>
+                <th>Quantity</th>
+                <th>Disposal Contractor</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-xs">
+            <tbody>
               {wasteLogs.map((w) => (
                 <tr key={w.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-750">
-                  <td className="py-3 px-4 font-mono">{w.collection_date?.slice(0, 10)}</td>
-                  <td className="py-3 px-4 font-semibold text-slate-900 dark:text-white">{w.property_name}</td>
-                  <td className="py-3 px-4 font-medium">{w.waste_type?.replace(/_/g, " ")}</td>
-                  <td className="py-3 px-4 font-mono font-bold text-slate-800 dark:text-slate-100">
+                  <td className="text-slate-600 dark:text-slate-400">{w.collection_date?.slice(0, 10)}</td>
+                  <td className="font-medium text-slate-900 dark:text-white">{w.property_name}</td>
+                  <td className="font-medium">{w.waste_type?.replace(/_/g, " ")}</td>
+                  <td className="font-semibold text-slate-800 dark:text-slate-100">
                     {w.quantity_kg_or_bins} {w.unit}
                   </td>
-                  <td className="py-3 px-4 text-slate-500">{w.contractor_carrier_name || "Eco Services"}</td>
+                  <td className="text-slate-500">{w.contractor_carrier_name || "Eco Services"}</td>
                 </tr>
               ))}
             </tbody>

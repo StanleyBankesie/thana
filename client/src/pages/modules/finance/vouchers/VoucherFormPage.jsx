@@ -3932,7 +3932,7 @@ export default function VoucherFormPage({ voucherTypeCode, title }) {
                 <div>
                   <label className="label">Balance</label>
                   <input
-                    className="input bg-slate-50 dark:bg-slate-800"
+                    className="input bg-white dark:bg-slate-900"
                     value={
                       rvForm.depositAccountId
                         ? accountBalances[String(rvForm.depositAccountId)] !==
@@ -5021,7 +5021,7 @@ export default function VoucherFormPage({ voucherTypeCode, title }) {
                   <div className="md:w-64">
                     <label className="label">Balance</label>
                     <input
-                      className="input md:w-64 bg-slate-50 dark:bg-slate-800 text-right"
+                      className="input md:w-64 bg-white dark:bg-slate-900 text-right"
                       value={
                         pvForm.paymentAccountId
                           ? accountBalances[String(pvForm.paymentAccountId)] !==

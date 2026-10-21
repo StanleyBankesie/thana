@@ -1317,7 +1317,7 @@ export default function QuotationForm() {
                 name="quotation_no"
                 value={formData.quotation_no}
                 onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#0E3646]"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white dark:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-[#0E3646]"
                 placeholder="Auto-generated"
                 readOnly={!isEditMode && !formData.quotation_no}
               />
@@ -1462,7 +1462,7 @@ export default function QuotationForm() {
               <input
                 type="date"
                 value={formData.valid_until}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white dark:bg-slate-900"
                 readOnly
               
                 disabled={readOnly || (isEditMode && !hasExceptional("DOCUMENT.EDIT_DATE"))}

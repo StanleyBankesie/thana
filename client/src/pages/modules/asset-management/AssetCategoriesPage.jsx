@@ -284,24 +284,24 @@ export default function AssetCategoriesPage() {
         /* List / Table View */
         <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden shadow-sm">
           <div className="overflow-x-auto">
-            <table className="table w-full">
-              <thead className="bg-slate-50 dark:bg-slate-900/50 text-slate-500 text-xs border-b border-slate-200 dark:border-slate-700 uppercase tracking-wider">
+            <table className="table">
+              <thead>
                 <tr>
-                  <th className="py-3 px-4">Category Name</th>
-                  <th className="py-3 px-4">Depreciation Method</th>
-                  <th className="py-3 px-4">Frequency</th>
-                  <th className="py-3 px-4">Useful Life</th>
-                  <th className="py-3 px-4">Annual Rate</th>
-                  <th className="py-3 px-4">GL Asset Cost A/C</th>
-                  <th className="py-3 px-4">GL Deprec. Exp A/C</th>
-                  <th className="py-3 px-4">GL Accum. Dep A/C</th>
-                  <th className="py-3 px-4 text-right">Actions</th>
+                  <th>Category Name</th>
+                  <th>Depreciation Method</th>
+                  <th>Frequency</th>
+                  <th>Useful Life</th>
+                  <th>Annual Rate</th>
+                  <th>GL Asset Cost A/C</th>
+                  <th>GL Deprec. Exp A/C</th>
+                  <th>GL Accum. Dep A/C</th>
+                  <th className="text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-slate-700 dark:text-slate-300 text-sm">
+              <tbody>
                 {filteredCategories.map((cat) => (
                   <tr key={cat.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-750 transition-colors">
-                    <td className="py-3 px-4 font-semibold text-slate-900 dark:text-white">
+                    <td className="font-medium text-slate-900 dark:text-slate-100">
                       {cat.category_name}
                       {cat.description && (
                         <div className="text-xs font-normal text-slate-400 mt-0.5 truncate max-w-xs">
@@ -309,53 +309,53 @@ export default function AssetCategoriesPage() {
                         </div>
                       )}
                     </td>
-                    <td className="py-3 px-4 text-xs">
-                      <span className="px-2 py-0.5 rounded-full font-medium bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300 border border-blue-200/80 dark:border-blue-800/80">
+                    <td>
+                      <span className="badge badge-info">
                         {cat.depreciation_method?.replace(/_/g, " ")}
                       </span>
                     </td>
-                    <td className="py-3 px-4 text-xs">
-                      <span className="px-2 py-0.5 rounded-full font-semibold bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+                    <td>
+                      <span className="badge">
                         {cat.depreciation_frequency ? cat.depreciation_frequency.replace(/_/g, " ") : "YEARLY"}
                       </span>
                     </td>
-                    <td className="py-3 px-4 text-xs font-mono font-medium">
+                    <td>
                       {cat.default_useful_life_years ?? cat.useful_life_years} Yrs
                     </td>
-                    <td className="py-3 px-4 text-xs font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                    <td className="font-semibold text-emerald-600 dark:text-emerald-400">
                       {cat.default_depreciation_rate ?? cat.depreciation_rate_pct}% / yr
                     </td>
-                    <td className="py-3 px-4 text-xs text-slate-700 dark:text-slate-300">
-                      <div className="font-mono text-[11px] font-semibold text-slate-800 dark:text-slate-200">
+                    <td>
+                      <div className="font-medium text-slate-800 dark:text-slate-200">
                         {cat.cost_account_code || "1030"}
                       </div>
-                      <div className="text-[11px] text-slate-500 truncate max-w-[140px]" title={cat.cost_account_name}>
+                      <div className="text-xs text-slate-500 truncate max-w-[140px]" title={cat.cost_account_name}>
                         {cat.cost_account_name || "Land and Buildings"}
                       </div>
                     </td>
-                    <td className="py-3 px-4 text-xs text-slate-700 dark:text-slate-300">
-                      <div className="font-mono text-[11px] font-semibold text-slate-800 dark:text-slate-200">
+                    <td>
+                      <div className="font-medium text-slate-800 dark:text-slate-200">
                         {cat.expense_account_code || "5024"}
                       </div>
-                      <div className="text-[11px] text-slate-500 truncate max-w-[140px]" title={cat.expense_account_name}>
+                      <div className="text-xs text-slate-500 truncate max-w-[140px]" title={cat.expense_account_name}>
                         {cat.expense_account_name || "Depreciation Expense"}
                       </div>
                     </td>
-                    <td className="py-3 px-4 text-xs text-slate-700 dark:text-slate-300">
-                      <div className="font-mono text-[11px] font-semibold text-slate-800 dark:text-slate-200">
+                    <td>
+                      <div className="font-medium text-slate-800 dark:text-slate-200">
                         {cat.accum_account_code || "1099"}
                       </div>
-                      <div className="text-[11px] text-slate-500 truncate max-w-[140px]" title={cat.accum_account_name}>
+                      <div className="text-xs text-slate-500 truncate max-w-[140px]" title={cat.accum_account_name}>
                         {cat.accum_account_name || "Accumulated Depreciation"}
                       </div>
                     </td>
-                    <td className="py-3 px-4 text-right">
+                    <td className="text-right">
                       <button
                         onClick={() => handleOpenEdit(cat)}
-                        className="btn-secondary text-xs px-2.5 py-1 inline-flex items-center gap-1.5"
+                        className="inline-flex items-center justify-center px-4 py-1.5 text-sm font-medium text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors h-9 gap-1.5"
                         title="Edit Category & GL Accounts"
                       >
-                        <Edit3 size={13} />
+                        <Edit3 size={14} />
                         <span>Edit</span>
                       </button>
                     </td>
@@ -474,7 +474,7 @@ export default function AssetCategoriesPage() {
                   value={form.category_name}
                   onChange={(e) => setForm({ ...form, category_name: e.target.value })}
                   placeholder="e.g. Computer Equipment, Motor Vehicles, Plant & Machinery"
-                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                  className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
                 />
               </div>
 
@@ -486,7 +486,7 @@ export default function AssetCategoriesPage() {
                   <select
                     value={form.depreciation_method}
                     onChange={(e) => setForm({ ...form, depreciation_method: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                    className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
                   >
                     <option value="STRAIGHT_LINE">Straight-Line</option>
                     <option value="REDUCING_BALANCE">Reducing Balance</option>
@@ -501,7 +501,7 @@ export default function AssetCategoriesPage() {
                   <select
                     value={form.depreciation_frequency}
                     onChange={(e) => setForm({ ...form, depreciation_frequency: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                    className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
                   >
                     <option value="YEARLY">Yearly (Full Annual Rate)</option>
                     <option value="HALF_YEARLY">Half-Yearly (Every 6 Months)</option>
@@ -522,7 +522,7 @@ export default function AssetCategoriesPage() {
                     min="0"
                     value={form.default_useful_life_years}
                     onChange={(e) => setForm({ ...form, default_useful_life_years: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                    className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
                   />
                 </div>
                 <div>
@@ -536,7 +536,7 @@ export default function AssetCategoriesPage() {
                     max="100"
                     value={form.default_depreciation_rate}
                     onChange={(e) => setForm({ ...form, default_depreciation_rate: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                    className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
                   />
                 </div>
               </div>
@@ -558,7 +558,7 @@ export default function AssetCategoriesPage() {
                     <select
                       value={form.gl_asset_cost_account_id}
                       onChange={(e) => setForm({ ...form, gl_asset_cost_account_id: e.target.value })}
-                      className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-brand-500"
+                      className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-brand-500"
                     >
                       {renderAccountOptions("ASSET")}
                     </select>
@@ -571,7 +571,7 @@ export default function AssetCategoriesPage() {
                     <select
                       value={form.gl_accum_depreciation_account_id}
                       onChange={(e) => setForm({ ...form, gl_accum_depreciation_account_id: e.target.value })}
-                      className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-brand-500"
+                      className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-brand-500"
                     >
                       {renderAccountOptions("ASSET")}
                     </select>
@@ -584,7 +584,7 @@ export default function AssetCategoriesPage() {
                     <select
                       value={form.gl_depreciation_expense_account_id}
                       onChange={(e) => setForm({ ...form, gl_depreciation_expense_account_id: e.target.value })}
-                      className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-brand-500"
+                      className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-brand-500"
                     >
                       {renderAccountOptions("EXPENSE")}
                     </select>
@@ -597,7 +597,7 @@ export default function AssetCategoriesPage() {
                     <select
                       value={form.gl_gain_loss_account_id}
                       onChange={(e) => setForm({ ...form, gl_gain_loss_account_id: e.target.value })}
-                      className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-brand-500"
+                      className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-brand-500"
                     >
                       {renderAccountOptions("INCOME")}
                     </select>
@@ -614,7 +614,7 @@ export default function AssetCategoriesPage() {
                   value={form.description}
                   onChange={(e) => setForm({ ...form, description: e.target.value })}
                   placeholder="Optional policy description or statutory depreciation notes..."
-                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                  className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
                 />
               </div>
 

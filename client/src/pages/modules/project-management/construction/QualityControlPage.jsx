@@ -458,7 +458,7 @@ export default function QualityControlPage() {
                   type="text"
                   required
                   placeholder="e.g. Pre-pour inspection for first floor slab"
-                  className="w-full px-3 py-1.5 border rounded-lg text-sm bg-slate-50 dark:bg-slate-900"
+                  className="w-full px-3 py-1.5 border rounded-lg text-sm bg-white dark:bg-slate-900"
                   value={irForm.inspection_title}
                   onChange={e => setIrForm({ ...irForm, inspection_title: e.target.value })}
                 />
@@ -468,7 +468,7 @@ export default function QualityControlPage() {
                 <div className="space-y-1">
                   <label className="text-xs font-bold text-slate-500 uppercase">Discipline</label>
                   <select
-                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-slate-50 dark:bg-slate-900"
+                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-white dark:bg-slate-900"
                     value={irForm.inspection_type}
                     onChange={e => setIrForm({ ...irForm, inspection_type: e.target.value })}
                   >
@@ -483,7 +483,7 @@ export default function QualityControlPage() {
                   <input
                     type="text"
                     placeholder="Grid 1-5 / Level 2"
-                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-slate-50 dark:bg-slate-900"
+                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-white dark:bg-slate-900"
                     value={irForm.location_grid}
                     onChange={e => setIrForm({ ...irForm, location_grid: e.target.value })}
                   />
@@ -496,7 +496,7 @@ export default function QualityControlPage() {
                   <input
                     type="date"
                     required
-                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-slate-50 dark:bg-slate-900 font-mono"
+                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-white dark:bg-slate-900 font-mono"
                     value={irForm.scheduled_date}
                     onChange={e => setIrForm({ ...irForm, scheduled_date: e.target.value })}
                   />
@@ -506,7 +506,7 @@ export default function QualityControlPage() {
                   <input
                     type="text"
                     placeholder="Consultant Engineer"
-                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-slate-50 dark:bg-slate-900"
+                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-white dark:bg-slate-900"
                     value={irForm.inspector_name}
                     onChange={e => setIrForm({ ...irForm, inspector_name: e.target.value })}
                   />
@@ -544,7 +544,7 @@ export default function QualityControlPage() {
                 <textarea
                   required
                   placeholder="Describe the non-conforming work..."
-                  className="w-full px-3 py-2 border rounded-lg text-sm bg-slate-50 dark:bg-slate-900 min-h-[70px]"
+                  className="w-full px-3 py-2 border rounded-lg text-sm bg-white dark:bg-slate-900 min-h-[70px]"
                   value={ncrForm.issue_description}
                   onChange={e => setNcrForm({ ...ncrForm, issue_description: e.target.value })}
                 />
@@ -555,7 +555,7 @@ export default function QualityControlPage() {
                   <label className="text-xs font-bold text-slate-500 uppercase">Location / Grid</label>
                   <input
                     type="text"
-                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-slate-50 dark:bg-slate-900"
+                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-white dark:bg-slate-900"
                     value={ncrForm.location_grid}
                     onChange={e => setNcrForm({ ...ncrForm, location_grid: e.target.value })}
                   />
@@ -563,7 +563,7 @@ export default function QualityControlPage() {
                 <div className="space-y-1">
                   <label className="text-xs font-bold text-slate-500 uppercase">Severity</label>
                   <select
-                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-slate-50 dark:bg-slate-900"
+                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-white dark:bg-slate-900"
                     value={ncrForm.severity}
                     onChange={e => setNcrForm({ ...ncrForm, severity: e.target.value })}
                   >
@@ -578,7 +578,7 @@ export default function QualityControlPage() {
                 <label className="text-xs font-bold text-slate-500 uppercase">Required Corrective Action</label>
                 <textarea
                   placeholder="Remedial action plan to rectify..."
-                  className="w-full px-3 py-2 border rounded-lg text-sm bg-slate-50 dark:bg-slate-900 min-h-[60px]"
+                  className="w-full px-3 py-2 border rounded-lg text-sm bg-white dark:bg-slate-900 min-h-[60px]"
                   value={ncrForm.corrective_action}
                   onChange={e => setNcrForm({ ...ncrForm, corrective_action: e.target.value })}
                 />
@@ -616,7 +616,7 @@ export default function QualityControlPage() {
                   type="text"
                   required
                   placeholder="e.g. Unit 302 / Master Bathroom"
-                  className="w-full px-3 py-1.5 border rounded-lg text-sm bg-slate-50 dark:bg-slate-900"
+                  className="w-full px-3 py-1.5 border rounded-lg text-sm bg-white dark:bg-slate-900"
                   value={snagForm.room_area}
                   onChange={e => setSnagForm({ ...snagForm, room_area: e.target.value })}
                 />
@@ -627,7 +627,7 @@ export default function QualityControlPage() {
                 <textarea
                   required
                   placeholder="e.g. Uneven tiling joint next to shower drain"
-                  className="w-full px-3 py-2 border rounded-lg text-sm bg-slate-50 dark:bg-slate-900 min-h-[60px]"
+                  className="w-full px-3 py-2 border rounded-lg text-sm bg-white dark:bg-slate-900 min-h-[60px]"
                   value={snagForm.defect_description}
                   onChange={e => setSnagForm({ ...snagForm, defect_description: e.target.value })}
                 />
@@ -638,7 +638,7 @@ export default function QualityControlPage() {
                   <label className="text-xs font-bold text-slate-500 uppercase">Responsible Trade</label>
                   <input
                     type="text"
-                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-slate-50 dark:bg-slate-900"
+                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-white dark:bg-slate-900"
                     value={snagForm.trade_responsible}
                     onChange={e => setSnagForm({ ...snagForm, trade_responsible: e.target.value })}
                   />
@@ -646,7 +646,7 @@ export default function QualityControlPage() {
                 <div className="space-y-1">
                   <label className="text-xs font-bold text-slate-500 uppercase">Priority</label>
                   <select
-                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-slate-50 dark:bg-slate-900"
+                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-white dark:bg-slate-900"
                     value={snagForm.priority}
                     onChange={e => setSnagForm({ ...snagForm, priority: e.target.value })}
                   >
@@ -689,7 +689,7 @@ export default function QualityControlPage() {
                   type="text"
                   required
                   placeholder="e.g. Concrete 28-Day Compressive Cube Test"
-                  className="w-full px-3 py-1.5 border rounded-lg text-sm bg-slate-50 dark:bg-slate-900"
+                  className="w-full px-3 py-1.5 border rounded-lg text-sm bg-white dark:bg-slate-900"
                   value={testForm.test_name}
                   onChange={e => setTestForm({ ...testForm, test_name: e.target.value })}
                 />
@@ -699,7 +699,7 @@ export default function QualityControlPage() {
                 <div className="space-y-1">
                   <label className="text-xs font-bold text-slate-500 uppercase">Material Type</label>
                   <select
-                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-slate-50 dark:bg-slate-900"
+                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-white dark:bg-slate-900"
                     value={testForm.material_type}
                     onChange={e => setTestForm({ ...testForm, material_type: e.target.value })}
                   >
@@ -714,7 +714,7 @@ export default function QualityControlPage() {
                   <input
                     type="text"
                     placeholder="Batch-092"
-                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-slate-50 dark:bg-slate-900 font-mono"
+                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-white dark:bg-slate-900 font-mono"
                     value={testForm.batch_number}
                     onChange={e => setTestForm({ ...testForm, batch_number: e.target.value })}
                   />
@@ -727,7 +727,7 @@ export default function QualityControlPage() {
                   <input
                     type="text"
                     placeholder="C25/30"
-                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-slate-50 dark:bg-slate-900 font-mono"
+                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-white dark:bg-slate-900 font-mono"
                     value={testForm.required_strength}
                     onChange={e => setTestForm({ ...testForm, required_strength: e.target.value })}
                   />
@@ -737,7 +737,7 @@ export default function QualityControlPage() {
                   <input
                     type="text"
                     placeholder="28.4 MPa"
-                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-slate-50 dark:bg-slate-900 font-mono font-bold"
+                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-white dark:bg-slate-900 font-mono font-bold"
                     value={testForm.achieved_strength}
                     onChange={e => setTestForm({ ...testForm, achieved_strength: e.target.value })}
                   />
@@ -748,7 +748,7 @@ export default function QualityControlPage() {
                 <div className="space-y-1">
                   <label className="text-xs font-bold text-slate-500 uppercase">Test Result</label>
                   <select
-                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-slate-50 dark:bg-slate-900"
+                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-white dark:bg-slate-900"
                     value={testForm.result}
                     onChange={e => setTestForm({ ...testForm, result: e.target.value })}
                   >
@@ -761,7 +761,7 @@ export default function QualityControlPage() {
                   <input
                     type="text"
                     placeholder="Lab Name"
-                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-slate-50 dark:bg-slate-900"
+                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-white dark:bg-slate-900"
                     value={testForm.lab_name}
                     onChange={e => setTestForm({ ...testForm, lab_name: e.target.value })}
                   />

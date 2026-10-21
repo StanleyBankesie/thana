@@ -482,7 +482,7 @@ export default function IssueToRequirementForm() {
                 <label className="label">Issue No</label>
                 <input
                   type="text"
-                  className="input bg-slate-100 dark:bg-slate-700"
+                  className="input bg-white dark:bg-slate-900"
                   value={formData.issueNo}
                   disabled
                 />
@@ -766,7 +766,7 @@ export default function IssueToRequirementForm() {
                           <td className="w-24">
                             <input
                               type="text"
-                              className="input bg-slate-100 dark:bg-slate-700"
+                              className="input bg-white dark:bg-slate-900"
                               value={line.uom || ""}
                               readOnly
                             />

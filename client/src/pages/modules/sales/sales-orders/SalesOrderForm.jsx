@@ -1402,7 +1402,7 @@ export default function SalesOrderForm() {
                       name="order_no"
                       value={formData.order_no}
                       onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#0E3646]"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white dark:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-[#0E3646]"
                       placeholder="Auto-generated"
                       readOnly={!isEditMode && !formData.order_no}
                     />
@@ -1853,7 +1853,7 @@ export default function SalesOrderForm() {
                               ? Number(newItem.available_qty || 0).toFixed(2)
                               : ""
                           }
-                          className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg bg-gray-50"
+                          className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg bg-white dark:bg-slate-900"
                           readOnly
                         />
                       </div>
@@ -1867,7 +1867,7 @@ export default function SalesOrderForm() {
                             (Number(newItem.qty || 0) * Number(newItem.unit_price || 0)) ||
                             0
                           ).toFixed(2)}
-                          className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg bg-gray-50 font-semibold text-slate-800"
+                          className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg bg-white dark:bg-slate-900 font-semibold text-slate-800"
                           readOnly
                         />
                       </div>

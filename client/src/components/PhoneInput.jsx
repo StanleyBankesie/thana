@@ -41,7 +41,7 @@ export default function PhoneInput({ value, onChange, className, required, place
   return (
     <div className={`flex ${className && className.includes('w-') ? '' : 'w-full'} ${className || ""}`.trim()}>
       <select 
-        className="input rounded-r-none border-r-0 bg-slate-50 text-slate-700 w-[30%] disabled:opacity-50" 
+        className="input rounded-r-none border-r-0 bg-white dark:bg-slate-900 text-slate-700 w-[30%] disabled:opacity-50" 
         value={dialCode}
         onChange={handleDialCodeChange}
         disabled={loading || disabled}

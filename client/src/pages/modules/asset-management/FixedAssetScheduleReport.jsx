@@ -94,7 +94,7 @@ export default function FixedAssetScheduleReport() {
               type="date"
               value={asOfDate}
               onChange={(e) => setAsOfDate(e.target.value)}
-              className="px-3 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-brand-500"
+              className="px-3 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-brand-500"
             />
           </div>
 
@@ -156,10 +156,10 @@ export default function FixedAssetScheduleReport() {
                   <th className="py-2 px-2 text-right font-bold border-r border-slate-200 dark:border-slate-700">Ending Acc.</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-mono">
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-slate-800 dark:text-slate-200">
                 {reportData.map((row, idx) => (
                   <tr key={idx} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
-                    <td className="py-2.5 px-3 font-sans font-semibold text-slate-800 dark:text-slate-200 border-r border-slate-200 dark:border-slate-700">
+                    <td className="py-2.5 px-3 font-semibold text-slate-800 dark:text-slate-200 border-r border-slate-200 dark:border-slate-700">
                       {row.category_name}
                     </td>
                     <td className="py-2 px-2 text-right text-slate-600 dark:text-slate-400">
@@ -193,8 +193,8 @@ export default function FixedAssetScheduleReport() {
                 ))}
               </tbody>
               <tfoot>
-                <tr className="bg-slate-100 dark:bg-slate-800 font-bold border-t-2 border-slate-300 dark:border-slate-600 font-mono text-slate-900 dark:text-slate-100">
-                  <td className="py-3 px-3 font-sans border-r border-slate-200 dark:border-slate-700">
+                <tr className="bg-slate-100 dark:bg-slate-800 font-bold border-t-2 border-slate-300 dark:border-slate-600 text-slate-900 dark:text-slate-100">
+                  <td className="py-3 px-3 border-r border-slate-200 dark:border-slate-700">
                     TOTAL FIXED ASSETS
                   </td>
                   <td className="py-3 px-2 text-right">{formatCurrency(totals.beg_gross_cost)}</td>

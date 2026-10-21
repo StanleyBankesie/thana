@@ -574,7 +574,7 @@ export default function DeliveryForm() {
                   placeholder="Sales Order No"
                   value={searchOrderNo}
                   readOnly
-                  className="w-full border rounded p-2 bg-gray-100 text-gray-500 cursor-not-allowed"
+                  className="w-full border rounded p-2 bg-white dark:bg-slate-900 text-gray-500 cursor-not-allowed"
                 />
               </div>
             </div>
@@ -675,7 +675,7 @@ export default function DeliveryForm() {
                   type="number"
                   readOnly
                   value={formData.total_tax}
-                  className="w-full border rounded p-2 bg-gray-50"
+                  className="w-full border rounded p-2 bg-white dark:bg-slate-900"
                 />
               </div>
               <div>
@@ -686,7 +686,7 @@ export default function DeliveryForm() {
                   type="number"
                   readOnly
                   value={formData.invoice_amount}
-                  className="w-full border rounded p-2 bg-gray-50 font-bold"
+                  className="w-full border rounded p-2 bg-white dark:bg-slate-900 font-bold"
                 />
               </div>
             </div>

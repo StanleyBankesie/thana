@@ -703,7 +703,7 @@ export default function PurchaseReturnForm() {
                   </select>
                 ) : (
                   <input
-                    className="input bg-gray-50"
+                    className="input bg-white dark:bg-slate-900"
                     value=""
                     readOnly
                     placeholder="Select supplier first"
@@ -902,7 +902,7 @@ export default function PurchaseReturnForm() {
                           <td>{ln.itemCode || ""}</td>
                           <td>
                             <input
-                              className="input w-full min-w-[5rem] bg-gray-50"
+                              className="input w-full min-w-[5rem] bg-white dark:bg-slate-900"
                               value={ln.uom || ""}
                               readOnly
                             />
@@ -963,7 +963,7 @@ export default function PurchaseReturnForm() {
                           <td className="text-right">
                             <input
                               type="number"
-                              className="input text-right bg-gray-50 w-full min-w-[5rem]"
+                              className="input text-right bg-white dark:bg-slate-900 w-full min-w-[5rem]"
                               value={Number(ln.taxAmount || 0).toFixed(2)}
                               readOnly
                             />

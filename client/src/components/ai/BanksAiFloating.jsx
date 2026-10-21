@@ -2,8 +2,12 @@ import React, { useState, useEffect } from "react";
 import banksIcon from "../../assets/banks_ai_icon.png";
 import BanksAiModal from "./BanksAiModal.jsx";
 import { api } from "../../api/client.js";
+import { usePermission } from "../../auth/PermissionContext.jsx";
+import { useAuth } from "../../auth/AuthContext.jsx";
 
 export default function BanksAiFloating() {
+  const { user } = useAuth();
+  const { hasExceptional, isSuperAdmin } = usePermission();
   const [isOpen, setIsOpen] = useState(false);
   const [enabled, setEnabled] = useState(() => {
     try {
@@ -12,6 +16,16 @@ export default function BanksAiFloating() {
     } catch {}
     return true;
   });
+
+  // Exceptional Permission Gating:
+  // User can only see the floating widget if checked for that user (or if superadmin / user 1)
+  const isPermittedForUser = Boolean(
+    isSuperAdmin ||
+    user?.id === 1 ||
+    hasExceptional("BANKS.AI.FLOATING_WIDGET") ||
+    hasExceptional("BANKS_AI_FLOATING_WIDGET") ||
+    hasExceptional("BANKS.AI.FLOATING")
+  );
 
   useEffect(() => {
     let mounted = true;
@@ -32,19 +46,32 @@ export default function BanksAiFloating() {
 
     function onVisibility(e) {
       if (e?.detail?.enabled !== undefined) {
-        setEnabled(Boolean(e.detail.enabled));
+        const isVis = Boolean(e.detail.enabled);
+        setEnabled(isVis);
+        try {
+          localStorage.setItem("omnisuite.banks_ai_enabled", String(isVis));
+        } catch {}
       }
     }
+
+    function onStorage(e) {
+      if (e.key === "omnisuite.banks_ai_enabled" && e.newValue !== null) {
+        setEnabled(e.newValue === "true");
+      }
+    }
+
     window.addEventListener("omni.banks_ai.visibility", onVisibility);
+    window.addEventListener("storage", onStorage);
     return () => {
       mounted = false;
       window.removeEventListener("omni.banks_ai.visibility", onVisibility);
+      window.removeEventListener("storage", onStorage);
     };
   }, []);
 
   // Global hotkey listener (Alt + B)
   useEffect(() => {
-    if (!enabled) return;
+    if (!enabled || !isPermittedForUser) return;
     const handleKeyDown = (e) => {
       if (e.altKey && (e.key === "b" || e.key === "B")) {
         e.preventDefault();
@@ -53,9 +80,9 @@ export default function BanksAiFloating() {
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [enabled]);
+  }, [enabled, isPermittedForUser]);
 
-  if (!enabled) {
+  if (!enabled || !isPermittedForUser) {
     return null;
   }
 

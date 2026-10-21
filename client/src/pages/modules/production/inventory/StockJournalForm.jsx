@@ -589,7 +589,7 @@ export default function ProductionStockJournalForm() {
                   {isViewMode ? (
                     <input
                       disabled
-                      className="input text-sm font-semibold w-full bg-slate-100 dark:bg-slate-800"
+                      className="input text-sm font-semibold w-full bg-white dark:bg-slate-900"
                       value={(() => {
                         const found = itemsCatalog.find((i) => String(i.id) === String(item.item_id));
                         return found ? `${found.item_code} - ${found.item_name}` : (item.item_name || item.item_code || "—");
@@ -720,7 +720,7 @@ export default function ProductionStockJournalForm() {
                   <input 
                     type="text" 
                     disabled
-                    className="input text-sm font-bold text-slate-500 bg-slate-100 dark:bg-slate-900 w-full"
+                    className="input text-sm font-bold text-slate-500 bg-white dark:bg-slate-900 w-full"
                     value={item.uom || "PCS"}
                   />
                 </div>

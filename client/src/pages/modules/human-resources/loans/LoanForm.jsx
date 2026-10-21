@@ -222,7 +222,7 @@ export default function LoanForm() {
             <div>
               <label className="label">Monthly Installment (Auto-calculated)</label>
               <input 
-                className="input bg-slate-50 dark:bg-slate-700 font-mono" 
+                className="input bg-white dark:bg-slate-900 font-mono" 
                 type="number" 
                 value={form.monthly_installment} 
                 readOnly 
@@ -231,7 +231,7 @@ export default function LoanForm() {
             <div>
               <label className="label">Amount Due (Calculated)</label>
               <input 
-                className="input bg-slate-50 dark:bg-slate-700 font-mono" 
+                className="input bg-white dark:bg-slate-900 font-mono" 
                 type="number" 
                 value={form.amount_due} 
                 readOnly 
@@ -240,7 +240,7 @@ export default function LoanForm() {
             <div>
               <label className="label">End Date (Calculated)</label>
               <input 
-                className="input bg-slate-50 dark:bg-slate-700 font-mono" 
+                className="input bg-white dark:bg-slate-900 font-mono" 
                 type="date" 
                 value={form.end_date} 
                 readOnly 

@@ -3978,7 +3978,7 @@ export default function PaymentVoucherForm() {
                   <div className="md:w-64">
                     <label className="label">Balance</label>
                     <input
-                      className="input md:w-64 bg-slate-50 dark:bg-slate-800 text-right"
+                      className="input md:w-64 bg-white dark:bg-slate-900 text-right"
                       value={
                         pvForm.paymentAccountId
                           ? accountBalances[String(pvForm.paymentAccountId)] !==

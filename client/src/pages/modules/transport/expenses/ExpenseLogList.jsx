@@ -447,7 +447,7 @@ export default function ExpenseLogList() {
                     </div>
                     <div className="form-control">
                       <label className="label"><span className="label-text">Total Cost (Auto)</span></label>
-                      <input type="number" className="input input-bordered w-full bg-slate-50" readOnly value={(Number(form.fuel_quantity || 0) * Number(form.cost_per_unit || 0)).toFixed(2)} />
+                      <input type="number" className="input input-bordered w-full bg-white dark:bg-slate-900" readOnly value={(Number(form.fuel_quantity || 0) * Number(form.cost_per_unit || 0)).toFixed(2)} />
                     </div>
                     <div className="form-control">
                       <label className="label"><span className="label-text">Fuel Station</span></label>

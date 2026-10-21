@@ -149,7 +149,7 @@ export default function BIFilterBar({
           <select
             value={filters.datePreset || "LAST_30"}
             onChange={(e) => handlePresetSelect(e.target.value)}
-            className="input text-xs py-1.5 px-2.5 font-medium bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-lg cursor-pointer"
+            className="input text-xs py-1.5 px-2.5 font-medium bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 rounded-lg cursor-pointer"
           >
             {DATE_PRESETS.map((p) => (
               <option key={p.value} value={p.value}>{p.label}</option>
@@ -210,7 +210,7 @@ export default function BIFilterBar({
               key={dim.key}
               value={filters[dim.key] || "all"}
               onChange={(e) => onFilterChange({ ...filters, [dim.key]: e.target.value === "all" ? "" : e.target.value })}
-              className="input text-xs py-1.5 px-2.5 font-medium bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-lg cursor-pointer"
+              className="input text-xs py-1.5 px-2.5 font-medium bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 rounded-lg cursor-pointer"
             >
               <option value="all">{dim.label}: All</option>
               {(dim.options || []).map((opt) => (

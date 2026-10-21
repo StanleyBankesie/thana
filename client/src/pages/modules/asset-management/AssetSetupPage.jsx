@@ -274,7 +274,7 @@ export default function AssetSetupPage() {
                     value={nomenclature.prefix}
                     onChange={(e) => setNomenclature({ ...nomenclature, prefix: e.target.value.toUpperCase() })}
                     placeholder="e.g. AST, FA, EQP"
-                    className="w-full px-3.5 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-mono focus:outline-none focus:ring-2 focus:ring-brand-500"
+                    className="w-full px-3.5 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-mono focus:outline-none focus:ring-2 focus:ring-brand-500"
                   />
                 </div>
 
@@ -285,7 +285,7 @@ export default function AssetSetupPage() {
                   <select
                     value={nomenclature.separator_char}
                     onChange={(e) => setNomenclature({ ...nomenclature, separator_char: e.target.value })}
-                    className="w-full px-3.5 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                    className="w-full px-3.5 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
                   >
                     <option value="-">Hyphen (-)</option>
                     <option value="/">Slash (/)</option>
@@ -301,7 +301,7 @@ export default function AssetSetupPage() {
                   <select
                     value={nomenclature.seq_digits}
                     onChange={(e) => setNomenclature({ ...nomenclature, seq_digits: Number(e.target.value) })}
-                    className="w-full px-3.5 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                    className="w-full px-3.5 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
                   >
                     <option value={3}>3 digits (e.g. 001)</option>
                     <option value={4}>4 digits (e.g. 0001)</option>
@@ -319,7 +319,7 @@ export default function AssetSetupPage() {
                     min="1"
                     value={nomenclature.current_sequence}
                     onChange={(e) => setNomenclature({ ...nomenclature, current_sequence: Number(e.target.value) })}
-                    className="w-full px-3.5 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                    className="w-full px-3.5 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
                   />
                 </div>
               </div>
@@ -426,34 +426,34 @@ export default function AssetSetupPage() {
           </div>
 
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead className="bg-slate-50 dark:bg-slate-800/60 text-slate-500 dark:text-slate-400 font-semibold border-b border-slate-200 dark:border-slate-800 text-xs">
+            <table className="table">
+              <thead>
                 <tr>
-                  <th className="py-3 px-4">Site / Property Name</th>
-                  <th className="py-3 px-4">Type</th>
-                  <th className="py-3 px-4">City / Address</th>
-                  <th className="py-3 px-4 text-center">Assets Assigned</th>
-                  <th className="py-3 px-4 text-right">Actions</th>
+                  <th>Site / Property Name</th>
+                  <th>Type</th>
+                  <th>City / Address</th>
+                  <th className="text-center">Assets Assigned</th>
+                  <th className="text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-xs">
+              <tbody>
                 {properties.map((p) => (
                   <tr key={p.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40">
-                    <td className="py-2.5 px-4 font-semibold text-slate-900 dark:text-slate-100">
+                    <td className="font-medium text-slate-900 dark:text-slate-100">
                       {p.property_name}
                     </td>
-                    <td className="py-2.5 px-4 text-slate-600 dark:text-slate-400">
-                      <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+                    <td>
+                      <span className="badge">
                         {p.property_type}
                       </span>
                     </td>
-                    <td className="py-2.5 px-4 text-slate-500">
+                    <td className="text-slate-500">
                       {p.city ? `${p.city} ${p.address ? `(${p.address})` : ""}` : p.address || "—"}
                     </td>
-                    <td className="py-2.5 px-4 text-center font-semibold text-brand-600 dark:text-brand-400">
+                    <td className="text-center font-semibold text-brand-600 dark:text-brand-400">
                       {p.asset_count || 0}
                     </td>
-                    <td className="py-2.5 px-4 text-right space-x-2">
+                    <td className="text-right space-x-2">
                       <button
                         onClick={() => {
                           setEditingProp(p);
@@ -512,28 +512,28 @@ export default function AssetSetupPage() {
           </div>
 
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead className="bg-slate-50 dark:bg-slate-800/60 text-slate-500 dark:text-slate-400 font-semibold border-b border-slate-200 dark:border-slate-800 text-xs">
+            <table className="table">
+              <thead>
                 <tr>
-                  <th className="py-3 px-4">Brand / Manufacturer</th>
-                  <th className="py-3 px-4">Country</th>
-                  <th className="py-3 px-4 text-center">Assets Assigned</th>
-                  <th className="py-3 px-4 text-right">Actions</th>
+                  <th>Brand / Manufacturer</th>
+                  <th>Country</th>
+                  <th className="text-center">Assets Assigned</th>
+                  <th className="text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-xs">
+              <tbody>
                 {manufacturers.map((m) => (
                   <tr key={m.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40">
-                    <td className="py-2.5 px-4 font-semibold text-slate-900 dark:text-slate-100">
+                    <td className="font-medium text-slate-900 dark:text-slate-100">
                       {m.name}
                     </td>
-                    <td className="py-2.5 px-4 text-slate-600 dark:text-slate-400">
+                    <td className="text-slate-600 dark:text-slate-400">
                       {m.country || "—"}
                     </td>
-                    <td className="py-2.5 px-4 text-center font-semibold text-brand-600 dark:text-brand-400">
+                    <td className="text-center font-semibold text-brand-600 dark:text-brand-400">
                       {m.asset_count || 0}
                     </td>
-                    <td className="py-2.5 px-4 text-right space-x-2">
+                    <td className="text-right space-x-2">
                       <button
                         onClick={() => {
                           setEditingMfg(m);
@@ -584,7 +584,7 @@ export default function AssetSetupPage() {
                   value={propForm.property_name}
                   onChange={(e) => setPropForm({ ...propForm, property_name: e.target.value })}
                   placeholder="e.g. Corporate Headquarters, Tema Warehouse"
-                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                  className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
                 />
               </div>
 
@@ -596,7 +596,7 @@ export default function AssetSetupPage() {
                   <select
                     value={propForm.property_type}
                     onChange={(e) => setPropForm({ ...propForm, property_type: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                    className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
                   >
                     <option value="OFFICE">Office</option>
                     <option value="PLANT">Plant / Factory</option>
@@ -614,7 +614,7 @@ export default function AssetSetupPage() {
                     value={propForm.city}
                     onChange={(e) => setPropForm({ ...propForm, city: e.target.value })}
                     placeholder="e.g. Accra"
-                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                    className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
                   />
                 </div>
               </div>
@@ -628,7 +628,7 @@ export default function AssetSetupPage() {
                   value={propForm.address}
                   onChange={(e) => setPropForm({ ...propForm, address: e.target.value })}
                   placeholder="Physical street address"
-                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                  className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
                 />
               </div>
 
@@ -671,7 +671,7 @@ export default function AssetSetupPage() {
                   value={mfgForm.name}
                   onChange={(e) => setMfgForm({ ...mfgForm, name: e.target.value })}
                   placeholder="e.g. Caterpillar, Dell, Toyota"
-                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                  className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
                 />
               </div>
 
@@ -684,7 +684,7 @@ export default function AssetSetupPage() {
                   value={mfgForm.country}
                   onChange={(e) => setMfgForm({ ...mfgForm, country: e.target.value })}
                   placeholder="e.g. USA, Japan, Germany"
-                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                  className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
                 />
               </div>
 

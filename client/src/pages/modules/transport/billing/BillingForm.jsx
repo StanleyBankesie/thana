@@ -1493,7 +1493,7 @@ export default function BillingForm() {
               <div className="hidden">
                 <label className="label">Billing #</label>
                 <input
-                  className="input bg-gray-50"
+                  className="input bg-white dark:bg-slate-900"
                   value={form.invoice_no}
                   onChange={(e) => update("invoice_no", e.target.value)}
                   placeholder="Auto-generated"

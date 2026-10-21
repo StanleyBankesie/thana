@@ -3706,7 +3706,7 @@ export default function ContraVoucherForm() {
                         <div>
                           <label className="label">Currency</label>
                           <input
-                            className="input w-20 bg-slate-50 dark:bg-slate-800"
+                            className="input w-20 bg-white dark:bg-slate-900"
                             value={cvFromCurrencyCode || ""}
                             readOnly
                           />
@@ -3714,7 +3714,7 @@ export default function ContraVoucherForm() {
                         <div>
                           <label className="label">Balance</label>
                           <input
-                            className="input w-32 bg-slate-50 dark:bg-slate-800"
+                            className="input w-32 bg-white dark:bg-slate-900"
                             value={
                               accountBalances[String(cvForm.fromAccountId)] !==
                                 undefined &&
@@ -3783,7 +3783,7 @@ export default function ContraVoucherForm() {
                     <div className="w-32 flex-shrink-0">
                       <label className="label">Exchange Rate</label>
                       <input
-                        className="input bg-slate-50 dark:bg-slate-800 w-full"
+                        className="input bg-white dark:bg-slate-900 w-full"
                         value={cvExchangeRate || "1"}
                         readOnly
                         placeholder="1.00"
@@ -3817,7 +3817,7 @@ export default function ContraVoucherForm() {
                         <div>
                           <label className="label">Currency</label>
                           <input
-                            className="input w-20 bg-slate-50 dark:bg-slate-800"
+                            className="input w-20 bg-white dark:bg-slate-900"
                             value={cvToCurrencyCode || ""}
                             readOnly
                           />
@@ -3825,7 +3825,7 @@ export default function ContraVoucherForm() {
                         <div>
                           <label className="label">Balance</label>
                           <input
-                            className="input w-32 bg-slate-50 dark:bg-slate-800"
+                            className="input w-32 bg-white dark:bg-slate-900"
                             value={
                               accountBalances[String(cvForm.toAccountId)] !==
                                 undefined &&
@@ -3851,7 +3851,7 @@ export default function ContraVoucherForm() {
                       Total Amount in {cvToCurrencyCode || "Base Currency"}
                     </label>
                     <input
-                      className="input text-right bg-slate-50 dark:bg-slate-800"
+                      className="input text-right bg-white dark:bg-slate-900"
                       value={(
                         Number(cvForm.items[0]?.amount || 0) *
                         Number(cvExchangeRate || 1)

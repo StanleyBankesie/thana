@@ -5,8 +5,18 @@
 
 import express from "express";
 import { query } from "../db/pool.js";
+import { verifyAccessToken } from "../services/token.service.js";
+import { checkPromptModulePermission } from "../services/ai/banks.guardrails.js";
+import {
+  getChatRetentionDays,
+  setChatRetentionDays,
+  cleanupExpiredAiChatHistory,
+  getChatHistoryStats,
+  deleteAiChatHistory,
+} from "../services/ai/banks.history.service.js";
 import {
   chatWithBanks,
+  autonomousDirectResponse,
   testGroqConnection,
   testOpenRouterConnection,
   setRuntimeApiKey,
@@ -17,8 +27,20 @@ import {
 
 const router = express.Router();
 
-// Attach tenant/branch scope
+// Attach user authentication & tenant/branch scope
 router.use((req, res, next) => {
+  if (!req.user) {
+    const authHeader = String(req.headers.authorization || "");
+    const customHeader = String(req.headers["x-access-token"] || "");
+    const token = authHeader.startsWith("Bearer ")
+      ? authHeader.slice(7).trim()
+      : customHeader.trim();
+    if (token) {
+      try {
+        req.user = verifyAccessToken(token);
+      } catch {}
+    }
+  }
   req.scope = {
     companyId: req.user?.company_id || req.headers["x-company-id"] || 1,
     branchId: req.user?.branch_id || req.headers["x-branch-id"] || null,
@@ -51,6 +73,19 @@ router.post("/chat", async (req, res) => {
         : (req.user?.id === 1 ? ["*"] : ["general"]),
     };
 
+    const userId = req.user?.id || req.user?.sub || 1;
+    const companyId = req.scope?.companyId || 1;
+
+    // Persist user prompt to chat history
+    const lastUserMsg = messages[messages.length - 1];
+    if (lastUserMsg && lastUserMsg.role === "user" && lastUserMsg.content) {
+      await query(
+        `INSERT INTO adm_ai_chat_history (user_id, company_id, role, content)
+         VALUES (:userId, :companyId, 'user', :content)`,
+        { userId, companyId, content: lastUserMsg.content }
+      ).catch(() => {});
+    }
+
     const result = await chatWithBanks(messages, {
       model,
       customApiKey,
@@ -62,16 +97,75 @@ router.post("/chat", async (req, res) => {
       },
     });
 
+    // Persist assistant response to chat history
+    if (result && result.reply) {
+      await query(
+        `INSERT INTO adm_ai_chat_history (user_id, company_id, role, content, tools, form, is_error)
+         VALUES (:userId, :companyId, 'assistant', :content, :tools, :form, 0)`,
+        {
+          userId,
+          companyId,
+          content: result.reply,
+          tools: result.toolCallsExecuted?.length ? JSON.stringify(result.toolCallsExecuted) : null,
+          form: result.form ? JSON.stringify(result.form) : null,
+        }
+      ).catch(() => {});
+    }
+
     res.json({
       success: true,
       data: result,
     });
   } catch (err) {
     console.error("[Banks AI Error]:", err?.message);
-    res.status(500).json({
-      success: false,
-      message: err?.message || "Failed to process AI conversation.",
-    });
+    const userId = req.user?.id || req.user?.sub || 1;
+    const companyId = req.scope?.companyId || 1;
+
+    const resolvedUserContext = {
+      roleName: req.body?.userContext?.roleName || req.user?.role_name || "User",
+      isSuperAdmin: Boolean(
+        req.body?.userContext?.isSuperAdmin ||
+        req.user?.id === 1 ||
+        (req.user?.permissions && req.user.permissions.includes("*"))
+      ),
+      allowedModules: Array.isArray(req.body?.userContext?.allowedModules)
+        ? req.body.userContext.allowedModules
+        : (req.user?.id === 1 ? ["*"] : ["general"]),
+    };
+
+    try {
+      const fallbackResult = await autonomousDirectResponse(req.body.messages, {
+        userContext: resolvedUserContext,
+        scope: {
+          ...req.scope,
+          ...resolvedUserContext,
+        },
+      });
+
+      if (fallbackResult && fallbackResult.reply) {
+        await query(
+          `INSERT INTO adm_ai_chat_history (user_id, company_id, role, content, tools, form, is_error)
+           VALUES (:userId, :companyId, 'assistant', :content, :tools, :form, 0)`,
+          {
+            userId,
+            companyId,
+            content: fallbackResult.reply,
+            tools: fallbackResult.toolCallsExecuted?.length ? JSON.stringify(fallbackResult.toolCallsExecuted) : null,
+            form: fallbackResult.form ? JSON.stringify(fallbackResult.form) : null,
+          }
+        ).catch(() => {});
+      }
+
+      return res.json({
+        success: true,
+        data: fallbackResult,
+      });
+    } catch (fallbackErr) {
+      res.status(500).json({
+        success: false,
+        message: err?.message || "Failed to process AI conversation.",
+      });
+    }
   }
 });
 
@@ -106,9 +200,9 @@ router.get("/status", async (req, res) => {
   }
 
   const [visRow] = await query(
-    "SELECT setting_value FROM adm_system_settings WHERE setting_key = 'banks_ai_enabled' LIMIT 1",
+    "SELECT setting_value FROM adm_system_settings WHERE setting_key = 'banks_ai_enabled' ORDER BY id DESC LIMIT 1",
   ).catch(() => []);
-  const isEnabled = visRow?.setting_value ? visRow.setting_value === "true" : true;
+  const isEnabled = visRow?.setting_value !== undefined ? visRow.setting_value === "true" : true;
 
   res.json({
     success: true,
@@ -142,24 +236,199 @@ router.get("/status", async (req, res) => {
 
 /**
  * POST /api/ai/toggle-visibility
- * Toggle the Ask Banks AI visibility on/off.
+ * Toggle the Ask Banks AI visibility on/off persistently.
  */
 router.post("/toggle-visibility", async (req, res) => {
   try {
     const { enabled } = req.body;
     const val = enabled ? "true" : "false";
+
+    // Clean up all rows first to prevent duplicate rows overriding value
+    await query("DELETE FROM adm_system_settings WHERE setting_key = 'banks_ai_enabled'").catch(() => {});
     await query(
       `INSERT INTO adm_system_settings (company_id, setting_key, setting_value)
-       VALUES (1, 'banks_ai_enabled', :val)
-       ON DUPLICATE KEY UPDATE setting_value = :val`,
+       VALUES (1, 'banks_ai_enabled', :val)`,
       { val },
-    ).catch(async () => {
-      await query(
-        `UPDATE adm_system_settings SET setting_value = :val WHERE setting_key = 'banks_ai_enabled'`,
-        { val },
-      );
-    });
+    );
+
     res.json({ success: true, enabled: Boolean(enabled) });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+/**
+ * GET /api/ai/history
+ * Fetch persisted multi-turn chat history for the authenticated user.
+ */
+router.get("/history", async (req, res) => {
+  try {
+    // Opportunistically run expired history cleanup in the background
+    cleanupExpiredAiChatHistory().catch(() => {});
+
+    const userId = req.user?.id || req.user?.sub || 1;
+    const rows = await query(
+      `SELECT id, role, content, tools, form, is_error as isError, created_at as createdAt
+       FROM adm_ai_chat_history
+       WHERE user_id = :userId
+       ORDER BY id ASC
+       LIMIT 100`,
+      { userId },
+    ).catch(() => []);
+
+    const data = (rows || []).map((r) => {
+      let parsedTools = null;
+      let parsedForm = null;
+      try {
+        if (r.tools) parsedTools = typeof r.tools === "string" ? JSON.parse(r.tools) : r.tools;
+      } catch {}
+      try {
+        if (r.form) parsedForm = typeof r.form === "string" ? JSON.parse(r.form) : r.form;
+      } catch {}
+      return {
+        id: r.id,
+        role: r.role,
+        content: r.content,
+        tools: parsedTools,
+        form: parsedForm,
+        isError: Boolean(r.isError),
+        createdAt: r.createdAt,
+      };
+    });
+
+    res.json({ success: true, data });
+  } catch (err) {
+    res.json({ success: true, data: [] });
+  }
+});
+
+/**
+ * DELETE /api/ai/history
+ * Clear chat history for the authenticated user or all users (if admin with all=true).
+ */
+router.delete("/history", async (req, res) => {
+  try {
+    const isWipeAllRequested =
+      req.query?.all === "true" ||
+      req.body?.all === true ||
+      req.query?.wipeAll === "true";
+
+    const isAuthorizedAdmin = Boolean(
+      req.user?.id === 1 ||
+      req.user?.is_superadmin ||
+      req.user?.role_id === 1 ||
+      String(req.user?.role_name || "").toLowerCase().includes("admin") ||
+      (Array.isArray(req.user?.permissions) && req.user.permissions.includes("*"))
+    );
+
+    if (isWipeAllRequested) {
+      if (!isAuthorizedAdmin) {
+        return res.status(403).json({
+          success: false,
+          message: "Only system administrators can delete chat history for all users.",
+        });
+      }
+
+      const wipeResult = await deleteAiChatHistory({ userId: null });
+      return res.json({
+        success: true,
+        deletedCount: wipeResult.deletedCount,
+        message: `All AI chat history records (${wipeResult.deletedCount}) deleted successfully.`,
+      });
+    }
+
+    const userId = req.user?.id || req.user?.sub || 1;
+    const deleteResult = await deleteAiChatHistory({ userId });
+
+    res.json({
+      success: true,
+      deletedCount: deleteResult.deletedCount,
+      message: "Chat history deleted successfully.",
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+/**
+ * GET /api/ai/retention-settings
+ * Retrieve current AI chat retention policy and statistics.
+ */
+router.get("/retention-settings", async (req, res) => {
+  try {
+    const stats = await getChatHistoryStats();
+    res.json({
+      success: true,
+      retentionDays: stats.retentionDays,
+      stats: {
+        totalMessages: stats.totalMessages,
+        oldestMessage: stats.oldestMessage,
+        newestMessage: stats.newestMessage,
+      },
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+/**
+ * POST /api/ai/retention-settings
+ * Save chat retention policy (in days) to adm_system_settings and prune expired records.
+ */
+router.post("/retention-settings", async (req, res) => {
+  try {
+    const { retentionDays } = req.body;
+    const parsed = parseInt(retentionDays, 10);
+    if (isNaN(parsed) || parsed < 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Retention days must be a non-negative integer (0 or greater).",
+      });
+    }
+
+    const savedDays = await setChatRetentionDays(parsed);
+    let purgedCount = 0;
+    if (savedDays > 0) {
+      const cleanupResult = await cleanupExpiredAiChatHistory(savedDays);
+      purgedCount = cleanupResult.purgedCount || 0;
+    }
+
+    const stats = await getChatHistoryStats();
+
+    res.json({
+      success: true,
+      retentionDays: savedDays,
+      purgedCount,
+      stats,
+      message:
+        savedDays === 0
+          ? "Chat retention set to Indefinite (auto-deletion disabled)."
+          : `Chat history retention set to ${savedDays} day(s). ${purgedCount > 0 ? `Cleaned up ${purgedCount} expired message(s).` : ""}`.trim(),
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+/**
+ * POST /api/ai/cleanup-expired-history
+ * Manually trigger expired history cleanup based on configured retention policy.
+ */
+router.post("/cleanup-expired-history", async (req, res) => {
+  try {
+    const result = await cleanupExpiredAiChatHistory();
+    const stats = await getChatHistoryStats();
+
+    res.json({
+      success: true,
+      purgedCount: result.purgedCount || 0,
+      retentionDays: result.retentionDays || 0,
+      stats,
+      message:
+        result.purgedCount > 0
+          ? `Successfully deleted ${result.purgedCount} expired chat message(s) older than ${result.retentionDays} day(s).`
+          : `No expired messages found. (Retention policy: ${result.retentionDays > 0 ? `${result.retentionDays} day(s)` : "Indefinite"}).`,
+    });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }

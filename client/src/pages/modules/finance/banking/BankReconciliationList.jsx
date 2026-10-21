@@ -377,7 +377,7 @@ export default function BankReconciliationList() {
                 </label>
                 <input
                   type="text"
-                  className="input input-bordered w-full bg-slate-50 font-mono text-slate-600"
+                  className="input input-bordered w-full bg-white dark:bg-slate-900 font-mono text-slate-600"
                   value={openingBalance.toLocaleString(undefined, {
                     minimumFractionDigits: 2,
                   })}

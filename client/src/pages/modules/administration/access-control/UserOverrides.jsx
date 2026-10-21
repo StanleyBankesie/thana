@@ -16,6 +16,7 @@ import { toast } from "react-toastify";
 export default function UserOverrides() {
   const navigate = useNavigate();
   const STANDARD_EXCEPTIONS = [
+    { code: "BANKS.AI.FLOATING_WIDGET", label: "Banks AI - Floating Assistant Widget Visibility" },
     { code: "SALES.DISCOUNT.ALLOW", label: "Permission to give discount" },
     { code: "WORKFLOW.APPROVAL.REVERSE", label: "Reversal of approval" },
     {

@@ -382,7 +382,7 @@ export default function DocumentRegisterPage() {
                   type="text"
                   required
                   placeholder="e.g. AR-101-PLN"
-                  className="w-full px-3 py-1.5 border rounded-lg text-sm bg-slate-50 dark:bg-slate-900 font-mono"
+                  className="w-full px-3 py-1.5 border rounded-lg text-sm bg-white dark:bg-slate-900 font-mono"
                   value={docForm.document_number}
                   onChange={e => setDocForm({ ...docForm, document_number: e.target.value })}
                 />
@@ -394,7 +394,7 @@ export default function DocumentRegisterPage() {
                   type="text"
                   required
                   placeholder="e.g. Ground Floor GA Layout"
-                  className="w-full px-3 py-1.5 border rounded-lg text-sm bg-slate-50 dark:bg-slate-900"
+                  className="w-full px-3 py-1.5 border rounded-lg text-sm bg-white dark:bg-slate-900"
                   value={docForm.title}
                   onChange={e => setDocForm({ ...docForm, title: e.target.value })}
                 />
@@ -404,7 +404,7 @@ export default function DocumentRegisterPage() {
                 <div className="space-y-1">
                   <label className="text-xs font-bold text-slate-500 uppercase">Discipline</label>
                   <select
-                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-slate-50 dark:bg-slate-900"
+                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-white dark:bg-slate-900"
                     value={docForm.discipline}
                     onChange={e => setDocForm({ ...docForm, discipline: e.target.value })}
                   >
@@ -423,7 +423,7 @@ export default function DocumentRegisterPage() {
                     type="text"
                     required
                     placeholder="0"
-                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-slate-50 dark:bg-slate-900 font-mono"
+                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-white dark:bg-slate-900 font-mono"
                     value={docForm.current_revision}
                     onChange={e => setDocForm({ ...docForm, current_revision: e.target.value })}
                   />
@@ -435,7 +435,7 @@ export default function DocumentRegisterPage() {
                 <input
                   type="text"
                   placeholder="https://..."
-                  className="w-full px-3 py-1.5 border rounded-lg text-sm bg-slate-50 dark:bg-slate-900"
+                  className="w-full px-3 py-1.5 border rounded-lg text-sm bg-white dark:bg-slate-900"
                   value={docForm.file_url}
                   onChange={e => setDocForm({ ...docForm, file_url: e.target.value })}
                 />
@@ -473,7 +473,7 @@ export default function DocumentRegisterPage() {
                   <input
                     type="text"
                     required
-                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-slate-50 dark:bg-slate-900 font-mono"
+                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-white dark:bg-slate-900 font-mono"
                     value={rfiForm.rfi_number}
                     onChange={e => setRfiForm({ ...rfiForm, rfi_number: e.target.value })}
                   />
@@ -483,7 +483,7 @@ export default function DocumentRegisterPage() {
                   <input
                     type="text"
                     placeholder="e.g. ST-201 / Detail 4"
-                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-slate-50 dark:bg-slate-900"
+                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-white dark:bg-slate-900"
                     value={rfiForm.drawing_reference}
                     onChange={e => setRfiForm({ ...rfiForm, drawing_reference: e.target.value })}
                   />
@@ -496,7 +496,7 @@ export default function DocumentRegisterPage() {
                   type="text"
                   required
                   placeholder="e.g. Beam rebar clash with HVAC duct at Grid 3"
-                  className="w-full px-3 py-1.5 border rounded-lg text-sm bg-slate-50 dark:bg-slate-900"
+                  className="w-full px-3 py-1.5 border rounded-lg text-sm bg-white dark:bg-slate-900"
                   value={rfiForm.subject}
                   onChange={e => setRfiForm({ ...rfiForm, subject: e.target.value })}
                 />
@@ -507,7 +507,7 @@ export default function DocumentRegisterPage() {
                 <textarea
                   required
                   placeholder="State technical conflict and requested consultant direction..."
-                  className="w-full px-3 py-2 border rounded-lg text-sm bg-slate-50 dark:bg-slate-900 min-h-[80px]"
+                  className="w-full px-3 py-2 border rounded-lg text-sm bg-white dark:bg-slate-900 min-h-[80px]"
                   value={rfiForm.question}
                   onChange={e => setRfiForm({ ...rfiForm, question: e.target.value })}
                 />
@@ -517,7 +517,7 @@ export default function DocumentRegisterPage() {
                 <div className="space-y-1">
                   <label className="text-xs font-bold text-slate-500 uppercase">Potential Cost Impact?</label>
                   <select
-                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-slate-50 dark:bg-slate-900"
+                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-white dark:bg-slate-900"
                     value={rfiForm.cost_impact}
                     onChange={e => setRfiForm({ ...rfiForm, cost_impact: e.target.value })}
                   >
@@ -528,7 +528,7 @@ export default function DocumentRegisterPage() {
                 <div className="space-y-1">
                   <label className="text-xs font-bold text-slate-500 uppercase">Schedule Impact?</label>
                   <select
-                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-slate-50 dark:bg-slate-900"
+                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-white dark:bg-slate-900"
                     value={rfiForm.schedule_impact}
                     onChange={e => setRfiForm({ ...rfiForm, schedule_impact: e.target.value })}
                   >
@@ -574,7 +574,7 @@ export default function DocumentRegisterPage() {
                 <textarea
                   required
                   placeholder="Official technical instructions, resolution, revised specification..."
-                  className="w-full px-3 py-2 border rounded-lg text-sm bg-slate-50 dark:bg-slate-900 min-h-[90px]"
+                  className="w-full px-3 py-2 border rounded-lg text-sm bg-white dark:bg-slate-900 min-h-[90px]"
                   value={answerText}
                   onChange={e => setAnswerText(e.target.value)}
                 />

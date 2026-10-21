@@ -120,6 +120,41 @@
     @apply outline-none ring-2 ring-emerald-500/30 ring-offset-2 ring-offset-white dark:ring-offset-slate-800;
   }
 
+  /* ── System Dashboard Action Button (Brand Deep Teal / Navy #0E3646) ── */
+  .btn-dashboard,
+  .btn.btn-dashboard,
+  button[data-action="dashboard"],
+  .btn-dashboard-action {
+    @apply inline-flex items-center justify-center px-5 py-2.5 rounded-xl font-medium text-white bg-brand-900 hover:bg-brand-800 active:bg-brand-950 transition-all duration-150 shadow-apple-xs disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98];
+    background-color: #0E3646 !important;
+    color: #ffffff !important;
+    border: none !important;
+    min-height: 42px !important;
+    font-size: 0.875rem !important;
+    line-height: 1.25rem !important;
+  }
+  .btn-dashboard:hover:not(:disabled),
+  .btn.btn-dashboard:hover:not(:disabled),
+  button[data-action="dashboard"]:hover:not(:disabled),
+  .btn-dashboard-action:hover:not(:disabled) {
+    background-color: #173d50 !important;
+    color: #ffffff !important;
+    box-shadow: 0 4px 12px rgba(14, 54, 70, 0.25) !important;
+  }
+  .btn-dashboard:active:not(:disabled),
+  .btn.btn-dashboard:active:not(:disabled),
+  button[data-action="dashboard"]:active:not(:disabled),
+  .btn-dashboard-action:active:not(:disabled) {
+    background-color: #061a22 !important;
+    color: #ffffff !important;
+  }
+  .btn-dashboard:focus-visible,
+  .btn.btn-dashboard:focus-visible,
+  button[data-action="dashboard"]:focus-visible,
+  .btn-dashboard-action:focus-visible {
+    @apply outline-none ring-2 ring-brand-900/40 ring-offset-2 ring-offset-white dark:ring-offset-slate-800;
+  }
+
   /* ── Button size variants ──────────────────────────── */
   .btn-sm {
     padding: 0.4rem 0.875rem;
@@ -160,6 +195,48 @@
   }
   select.input {
     min-height: 42px;
+  }
+
+  /* ── Form Inputs Global Clean Surface (Apple Clean Controls) ── */
+  /* Remove any grey / slate background fill from all inputs, selects, and textareas across all form pages */
+  input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):not([type="reset"]):not([type="file"]):not([type="range"]):not([type="color"]),
+  select,
+  textarea {
+    @apply bg-white dark:bg-slate-900;
+  }
+
+  input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):not([type="reset"]):not([type="file"]):not([type="range"]):not([type="color"]).bg-slate-50,
+  input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):not([type="reset"]):not([type="file"]):not([type="range"]):not([type="color"]).bg-slate-100,
+  input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):not([type="reset"]):not([type="file"]):not([type="range"]):not([type="color"]).bg-gray-50,
+  input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):not([type="reset"]):not([type="file"]):not([type="range"]):not([type="color"]).bg-gray-100,
+  select.bg-slate-50,
+  select.bg-slate-100,
+  select.bg-gray-50,
+  select.bg-gray-100,
+  textarea.bg-slate-50,
+  textarea.bg-slate-100,
+  textarea.bg-gray-50,
+  textarea.bg-gray-100,
+  .input.bg-slate-50,
+  .input.bg-slate-100,
+  .input.bg-gray-50,
+  .input.bg-gray-100 {
+    background-color: #ffffff !important;
+  }
+
+  .dark input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):not([type="reset"]):not([type="file"]):not([type="range"]):not([type="color"]).bg-slate-50,
+  .dark input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):not([type="reset"]):not([type="file"]):not([type="range"]):not([type="color"]).bg-slate-100,
+  .dark input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):not([type="reset"]):not([type="file"]):not([type="range"]):not([type="color"]).bg-slate-800,
+  .dark select.bg-slate-50,
+  .dark select.bg-slate-100,
+  .dark select.bg-slate-800,
+  .dark textarea.bg-slate-50,
+  .dark textarea.bg-slate-100,
+  .dark textarea.bg-slate-800,
+  .dark .input.bg-slate-50,
+  .dark .input.bg-slate-100,
+  .dark .input.bg-slate-800 {
+    background-color: #0f172a !important;
   }
 
   /* Login page input variant */
@@ -1193,3 +1270,23 @@
   padding: 0 !important;
   flex-shrink: 0 !important;
 }
+
+/* ==========================================================================
+   GLOBAL FORM CONTROLS CLEAN SURFACE (APPLE HIG COMPLIANT)
+   Eliminates grey/slate/tinted background fills from all input, select, and
+   textarea controls across all form pages and modals in the entire ERP.
+   Ensures crisp white in light mode and deep slate-900 in dark mode.
+   ========================================================================== */
+input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):not([type="reset"]):not([type="file"]):not([type="range"]):not([type="color"]),
+select,
+textarea,
+.input {
+  background-color: #ffffff !important;
+}
+
+.dark input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):not([type="reset"]):not([type="file"]):not([type="range"]):not([type="color"]),
+.dark select,
+.dark textarea,
+.dark .input {
+  background-color: #0f172a !important;
+}

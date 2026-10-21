@@ -5,13 +5,16 @@
 
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import {
-  Send, Sparkles, RefreshCw, CheckCircle, Copy, Check, Database
+  Send, Sparkles, RefreshCw, CheckCircle, Copy, Check, Database, Trash2, AlertTriangle, Plus
 } from "lucide-react";
+import { toast } from "react-toastify";
 import banksIcon from "../../../assets/banks_ai_icon.png";
 import { api } from "../../../api/client.js";
 import { PageHeader } from "./bi.shared.jsx";
 import { useAuth } from "../../../auth/AuthContext.jsx";
 import { usePermission } from "../../../auth/PermissionContext.jsx";
+import InteractiveFormCard from "../../../components/ai/InteractiveFormCard.jsx";
+import { useBanksChat } from "../../../components/ai/useBanksChat.js";
 
 // Helper for rendering Markdown
 function MarkdownBody({ content }) {
@@ -90,6 +93,11 @@ function MarkdownBody({ content }) {
 }
 
 const STATIC_PROMPTS = [
+  { category: "transport", path: "/transport", title: "📝 Vehicle Inspection Form", prompt: "Create a vehicle pre-trip inspection form with driver, odometer, fluids, tires, and checklist fields" },
+  { category: "hr", path: "/human-resource", title: "📝 Employee Onboarding Form", prompt: "Create an employee onboarding form with personal info, department, role, emergency contact, and bank details" },
+  { category: "sales", path: "/sales", title: "📝 Customer Complaint Form", prompt: "Create a customer feedback and complaint form with customer details, order reference, category, and issue description" },
+  { category: "purchases", path: "/purchases", title: "📝 Purchase Requisition Form", prompt: "Create a purchase requisition form with item specifications, quantity, estimated cost, and justification" },
+  { category: "maintenance", path: "/maintenance", title: "📝 Maintenance Work Order Form", prompt: "Create an equipment maintenance work order form with machine name, location, fault type, and urgency" },
   { category: "sales", path: "/sales", title: "Executive Business Summary", prompt: "Give me an executive summary of our overall revenue, sales, expenses, and gross profit." },
   { category: "inventory", path: "/inventory", title: "Inventory Health & Reorder", prompt: "Check inventory health: which items are below their safety reorder level and need replenishment?" },
   { category: "production", path: "/production", title: "Production & Work Orders", prompt: "What is our current production status, active work orders, completed units, and machine status?" },
@@ -102,19 +110,23 @@ const STATIC_PROMPTS = [
 
 export default function BanksAiPage() {
   const { user } = useAuth();
-  const { isSuperAdmin, canAccessPath, modules } = usePermission();
+  const { isSuperAdmin, canAccessPath } = usePermission();
 
-  const [messages, setMessages] = useState([
-    {
-      role: "assistant",
-      content: "Welcome to **Banks AI Studio**. How can I assist you with OmniSuite ERP today?",
-    },
-  ]);
-  const [input, setInput] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [aiStatus, setAiStatus] = useState(null);
+  const {
+    messages,
+    input,
+    setInput,
+    loading,
+    aiStatus,
+    sendMessage,
+    deleteChatHistory,
+    startNewChat,
+  } = useBanksChat();
+
   const [activeModel, setActiveModel] = useState("openai/gpt-oss-120b");
   const [copiedIdx, setCopiedIdx] = useState(null);
+  const [showConfirmDelete, setShowConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const messagesEndRef = useRef(null);
 
@@ -124,72 +136,18 @@ export default function BanksAiPage() {
     return STATIC_PROMPTS.filter((p) => canAccessPath(p.path));
   }, [isSuperAdmin, user, canAccessPath]);
 
-  // Extract allowed modules list for backend RBAC enforcement
-  const userAllowedModules = useMemo(() => {
-    if (isSuperAdmin || user?.id === 1) return ["*"];
-    const list = Array.from(modules || []);
-    return list.length ? list : ["general"];
-  }, [isSuperAdmin, user, modules]);
-
-  useEffect(() => {
-    loadStatus();
-  }, []);
-
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  const loadStatus = async () => {
-    try {
-      const res = await api.get("/ai/status");
-      setAiStatus(res.data);
-      if (res.data?.defaultModel) setActiveModel(res.data.defaultModel);
-    } catch {}
-  };
-
-  const handleSend = async (customPrompt = null) => {
-    const text = (customPrompt || input).trim();
-    if (!text || loading) return;
-
-    const updated = [...messages, { role: "user", content: text }];
-    setMessages(updated);
-    setInput("");
-    setLoading(true);
-
-    try {
-      const res = await api.post("/ai/chat", {
-        messages: updated,
-        model: activeModel,
-        userContext: {
-          roleName: user?.role_name || user?.role || "User",
-          isSuperAdmin: Boolean(isSuperAdmin || user?.id === 1),
-          allowedModules: userAllowedModules,
-        },
-      });
-
-      const reply = res.data?.data?.reply;
-      const tools = res.data?.data?.toolCallsExecuted || [];
-
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: "assistant",
-          content: reply,
-          tools,
-        },
-      ]);
-    } catch (err) {
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: "assistant",
-          content: `⚠️ **Error:** ${err?.response?.data?.message || "Failed to contact AI service. Please verify your Groq API key in System Configuration -> General Settings."}`,
-          isError: true,
-        },
-      ]);
-    } finally {
-      setLoading(false);
+  useEffect(() => {
+    if (aiStatus?.defaultModel) {
+      setActiveModel(aiStatus.defaultModel);
     }
+  }, [aiStatus]);
+
+  const handleSend = (customPrompt = null) => {
+    sendMessage(customPrompt, activeModel);
   };
 
   const handleCopy = (text, idx) => {
@@ -198,19 +156,94 @@ export default function BanksAiPage() {
     setTimeout(() => setCopiedIdx(null), 2000);
   };
 
+  // Automatically delete user's chat history from the database when leaving/closing the page
+  useEffect(() => {
+    return () => {
+      deleteChatHistory().catch(() => {});
+    };
+  }, [deleteChatHistory]);
+
+  const handleNewChat = () => {
+    startNewChat();
+    setShowConfirmDelete(false);
+    toast.info("Started new conversation.");
+  };
+
+  const handleDeleteHistory = async () => {
+    try {
+      setDeleting(true);
+      await deleteChatHistory();
+      setShowConfirmDelete(false);
+      toast.success("Your chat history was deleted successfully.");
+    } catch {
+      toast.error("Failed to delete chat history.");
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <PageHeader
         title="Banks AI Studio"
         description="OmniSuite Enterprise AI Assistant — with full real-time database query execution"
       >
-        {aiStatus?.isConfigured && (
-          <span className="text-xs text-emerald-300 bg-emerald-500/20 border border-emerald-500/30 px-3 py-1 rounded-full font-semibold flex items-center gap-1.5">
-            <CheckCircle size={13} className="text-emerald-400" />
-            Connected
-          </span>
-        )}
+        <div className="flex items-center gap-2">
+          {aiStatus?.isConfigured && (
+            <span className="text-xs text-emerald-300 bg-emerald-500/20 border border-emerald-500/30 px-3 py-1 rounded-full font-semibold flex items-center gap-1.5">
+              <CheckCircle size={13} className="text-emerald-400" />
+              Connected
+            </span>
+          )}
+          <button
+            onClick={handleNewChat}
+            className="btn btn-primary text-xs flex items-center gap-1.5 py-1 px-3 shadow-sm active:scale-95"
+            title="Start a new conversation"
+          >
+            <Plus size={13} />
+            <span>New Chat</span>
+          </button>
+          <button
+            onClick={() => setShowConfirmDelete((prev) => !prev)}
+            className={`btn text-xs flex items-center gap-1.5 py-1 px-3 transition-colors ${
+              showConfirmDelete
+                ? "bg-rose-600 hover:bg-rose-700 text-white border-transparent"
+                : "btn-secondary text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 border border-rose-200 dark:border-rose-900/40"
+            }`}
+            title="Delete My Chat History"
+          >
+            <Trash2 size={13} />
+            <span>{showConfirmDelete ? "Cancel" : "Delete My Chat History"}</span>
+          </button>
+        </div>
       </PageHeader>
+
+      {/* Inline Confirmation Banner */}
+      {showConfirmDelete && (
+        <div className="bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-900/60 rounded-xl p-3 flex items-center justify-between text-xs text-rose-800 dark:text-rose-200 animate-fadeIn flex-wrap gap-2">
+          <div className="flex items-center gap-2">
+            <AlertTriangle size={15} className="text-rose-600 dark:text-rose-400 flex-shrink-0" />
+            <span className="font-medium">Permanently delete your personal chat history? Only your own conversation records will be deleted from the database.</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handleDeleteHistory}
+              disabled={deleting}
+              className="px-3 py-1 bg-rose-600 hover:bg-rose-700 text-white rounded-md font-semibold text-xs shadow-sm transition-colors"
+            >
+              {deleting ? "Deleting..." : "Yes, Delete My History"}
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowConfirmDelete(false)}
+              className="px-3 py-1 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 rounded-md font-medium text-xs border border-slate-300 dark:border-slate-700 transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Main Studio Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
@@ -304,6 +337,7 @@ export default function BanksAiPage() {
                   ) : (
                     <div>
                       <MarkdownBody content={msg.content} />
+                      {msg.form && <InteractiveFormCard form={msg.form} />}
                       {msg.tools && msg.tools.length > 0 && (
                         <div className="mt-3 pt-2 border-t border-slate-100 dark:border-slate-800 flex flex-wrap gap-1.5">
                           {msg.tools.map((t, tIdx) => (
@@ -362,7 +396,7 @@ export default function BanksAiPage() {
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 placeholder="Ask Banks anything about your ERP data, analytics, or workflows..."
-                className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500"
+                className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500"
                 disabled={loading}
               />
               <button

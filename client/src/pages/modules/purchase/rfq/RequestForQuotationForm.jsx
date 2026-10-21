@@ -342,7 +342,7 @@ export default function RequestForQuotationForm() {
                   type="text"
                   value={formData.rfq_no}
                   readOnly
-                  className="p-2 border border-gray-300 rounded bg-gray-100 text-gray-600"
+                  className="p-2 border border-gray-300 rounded bg-white dark:bg-slate-900 text-gray-600"
                 />
               </div>
               <div className="flex flex-col gap-1">

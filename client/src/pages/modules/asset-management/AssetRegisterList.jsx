@@ -78,15 +78,15 @@ export default function AssetRegisterList() {
   const getStatusBadge = (status) => {
     switch (status) {
       case "ACTIVE":
-        return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">Active</span>;
+        return <span className="badge badge-success">Active</span>;
       case "FULLY_DEPRECIATED":
-        return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300 border border-amber-200 dark:border-amber-800">Fully Depreciated</span>;
+        return <span className="badge badge-warning">Fully Depreciated</span>;
       case "DISPOSED":
-        return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300 border border-rose-200 dark:border-rose-800">Disposed</span>;
+        return <span className="badge badge-error">Disposed</span>;
       case "UNDER_MAINTENANCE":
-        return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300 border border-blue-200 dark:border-blue-800">In Maintenance</span>;
+        return <span className="badge badge-info">In Maintenance</span>;
       default:
-        return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border border-slate-200 dark:border-slate-700">{status}</span>;
+        return <span className="badge">{status}</span>;
     }
   };
 
@@ -131,7 +131,7 @@ export default function AssetRegisterList() {
             placeholder="Search by asset code, name, barcode, or serial..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+            className="w-full pl-10 pr-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
           />
         </form>
 
@@ -139,7 +139,7 @@ export default function AssetRegisterList() {
           <select
             value={categoryFilter}
             onChange={(e) => setCategoryFilter(e.target.value)}
-            className="px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-500"
+            className="px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-500"
           >
             <option value="">All Categories</option>
             {categories.map((c) => (
@@ -150,7 +150,7 @@ export default function AssetRegisterList() {
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-500"
+            className="px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-500"
           >
             <option value="">All Statuses</option>
             <option value="ACTIVE">Active</option>
@@ -196,37 +196,37 @@ export default function AssetRegisterList() {
           </div>
         ) : viewMode === "table" ? (
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead className="bg-slate-50 dark:bg-slate-800/60 text-slate-500 dark:text-slate-400 font-semibold border-b border-slate-200 dark:border-slate-800">
+            <table className="table">
+              <thead>
                 <tr>
-                  <th className="py-3.5 px-4">Asset Tag / Code</th>
-                  <th className="py-3.5 px-4">Asset Name</th>
-                  <th className="py-3.5 px-4">Category</th>
-                  <th className="py-3.5 px-4">Capitalized Date</th>
-                  <th className="py-3.5 px-4 text-right">Gross Cost</th>
-                  <th className="py-3.5 px-4 text-right">Accum. Dep.</th>
-                  <th className="py-3.5 px-4 text-right">Net Book Value (NBV)</th>
-                  <th className="py-3.5 px-4 text-center">Status</th>
-                  <th className="py-3.5 px-4 text-right">Actions</th>
+                  <th>Asset Tag / Code</th>
+                  <th>Asset Name</th>
+                  <th>Category</th>
+                  <th>Capitalized Date</th>
+                  <th className="text-right">Gross Cost</th>
+                  <th className="text-right">Accum. Dep.</th>
+                  <th className="text-right">Net Book Value (NBV)</th>
+                  <th className="text-center">Status</th>
+                  <th className="text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+              <tbody>
                 {filteredAssets.map((asset) => (
                   <tr
                     key={asset.id}
                     className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors"
                   >
-                    <td className="py-3 px-4">
-                      <div className="font-mono font-semibold text-brand-700 dark:text-brand-400">
+                    <td>
+                      <div className="font-medium text-brand-700 dark:text-brand-400">
                         {asset.asset_code}
                       </div>
                       {asset.barcode && (
-                        <div className="text-xs text-slate-400 font-mono mt-0.5">
+                        <div className="text-xs text-slate-400 mt-0.5">
                           {asset.barcode}
                         </div>
                       )}
                     </td>
-                    <td className="py-3 px-4">
+                    <td>
                       <div className="font-medium text-slate-900 dark:text-slate-100">
                         {asset.asset_name}
                       </div>
@@ -236,27 +236,27 @@ export default function AssetRegisterList() {
                         </div>
                       )}
                     </td>
-                    <td className="py-3 px-4 text-slate-600 dark:text-slate-300">
+                    <td className="text-slate-600 dark:text-slate-300">
                       {asset.category_name || "Uncategorized"}
                     </td>
-                    <td className="py-3 px-4 text-slate-600 dark:text-slate-400 whitespace-nowrap">
+                    <td className="text-slate-600 dark:text-slate-400 whitespace-nowrap">
                       {asset.capitalization_date
                         ? new Date(asset.capitalization_date).toLocaleDateString()
                         : "—"}
                     </td>
-                    <td className="py-3 px-4 text-right font-medium text-slate-900 dark:text-slate-100 whitespace-nowrap">
+                    <td className="text-right font-medium text-slate-900 dark:text-slate-100 whitespace-nowrap">
                       {formatCurrency(asset.purchase_cost)}
                     </td>
-                    <td className="py-3 px-4 text-right text-slate-500 dark:text-slate-400 whitespace-nowrap">
+                    <td className="text-right text-slate-500 dark:text-slate-400 whitespace-nowrap">
                       {formatCurrency(asset.accumulated_depreciation)}
                     </td>
-                    <td className="py-3 px-4 text-right font-semibold text-emerald-600 dark:text-emerald-400 whitespace-nowrap">
+                    <td className="text-right font-semibold text-emerald-600 dark:text-emerald-400 whitespace-nowrap">
                       {formatCurrency(asset.current_nbv)}
                     </td>
-                    <td className="py-3 px-4 text-center whitespace-nowrap">
+                    <td className="text-center whitespace-nowrap">
                       {getStatusBadge(asset.status)}
                     </td>
-                    <td className="py-3 px-4 text-right whitespace-nowrap">
+                    <td className="text-right whitespace-nowrap">
                       <div className="flex items-center justify-end gap-1">
                         <Link
                           to={`/assets/${asset.id}`}

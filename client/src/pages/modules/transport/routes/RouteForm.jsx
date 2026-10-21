@@ -136,7 +136,7 @@ export default function RouteForm() {
                 name="route_code"
                 value={formData.route_code}
                 onChange={handleChange}
-                className="input input-bordered w-full bg-slate-50"
+                className="input input-bordered w-full bg-white dark:bg-slate-900"
                 placeholder="Auto-generated (e.g. RT-000001)"
                 readOnly
               />

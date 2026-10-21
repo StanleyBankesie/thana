@@ -231,7 +231,7 @@ export default function LogbookForm() {
             
             <div className="form-group">
               <label className="form-label">Registration Number</label>
-              <input type="text" readOnly className="input bg-slate-100" value={selectedVehicle ? selectedVehicle.reg_number : ""} />
+              <input type="text" readOnly className="input bg-white dark:bg-slate-900" value={selectedVehicle ? selectedVehicle.reg_number : ""} />
             </div>
             
             <div className="form-group">
@@ -336,7 +336,7 @@ export default function LogbookForm() {
               <label className="form-label">Beginning Mileage</label>
               <div className="flex">
                 <input type="number" step="0.01" name="beginning_mileage" value={formData.beginning_mileage} onChange={handleChange} className="input rounded-r-none border-r-0 flex-1" />
-                <select value={uom} onChange={e => setUom(e.target.value)} className="select bg-slate-100 rounded-l-none border-l border-slate-300 w-24">
+                <select value={uom} onChange={e => setUom(e.target.value)} className="select bg-white dark:bg-slate-900 rounded-l-none border-l border-slate-300 w-24">
                   <option value="KM">KM</option>
                   <option value="Miles">Miles</option>
                 </select>
@@ -347,7 +347,7 @@ export default function LogbookForm() {
               <label className="form-label font-bold text-brand-700">Ending Mileage</label>
               <div className="flex">
                 <input type="number" step="0.01" name="ending_mileage" value={formData.ending_mileage} onChange={handleChange} className="input border-brand-500 focus:ring-brand-500 rounded-r-none border-r-0 flex-1" />
-                <select value={uom} onChange={e => setUom(e.target.value)} className="select bg-slate-100 rounded-l-none border-l border-brand-500 w-24">
+                <select value={uom} onChange={e => setUom(e.target.value)} className="select bg-white dark:bg-slate-900 rounded-l-none border-l border-brand-500 w-24">
                   <option value="KM">KM</option>
                   <option value="Miles">Miles</option>
                 </select>

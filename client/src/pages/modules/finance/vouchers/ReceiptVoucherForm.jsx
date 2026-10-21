@@ -4048,7 +4048,7 @@ export default function ReceiptVoucherForm() {
                 <div>
                   <label className="label">Balance</label>
                   <input
-                    className="input w-64 bg-slate-50 dark:bg-slate-800"
+                    className="input w-64 bg-white dark:bg-slate-900"
                     value={
                       rvForm.depositAccountId
                         ? accountBalances[String(rvForm.depositAccountId)] !==

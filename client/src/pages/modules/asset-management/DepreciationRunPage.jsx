@@ -176,7 +176,7 @@ export default function DepreciationRunPage() {
                   setPeriodYear(Number(e.target.value));
                   setPreviewData(null);
                 }}
-                className="px-3 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-semibold text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500"
+                className="px-3 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-semibold text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500"
               >
                 {[2023, 2024, 2025, 2026, 2027, 2028].map((y) => (
                   <option key={y} value={y}>{y}</option>
@@ -196,7 +196,7 @@ export default function DepreciationRunPage() {
                     setPeriodHalf(Number(e.target.value));
                     setPreviewData(null);
                   }}
-                  className="px-3 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-semibold text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500"
+                  className="px-3 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-semibold text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500"
                 >
                   <option value={1}>H1 (Jan - Jun)</option>
                   <option value={2}>H2 (Jul - Dec)</option>
@@ -215,7 +215,7 @@ export default function DepreciationRunPage() {
                     setPeriodQuarter(Number(e.target.value));
                     setPreviewData(null);
                   }}
-                  className="px-3 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-semibold text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500"
+                  className="px-3 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-semibold text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500"
                 >
                   <option value={1}>Q1 (Jan - Mar)</option>
                   <option value={2}>Q2 (Apr - Jun)</option>
@@ -236,7 +236,7 @@ export default function DepreciationRunPage() {
                     setPeriodMonth(Number(e.target.value));
                     setPreviewData(null);
                   }}
-                  className="px-3 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-semibold text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500"
+                  className="px-3 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-semibold text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500"
                 >
                   {[
                     { m: 1, name: "01 - Jan" },
@@ -329,46 +329,46 @@ export default function DepreciationRunPage() {
               </span>
             </div>
             <div className="overflow-x-auto">
-              <table className="w-full text-left text-sm">
-                <thead className="bg-slate-50 dark:bg-slate-800/60 text-slate-500 dark:text-slate-400 font-semibold border-b border-slate-200 dark:border-slate-800 text-xs">
+              <table className="table">
+                <thead>
                   <tr>
-                    <th className="py-3 px-4">Asset Code</th>
-                    <th className="py-3 px-4">Asset Name</th>
-                    <th className="py-3 px-4">Category</th>
-                    <th className="py-3 px-4">Method</th>
-                    <th className="py-3 px-4 text-right">Gross Cost</th>
-                    <th className="py-3 px-4 text-right">Prior Acc. Dep.</th>
-                    <th className="py-3 px-4 text-right text-rose-600 dark:text-rose-400">
+                    <th>Asset Code</th>
+                    <th>Asset Name</th>
+                    <th>Category</th>
+                    <th>Method</th>
+                    <th className="text-right">Gross Cost</th>
+                    <th className="text-right">Prior Acc. Dep.</th>
+                    <th className="text-right text-rose-600 dark:text-rose-400">
                       {runFrequency === "YEARLY" ? "Annual Dep." : runFrequency === "HALF_YEARLY" ? "Half-Yr Dep." : runFrequency === "QUARTERLY" ? "Quarterly Dep." : "Monthly Dep."}
                     </th>
-                    <th className="py-3 px-4 text-right text-emerald-600 dark:text-emerald-400">Ending NBV</th>
+                    <th className="text-right text-emerald-600 dark:text-emerald-400">Ending NBV</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-xs">
+                <tbody>
                   {previewData.preview_lines.map((line) => (
                     <tr key={line.asset_id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40">
-                      <td className="py-2.5 px-4 font-mono font-medium text-brand-700 dark:text-brand-400">
+                      <td className="font-medium text-brand-700 dark:text-brand-400">
                         {line.asset_code}
                       </td>
-                      <td className="py-2.5 px-4 font-medium text-slate-900 dark:text-slate-100">
+                      <td className="font-medium text-slate-900 dark:text-slate-100">
                         {line.asset_name}
                       </td>
-                      <td className="py-2.5 px-4 text-slate-600 dark:text-slate-400">
+                      <td className="text-slate-600 dark:text-slate-400">
                         {line.category_name}
                       </td>
-                      <td className="py-2.5 px-4 text-slate-500">
+                      <td className="text-slate-500">
                         {line.depreciation_method}
                       </td>
-                      <td className="py-2.5 px-4 text-right text-slate-700 dark:text-slate-300">
+                      <td className="text-right text-slate-700 dark:text-slate-300">
                         {formatCurrency(line.purchase_cost ?? line.cost_basis)}
                       </td>
-                      <td className="py-2.5 px-4 text-right text-slate-500">
+                      <td className="text-right text-slate-500">
                         {formatCurrency(line.accumulated_depreciation_before ?? line.prior_accum_depreciation)}
                       </td>
-                      <td className="py-2.5 px-4 text-right font-bold text-rose-600 dark:text-rose-400">
+                      <td className="text-right font-semibold text-rose-600 dark:text-rose-400">
                         {formatCurrency(line.depreciation_amount)}
                       </td>
-                      <td className="py-2.5 px-4 text-right font-semibold text-emerald-600 dark:text-emerald-400">
+                      <td className="text-right font-semibold text-emerald-600 dark:text-emerald-400">
                         {formatCurrency(line.nbv_after ?? line.new_nbv)}
                       </td>
                     </tr>
@@ -403,41 +403,41 @@ export default function DepreciationRunPage() {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead className="bg-slate-50 dark:bg-slate-800/60 text-slate-500 dark:text-slate-400 font-semibold border-b border-slate-200 dark:border-slate-800 text-xs">
+            <table className="table">
+              <thead>
                 <tr>
-                  <th className="py-3 px-4">Run Code</th>
-                  <th className="py-3 px-4">Period</th>
-                  <th className="py-3 px-4">Execution Date</th>
-                  <th className="py-3 px-4 text-center">Assets Processed</th>
-                  <th className="py-3 px-4 text-right">Depreciation Total</th>
-                  <th className="py-3 px-4">GL Voucher Reference</th>
-                  <th className="py-3 px-4 text-center">Status</th>
+                  <th>Run Code</th>
+                  <th>Period</th>
+                  <th>Execution Date</th>
+                  <th className="text-center">Assets Processed</th>
+                  <th className="text-right">Depreciation Total</th>
+                  <th>GL Voucher Reference</th>
+                  <th className="text-center">Status</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-xs">
+              <tbody>
                 {runs.map((r) => (
                   <tr key={r.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40">
-                    <td className="py-2.5 px-4 font-mono font-bold text-slate-800 dark:text-slate-200">
+                    <td className="font-medium text-slate-800 dark:text-slate-200">
                       {r.run_code}
                     </td>
-                    <td className="py-2.5 px-4 text-slate-700 dark:text-slate-300 font-medium">
+                    <td className="text-slate-700 dark:text-slate-300 font-medium">
                       {r.period_year}-{String(r.period_month).padStart(2, "0")}
                     </td>
-                    <td className="py-2.5 px-4 text-slate-500">
+                    <td className="text-slate-500">
                       {new Date(r.run_date).toLocaleDateString()}
                     </td>
-                    <td className="py-2.5 px-4 text-center font-semibold text-slate-700 dark:text-slate-300">
+                    <td className="text-center font-medium text-slate-700 dark:text-slate-300">
                       {r.total_assets_processed}
                     </td>
-                    <td className="py-2.5 px-4 text-right font-bold text-rose-600 dark:text-rose-400">
+                    <td className="text-right font-semibold text-rose-600 dark:text-rose-400">
                       {formatCurrency(r.total_depreciation_amount)}
                     </td>
-                    <td className="py-2.5 px-4 font-mono text-brand-700 dark:text-brand-400 font-medium">
+                    <td className="text-brand-700 dark:text-brand-400 font-medium">
                       {r.gl_voucher_number || `VOUCHER #${r.gl_voucher_id || "JV"}`}
                     </td>
-                    <td className="py-2.5 px-4 text-center">
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                    <td className="text-center">
+                      <span className="badge badge-success">
                         {r.status}
                       </span>
                     </td>

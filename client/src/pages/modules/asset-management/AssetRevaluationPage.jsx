@@ -211,7 +211,7 @@ export default function AssetRevaluationPage() {
             placeholder="Search adjustments..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+            className="w-full pl-9 pr-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
           />
         </div>
 
@@ -219,7 +219,7 @@ export default function AssetRevaluationPage() {
           <select
             value={typeFilter}
             onChange={(e) => setTypeFilter(e.target.value)}
-            className="px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-brand-500"
+            className="px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-brand-500"
           >
             <option value="">All Adjustment Types</option>
             <option value="INCREASE">Revaluation Increase (+)</option>
@@ -246,64 +246,58 @@ export default function AssetRevaluationPage() {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead className="bg-slate-50 dark:bg-slate-800/60 text-slate-500 dark:text-slate-400 font-semibold border-b border-slate-200 dark:border-slate-800 text-xs">
+            <table className="table">
+              <thead>
                 <tr>
-                  <th className="py-3 px-4">Ref No.</th>
-                  <th className="py-3 px-4">Date</th>
-                  <th className="py-3 px-4">Asset Code & Name</th>
-                  <th className="py-3 px-4 text-center">Type</th>
-                  <th className="py-3 px-4 text-right">Prior NBV</th>
-                  <th className="py-3 px-4 text-right">Adjustment</th>
-                  <th className="py-3 px-4 text-right">New Carrying NBV</th>
-                  <th className="py-3 px-4">Valuer / Reason</th>
-                  <th className="py-3 px-4">GL Voucher</th>
+                  <th>Ref No.</th>
+                  <th>Date</th>
+                  <th>Asset Code & Name</th>
+                  <th className="text-center">Type</th>
+                  <th className="text-right">Prior NBV</th>
+                  <th className="text-right">Adjustment</th>
+                  <th className="text-right">New Carrying NBV</th>
+                  <th>Valuer / Reason</th>
+                  <th>GL Voucher</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-xs">
+              <tbody>
                 {filteredRevaluations.map((r) => {
                   const isInc = r.revaluation_type === "INCREASE";
                   return (
                     <tr key={r.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40">
-                      <td className="py-2.5 px-4 font-mono font-bold text-slate-800 dark:text-slate-200">
+                      <td className="font-medium text-slate-800 dark:text-slate-200">
                         {r.revaluation_no}
                       </td>
-                      <td className="py-2.5 px-4 text-slate-500">
+                      <td className="text-slate-500">
                         {new Date(r.revaluation_date).toLocaleDateString()}
                       </td>
-                      <td className="py-2.5 px-4 font-medium text-slate-900 dark:text-slate-100">
-                        <div>{r.asset_name}</div>
-                        <div className="font-mono text-[11px] text-brand-600 dark:text-brand-400">{r.asset_code}</div>
+                      <td>
+                        <div className="font-medium text-slate-900 dark:text-slate-100">{r.asset_name}</div>
+                        <div className="text-xs text-brand-600 dark:text-brand-400">{r.asset_code}</div>
                       </td>
-                      <td className="py-2.5 px-4 text-center">
-                        <span
-                          className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold ${
-                            isInc
-                              ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800"
-                              : "bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300 border border-rose-200 dark:border-rose-800"
-                          }`}
-                        >
+                      <td className="text-center">
+                        <span className={`badge ${isInc ? "badge-success" : "badge-error"}`}>
                           {isInc ? "Revaluation (+)" : "Impairment (-)"}
                         </span>
                       </td>
-                      <td className="py-2.5 px-4 text-right text-slate-500">
+                      <td className="text-right text-slate-500">
                         {formatCurrency(r.previous_nbv)}
                       </td>
                       <td
-                        className={`py-2.5 px-4 text-right font-bold ${
+                        className={`text-right font-semibold ${
                           isInc ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"
                         }`}
                       >
                         {isInc ? "+" : "-"}{formatCurrency(r.adjustment_amount)}
                       </td>
-                      <td className="py-2.5 px-4 text-right font-semibold text-slate-900 dark:text-slate-100">
+                      <td className="text-right font-semibold text-slate-900 dark:text-slate-100">
                         {formatCurrency(r.new_nbv)}
                       </td>
-                      <td className="py-2.5 px-4 text-slate-600 dark:text-slate-400">
+                      <td className="text-slate-600 dark:text-slate-400">
                         <div className="font-medium text-slate-800 dark:text-slate-200">{r.valuation_reason || "Valuation adjustment"}</div>
-                        {r.valuer_name && <div className="text-[11px] text-slate-400">Valuer: {r.valuer_name}</div>}
+                        {r.valuer_name && <div className="text-xs text-slate-400">Valuer: {r.valuer_name}</div>}
                       </td>
-                      <td className="py-2.5 px-4 font-mono text-[11px] text-brand-700 dark:text-brand-400">
+                      <td className="font-medium text-brand-700 dark:text-brand-400">
                         {r.voucher_no || `JV-${r.revaluation_no}`}
                       </td>
                     </tr>
@@ -339,7 +333,7 @@ export default function AssetRevaluationPage() {
                   required
                   value={form.asset_id}
                   onChange={handleAssetSelect}
-                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                  className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
                 >
                   <option value="">Select Asset...</option>
                   {assets.map((a) => (
@@ -371,7 +365,7 @@ export default function AssetRevaluationPage() {
                   <select
                     value={form.revaluation_type}
                     onChange={(e) => setForm({ ...form, revaluation_type: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                    className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
                   >
                     <option value="INCREASE">Revaluation Increase (Upward)</option>
                     <option value="IMPAIRMENT">Impairment Loss (Unexpected Drop)</option>
@@ -388,7 +382,7 @@ export default function AssetRevaluationPage() {
                     required
                     value={form.revaluation_date}
                     onChange={(e) => setForm({ ...form, revaluation_date: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                    className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
                   />
                 </div>
               </div>
@@ -405,7 +399,7 @@ export default function AssetRevaluationPage() {
                     placeholder="New appraised value"
                     value={form.new_valuation}
                     onChange={(e) => handleNewValuationChange(e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-brand-500"
+                    className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-brand-500"
                   />
                 </div>
 
@@ -421,7 +415,7 @@ export default function AssetRevaluationPage() {
                     placeholder="e.g. 5000.00"
                     value={form.adjustment_amount}
                     onChange={(e) => setForm({ ...form, adjustment_amount: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-brand-500"
+                    className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-brand-500"
                   />
                 </div>
               </div>
@@ -436,7 +430,7 @@ export default function AssetRevaluationPage() {
                     placeholder="e.g. Knight Frank / Broll"
                     value={form.valuer_name}
                     onChange={(e) => setForm({ ...form, valuer_name: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                    className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
                   />
                 </div>
 
@@ -449,7 +443,7 @@ export default function AssetRevaluationPage() {
                     placeholder="Report # or Certificate ref."
                     value={form.valuation_report_ref}
                     onChange={(e) => setForm({ ...form, valuation_report_ref: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                    className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
                   />
                 </div>
               </div>
@@ -463,7 +457,7 @@ export default function AssetRevaluationPage() {
                   placeholder="Market appreciation, impairment due to physical damage or technological obsolescence..."
                   value={form.valuation_reason}
                   onChange={(e) => setForm({ ...form, valuation_reason: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                  className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
                 />
               </div>
 

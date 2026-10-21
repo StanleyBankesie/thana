@@ -241,7 +241,7 @@ export default function GraphicalChartOfAccountsPage() {
             <Input
               placeholder="Search Accounts..."
               prefix={<SearchOutlined className="text-slate-300" />}
-              className="w-64 h-11 rounded-xl border-slate-200 bg-slate-50 focus:bg-white transition-all shadow-inner"
+              className="w-64 h-11 rounded-xl border-slate-200 bg-white dark:bg-slate-900 focus:bg-white transition-all shadow-inner"
               onChange={onSearch}
               allowClear
             />

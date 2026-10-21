@@ -4,6 +4,7 @@ import { runComplianceNotifications } from "../scripts/complianceNotification.js
 import { runServicingNotifications } from "../scripts/servicingNotification.js";
 import { query } from "../db/pool.js";
 import { autoPostMidnightPosSalesToFinance } from "../services/posFinanceAutoPost.service.js";
+import { cleanupExpiredAiChatHistory } from "../services/ai/banks.history.service.js";
 
 export { autoPostMidnightPosSalesToFinance };
 
@@ -235,5 +236,21 @@ export function initCronJobs() {
     }
   });
   console.log("[Cron] Scheduled servicing notifications for 10:00 AM (0 10 * * *)");
+
+  // Run Banks AI chat history auto-cleanup on startup
+  cleanupExpiredAiChatHistory().catch((err) => {
+    console.error("[Cron] Startup Banks AI chat history cleanup failed:", err?.message || err);
+  });
+
+  // Schedule Banks AI chat history auto-cleanup daily at 1:00 AM (0 1 * * *)
+  cron.schedule("0 1 * * *", async () => {
+    console.log("[Cron] Triggering scheduled daily Banks AI chat history auto-cleanup...");
+    try {
+      await cleanupExpiredAiChatHistory();
+    } catch (err) {
+      console.error("[Cron] Banks AI chat history auto-cleanup failed:", err?.message || err);
+    }
+  });
+  console.log("[Cron] Scheduled Banks AI chat history auto-cleanup for 1:00 AM (0 1 * * *)");
 }
 

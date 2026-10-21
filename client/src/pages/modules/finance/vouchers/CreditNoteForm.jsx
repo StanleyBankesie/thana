@@ -3304,7 +3304,7 @@ export default function CreditNoteForm() {
                     <div className="relative md:w-64 w-full">
                       <label className="label">Customer *</label>
                       <input
-                        className={`input w-full ${readOnly ? "bg-slate-100" : ""}`}
+                        className={`input w-full ${readOnly ? "bg-white dark:bg-slate-900" : ""}`}
                         value={cnCustomerName || customerSearch}
                         placeholder="Search debtor account..."
                         readOnly={readOnly}
@@ -3371,7 +3371,7 @@ export default function CreditNoteForm() {
                         <div className="w-24">
                           <label className="label">Currency</label>
                           <input
-                            className="input w-full bg-slate-50 dark:bg-slate-800"
+                            className="input w-full bg-white dark:bg-slate-900"
                             value={cnCurrencyCode || ""}
                             readOnly
                             placeholder="—"
@@ -3380,7 +3380,7 @@ export default function CreditNoteForm() {
                         <div className="w-24">
                           <label className="label">Balance</label>
                           <input
-                            className="input w-full bg-slate-50 dark:bg-slate-800"
+                            className="input w-full bg-white dark:bg-slate-900"
                             value={
                               cnAccountBalance !== null &&
                               cnAccountBalance !== undefined
@@ -3604,7 +3604,7 @@ export default function CreditNoteForm() {
                       <div>
                         <label className="label">Total Amount</label>
                         <input
-                          className="input bg-slate-50 font-bold text-brand"
+                          className="input bg-white dark:bg-slate-900 font-bold text-brand"
                           value={`GH₵ ${(Number(cnTotalAmount || 0) * Number(dncnExchangeRate || 1)).toFixed(2)}`}
                           readOnly
                         />

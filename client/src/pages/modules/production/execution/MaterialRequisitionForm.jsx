@@ -240,7 +240,7 @@ export default function MaterialRequisitionForm() {
             <label className="text-sm font-bold text-slate-700 dark:text-slate-300">Source Warehouse</label>
             <div className="relative">
               <select 
-                className="w-full pl-4 pr-10 py-3 bg-slate-50 dark:bg-slate-900 border-none rounded-xl focus:ring-2 focus:ring-brand-500 outline-none appearance-none font-bold"
+                className="w-full pl-4 pr-10 py-3 bg-white dark:bg-slate-900 border-none rounded-xl focus:ring-2 focus:ring-brand-500 outline-none appearance-none font-bold"
                 value={formData.warehouse_id}
                 onChange={e => setFormData({...formData, warehouse_id: e.target.value})}
               >
@@ -258,7 +258,7 @@ export default function MaterialRequisitionForm() {
             <label className="text-sm font-bold text-slate-700 dark:text-slate-300">Requisition Priority</label>
             <div className="relative">
               <select 
-                className="w-full pl-4 pr-10 py-3 bg-slate-50 dark:bg-slate-900 border-none rounded-xl focus:ring-2 focus:ring-brand-500 outline-none appearance-none font-bold"
+                className="w-full pl-4 pr-10 py-3 bg-white dark:bg-slate-900 border-none rounded-xl focus:ring-2 focus:ring-brand-500 outline-none appearance-none font-bold"
                 value={formData.priority}
                 onChange={e => setFormData({...formData, priority: e.target.value})}
               >
@@ -279,7 +279,7 @@ export default function MaterialRequisitionForm() {
             <input 
               type="date" 
               required
-              className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border-none rounded-xl focus:ring-2 focus:ring-brand-500 outline-none font-bold"
+              className="w-full px-4 py-3 bg-white dark:bg-slate-900 border-none rounded-xl focus:ring-2 focus:ring-brand-500 outline-none font-bold"
               value={formData.requisition_date}
               onChange={e => setFormData({...formData, requisition_date: e.target.value})}
               disabled={!!id && !hasExceptional("DOCUMENT.EDIT_DATE")}
@@ -291,7 +291,7 @@ export default function MaterialRequisitionForm() {
             <label className="text-sm font-bold text-slate-700 dark:text-slate-300">Justification / Remarks</label>
             <input 
               type="text" 
-              className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border-none rounded-xl focus:ring-2 focus:ring-brand-500 outline-none"
+              className="w-full px-4 py-3 bg-white dark:bg-slate-900 border-none rounded-xl focus:ring-2 focus:ring-brand-500 outline-none"
               value={formData.remarks}
               onChange={e => setFormData({...formData, remarks: e.target.value})}
               placeholder="e.g. Urgent raw material top-up for Assembly Line #2..."
@@ -339,7 +339,7 @@ export default function MaterialRequisitionForm() {
                           <input 
                             id={`prod-mr-item-search-${item.id}`} 
                             autoComplete="off"
-                            className="input w-full py-2 bg-slate-50 dark:bg-slate-900 border-none rounded-xl text-sm font-bold" 
+                            className="input w-full py-2 bg-white dark:bg-slate-900 border-none rounded-xl text-sm font-bold" 
                             placeholder="Type to search items"
                             value={showQuery}
                             onChange={e => {
@@ -386,7 +386,7 @@ export default function MaterialRequisitionForm() {
                       <td className="py-2.5">
                         <input 
                           type="number" 
-                          className="input py-2 bg-slate-50 dark:bg-slate-900 border-none rounded-xl text-sm font-bold text-center" 
+                          className="input py-2 bg-white dark:bg-slate-900 border-none rounded-xl text-sm font-bold text-center" 
                           value={item.qtyRequested}
                           onChange={e => {
                             const val = Math.max(0, parseInt(e.target.value, 10) || 0);
@@ -403,7 +403,7 @@ export default function MaterialRequisitionForm() {
                       </td>
                       <td className="py-2.5">
                         <select 
-                          className="input py-2 bg-slate-50 dark:bg-slate-900 border-none rounded-xl text-xs font-bold" 
+                          className="input py-2 bg-white dark:bg-slate-900 border-none rounded-xl text-xs font-bold" 
                           value={item.uom || ""}
                           onChange={e => {
                             const val = e.target.value;
@@ -424,7 +424,7 @@ export default function MaterialRequisitionForm() {
                       <td className="py-2.5">
                         <input 
                           type="text" 
-                          className="input py-2 bg-slate-50 dark:bg-slate-900 border-none rounded-xl text-xs font-bold" 
+                          className="input py-2 bg-white dark:bg-slate-900 border-none rounded-xl text-xs font-bold" 
                           placeholder="Batch No" 
                           value={item.batchNo || ""}
                           onChange={e => {

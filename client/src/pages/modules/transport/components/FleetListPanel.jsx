@@ -38,7 +38,7 @@ export default function FleetListPanel({ vehicles, onSelectVehicle, selectedVehi
           <input 
             type="text" 
             placeholder="Search vehicle, driver, trip..." 
-            className="w-full pl-9 pr-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand/50"
+            className="w-full pl-9 pr-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand/50"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />

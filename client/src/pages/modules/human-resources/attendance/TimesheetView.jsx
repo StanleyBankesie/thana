@@ -255,7 +255,7 @@ export default function TimesheetView({ isOpen = true, onClose, onSuccess }) {
             </label>
             <div className="flex gap-2">
               <input
-                className="input bg-slate-50 dark:bg-slate-900/50 text-xs flex-1"
+                className="input bg-white dark:bg-slate-900 text-xs flex-1"
                 value={form.location_gps}
                 placeholder="GPS coordinates..."
                 readOnly

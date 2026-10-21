@@ -596,7 +596,7 @@ export default function MaterialUtilizationForm() {
                           <td>
                             <input
                               type="number"
-                              className="input bg-slate-50"
+                              className="input bg-white dark:bg-slate-900"
                               value={item.availableQty}
                               readOnly
                               tabIndex={-1}

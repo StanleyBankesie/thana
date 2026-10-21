@@ -229,7 +229,7 @@ export default function AssetRegisterForm() {
                 value={form.asset_name}
                 onChange={(e) => setForm({ ...form, asset_name: e.target.value })}
                 placeholder="e.g. Caterpillar 500kVA Diesel Generator"
-                className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                className="w-full px-3.5 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
               />
             </div>
 
@@ -238,7 +238,7 @@ export default function AssetRegisterForm() {
                 <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
                   Asset Category *
                 </label>
-                <Link to="/assets/setup" className="text-[11px] text-slate-400 hover:text-brand-600">
+                <Link to="/assets/categories" className="text-[11px] text-slate-400 hover:text-brand-600">
                   Setup Categories
                 </Link>
               </div>
@@ -246,7 +246,7 @@ export default function AssetRegisterForm() {
                 required
                 value={form.category_id}
                 onChange={handleCategoryChange}
-                className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                className="w-full px-3.5 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
               >
                 <option value="">Select Category...</option>
                 {categories.map((c) => (
@@ -276,7 +276,7 @@ export default function AssetRegisterForm() {
                 value={form.asset_code}
                 onChange={(e) => setForm({ ...form, asset_code: e.target.value })}
                 placeholder="Populated from nomenclature rule or enter tag"
-                className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-mono focus:outline-none focus:ring-2 focus:ring-brand-500"
+                className="w-full px-3.5 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-mono focus:outline-none focus:ring-2 focus:ring-brand-500"
               />
             </div>
 
@@ -289,7 +289,7 @@ export default function AssetRegisterForm() {
                 value={form.barcode}
                 onChange={(e) => setForm({ ...form, barcode: e.target.value })}
                 placeholder="Scan or enter barcode number"
-                className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-mono focus:outline-none focus:ring-2 focus:ring-brand-500"
+                className="w-full px-3.5 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-mono focus:outline-none focus:ring-2 focus:ring-brand-500"
               />
             </div>
 
@@ -302,7 +302,7 @@ export default function AssetRegisterForm() {
                 value={form.serial_number}
                 onChange={(e) => setForm({ ...form, serial_number: e.target.value })}
                 placeholder="Manufacturer serial no."
-                className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                className="w-full px-3.5 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
               />
             </div>
 
@@ -321,7 +321,7 @@ export default function AssetRegisterForm() {
                 value={form.manufacturer}
                 onChange={(e) => setForm({ ...form, manufacturer: e.target.value })}
                 placeholder="Select or enter manufacturer brand..."
-                className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                className="w-full px-3.5 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
               />
               <datalist id="manufacturers-list">
                 {manufacturers.map((m) => (
@@ -351,7 +351,7 @@ export default function AssetRegisterForm() {
                 required
                 value={form.capitalization_date}
                 onChange={(e) => setForm({ ...form, capitalization_date: e.target.value })}
-                className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                className="w-full px-3.5 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
               />
             </div>
 
@@ -366,7 +366,7 @@ export default function AssetRegisterForm() {
                 value={form.purchase_cost}
                 onChange={(e) => setForm({ ...form, purchase_cost: e.target.value })}
                 placeholder="0.00"
-                className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-semibold text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-brand-500"
+                className="w-full px-3.5 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-semibold text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-brand-500"
               />
             </div>
 
@@ -380,7 +380,7 @@ export default function AssetRegisterForm() {
                 value={form.salvage_value}
                 onChange={(e) => setForm({ ...form, salvage_value: e.target.value })}
                 placeholder="0.00"
-                className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                className="w-full px-3.5 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
               />
             </div>
 
@@ -391,7 +391,7 @@ export default function AssetRegisterForm() {
               <select
                 value={form.depreciation_method}
                 onChange={(e) => setForm({ ...form, depreciation_method: e.target.value })}
-                className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                className="w-full px-3.5 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
               >
                 <option value="STRAIGHT_LINE">Straight-Line (Equal Monthly)</option>
                 <option value="REDUCING_BALANCE">Reducing Balance</option>
@@ -410,7 +410,7 @@ export default function AssetRegisterForm() {
                 min="0"
                 value={form.useful_life_years}
                 onChange={(e) => setForm({ ...form, useful_life_years: e.target.value })}
-                className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                className="w-full px-3.5 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
               />
             </div>
 
@@ -425,7 +425,7 @@ export default function AssetRegisterForm() {
                 max="100"
                 value={form.depreciation_rate_pct}
                 onChange={(e) => setForm({ ...form, depreciation_rate_pct: e.target.value })}
-                className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                className="w-full px-3.5 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
               />
             </div>
           </div>
@@ -455,7 +455,7 @@ export default function AssetRegisterForm() {
                   setForm({ ...form, property_id: pid });
                   if (!form.asset_code && !isEdit) handleAutoGenerateTag(form.category_id, pid);
                 }}
-                className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                className="w-full px-3.5 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
               >
                 <option value="">Select Facility / Site...</option>
                 {properties.map((p) => (
@@ -473,7 +473,7 @@ export default function AssetRegisterForm() {
               <select
                 value={form.status}
                 onChange={(e) => setForm({ ...form, status: e.target.value })}
-                className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                className="w-full px-3.5 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
               >
                 <option value="ACTIVE">Active & Operational</option>
                 <option value="UNDER_MAINTENANCE">Under Maintenance</option>
@@ -491,7 +491,7 @@ export default function AssetRegisterForm() {
                 value={form.notes}
                 onChange={(e) => setForm({ ...form, notes: e.target.value })}
                 placeholder="Additional notes, warranty terms, or installation details..."
-                className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                className="w-full px-3.5 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
               />
             </div>
           </div>

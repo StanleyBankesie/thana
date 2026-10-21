@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { api } from "../../../api/client.js";
 import { toast } from "react-toastify";
 import { useAuth } from "../../../auth/AuthContext.jsx";
-import { Brain, Sparkles, CheckCircle, ShieldCheck } from "lucide-react";
+import { Brain, Sparkles, CheckCircle, ShieldCheck, Clock, Save } from "lucide-react";
 import BranchDataSharingSection from "../../../components/BranchDataSharingSection.jsx";
 import ExecutiveOverviewIsolationSection from "../../../components/ExecutiveOverviewIsolationSection.jsx";
 import BiIsolationSection from "../../../components/BiIsolationSection.jsx";
@@ -77,6 +77,11 @@ export default function GeneralSettingsPage() {
     return true;
   });
 
+  // Banks AI Retention & History Policy State
+  const [retentionDays, setRetentionDays] = useState(30);
+  const [retentionSaving, setRetentionSaving] = useState(false);
+  const [chatHistoryStats, setChatHistoryStats] = useState(null);
+
   async function toggleBanksAi(checked) {
     setBanksAiEnabled(checked);
     try {
@@ -93,6 +98,13 @@ export default function GeneralSettingsPage() {
           : "Ask Banks AI floating assistant is now disabled and hidden.",
       );
     } catch (e) {
+      setBanksAiEnabled(!checked);
+      localStorage.setItem("omnisuite.banks_ai_enabled", String(!checked));
+      window.dispatchEvent(
+        new CustomEvent("omni.banks_ai.visibility", {
+          detail: { enabled: !checked },
+        }),
+      );
       toast.error("Failed to update Ask Banks visibility");
     }
   }
@@ -159,6 +171,20 @@ export default function GeneralSettingsPage() {
             try {
               localStorage.setItem("omnisuite.banks_ai_enabled", String(res.data.enabled));
             } catch {}
+          }
+        }
+      } catch {}
+    })();
+
+    (async () => {
+      try {
+        const res = await api.get("/ai/retention-settings");
+        if (mounted && res.data) {
+          if (res.data.retentionDays !== undefined) {
+            setRetentionDays(res.data.retentionDays);
+          }
+          if (res.data.stats) {
+            setChatHistoryStats(res.data.stats);
           }
         }
       } catch {}
@@ -239,6 +265,26 @@ export default function GeneralSettingsPage() {
       toast.error("Failed to test connection to OpenRouter API.");
     } finally {
       setOpenRouterTesting(false);
+    }
+  }
+
+  async function saveRetentionSettings() {
+    const days = parseInt(retentionDays, 10);
+    if (isNaN(days) || days < 0) {
+      toast.error("Please enter a valid number of days (0 or greater).");
+      return;
+    }
+    try {
+      setRetentionSaving(true);
+      const res = await api.post("/ai/retention-settings", { retentionDays: days });
+      toast.success(res.data?.message || `Chat retention set to ${days === 0 ? "Indefinite" : `${days} days`}.`);
+      if (res.data?.stats) {
+        setChatHistoryStats(res.data.stats);
+      }
+    } catch (e) {
+      toast.error(e?.response?.data?.message || e?.message || "Failed to save retention policy.");
+    } finally {
+      setRetentionSaving(false);
     }
   }
 
@@ -805,6 +851,73 @@ export default function GeneralSettingsPage() {
                 <p>
                   If Groq reaches its daily free token quota (HTTP 429), Banks AI automatically routes prompts to OpenRouter <strong>0x Alpha</strong> with zero user downtime.
                 </p>
+              </div>
+            </div>
+
+            {/* Banks AI Chat History Retention & Auto-Deletion Policy */}
+            <div className="pt-4 border-t border-slate-100 dark:border-slate-800 space-y-4">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="space-y-0.5">
+                  <div className="text-sm font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
+                    <Clock size={16} className="text-brand-600 dark:text-brand-400" />
+                    <span>Banks AI Chat History & Auto-Deletion Retention Policy</span>
+                  </div>
+                  <div className="text-xs text-slate-600 dark:text-slate-400">
+                    Set the number of days after which the system automatically deletes past chat conversations. Set to 0 to keep history indefinitely.
+                  </div>
+                </div>
+
+                {chatHistoryStats && (
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-[11px] font-medium bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 px-2.5 py-1 rounded-full border border-slate-200 dark:border-slate-700">
+                      Total Messages: <strong>{chatHistoryStats.totalMessages ?? 0}</strong>
+                    </span>
+                    <span className="text-[11px] font-medium bg-brand-50 dark:bg-brand-950/40 text-brand-700 dark:text-brand-300 px-2.5 py-1 rounded-full border border-brand-200 dark:border-brand-800">
+                      Retention: <strong>{Number(retentionDays) > 0 ? `${retentionDays} Days` : "Indefinite"}</strong>
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center bg-slate-50 dark:bg-slate-800/30 p-4 rounded-xl border border-slate-200/80 dark:border-slate-800">
+                <div className="md:col-span-5 space-y-1">
+                  <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block">
+                    Auto-Delete History After (Days)
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="number"
+                      min="0"
+                      max="3650"
+                      step="1"
+                      placeholder="e.g. 30 (0 = Keep indefinitely)"
+                      className="input w-full text-xs pr-14"
+                      value={retentionDays}
+                      onChange={(e) => setRetentionDays(e.target.value)}
+                      disabled={retentionSaving}
+                    />
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400 pointer-events-none">
+                      Days
+                    </span>
+                  </div>
+                  <span className="text-[10px] text-slate-500 dark:text-slate-400 block">
+                    {Number(retentionDays) > 0
+                      ? `System automatically deletes records older than ${retentionDays} day(s).`
+                      : "0 = Chat conversations are kept indefinitely without auto-deletion."}
+                  </span>
+                </div>
+
+                <div className="md:col-span-7 flex flex-wrap items-center justify-start md:justify-end gap-2 pt-2 md:pt-0">
+                  <button
+                    type="button"
+                    className="btn-primary text-xs px-3.5 py-2 flex items-center gap-1.5"
+                    onClick={saveRetentionSettings}
+                    disabled={retentionSaving}
+                  >
+                    <Save size={13} />
+                    {retentionSaving ? "Saving Policy..." : "Save Retention Policy"}
+                  </button>
+                </div>
               </div>
             </div>
           </div>

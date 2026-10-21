@@ -39,11 +39,11 @@ function CrudSection({ title, icon, emptyMsg, columns, rows, loading, onAdd, onE
         </button>
       </div>
       <div className="bg-white dark:bg-slate-800 rounded-lg shadow-sm overflow-hidden border border-slate-100 dark:border-slate-700">
-        <table className="min-w-full">
-          <thead className="bg-slate-50 dark:bg-slate-900/50">
-            <tr className="text-left text-xs font-bold text-slate-500 uppercase tracking-wider">
-              {columns.map(c => <th key={c} className="px-4 py-3">{c}</th>)}
-              <th className="px-4 py-3 text-right">Actions</th>
+        <table className="table">
+          <thead>
+            <tr>
+              {columns.map(c => <th key={c}>{c}</th>)}
+              <th className="text-right">Actions</th>
             </tr>
           </thead>
           <tbody>

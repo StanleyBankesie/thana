@@ -666,7 +666,7 @@ export default function OpeningBalancesPage() {
                       <input
                         className={`input text-right font-mono text-xs py-1.5 px-2 w-full ${
                           r.isBase 
-                            ? "bg-slate-50 dark:bg-slate-800 text-slate-400 cursor-not-allowed" 
+                            ? "bg-white dark:bg-slate-900 text-slate-400 cursor-not-allowed" 
                             : "font-bold text-indigo-600 dark:text-indigo-400 border-indigo-300"
                         }`}
                         type="number"

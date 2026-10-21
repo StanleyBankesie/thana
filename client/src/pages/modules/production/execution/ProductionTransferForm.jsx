@@ -143,7 +143,7 @@ export default function ProductionTransferForm() {
             <div className="relative">
               <select 
                 required
-                className="w-full pl-4 pr-10 py-3 bg-slate-50 dark:bg-slate-900 border-none rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none appearance-none font-bold text-emerald-700"
+                className="w-full pl-4 pr-10 py-3 bg-white dark:bg-slate-900 border-none rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none appearance-none font-bold text-emerald-700"
                 value={formData.target_warehouse_id}
                 onChange={e => setFormData({...formData, target_warehouse_id: e.target.value})}
               >
@@ -159,7 +159,7 @@ export default function ProductionTransferForm() {
             <label className="text-sm font-bold text-slate-700 dark:text-slate-300">Related Plan</label>
             <div className="relative">
               <select 
-                className="w-full pl-4 pr-10 py-3 bg-slate-50 dark:bg-slate-900 border-none rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none appearance-none font-bold"
+                className="w-full pl-4 pr-10 py-3 bg-white dark:bg-slate-900 border-none rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none appearance-none font-bold"
                 value={formData.plan_id}
                 onChange={e => setFormData({...formData, plan_id: e.target.value})}
               >
@@ -178,7 +178,7 @@ export default function ProductionTransferForm() {
             <input 
               type="date" 
               required
-              className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border-none rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none font-bold"
+              className="w-full px-4 py-3 bg-white dark:bg-slate-900 border-none rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none font-bold"
               value={formData.transfer_date}
               onChange={e => setFormData({...formData, transfer_date: e.target.value})}
             
@@ -189,7 +189,7 @@ export default function ProductionTransferForm() {
             <label className="text-sm font-bold text-slate-700 dark:text-slate-300">Remarks</label>
             <input 
               type="text" 
-              className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border-none rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none"
+              className="w-full px-4 py-3 bg-white dark:bg-slate-900 border-none rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none"
               value={formData.remarks}
               onChange={e => setFormData({...formData, remarks: e.target.value})}
               placeholder="Source section, batch no..."
@@ -224,7 +224,7 @@ export default function ProductionTransferForm() {
                   <div className="relative">
                     <select 
                       required
-                      className="w-full pl-3 pr-8 py-2.5 bg-slate-50 dark:bg-slate-900 border-none rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none appearance-none text-sm font-bold"
+                      className="w-full pl-3 pr-8 py-2.5 bg-white dark:bg-slate-900 border-none rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none appearance-none text-sm font-bold"
                       value={item.item_id}
                       onChange={e => updateItem(index, 'item_id', e.target.value)}
                     >
@@ -243,7 +243,7 @@ export default function ProductionTransferForm() {
                     type="number" 
                     step="0.001"
                     required
-                    className="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-900 border-none rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-sm font-bold text-center"
+                    className="w-full px-3 py-2.5 bg-white dark:bg-slate-900 border-none rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-sm font-bold text-center"
                     value={item.qty}
                     onChange={e => updateItem(index, 'qty', e.target.value)}
                   />
@@ -254,7 +254,7 @@ export default function ProductionTransferForm() {
                   <input 
                     type="text" 
                     disabled
-                    className="w-full px-3 py-2.5 bg-slate-100 dark:bg-slate-900/50 border-none rounded-xl text-sm font-medium text-slate-500"
+                    className="w-full px-3 py-2.5 bg-white dark:bg-slate-900 border-none rounded-xl text-sm font-medium text-slate-500"
                     value={item.uom}
                   />
                 </div>

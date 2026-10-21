@@ -138,7 +138,7 @@ export default function LeaveApplicationForm() {
           </div>
           <div>
             <label className="label">Total Days</label>
-            <input className="input bg-slate-50" value={form.total_days} readOnly />
+            <input className="input bg-white dark:bg-slate-900" value={form.total_days} readOnly />
           </div>
           <div>
             <label className="label">Reason</label>

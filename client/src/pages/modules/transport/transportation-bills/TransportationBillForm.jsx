@@ -1010,7 +1010,7 @@ export default function TransportationBillForm() {
           </div>
         </div>
         <div className="p-6">
-          <textarea className={`w-full p-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none transition-all resize-none text-slate-700 dark:text-slate-300 ${disabledClass}`} rows={3} value={bill.notes} onChange={(e) => update("notes", e.target.value)} placeholder="Type any additional notes or terms here..." readOnly={readOnly} />
+          <textarea className={`w-full p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none transition-all resize-none text-slate-700 dark:text-slate-300 ${disabledClass}`} rows={3} value={bill.notes} onChange={(e) => update("notes", e.target.value)} placeholder="Type any additional notes or terms here..." readOnly={readOnly} />
         </div>
       </div>
 

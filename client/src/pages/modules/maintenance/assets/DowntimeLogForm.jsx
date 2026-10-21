@@ -114,7 +114,7 @@ export default function DowntimeLogForm() {
           <div className="relative">
             <select 
               required
-              className="w-full pl-4 pr-10 py-3.5 bg-slate-50 dark:bg-slate-900 border-none rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none appearance-none font-bold text-slate-900 dark:text-white"
+              className="w-full pl-4 pr-10 py-3.5 bg-white dark:bg-slate-900 border-none rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none appearance-none font-bold text-slate-900 dark:text-white"
               value={formData.asset_id}
               onChange={e => setFormData({...formData, asset_id: e.target.value})}
             >
@@ -156,7 +156,7 @@ export default function DowntimeLogForm() {
           <input 
             type="datetime-local" 
             required
-            className="w-full px-4 py-3.5 bg-slate-50 dark:bg-slate-900 border-none rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none font-bold text-slate-900 dark:text-white"
+            className="w-full px-4 py-3.5 bg-white dark:bg-slate-900 border-none rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none font-bold text-slate-900 dark:text-white"
             value={formData.start_time}
             onChange={e => setFormData({...formData, start_time: e.target.value})}
           />
@@ -168,7 +168,7 @@ export default function DowntimeLogForm() {
           </label>
           <input 
             type="datetime-local" 
-            className="w-full px-4 py-3.5 bg-slate-50 dark:bg-slate-900 border-none rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none font-bold text-slate-900 dark:text-white"
+            className="w-full px-4 py-3.5 bg-white dark:bg-slate-900 border-none rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none font-bold text-slate-900 dark:text-white"
             value={formData.end_time}
             onChange={e => setFormData({...formData, end_time: e.target.value})}
           />
@@ -200,7 +200,7 @@ export default function DowntimeLogForm() {
           <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Root Cause / Reason</label>
           <textarea 
             required
-            className="w-full px-4 py-4 bg-slate-50 dark:bg-slate-900 border-none rounded-[2rem] focus:ring-2 focus:ring-indigo-500 outline-none font-medium text-slate-700 dark:text-slate-200 min-h-[120px]"
+            className="w-full px-4 py-4 bg-white dark:bg-slate-900 border-none rounded-[2rem] focus:ring-2 focus:ring-indigo-500 outline-none font-medium text-slate-700 dark:text-slate-200 min-h-[120px]"
             value={formData.reason}
             onChange={e => setFormData({...formData, reason: e.target.value})}
             placeholder="Describe what happened (e.g., Motor burnout, Sensor failure)..."

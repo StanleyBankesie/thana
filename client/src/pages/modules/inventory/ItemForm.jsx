@@ -1173,7 +1173,7 @@ export default function ItemForm({
                       <div className="relative">
                         <input
                           type="text"
-                          className="input w-full bg-slate-50 dark:bg-slate-800/60 font-mono text-slate-700 dark:text-slate-300 border-dashed cursor-not-allowed"
+                          className="input w-full bg-white dark:bg-slate-900 font-mono text-slate-700 dark:text-slate-300 border-dashed cursor-not-allowed"
                           value={formData.item_code || "AUTO-GENERATED"}
                           readOnly
                           aria-readonly="true"
@@ -1279,7 +1279,7 @@ export default function ItemForm({
                       <div className="relative">
                         <input
                           type="text"
-                          className="input w-full bg-slate-50 dark:bg-slate-800/60 text-slate-700 dark:text-slate-300 cursor-not-allowed border-dashed"
+                          className="input w-full bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 cursor-not-allowed border-dashed"
                           value={
                             selectedGroupObj?.group_name ||
                             itemGroups.find(
@@ -1304,7 +1304,7 @@ export default function ItemForm({
                       <div className="relative">
                         <input
                           type="text"
-                          className="input w-full bg-slate-50 dark:bg-slate-800/60 text-slate-700 dark:text-slate-300 cursor-not-allowed border-dashed"
+                          className="input w-full bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 cursor-not-allowed border-dashed"
                           value={
                             formData.item_type
                               ? formData.item_type.replace(/_/g, " ")

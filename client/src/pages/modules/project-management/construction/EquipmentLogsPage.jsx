@@ -260,7 +260,7 @@ export default function EquipmentLogsPage() {
                   <label className="text-xs font-bold text-slate-500 uppercase">Equipment / Machine</label>
                   <select
                     required
-                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-slate-50 dark:bg-slate-900"
+                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-white dark:bg-slate-900"
                     value={form.equipment_id}
                     onChange={e => setForm({ ...form, equipment_id: e.target.value })}
                   >
@@ -283,7 +283,7 @@ export default function EquipmentLogsPage() {
                   <input
                     type="date"
                     required
-                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-slate-50 dark:bg-slate-900 font-mono"
+                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-white dark:bg-slate-900 font-mono"
                     value={form.log_date}
                     onChange={e => setForm({ ...form, log_date: e.target.value })}
                   />
@@ -297,7 +297,7 @@ export default function EquipmentLogsPage() {
                     type="number"
                     step="0.5"
                     required
-                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-slate-50 dark:bg-slate-900 font-mono font-bold"
+                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-white dark:bg-slate-900 font-mono font-bold"
                     value={form.hours_worked}
                     onChange={e => setForm({ ...form, hours_worked: Number(e.target.value) })}
                   />
@@ -307,7 +307,7 @@ export default function EquipmentLogsPage() {
                   <input
                     type="number"
                     step="0.5"
-                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-slate-50 dark:bg-slate-900 font-mono"
+                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-white dark:bg-slate-900 font-mono"
                     value={form.hours_idle}
                     onChange={e => setForm({ ...form, hours_idle: Number(e.target.value) })}
                   />
@@ -317,7 +317,7 @@ export default function EquipmentLogsPage() {
                   <input
                     type="number"
                     step="0.5"
-                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-slate-50 dark:bg-slate-900 font-mono"
+                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-white dark:bg-slate-900 font-mono"
                     value={form.hours_breakdown}
                     onChange={e => setForm({ ...form, hours_breakdown: Number(e.target.value) })}
                   />
@@ -329,7 +329,7 @@ export default function EquipmentLogsPage() {
                   <label className="text-xs font-bold text-slate-500 uppercase">Fuel Used (Ltrs)</label>
                   <input
                     type="number"
-                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-slate-50 dark:bg-slate-900 font-mono"
+                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-white dark:bg-slate-900 font-mono"
                     value={form.fuel_consumed_litres}
                     onChange={e => setForm({ ...form, fuel_consumed_litres: Number(e.target.value) })}
                   />
@@ -338,7 +338,7 @@ export default function EquipmentLogsPage() {
                   <label className="text-xs font-bold text-slate-500 uppercase">Rate (GHS/hr)</label>
                   <input
                     type="number"
-                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-slate-50 dark:bg-slate-900 font-mono"
+                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-white dark:bg-slate-900 font-mono"
                     value={form.hourly_rate}
                     onChange={e => setForm({ ...form, hourly_rate: Number(e.target.value) })}
                   />
@@ -348,7 +348,7 @@ export default function EquipmentLogsPage() {
                   <input
                     type="text"
                     placeholder="Operator"
-                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-slate-50 dark:bg-slate-900"
+                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-white dark:bg-slate-900"
                     value={form.operator_name}
                     onChange={e => setForm({ ...form, operator_name: e.target.value })}
                   />
@@ -359,7 +359,7 @@ export default function EquipmentLogsPage() {
                 <label className="text-xs font-bold text-slate-500 uppercase">Notes / Maintenance Remarks</label>
                 <textarea
                   placeholder="Service interval, tire pressure, grease..."
-                  className="w-full px-3 py-2 border rounded-lg text-sm bg-slate-50 dark:bg-slate-900 min-h-[60px]"
+                  className="w-full px-3 py-2 border rounded-lg text-sm bg-white dark:bg-slate-900 min-h-[60px]"
                   value={form.remarks}
                   onChange={e => setForm({ ...form, remarks: e.target.value })}
                 />

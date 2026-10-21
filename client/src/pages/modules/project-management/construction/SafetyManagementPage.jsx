@@ -344,7 +344,7 @@ export default function SafetyManagementPage() {
                   <input
                     type="date"
                     required
-                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-slate-50 dark:bg-slate-900 font-mono"
+                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-white dark:bg-slate-900 font-mono"
                     value={incidentForm.incident_date}
                     onChange={e => setIncidentForm({ ...incidentForm, incident_date: e.target.value })}
                   />
@@ -352,7 +352,7 @@ export default function SafetyManagementPage() {
                 <div className="space-y-1">
                   <label className="text-xs font-bold text-slate-500 uppercase">Classification</label>
                   <select
-                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-slate-50 dark:bg-slate-900"
+                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-white dark:bg-slate-900"
                     value={incidentForm.incident_type}
                     onChange={e => setIncidentForm({ ...incidentForm, incident_type: e.target.value })}
                   >
@@ -371,7 +371,7 @@ export default function SafetyManagementPage() {
                   <input
                     type="text"
                     placeholder="e.g. Scaffolding Bay 3"
-                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-slate-50 dark:bg-slate-900"
+                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-white dark:bg-slate-900"
                     value={incidentForm.location}
                     onChange={e => setIncidentForm({ ...incidentForm, location: e.target.value })}
                   />
@@ -381,7 +381,7 @@ export default function SafetyManagementPage() {
                   <input
                     type="text"
                     placeholder="Worker Name / Trade"
-                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-slate-50 dark:bg-slate-900"
+                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-white dark:bg-slate-900"
                     value={incidentForm.injured_person_name}
                     onChange={e => setIncidentForm({ ...incidentForm, injured_person_name: e.target.value })}
                   />
@@ -393,7 +393,7 @@ export default function SafetyManagementPage() {
                 <textarea
                   required
                   placeholder="Detail what occurred..."
-                  className="w-full px-3 py-2 border rounded-lg text-sm bg-slate-50 dark:bg-slate-900 min-h-[60px]"
+                  className="w-full px-3 py-2 border rounded-lg text-sm bg-white dark:bg-slate-900 min-h-[60px]"
                   value={incidentForm.description}
                   onChange={e => setIncidentForm({ ...incidentForm, description: e.target.value })}
                 />
@@ -404,7 +404,7 @@ export default function SafetyManagementPage() {
                   <label className="text-xs font-bold text-slate-500 uppercase">Days Lost</label>
                   <input
                     type="number"
-                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-slate-50 dark:bg-slate-900 font-mono"
+                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-white dark:bg-slate-900 font-mono"
                     value={incidentForm.days_lost}
                     onChange={e => setIncidentForm({ ...incidentForm, days_lost: Number(e.target.value) })}
                   />
@@ -412,7 +412,7 @@ export default function SafetyManagementPage() {
                 <div className="space-y-1">
                   <label className="text-xs font-bold text-slate-500 uppercase">Statutory Report Filed?</label>
                   <select
-                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-slate-50 dark:bg-slate-900"
+                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-white dark:bg-slate-900"
                     value={incidentForm.reported_to_authority}
                     onChange={e => setIncidentForm({ ...incidentForm, reported_to_authority: e.target.value })}
                   >
@@ -454,7 +454,7 @@ export default function SafetyManagementPage() {
                   type="text"
                   required
                   placeholder="e.g. Scaffolding tag inspection and tie-offs"
-                  className="w-full px-3 py-1.5 border rounded-lg text-sm bg-slate-50 dark:bg-slate-900"
+                  className="w-full px-3 py-1.5 border rounded-lg text-sm bg-white dark:bg-slate-900"
                   value={talkForm.topic}
                   onChange={e => setTalkForm({ ...talkForm, topic: e.target.value })}
                 />
@@ -466,7 +466,7 @@ export default function SafetyManagementPage() {
                   <input
                     type="date"
                     required
-                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-slate-50 dark:bg-slate-900 font-mono"
+                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-white dark:bg-slate-900 font-mono"
                     value={talkForm.talk_date}
                     onChange={e => setTalkForm({ ...talkForm, talk_date: e.target.value })}
                   />
@@ -477,7 +477,7 @@ export default function SafetyManagementPage() {
                     type="number"
                     min="1"
                     required
-                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-slate-50 dark:bg-slate-900 font-mono"
+                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-white dark:bg-slate-900 font-mono"
                     value={talkForm.attendee_count}
                     onChange={e => setTalkForm({ ...talkForm, attendee_count: Number(e.target.value) })}
                   />
@@ -489,7 +489,7 @@ export default function SafetyManagementPage() {
                 <input
                   type="text"
                   placeholder="HSE Officer / Site Supervisor"
-                  className="w-full px-3 py-1.5 border rounded-lg text-sm bg-slate-50 dark:bg-slate-900"
+                  className="w-full px-3 py-1.5 border rounded-lg text-sm bg-white dark:bg-slate-900"
                   value={talkForm.conductor_name}
                   onChange={e => setTalkForm({ ...talkForm, conductor_name: e.target.value })}
                 />
@@ -499,7 +499,7 @@ export default function SafetyManagementPage() {
                 <label className="text-xs font-bold text-slate-500 uppercase">Key Points & Operative Feedback</label>
                 <textarea
                   placeholder="Summary of points emphasized, PPE distributed..."
-                  className="w-full px-3 py-2 border rounded-lg text-sm bg-slate-50 dark:bg-slate-900 min-h-[60px]"
+                  className="w-full px-3 py-2 border rounded-lg text-sm bg-white dark:bg-slate-900 min-h-[60px]"
                   value={talkForm.notes}
                   onChange={e => setTalkForm({ ...talkForm, notes: e.target.value })}
                 />

@@ -1209,7 +1209,7 @@ export default function DirectPurchase() {
                 <input
                   type="text"
                   disabled
-                  className="input w-full text-xs bg-slate-50 text-slate-700 font-semibold"
+                  className="input w-full text-xs bg-white dark:bg-slate-900 text-slate-700 font-semibold"
                   value={(Number(newItem.qty || 0) * Number(newItem.unit_price || 0)).toFixed(2)}
                 />
               </div>

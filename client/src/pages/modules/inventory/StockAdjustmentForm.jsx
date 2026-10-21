@@ -489,7 +489,7 @@ export default function StockAdjustmentForm() {
                     <label className="label">Adjustment No</label>
                     <input
                       type="text"
-                      className="input bg-slate-100"
+                      className="input bg-white dark:bg-slate-900"
                       value={formData.adjustmentNo}
                       disabled
                     />
@@ -537,7 +537,7 @@ export default function StockAdjustmentForm() {
                     <label className="label">Adjustment Type</label>
                     <input
                       type="text"
-                      className="input bg-slate-100"
+                      className="input bg-white dark:bg-slate-900"
                       value={formData.adjustmentType}
                       disabled
                     />
@@ -753,7 +753,7 @@ export default function StockAdjustmentForm() {
                             <td className="p-2">
                               <input
                                 type="text"
-                                className="input text-sm py-1 bg-slate-50 w-24"
+                                className="input text-sm py-1 bg-white dark:bg-slate-900 w-24"
                                 value={item.itemCode || ""}
                                 readOnly
                               />
@@ -761,7 +761,7 @@ export default function StockAdjustmentForm() {
                             <td className="p-2">
                               <input
                                 type="number"
-                                className="input text-sm py-1 bg-slate-50 w-16"
+                                className="input text-sm py-1 bg-white dark:bg-slate-900 w-16"
                                 value={item.currentStock}
                                 readOnly
                               />

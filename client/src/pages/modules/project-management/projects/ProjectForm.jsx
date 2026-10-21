@@ -182,7 +182,7 @@ export default function ProjectForm() {
                   <input 
                     type="text" 
                     required
-                    className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none font-medium text-sm"
+                    className="w-full px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none font-medium text-sm"
                     placeholder="PRJ-001"
                     value={form.project_code}
                     onChange={e => setForm({...form, project_code: e.target.value})}
@@ -193,7 +193,7 @@ export default function ProjectForm() {
                   <input 
                     type="text" 
                     required
-                    className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none font-medium text-sm"
+                    className="w-full px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none font-medium text-sm"
                     placeholder="Project Name"
                     value={form.project_name}
                     onChange={e => setForm({...form, project_name: e.target.value})}
@@ -204,7 +204,7 @@ export default function ProjectForm() {
               <div className="space-y-1">
                 <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Client / Organization</label>
                 <select 
-                  className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none font-medium text-sm"
+                  className="w-full px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none font-medium text-sm"
                   value={form.client_name}
                   onChange={e => setForm({...form, client_name: e.target.value})}
                 >
@@ -226,7 +226,7 @@ export default function ProjectForm() {
                   <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Start Date</label>
                   <input 
                     type="date" 
-                    className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-sm"
+                    className="w-full px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-sm"
                     value={form.start_date}
                     onChange={e => setForm({...form, start_date: e.target.value})}
                   
@@ -237,7 +237,7 @@ export default function ProjectForm() {
                   <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Target End Date</label>
                   <input 
                     type="date" 
-                    className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-sm"
+                    className="w-full px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-sm"
                     value={form.end_date}
                     onChange={e => setForm({...form, end_date: e.target.value})}
                   
@@ -250,7 +250,7 @@ export default function ProjectForm() {
                 <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Project Manager</label>
                 <div className="relative">
                   <select 
-                    className="w-full pl-4 pr-10 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none font-medium text-sm appearance-none"
+                    className="w-full pl-4 pr-10 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none font-medium text-sm appearance-none"
                     value={form.manager_id}
                     onChange={e => {
                       const m = managers.find(x => String(x.user_id) === String(e.target.value));
@@ -268,7 +268,7 @@ export default function ProjectForm() {
             <div className="space-y-1">
               <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Project Scope & Remarks</label>
               <textarea 
-                className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none font-medium text-sm min-h-[120px]"
+                className="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none font-medium text-sm min-h-[120px]"
                 placeholder="Objectives and constraints..."
                 value={form.remarks}
                 onChange={e => setForm({...form, remarks: e.target.value})}
@@ -287,7 +287,7 @@ export default function ProjectForm() {
               <div className="space-y-1">
                 <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Construction Type</label>
                 <select
-                  className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none font-medium text-sm"
+                  className="w-full px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none font-medium text-sm"
                   value={form.project_type}
                   onChange={e => setForm({...form, project_type: e.target.value})}
                 >
@@ -309,7 +309,7 @@ export default function ProjectForm() {
                 <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Contract Reference No.</label>
                 <input
                   type="text"
-                  className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-sm"
+                  className="w-full px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-sm"
                   placeholder="e.g. CNT-2026-088"
                   value={form.contract_ref_no || ""}
                   onChange={e => setForm({...form, contract_ref_no: e.target.value})}
@@ -323,7 +323,7 @@ export default function ProjectForm() {
                 <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Original Contract Sum</label>
                 <input
                   type="number"
-                  className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-sm"
+                  className="w-full px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-sm"
                   value={form.contract_sum}
                   onChange={e => setForm({...form, contract_sum: Number(e.target.value), revised_contract_sum: form.revised_contract_sum || Number(e.target.value)})}
                 />
@@ -332,7 +332,7 @@ export default function ProjectForm() {
                 <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Revised Contract Sum</label>
                 <input
                   type="number"
-                  className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-sm"
+                  className="w-full px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-sm"
                   value={form.revised_contract_sum}
                   onChange={e => setForm({...form, revised_contract_sum: Number(e.target.value)})}
                 />
@@ -342,7 +342,7 @@ export default function ProjectForm() {
                 <input
                   type="number"
                   step="0.1"
-                  className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-sm"
+                  className="w-full px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-sm"
                   value={form.retention_percent}
                   onChange={e => setForm({...form, retention_percent: Number(e.target.value)})}
                 />
@@ -351,7 +351,7 @@ export default function ProjectForm() {
                 <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Retention Cap</label>
                 <input
                   type="number"
-                  className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-sm"
+                  className="w-full px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-sm"
                   value={form.retention_cap}
                   onChange={e => setForm({...form, retention_cap: Number(e.target.value)})}
                 />
@@ -363,7 +363,7 @@ export default function ProjectForm() {
                 <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Advance Payment Amount</label>
                 <input
                   type="number"
-                  className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-sm"
+                  className="w-full px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-sm"
                   value={form.advance_payment_amount}
                   onChange={e => setForm({...form, advance_payment_amount: Number(e.target.value)})}
                 />
@@ -373,7 +373,7 @@ export default function ProjectForm() {
                 <input
                   type="number"
                   step="0.1"
-                  className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-sm"
+                  className="w-full px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-sm"
                   value={form.advance_recovery_percent}
                   onChange={e => setForm({...form, advance_recovery_percent: Number(e.target.value)})}
                 />
@@ -382,7 +382,7 @@ export default function ProjectForm() {
                 <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Defects Liability (Months)</label>
                 <input
                   type="number"
-                  className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-sm"
+                  className="w-full px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-sm"
                   value={form.defects_liability_months}
                   onChange={e => setForm({...form, defects_liability_months: Number(e.target.value)})}
                 />
@@ -395,7 +395,7 @@ export default function ProjectForm() {
                 <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Site Address</label>
                 <input
                   type="text"
-                  className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-sm"
+                  className="w-full px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-sm"
                   placeholder="Plot / Street / Area"
                   value={form.site_address || ""}
                   onChange={e => setForm({...form, site_address: e.target.value})}
@@ -405,7 +405,7 @@ export default function ProjectForm() {
                 <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">City / Town</label>
                 <input
                   type="text"
-                  className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-sm"
+                  className="w-full px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-sm"
                   placeholder="e.g. Accra"
                   value={form.site_city || ""}
                   onChange={e => setForm({...form, site_city: e.target.value})}
@@ -419,7 +419,7 @@ export default function ProjectForm() {
                 <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Site Engineer</label>
                 <input
                   type="text"
-                  className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-sm"
+                  className="w-full px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-sm"
                   placeholder="Site Engineer Name"
                   value={form.site_engineer_name || ""}
                   onChange={e => setForm({...form, site_engineer_name: e.target.value})}
@@ -429,7 +429,7 @@ export default function ProjectForm() {
                 <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Quantity Surveyor (QS)</label>
                 <input
                   type="text"
-                  className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-sm"
+                  className="w-full px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-sm"
                   placeholder="Quantity Surveyor Name"
                   value={form.qs_name || ""}
                   onChange={e => setForm({...form, qs_name: e.target.value})}
@@ -439,7 +439,7 @@ export default function ProjectForm() {
                 <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Site Supervisor</label>
                 <input
                   type="text"
-                  className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-sm"
+                  className="w-full px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-sm"
                   placeholder="Site Supervisor Name"
                   value={form.supervisor_name || ""}
                   onChange={e => setForm({...form, supervisor_name: e.target.value})}
@@ -449,7 +449,7 @@ export default function ProjectForm() {
                 <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Commercial Manager</label>
                 <input
                   type="text"
-                  className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-sm"
+                  className="w-full px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-sm"
                   placeholder="Commercial Manager Name"
                   value={form.commercial_manager_name || ""}
                   onChange={e => setForm({...form, commercial_manager_name: e.target.value})}
@@ -469,7 +469,7 @@ export default function ProjectForm() {
             <div className="space-y-1">
                <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Workflow Stage</label>
                <select 
-                 className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none font-bold text-xs"
+                 className="w-full px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none font-bold text-xs"
                  value={form.project_status}
                  onChange={e => setForm({...form, project_status: e.target.value})}
                >
@@ -482,7 +482,7 @@ export default function ProjectForm() {
             <div className="space-y-1">
                 <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Priority</label>
                <select 
-                 className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none font-bold text-xs"
+                 className="w-full px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none font-bold text-xs"
                  value={form.project_priority}
                  onChange={e => setForm({...form, project_priority: e.target.value})}
                >
@@ -495,7 +495,7 @@ export default function ProjectForm() {
              <div className="space-y-1">
                 <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Status</label>
                 <select 
-                  className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none font-bold text-xs"
+                  className="w-full px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none font-bold text-xs"
                   value={form.is_active ? 'Y' : 'N'}
                   onChange={e => setForm({...form, is_active: e.target.value === 'Y'})}
                 >

@@ -1556,7 +1556,7 @@ export default function PriceSetup() {
             type="text"
             value={costFormData.current_cost || "0.00"}
             readOnly
-            className="bg-gray-100"
+            className="bg-white dark:bg-slate-900"
           />
         </div>
       )}

@@ -4,6 +4,7 @@
     "index.js",
     "routes",
     "controllers",
+    "services",
     "utils",
     "db",
     "middleware"

@@ -6,6 +6,7 @@
 import React, { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { api } from "../../../../api/client.js";
+import { Sparkles } from "lucide-react";
 import { toast } from "react-toastify";
 import { useViewMode } from "@/hooks/useViewMode";
 import ViewToggle from "@/components/ViewToggle";
@@ -119,7 +120,16 @@ export default function ExceptionalPermissionsList() {
                       <td className="font-medium">
                         {r.username || r.user_name || r.user_email || r.user_id}
                       </td>
-                      <td>{r.permission_code}</td>
+                      <td>
+                        {r.permission_code === "BANKS.AI.FLOATING_WIDGET" ? (
+                          <span className="inline-flex items-center gap-1.5 font-semibold text-brand-700 dark:text-brand-300">
+                            <Sparkles size={13} className="text-primary" />
+                            Banks AI Floating Widget
+                          </span>
+                        ) : (
+                          r.permission_code
+                        )}
+                      </td>
                       <td>
                         <span
                           className={

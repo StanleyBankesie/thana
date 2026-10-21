@@ -5,6 +5,7 @@
  */
 
 import { query } from "../../db/pool.js";
+import { checkSqlTablePermissions } from "./banks.guardrails.js";
 
 // Helper safe query
 async function sq(sql, params = {}, fallback = []) {
@@ -37,6 +38,7 @@ export const TOOL_MODULES = {
   get_erp_workflow_guide: ["*"],
   run_sql_query: ["*"],
   get_database_schema: ["*"],
+  create_form: ["*"],
 };
 
 /**
@@ -272,6 +274,66 @@ export const BANKS_TOOLS = [
       },
     },
   },
+  {
+    type: "function",
+    function: {
+      name: "create_form",
+      description: "Create an interactive dynamic form in the ERP when the user asks or commands to create/build/generate/design a form. Generates full form fields, validation, types, and dropdown options.",
+      parameters: {
+        type: "object",
+        properties: {
+          title: {
+            type: "string",
+            description: "Title of the form (e.g. 'Vehicle Pre-Trip Inspection Form', 'Employee Onboarding Form', 'Customer Complaint Form')",
+          },
+          description: {
+            type: "string",
+            description: "Clear instructions or subtitle explaining the form purpose",
+          },
+          category: {
+            type: "string",
+            description: "Module or category (e.g. 'transport', 'hr', 'sales', 'purchases', 'inventory', 'maintenance', 'facilities', 'finance', 'general')",
+          },
+          submitLabel: {
+            type: "string",
+            description: "Label for the submit button (e.g. 'Submit Form', 'Record Inspection', 'Submit Requisition')",
+          },
+          fields: {
+            type: "array",
+            description: "List of fields for the form",
+            items: {
+              type: "object",
+              properties: {
+                name: { type: "string", description: "Field identifier (e.g. 'driver_name', 'odometer_km')" },
+                label: { type: "string", description: "Human-readable label" },
+                type: {
+                  type: "string",
+                  enum: ["text", "number", "email", "tel", "date", "time", "datetime-local", "select", "textarea", "checkbox", "radio"],
+                  description: "Input field type",
+                },
+                placeholder: { type: "string", description: "Helpful placeholder" },
+                required: { type: "boolean", description: "Whether the field is required" },
+                defaultValue: { type: "string", description: "Default value if any" },
+                options: {
+                  type: "array",
+                  items: { type: "string" },
+                  description: "Dropdown or radio choices if type is select or radio",
+                },
+                width: {
+                  type: "string",
+                  enum: ["full", "half", "third"],
+                  description: "Column span: full (100%), half (50%), third (33%)",
+                },
+                helpText: { type: "string", description: "Small helper text below field" },
+              },
+              required: ["name", "label", "type"],
+            },
+          },
+        },
+        required: ["title", "fields"],
+      },
+    },
+  },
 ];
 
 /**
@@ -293,7 +355,7 @@ export async function executeTool(name, args = {}, scope = {}) {
     if (!hasModuleAccess(requiredMods, scope)) {
       return {
         accessDenied: true,
-        error: `PERMISSION DENIED: You do not have authorization to view ${name.replace("get_", "").replace(/_/g, " ")} data in OmniSuite ERP.`,
+        error: `Access Denied: You do not have permissions to access any information or permission for this module. Therefore, access is denied.`,
       };
     }
   }
@@ -948,6 +1010,15 @@ export async function executeTool(name, args = {}, scope = {}) {
           };
         }
 
+        // Module permission guardrail check on referenced tables
+        const guardCheck = checkSqlTablePermissions(rawSql, scope);
+        if (!guardCheck.allowed) {
+          return {
+            accessDenied: true,
+            error: guardCheck.message,
+          };
+        }
+
         try {
           let sqlToRun = rawSql.replace(/;+\s*$/, "");
           // Auto-append LIMIT 100 if no LIMIT is provided to prevent memory overload
@@ -972,6 +1043,13 @@ export async function executeTool(name, args = {}, scope = {}) {
       case "get_database_schema": {
         const table = String(args.tableName || "").trim();
         if (table) {
+          const guardCheck = checkSqlTablePermissions(table, scope);
+          if (!guardCheck.allowed) {
+            return {
+              accessDenied: true,
+              error: guardCheck.message,
+            };
+          }
           const cols = await sq(
             `SELECT COLUMN_NAME, DATA_TYPE, IS_NULLABLE, COLUMN_KEY, COLUMN_COMMENT 
              FROM INFORMATION_SCHEMA.COLUMNS 
@@ -996,6 +1074,43 @@ export async function executeTool(name, args = {}, scope = {}) {
             databaseTables: tables.map((t) => t.TABLE_NAME || t.table_name),
           };
         }
+      }
+
+      case "create_form": {
+        const title = args.title || "Dynamic Form";
+        const description = args.description || "Please complete the required details below.";
+        const category = args.category || "general";
+        const submitLabel = args.submitLabel || "Submit Form";
+
+        const fields = Array.isArray(args.fields)
+          ? args.fields.map((f, i) => ({
+              name: f.name || `field_${i + 1}`,
+              label: f.label || `Field ${i + 1}`,
+              type: f.type || "text",
+              placeholder: f.placeholder || "",
+              required: Boolean(f.required),
+              defaultValue: f.defaultValue ?? "",
+              options: Array.isArray(f.options) ? f.options : [],
+              width: f.width || "full",
+              helpText: f.helpText || "",
+            }))
+          : [];
+
+        const formObject = {
+          id: `form_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+          title,
+          description,
+          category,
+          submitLabel,
+          createdAt: new Date().toISOString(),
+          fields,
+        };
+
+        return {
+          success: true,
+          message: `Successfully created interactive form: "${title}" with ${fields.length} field(s).`,
+          form: formObject,
+        };
       }
 
       default:
