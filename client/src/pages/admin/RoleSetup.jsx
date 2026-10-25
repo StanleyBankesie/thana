@@ -7,6 +7,7 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../../api/client.js";
 import { usePermission } from "../../auth/PermissionContext.jsx";
+import { useAuth } from "../../auth/AuthContext.jsx";
 import { MODULES_REGISTRY } from "../../data/modulesRegistry.js";
 import { toast } from "react-toastify";
 

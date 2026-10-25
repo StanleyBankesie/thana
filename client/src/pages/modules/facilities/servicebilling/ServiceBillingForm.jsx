@@ -110,11 +110,11 @@ export default function ServiceBillingForm() {
   const [taxComponentsByCode, setTaxComponentsByCode] = useState({});
   const [costCenters, setCostCenters] = useState([]);
   const [companyInfo, setCompanyInfo] = useState({
-    name: "OmniSuite ERP",
-    address: "Stanness Technologies HQ, Accra, Ghana",
-    phone: "+233 (0) 30 200 0000",
-    email: "finance@omnisuite.com",
-    taxId: "C0012398471",
+    name: "",
+    address: "",
+    phone: "",
+    email: "",
+    taxId: "",
   });
 
   const baseCurrencyCode = useMemo(() => {

@@ -1494,38 +1494,250 @@ export const createProjectBudget = async (req, res, next) => {
 // 4. PLANNING, SCHEDULING & CPM
 // ==========================================
 
+// ==========================================
+// 4. INTEGRATED PROJECT SCHEDULE & CPM ENGINE
+// ==========================================
+
+export const getProjectSchedule = async (req, res, next) => {
+  try {
+    const { companyId } = req.scope || {};
+    const projectId = toNumber(req.params.projectId);
+    await ensureConstructionTables();
+
+    // 1. Fetch project info
+    const projRows = await query(
+      `SELECT p.id, p.project_name, p.project_code, p.start_date, p.end_date,
+              p.practical_completion_date, p.final_completion_date,
+              p.budget, p.contract_sum, p.revised_contract_sum,
+              COALESCE(p.project_status, 'IN_PROGRESS') AS status, p.site_address, p.project_type,
+              COALESCE(p.manager_name, u.full_name, u.username, 'Project Manager') AS manager_name
+       FROM pm_projects p
+       LEFT JOIN adm_users u ON u.id = p.manager_id
+       WHERE p.id = :projectId AND (p.company_id = :companyId OR :companyId IS NULL)
+       LIMIT 1`,
+      { projectId, companyId: companyId || null }
+    );
+    if (!projRows.length) throw httpError(404, "NOT_FOUND", "Project not found");
+    const project = projRows[0];
+
+    // 2. Fetch work packages
+    const workPackages = await query(
+      `SELECT id, package_name, package_code, status
+       FROM pm_work_packages
+       WHERE project_id = :projectId
+       ORDER BY package_code ASC, id ASC`,
+      { projectId }
+    );
+
+    // 3. Fetch active tasks
+    const tasks = await query(
+      `SELECT t.id, t.project_id, t.wbs_code, t.work_package_id, t.task_title, t.task_description,
+              t.assigned_to_id, t.assigned_to_name, t.priority, t.status,
+              t.start_date, t.end_date, t.baseline_start, t.baseline_end,
+              COALESCE(t.duration_days, DATEDIFF(COALESCE(t.end_date, CURDATE()), COALESCE(t.start_date, CURDATE())), 1) AS duration_days,
+              t.completion_percent, t.early_start, t.early_finish, t.late_start, t.late_finish,
+              t.total_float, t.free_float, t.is_critical, t.reason_for_delay,
+              wp.package_name AS work_package_name
+       FROM pm_tasks t
+       LEFT JOIN pm_work_packages wp ON wp.id = t.work_package_id
+       WHERE t.project_id = :projectId AND (t.is_active = 'Y' OR t.is_active IS NULL)
+       ORDER BY t.wbs_code ASC, t.id ASC`,
+      { projectId }
+    );
+
+    // 4. Fetch dependencies
+    const dependencies = await query(
+      `SELECT d.id, d.task_id, d.predecessor_id, d.dependency_type, d.lag_days,
+              pred.task_title AS predecessor_title, pred.wbs_code AS predecessor_wbs
+       FROM pm_task_dependencies d
+       JOIN pm_tasks t ON t.id = d.task_id
+       JOIN pm_tasks pred ON pred.id = d.predecessor_id
+       WHERE t.project_id = :projectId`,
+      { projectId }
+    );
+
+    // 5. Fetch EOT claims
+    const eotClaims = await query(
+      `SELECT * FROM pm_eot_requests WHERE project_id = :projectId ORDER BY id DESC`,
+      { projectId }
+    );
+
+    // 6. Run CPM calculation
+    const baseDate = project.start_date || new Date().toISOString().split("T")[0];
+    const cpmResult = calculateCPM(tasks, baseDate, dependencies, { calendar: "6_DAY" });
+
+    // 7. Group dependencies by task
+    const predMap = new Map();
+    const succMap = new Map();
+    for (const d of dependencies) {
+      if (!predMap.has(d.task_id)) predMap.set(d.task_id, []);
+      predMap.get(d.task_id).push({
+        id: d.id,
+        predecessor_id: d.predecessor_id,
+        dependency_type: d.dependency_type || "FS",
+        lag_days: d.lag_days || 0,
+        predecessor_title: d.predecessor_title,
+        predecessor_wbs: d.predecessor_wbs,
+      });
+
+      if (!succMap.has(d.predecessor_id)) succMap.set(d.predecessor_id, []);
+      succMap.get(d.predecessor_id).push({
+        id: d.id,
+        task_id: d.task_id,
+        dependency_type: d.dependency_type || "FS",
+        lag_days: d.lag_days || 0,
+      });
+    }
+
+    const enrichedTasks = cpmResult.tasks.map((t) => ({
+      ...t,
+      predecessors: predMap.get(t.id) || [],
+      successors: succMap.get(t.id) || [],
+    }));
+
+    // 8. Progress and Schedule Variance Metrics
+    const totalDuration = enrichedTasks.reduce((sum, t) => sum + (Number(t.duration_days) || 1), 0);
+    const weightedActualProgress = totalDuration > 0
+      ? enrichedTasks.reduce((sum, t) => sum + ((Number(t.completion_percent) || 0) * (Number(t.duration_days) || 1)), 0) / totalDuration
+      : 0;
+
+    // Planned progress based on current date
+    const now = new Date();
+    let weightedPlannedProgress = 0;
+    if (totalDuration > 0) {
+      let earnedPlanned = 0;
+      for (const t of enrichedTasks) {
+        const s = t.baseline_start ? new Date(t.baseline_start) : (t.start_date ? new Date(t.start_date) : new Date(baseDate));
+        const e = t.baseline_end ? new Date(t.baseline_end) : (t.end_date ? new Date(t.end_date) : new Date(baseDate));
+        const dur = Number(t.duration_days) || 1;
+        if (now <= s) {
+          earnedPlanned += 0;
+        } else if (now >= e) {
+          earnedPlanned += 100 * dur;
+        } else {
+          const totalDays = Math.max(1, (e - s) / (1000 * 60 * 60 * 24));
+          const elapsed = (now - s) / (1000 * 60 * 60 * 24);
+          const ratio = Math.min(1, Math.max(0, elapsed / totalDays));
+          earnedPlanned += ratio * 100 * dur;
+        }
+      }
+      weightedPlannedProgress = earnedPlanned / totalDuration;
+    }
+
+    const actualProgressPct = Math.round(weightedActualProgress * 10) / 10;
+    const plannedProgressPct = Math.round(weightedPlannedProgress * 10) / 10;
+    const spi = plannedProgressPct > 0 ? Math.round((actualProgressPct / plannedProgressPct) * 100) / 100 : 1.0;
+
+    // Delayed tasks and activities threatening deadline
+    const delayedTasks = enrichedTasks.filter((t) => {
+      if (t.status === "COMPLETED" || (Number(t.completion_percent) || 0) >= 100) return false;
+      const finish = t.end_date ? new Date(t.end_date) : null;
+      return (finish && finish < now) || t.status === "DELAYED";
+    });
+
+    const activitiesThreateningDeadline = enrichedTasks.filter((t) => {
+      const isCriticalOrNear = t.is_critical || (t.total_float <= 1);
+      const isNotDone = t.status !== "COMPLETED" && (Number(t.completion_percent) || 0) < 100;
+      return isCriticalOrNear && isNotDone;
+    });
+
+    const targetDate = project.end_date ? new Date(project.end_date) : null;
+    const forecastDate = new Date(cpmResult.forecastCompletionDate);
+    const scheduleVarianceDays = targetDate
+      ? Math.round((targetDate - forecastDate) / (1000 * 60 * 60 * 24))
+      : 0;
+
+    // AI Heuristic Recovery Plans
+    const recoveryPlan = [];
+    if (scheduleVarianceDays < 0) {
+      recoveryPlan.push({
+        type: "CRITICAL_PATH_COMPRESSION",
+        severity: "HIGH",
+        title: "Compress Critical Path Activities",
+        description: `Project is forecasting ${Math.abs(scheduleVarianceDays)} days behind schedule. Add double-shift or overtime on critical tasks (${cpmResult.criticalPathSequence.slice(0, 3).map((t) => t.task_title).join(", ")}) to recover timeline.`,
+      });
+      recoveryPlan.push({
+        type: "FAST_TRACKING",
+        severity: "MEDIUM",
+        title: "Fast-Track Successor Activities",
+        description: "Review finish-to-start (FS) dependencies on long-duration structural tasks and convert to start-to-start (SS) with lead days where site conditions permit parallel execution.",
+      });
+    }
+    if (delayedTasks.length > 0) {
+      recoveryPlan.push({
+        type: "RESOURCE_REALLOCATION",
+        severity: "MEDIUM",
+        title: `Remediate ${delayedTasks.length} Delayed Activities`,
+        description: `Prioritize delayed items (${delayedTasks.slice(0, 3).map((t) => t.task_title).join(", ")}) by mobilizing supplementary subcontractor gangs or equipment.`,
+      });
+    }
+
+    res.json({
+      project,
+      tasks: enrichedTasks,
+      cpm: {
+        ...cpmResult,
+        activitiesThreateningDeadline,
+      },
+      variance: {
+        actualProgress: actualProgressPct,
+        plannedProgress: plannedProgressPct,
+        spi,
+        scheduleVarianceDays,
+        targetCompletionDate: project.end_date,
+        forecastCompletionDate: cpmResult.forecastCompletionDate,
+        delayedTasksCount: delayedTasks.length,
+        recoveryPlan,
+      },
+      eotClaims,
+      workPackages,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
 export const calculateProjectCPM = async (req, res, next) => {
   try {
     const { companyId } = req.scope || {};
     const projectId = toNumber(req.params.projectId);
+    await ensureConstructionTables();
 
-    // Fetch tasks for the project
+    // Fetch tasks & dependencies
     const tasks = await query(
-      `SELECT id, task_title, start_date, end_date, completion_percent,
-              DATEDIFF(COALESCE(end_date, CURDATE()), COALESCE(start_date, CURDATE())) AS duration_days,
-              reason_for_delay, is_critical, total_float
-       FROM pm_tasks
-       WHERE project_id = :projectId AND (is_active = 'Y' OR is_active IS NULL)
-       ORDER BY id ASC`,
+      `SELECT t.*,
+              COALESCE(t.duration_days, DATEDIFF(COALESCE(t.end_date, CURDATE()), COALESCE(t.start_date, CURDATE())), 1) AS duration_days
+       FROM pm_tasks t
+       WHERE t.project_id = :projectId AND (t.is_active = 'Y' OR t.is_active IS NULL)
+       ORDER BY t.wbs_code ASC, t.id ASC`,
       { projectId }
     );
 
     if (!tasks.length) {
-      return res.json({ tasks: [], projectDurationDays: 0, criticalPathIds: [] });
+      return res.json({ tasks: [], projectDurationDays: 0, criticalPathIds: [], criticalPathSequence: [] });
     }
 
+    const dependencies = await query(
+      `SELECT d.task_id, d.predecessor_id, d.dependency_type, d.lag_days
+       FROM pm_task_dependencies d
+       JOIN pm_tasks t ON t.id = d.task_id
+       WHERE t.project_id = :projectId`,
+      { projectId }
+    );
+
     const proj = await query(`SELECT start_date FROM pm_projects WHERE id = :projectId`, { projectId });
-    const baseDate = proj[0]?.start_date || new Date();
+    const baseDate = proj[0]?.start_date || new Date().toISOString().split("T")[0];
 
-    const cpmResult = calculateCPM(tasks, baseDate);
+    const cpmResult = calculateCPM(tasks, baseDate, dependencies, { calendar: "6_DAY" });
 
-    // Update pm_tasks with computed CPM attributes
+    // Persist computed attributes into pm_tasks
     for (const t of cpmResult.tasks) {
       await query(
         `UPDATE pm_tasks SET 
           early_start = :early_start, early_finish = :early_finish,
           late_start = :late_start, late_finish = :late_finish,
-          total_float = :total_float, is_critical = :is_critical
+          total_float = :total_float, free_float = :free_float,
+          is_critical = :is_critical
          WHERE id = :id`,
         {
           id: t.id,
@@ -1534,6 +1746,7 @@ export const calculateProjectCPM = async (req, res, next) => {
           late_start: t.late_start,
           late_finish: t.late_finish,
           total_float: t.total_float,
+          free_float: t.free_float,
           is_critical: t.is_critical,
         }
       );
@@ -1545,12 +1758,199 @@ export const calculateProjectCPM = async (req, res, next) => {
   }
 };
 
+export const createScheduleActivity = async (req, res, next) => {
+  try {
+    const { companyId, branchId } = req.scope || {};
+    const projectId = toNumber(req.params.projectId);
+    const b = req.body || {};
+    if (!b.task_title) throw httpError(400, "VALIDATION_ERROR", "Activity title is required");
+
+    await ensureConstructionTables();
+
+    const projRows = await query(`SELECT id, company_id, branch_id, start_date FROM pm_projects WHERE id = :id LIMIT 1`, { id: projectId });
+    if (!projRows.length) throw httpError(404, "NOT_FOUND", "Project not found");
+
+    const targetCompId = companyId || projRows[0].company_id || 1;
+    const targetBranchId = branchId || projRows[0].branch_id || 1;
+    const durationDays = Math.max(1, Number(b.duration_days || 1));
+    const startDate = b.start_date || projRows[0].start_date || new Date().toISOString().split("T")[0];
+    const endDate = b.end_date || addWorkDays(startDate, durationDays, "6_DAY");
+
+    // Insert task
+    const taskResult = await query(
+      `INSERT INTO pm_tasks 
+        (company_id, branch_id, project_id, work_package_id, wbs_code, task_title, task_description, duration_days, start_date, end_date, assigned_to_id, assigned_to_name, priority, status, completion_percent, is_active)
+       VALUES 
+        (:companyId, :branchId, :project_id, :work_package_id, :wbs_code, :task_title, :task_description, :duration_days, :start_date, :end_date, :assigned_to_id, :assigned_to_name, :priority, :status, :completion_percent, 'Y')`,
+      {
+        companyId: targetCompId,
+        branchId: targetBranchId,
+        project_id: projectId,
+        work_package_id: toNumber(b.work_package_id),
+        wbs_code: b.wbs_code || null,
+        task_title: b.task_title,
+        task_description: b.task_description || null,
+        duration_days: durationDays,
+        start_date: startDate,
+        end_date: endDate,
+        assigned_to_id: toNumber(b.assigned_to_id),
+        assigned_to_name: b.assigned_to_name || null,
+        priority: b.priority || "NORMAL",
+        status: b.status || "NOT_STARTED",
+        completion_percent: Number(b.completion_percent || 0),
+      }
+    );
+
+    const taskId = taskResult.insertId;
+
+    // Insert predecessor dependencies if provided
+    if (Array.isArray(b.predecessors)) {
+      for (const p of b.predecessors) {
+        const predId = toNumber(p.predecessor_id || p.id);
+        if (predId && predId !== taskId) {
+          await query(
+            `INSERT INTO pm_task_dependencies (company_id, branch_id, task_id, predecessor_id, dependency_type, lag_days)
+             VALUES (:companyId, :branchId, :taskId, :predId, :type, :lag)`,
+            {
+              companyId: targetCompId,
+              branchId: targetBranchId,
+              taskId,
+              predId,
+              type: (p.dependency_type || "FS").toUpperCase(),
+              lag: Number(p.lag_days || 0),
+            }
+          );
+        }
+      }
+    }
+
+    res.status(201).json({ id: taskId, message: "Activity added to project schedule" });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const updateScheduleActivity = async (req, res, next) => {
+  try {
+    const { companyId } = req.scope || {};
+    const projectId = toNumber(req.params.projectId);
+    const taskId = toNumber(req.params.taskId);
+    const b = req.body || {};
+
+    await ensureConstructionTables();
+
+    const existing = await query(`SELECT id, company_id, branch_id FROM pm_tasks WHERE id = :taskId AND project_id = :projectId LIMIT 1`, { taskId, projectId });
+    if (!existing.length) throw httpError(404, "NOT_FOUND", "Activity not found");
+
+    const durationDays = b.duration_days ? Math.max(1, Number(b.duration_days)) : undefined;
+
+    await query(
+      `UPDATE pm_tasks SET
+        wbs_code = COALESCE(:wbs_code, wbs_code),
+        work_package_id = :work_package_id,
+        task_title = COALESCE(:task_title, task_title),
+        task_description = COALESCE(:task_description, task_description),
+        duration_days = COALESCE(:duration_days, duration_days),
+        start_date = COALESCE(:start_date, start_date),
+        end_date = COALESCE(:end_date, end_date),
+        completion_percent = COALESCE(:completion_percent, completion_percent),
+        status = COALESCE(:status, status),
+        assigned_to_name = COALESCE(:assigned_to_name, assigned_to_name),
+        priority = COALESCE(:priority, priority),
+        reason_for_delay = COALESCE(:reason_for_delay, reason_for_delay)
+       WHERE id = :taskId`,
+      {
+        taskId,
+        wbs_code: b.wbs_code ?? null,
+        work_package_id: toNumber(b.work_package_id),
+        task_title: b.task_title ?? null,
+        task_description: b.task_description ?? null,
+        duration_days: durationDays ?? null,
+        start_date: b.start_date ?? null,
+        end_date: b.end_date ?? null,
+        completion_percent: b.completion_percent !== undefined ? Number(b.completion_percent) : null,
+        status: b.status ?? null,
+        assigned_to_name: b.assigned_to_name ?? null,
+        priority: b.priority ?? null,
+        reason_for_delay: b.reason_for_delay ?? null,
+      }
+    );
+
+    // Update predecessors if provided
+    if (Array.isArray(b.predecessors)) {
+      await query(`DELETE FROM pm_task_dependencies WHERE task_id = :taskId`, { taskId });
+      for (const p of b.predecessors) {
+        const predId = toNumber(p.predecessor_id || p.id);
+        if (predId && predId !== taskId) {
+          await query(
+            `INSERT INTO pm_task_dependencies (company_id, branch_id, task_id, predecessor_id, dependency_type, lag_days)
+             VALUES (:companyId, :branchId, :taskId, :predId, :type, :lag)`,
+            {
+              companyId: existing[0].company_id || 1,
+              branchId: existing[0].branch_id || 1,
+              taskId,
+              predId,
+              type: (p.dependency_type || "FS").toUpperCase(),
+              lag: Number(p.lag_days || 0),
+            }
+          );
+        }
+      }
+    }
+
+    res.json({ id: taskId, message: "Activity updated successfully" });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const deleteScheduleActivity = async (req, res, next) => {
+  try {
+    const { companyId } = req.scope || {};
+    const projectId = toNumber(req.params.projectId);
+    const taskId = toNumber(req.params.taskId);
+
+    await query(`DELETE FROM pm_task_dependencies WHERE task_id = :taskId OR predecessor_id = :taskId`, { taskId });
+    await query(`DELETE FROM pm_tasks WHERE id = :taskId AND project_id = :projectId`, { taskId, projectId });
+
+    res.json({ success: true, message: "Activity deleted from schedule" });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const setScheduleBaseline = async (req, res, next) => {
+  try {
+    const projectId = toNumber(req.params.projectId);
+    await query(
+      `UPDATE pm_tasks SET
+        baseline_start = COALESCE(start_date, early_start, CURDATE()),
+        baseline_end = COALESCE(end_date, early_finish, CURDATE())
+       WHERE project_id = :projectId AND (is_active = 'Y' OR is_active IS NULL)`,
+      { projectId }
+    );
+    res.json({ success: true, message: "Project schedule baseline recorded successfully" });
+  } catch (err) {
+    next(err);
+  }
+};
+
 export const listEOTRequests = async (req, res, next) => {
   try {
     const { companyId } = req.scope || {};
+    await ensureConstructionTables();
     const projectId = toNumber(req.query.project_id);
-    let sql = `SELECT e.*, p.project_name FROM pm_eot_requests e JOIN pm_projects p ON p.id = e.project_id WHERE e.company_id = :companyId`;
-    const params = { companyId };
+    let sql = `SELECT e.*,
+                      COALESCE(e.request_number, e.request_no) AS request_number,
+                      COALESCE(e.request_no, e.request_number) AS request_no,
+                      COALESCE(e.delay_cause, e.reason) AS delay_cause,
+                      COALESCE(e.reason, e.delay_cause) AS reason,
+                      COALESCE(e.justification, e.impact_assessment) AS justification,
+                      p.project_name
+               FROM pm_eot_requests e
+               LEFT JOIN pm_projects p ON p.id = e.project_id
+               WHERE (e.company_id = :companyId OR :companyId IS NULL)`;
+    const params = { companyId: companyId || null };
     if (projectId) {
       sql += ` AND e.project_id = :projectId`;
       params.projectId = projectId;
@@ -1565,28 +1965,43 @@ export const listEOTRequests = async (req, res, next) => {
 
 export const createEOTRequest = async (req, res, next) => {
   try {
-    const { companyId } = req.scope || {};
+    const { companyId, branchId } = req.scope || {};
     const b = req.body || {};
     if (!b.project_id || !b.days_requested) throw httpError(400, "VALIDATION_ERROR", "Project and days requested required");
 
+    await ensureConstructionTables();
+
+    const projRows = await query(`SELECT id, company_id, branch_id FROM pm_projects WHERE id = :id LIMIT 1`, { id: toNumber(b.project_id) });
+    const targetCompId = companyId || projRows[0]?.company_id || 1;
+    const targetBranchId = branchId || projRows[0]?.branch_id || 1;
+
+    const reqNo = b.request_number || b.request_no || `EOT-${Date.now().toString().slice(-6)}`;
+    const delayCause = b.delay_cause || b.reason || "Delay Claim";
+
     const result = await query(
-      `INSERT INTO pm_eot_requests (company_id, project_id, request_number, delay_cause, delay_category, days_requested, financial_claim_amount, requested_date, justification, status, created_by)
-       VALUES (:companyId, :project_id, :request_number, :delay_cause, :delay_category, :days_requested, :financial_claim_amount, :requested_date, :justification, :status, :created_by)`,
+      `INSERT INTO pm_eot_requests 
+        (company_id, branch_id, project_id, request_no, request_number, delay_cause, reason, delay_category, days_requested, financial_claim_amount, requested_date, justification, impact_assessment, status, created_by)
+       VALUES 
+        (:companyId, :branchId, :project_id, :request_no, :request_number, :delay_cause, :reason, :delay_category, :days_requested, :financial_claim_amount, :requested_date, :justification, :impact_assessment, :status, :created_by)`,
       {
-        companyId,
+        companyId: targetCompId,
+        branchId: targetBranchId,
         project_id: toNumber(b.project_id),
-        request_number: b.request_number || `EOT-${Date.now()}`,
-        delay_cause: b.delay_cause || "",
+        request_no: reqNo,
+        request_number: reqNo,
+        delay_cause: delayCause,
+        reason: delayCause,
         delay_category: b.delay_category || "CLIENT_CHANGE",
         days_requested: Number(b.days_requested),
         financial_claim_amount: Number(b.financial_claim_amount || 0),
         requested_date: b.requested_date || new Date().toISOString().split("T")[0],
         justification: b.justification || null,
+        impact_assessment: b.justification || null,
         status: "SUBMITTED",
         created_by: req.user?.id || null,
       }
     );
-    res.status(201).json({ id: result.insertId, message: "EOT request submitted" });
+    res.status(201).json({ id: result.insertId, request_no: reqNo, message: "EOT request submitted successfully" });
   } catch (err) {
     next(err);
   }
@@ -1601,14 +2016,22 @@ export const listDailyReports = async (req, res, next) => {
     const { companyId } = req.scope || {};
     await ensureConstructionTables();
     const projectId = toNumber(req.query.project_id);
-    let sql = `SELECT r.*, p.project_name, s.site_name,
-                (SELECT COUNT(*) FROM pm_daily_site_activities WHERE report_id = r.id) AS activity_count,
-                (SELECT COALESCE(SUM(headcount), 0) FROM pm_daily_site_workforce WHERE report_id = r.id) AS total_headcount
+    let sql = `SELECT r.*,
+                      COALESCE(r.report_number, r.report_no) AS report_number,
+                      COALESCE(r.report_no, r.report_number) AS report_no,
+                      COALESCE(r.site_engineer_name, r.reporting_officer_name) AS site_engineer_name,
+                      COALESCE(r.weather_morning, r.weather, 'SUNNY') AS weather_morning,
+                      COALESCE(r.weather_afternoon, r.weather, 'SUNNY') AS weather_afternoon,
+                      COALESCE(r.general_remarks, r.supervisor_comments) AS general_remarks,
+                      p.project_name,
+                      s.site_name,
+                      (SELECT COUNT(*) FROM pm_daily_site_activities WHERE report_id = r.id) AS activity_count,
+                      (SELECT COALESCE(SUM(headcount), 0) FROM pm_daily_site_workforce WHERE report_id = r.id) AS total_headcount
                FROM pm_daily_site_reports r
                LEFT JOIN pm_projects p ON p.id = r.project_id
                LEFT JOIN pm_sites s ON s.id = r.site_id
-               WHERE r.company_id = :companyId`;
-    const params = { companyId };
+               WHERE (r.company_id = :companyId OR :companyId IS NULL)`;
+    const params = { companyId: companyId || null };
     if (projectId) {
       sql += ` AND r.project_id = :projectId`;
       params.projectId = projectId;
@@ -1626,14 +2049,39 @@ export const getDailyReportById = async (req, res, next) => {
     const { companyId } = req.scope || {};
     const id = toNumber(req.params.id);
 
-    const rows = await query(`SELECT * FROM pm_daily_site_reports WHERE id = :id AND company_id = :companyId LIMIT 1`, { id, companyId });
+    const rows = await query(
+      `SELECT r.*,
+              COALESCE(r.report_number, r.report_no) AS report_number,
+              COALESCE(r.report_no, r.report_number) AS report_no,
+              COALESCE(r.site_engineer_name, r.reporting_officer_name) AS site_engineer_name,
+              COALESCE(r.weather_morning, r.weather, 'SUNNY') AS weather_morning,
+              COALESCE(r.weather_afternoon, r.weather, 'SUNNY') AS weather_afternoon,
+              COALESCE(r.general_remarks, r.supervisor_comments) AS general_remarks,
+              p.project_name
+       FROM pm_daily_site_reports r
+       LEFT JOIN pm_projects p ON p.id = r.project_id
+       WHERE r.id = :id AND (r.company_id = :companyId OR :companyId IS NULL) LIMIT 1`,
+      { id, companyId: companyId || null }
+    );
     if (!rows.length) throw httpError(404, "NOT_FOUND", "Daily site report not found");
 
     const report = rows[0];
-    const activities = await query(`SELECT * FROM pm_daily_site_activities WHERE report_id = :id ORDER BY id ASC`, { id });
-    const workforce = await query(`SELECT * FROM pm_daily_site_workforce WHERE report_id = :id ORDER BY id ASC`, { id });
-    const equipment = await query(`SELECT * FROM pm_daily_site_equipment WHERE report_id = :id ORDER BY id ASC`, { id });
-    const materials = await query(`SELECT * FROM pm_daily_site_materials WHERE report_id = :id ORDER BY id ASC`, { id });
+    const activities = await query(
+      `SELECT id, report_id, project_id, COALESCE(description, activity_name) AS description, COALESCE(location_grid, location) AS location_grid, COALESCE(quantity_completed, measured_qty_completed) AS quantity_completed, COALESCE(unit, uom) AS unit, progress_percent, remarks FROM pm_daily_site_activities WHERE report_id = :id ORDER BY id ASC`,
+      { id }
+    );
+    const workforce = await query(
+      `SELECT id, report_id, trade_category, COALESCE(trade_name, 'General Labour') AS trade_name, subcontractor_name, headcount, total_hours, remarks FROM pm_daily_site_workforce WHERE report_id = :id ORDER BY id ASC`,
+      { id }
+    );
+    const equipment = await query(
+      `SELECT id, report_id, equipment_name, COALESCE(equipment_tag, asset_no) AS equipment_tag, COALESCE(hours_worked, operating_hours) AS hours_worked, COALESCE(hours_idle, idle_hours) AS hours_idle, COALESCE(hours_breakdown, breakdown_hours) AS hours_breakdown, remarks FROM pm_daily_site_equipment WHERE report_id = :id ORDER BY id ASC`,
+      { id }
+    );
+    const materials = await query(
+      `SELECT id, report_id, COALESCE(material_name, item_name) AS material_name, COALESCE(quantity, qty_received) AS quantity, COALESCE(unit, uom) AS unit, supplier_name, COALESCE(delivery_note_no, delivery_note_ref) AS delivery_note_no, remarks FROM pm_daily_site_materials WHERE report_id = :id ORDER BY id ASC`,
+      { id }
+    );
     const photos = await query(`SELECT * FROM pm_daily_site_photos WHERE report_id = :id ORDER BY id ASC`, { id });
 
     res.json({
@@ -1649,112 +2097,253 @@ export const getDailyReportById = async (req, res, next) => {
   }
 };
 
+async function insertDailyReportSubItems(reportId, projectId, b) {
+  if (Array.isArray(b.activities)) {
+    for (const a of b.activities) {
+      if (!a.description && !a.location_grid && !a.activity_name) continue;
+      const desc = a.description || a.activity_name || "Site Activity";
+      await query(
+        `INSERT INTO pm_daily_site_activities 
+          (report_id, project_id, activity_name, description, location, location_grid, measured_qty_completed, quantity_completed, uom, unit, progress_percent, remarks)
+         VALUES 
+          (:reportId, :project_id, :activity_name, :description, :location, :location_grid, :measured_qty_completed, :quantity_completed, :uom, :unit, :progress_percent, :remarks)`,
+        {
+          reportId,
+          project_id: projectId,
+          activity_name: desc,
+          description: desc,
+          location: a.location_grid || null,
+          location_grid: a.location_grid || null,
+          measured_qty_completed: Number(a.quantity_completed || 0),
+          quantity_completed: Number(a.quantity_completed || 0),
+          uom: a.unit || "NR",
+          unit: a.unit || "NR",
+          progress_percent: Number(a.progress_percent || 0),
+          remarks: a.remarks || null,
+        }
+      );
+    }
+  }
+
+  if (Array.isArray(b.workforce)) {
+    for (const w of b.workforce) {
+      if (!w.trade_name && !w.trade_category && !w.headcount) continue;
+      await query(
+        `INSERT INTO pm_daily_site_workforce 
+          (report_id, trade_category, trade_name, subcontractor_name, headcount, total_hours, remarks)
+         VALUES 
+          (:reportId, :trade_category, :trade_name, :subcontractor_name, :headcount, :total_hours, :remarks)`,
+        {
+          reportId,
+          trade_category: w.trade_category || "SKILLED",
+          trade_name: w.trade_name || "General Labour",
+          subcontractor_name: w.subcontractor_name || null,
+          headcount: Number(w.headcount || 1),
+          total_hours: Number(w.total_hours || 8),
+          remarks: w.remarks || null,
+        }
+      );
+    }
+  }
+
+  if (Array.isArray(b.equipment)) {
+    for (const eq of b.equipment) {
+      if (!eq.equipment_name && !eq.equipment_tag) continue;
+      const eqTag = eq.equipment_tag || null;
+      const eqName = eq.equipment_name || "Heavy Equipment";
+      const hw = Number(eq.hours_worked || 0);
+      const hi = Number(eq.hours_idle || 0);
+      const hb = Number(eq.hours_breakdown || 0);
+      await query(
+        `INSERT INTO pm_daily_site_equipment 
+          (report_id, equipment_name, asset_no, equipment_tag, operating_hours, hours_worked, idle_hours, hours_idle, breakdown_hours, hours_breakdown, remarks)
+         VALUES 
+          (:reportId, :equipment_name, :asset_no, :equipment_tag, :operating_hours, :hours_worked, :idle_hours, :hours_idle, :breakdown_hours, :hours_breakdown, :remarks)`,
+        {
+          reportId,
+          equipment_name: eqName,
+          asset_no: eqTag,
+          equipment_tag: eqTag,
+          operating_hours: hw,
+          hours_worked: hw,
+          idle_hours: hi,
+          hours_idle: hi,
+          breakdown_hours: hb,
+          hours_breakdown: hb,
+          remarks: eq.remarks || null,
+        }
+      );
+    }
+  }
+
+  if (Array.isArray(b.materials)) {
+    for (const m of b.materials) {
+      if (!m.material_name && !m.item_name && !m.quantity) continue;
+      const matName = m.material_name || m.item_name || "Material";
+      const qty = Number(m.quantity || 0);
+      const uomVal = m.unit || "PCS";
+      const dn = m.delivery_note_no || null;
+      await query(
+        `INSERT INTO pm_daily_site_materials 
+          (report_id, item_name, material_name, qty_received, quantity, uom, unit, supplier_name, delivery_note_ref, delivery_note_no, remarks)
+         VALUES 
+          (:reportId, :item_name, :material_name, :qty_received, :quantity, :uom, :unit, :supplier_name, :delivery_note_ref, :delivery_note_no, :remarks)`,
+        {
+          reportId,
+          item_name: matName,
+          material_name: matName,
+          qty_received: qty,
+          quantity: qty,
+          uom: uomVal,
+          unit: uomVal,
+          supplier_name: m.supplier_name || null,
+          delivery_note_ref: dn,
+          delivery_note_no: dn,
+          remarks: m.remarks || null,
+        }
+      );
+    }
+  }
+}
+
 export const createDailyReport = async (req, res, next) => {
   try {
     const { companyId, branchId } = req.scope || {};
     const b = req.body || {};
     if (!b.project_id || !b.report_date) throw httpError(400, "VALIDATION_ERROR", "Project and report date required");
 
+    await ensureConstructionTables();
+
+    const projRows = await query(`SELECT id, project_code, company_id, branch_id FROM pm_projects WHERE id = :id LIMIT 1`, { id: toNumber(b.project_id) });
+    const targetCompId = companyId || projRows[0]?.company_id || 1;
+    const targetBranchId = branchId || projRows[0]?.branch_id || 1;
+
+    let reportNo = b.report_number || b.report_no;
+    if (!reportNo || !String(reportNo).trim()) {
+      const pCode = projRows[0]?.project_code || `PRJ${b.project_id}`;
+      reportNo = `DSR-${pCode}-${b.report_date}-${Date.now().toString().slice(-4)}`;
+    }
+
+    const weatherM = b.weather_morning || "SUNNY";
+    const weatherA = b.weather_afternoon || "SUNNY";
+    const allowedWeathers = ['SUNNY', 'RAINY', 'CLOUDY', 'STORMY', 'WINDY'];
+    const weatherEnum = allowedWeathers.includes(weatherM) ? weatherM : 'SUNNY';
+
     const result = await query(
       `INSERT INTO pm_daily_site_reports 
-        (company_id, branch_id, project_id, site_id, report_number, report_date, weather_morning, weather_afternoon, site_condition, working_hours_from, working_hours_to, general_remarks, safety_observations, status, site_engineer_name, prepared_by)
+        (company_id, branch_id, project_id, site_id, report_no, report_number, report_date, shift, reporting_officer_id, reporting_officer_name, site_engineer_name, weather, weather_morning, weather_afternoon, site_condition, working_hours_from, working_hours_to, supervisor_comments, general_remarks, safety_observations, status, prepared_by, created_by)
        VALUES 
-        (:companyId, :branchId, :project_id, :site_id, :report_number, :report_date, :weather_morning, :weather_afternoon, :site_condition, :working_hours_from, :working_hours_to, :general_remarks, :safety_observations, :status, :site_engineer_name, :prepared_by)`,
+        (:companyId, :branchId, :project_id, :site_id, :report_no, :report_number, :report_date, :shift, :reporting_officer_id, :reporting_officer_name, :site_engineer_name, :weather, :weather_morning, :weather_afternoon, :site_condition, :working_hours_from, :working_hours_to, :supervisor_comments, :general_remarks, :safety_observations, :status, :prepared_by, :created_by)`,
       {
-        companyId,
-        branchId: branchId || null,
+        companyId: targetCompId,
+        branchId: targetBranchId,
         project_id: toNumber(b.project_id),
         site_id: toNumber(b.site_id),
-        report_number: b.report_number || `DSR-${b.report_date}-${Date.now().toString().slice(-4)}`,
+        report_no: reportNo,
+        report_number: reportNo,
         report_date: b.report_date,
-        weather_morning: b.weather_morning || "SUNNY",
-        weather_afternoon: b.weather_afternoon || "SUNNY",
+        shift: b.shift || "DAY",
+        reporting_officer_id: req.user?.id || null,
+        reporting_officer_name: b.site_engineer_name || req.user?.username || "Site Engineer",
+        site_engineer_name: b.site_engineer_name || req.user?.username || "Site Engineer",
+        weather: weatherEnum,
+        weather_morning: weatherM,
+        weather_afternoon: weatherA,
         site_condition: b.site_condition || "DRY",
         working_hours_from: b.working_hours_from || "08:00:00",
         working_hours_to: b.working_hours_to || "17:00:00",
+        supervisor_comments: b.general_remarks || null,
         general_remarks: b.general_remarks || null,
         safety_observations: b.safety_observations || null,
         status: b.status || "DRAFT",
-        site_engineer_name: b.site_engineer_name || req.user?.username || null,
         prepared_by: req.user?.id || null,
+        created_by: req.user?.id || null,
       }
     );
 
     const reportId = result.insertId;
 
-    // Insert sub-items if present
-    if (Array.isArray(b.activities)) {
-      for (const a of b.activities) {
-        await query(
-          `INSERT INTO pm_daily_site_activities (report_id, location_grid, description, quantity_completed, unit, progress_percent, remarks)
-           VALUES (:reportId, :location_grid, :description, :quantity_completed, :unit, :progress_percent, :remarks)`,
-          {
-            reportId,
-            location_grid: a.location_grid || null,
-            description: a.description || "",
-            quantity_completed: Number(a.quantity_completed || 0),
-            unit: a.unit || null,
-            progress_percent: Number(a.progress_percent || 0),
-            remarks: a.remarks || null,
-          }
-        );
-      }
-    }
+    await insertDailyReportSubItems(reportId, toNumber(b.project_id), b);
 
-    if (Array.isArray(b.workforce)) {
-      for (const w of b.workforce) {
-        await query(
-          `INSERT INTO pm_daily_site_workforce (report_id, trade_category, trade_name, subcontractor_name, headcount, total_hours)
-           VALUES (:reportId, :trade_category, :trade_name, :subcontractor_name, :headcount, :total_hours)`,
-          {
-            reportId,
-            trade_category: w.trade_category || "SKILLED",
-            trade_name: w.trade_name || "General Labour",
-            subcontractor_name: w.subcontractor_name || null,
-            headcount: Number(w.headcount || 1),
-            total_hours: Number(w.total_hours || 8),
-          }
-        );
-      }
-    }
+    res.status(201).json({ id: reportId, report_number: reportNo, message: "Daily site report logged successfully" });
+  } catch (err) {
+    next(err);
+  }
+};
 
-    if (Array.isArray(b.equipment)) {
-      for (const eq of b.equipment) {
-        await query(
-          `INSERT INTO pm_daily_site_equipment (report_id, equipment_name, equipment_tag, hours_worked, hours_idle, hours_breakdown, remarks)
-           VALUES (:reportId, :equipment_name, :equipment_tag, :hours_worked, :hours_idle, :hours_breakdown, :remarks)`,
-          {
-            reportId,
-            equipment_name: eq.equipment_name || "",
-            equipment_tag: eq.equipment_tag || null,
-            hours_worked: Number(eq.hours_worked || 0),
-            hours_idle: Number(eq.hours_idle || 0),
-            hours_breakdown: Number(eq.hours_breakdown || 0),
-            remarks: eq.remarks || null,
-          }
-        );
-      }
-    }
+export const updateDailyReport = async (req, res, next) => {
+  try {
+    const { companyId } = req.scope || {};
+    const id = toNumber(req.params.id);
+    const b = req.body || {};
 
-    if (Array.isArray(b.materials)) {
-      for (const m of b.materials) {
-        await query(
-          `INSERT INTO pm_daily_site_materials (report_id, material_name, quantity, unit, supplier_name, delivery_note_no, remarks)
-           VALUES (:reportId, :material_name, :quantity, :unit, :supplier_name, :delivery_note_no, :remarks)`,
-          {
-            reportId,
-            material_name: m.material_name || "",
-            quantity: Number(m.quantity || 0),
-            unit: m.unit || "PCS",
-            supplier_name: m.supplier_name || null,
-            delivery_note_no: m.delivery_note_no || null,
-            remarks: m.remarks || null,
-          }
-        );
-      }
-    }
+    const existing = await query(`SELECT id, project_id FROM pm_daily_site_reports WHERE id = :id AND (company_id = :companyId OR :companyId IS NULL) LIMIT 1`, { id, companyId: companyId || null });
+    if (!existing.length) throw httpError(404, "NOT_FOUND", "Daily site report not found");
 
-    res.status(201).json({ id: reportId, message: "Daily site report logged successfully" });
+    const weatherM = b.weather_morning || "SUNNY";
+    const allowedWeathers = ['SUNNY', 'RAINY', 'CLOUDY', 'STORMY', 'WINDY'];
+    const weatherEnum = allowedWeathers.includes(weatherM) ? weatherM : 'SUNNY';
+
+    await query(
+      `UPDATE pm_daily_site_reports SET
+        site_id = :site_id,
+        report_date = :report_date,
+        site_engineer_name = :site_engineer_name,
+        reporting_officer_name = :reporting_officer_name,
+        weather = :weather,
+        weather_morning = :weather_morning,
+        weather_afternoon = :weather_afternoon,
+        site_condition = :site_condition,
+        working_hours_from = :working_hours_from,
+        working_hours_to = :working_hours_to,
+        supervisor_comments = :supervisor_comments,
+        general_remarks = :general_remarks,
+        safety_observations = :safety_observations,
+        status = :status
+       WHERE id = :id`,
+      {
+        id,
+        site_id: toNumber(b.site_id),
+        report_date: b.report_date,
+        site_engineer_name: b.site_engineer_name || req.user?.username || "Site Engineer",
+        reporting_officer_name: b.site_engineer_name || req.user?.username || "Site Engineer",
+        weather: weatherEnum,
+        weather_morning: weatherM,
+        weather_afternoon: b.weather_afternoon || "SUNNY",
+        site_condition: b.site_condition || "DRY",
+        working_hours_from: b.working_hours_from || "08:00:00",
+        working_hours_to: b.working_hours_to || "17:00:00",
+        supervisor_comments: b.general_remarks || null,
+        general_remarks: b.general_remarks || null,
+        safety_observations: b.safety_observations || null,
+        status: b.status || "DRAFT",
+      }
+    );
+
+    await query(`DELETE FROM pm_daily_site_activities WHERE report_id = :id`, { id });
+    await query(`DELETE FROM pm_daily_site_workforce WHERE report_id = :id`, { id });
+    await query(`DELETE FROM pm_daily_site_equipment WHERE report_id = :id`, { id });
+    await query(`DELETE FROM pm_daily_site_materials WHERE report_id = :id`, { id });
+
+    await insertDailyReportSubItems(id, toNumber(b.project_id || existing[0].project_id), b);
+
+    res.json({ id, message: "Daily site report updated successfully" });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const deleteDailyReport = async (req, res, next) => {
+  try {
+    const { companyId } = req.scope || {};
+    const id = toNumber(req.params.id);
+    await query(`DELETE FROM pm_daily_site_activities WHERE report_id = :id`, { id });
+    await query(`DELETE FROM pm_daily_site_workforce WHERE report_id = :id`, { id });
+    await query(`DELETE FROM pm_daily_site_equipment WHERE report_id = :id`, { id });
+    await query(`DELETE FROM pm_daily_site_materials WHERE report_id = :id`, { id });
+    await query(`DELETE FROM pm_daily_site_photos WHERE report_id = :id`, { id });
+    await query(`DELETE FROM pm_daily_site_reports WHERE id = :id AND (company_id = :companyId OR :companyId IS NULL)`, { id, companyId: companyId || null });
+    res.json({ success: true, message: "Daily site report deleted" });
   } catch (err) {
     next(err);
   }
@@ -2487,10 +3076,10 @@ export const updateClientValuationStatus = async (req, res, next) => {
   try {
     const { companyId } = req.scope || {};
     const id = toNumber(req.params.id);
-    const { status, remarks } = req.body || {};
+    const { status, remarks, forwarded_to_username } = req.body || {};
     if (!status) throw httpError(400, "VALIDATION_ERROR", "Status is required");
 
-    const validStatuses = ["DRAFT", "SUBMITTED", "UNDER_REVIEW", "APPROVED", "REJECTED", "CERTIFIED"];
+    const validStatuses = ["DRAFT", "PENDING_APPROVAL", "SUBMITTED", "UNDER_REVIEW", "APPROVED", "REJECTED", "CERTIFIED", "REVERSED"];
     if (!validStatuses.includes(status)) throw httpError(400, "VALIDATION_ERROR", "Invalid valuation status");
 
     const existingRows = await query(
@@ -2516,9 +3105,9 @@ export const updateClientValuationStatus = async (req, res, next) => {
 
     await query(
       `UPDATE pm_client_valuations 
-       SET status = :status, remarks = COALESCE(:remarks, remarks), approval_history = :history
+       SET status = :status, forwarded_to_username = :forwarded_to_username, remarks = COALESCE(:remarks, remarks), approval_history = :history
        WHERE id = :id`,
-      { id, status, remarks: remarks || null, history: JSON.stringify(history) }
+      { id, status, forwarded_to_username: forwarded_to_username !== undefined ? forwarded_to_username : null, remarks: remarks || null, history: JSON.stringify(history) }
     );
 
     res.json({ id, status, message: `Valuation status updated to ${status}` });
@@ -3485,6 +4074,7 @@ export const advanceVariationWorkflow = async (req, res, next) => {
 
     const STAGE_MAP = {
       DRAFT: 1,
+      PENDING_APPROVAL: 2,
       SUBMITTED: 2,
       UNDER_ASSESSMENT: 3,
       PENDING_AUTHORIZATION: 4,
@@ -3493,18 +4083,21 @@ export const advanceVariationWorkflow = async (req, res, next) => {
       COMPLETED: 7,
       REJECTED: 0,
       WITHDRAWN: 0,
-      RETURNED: 1
+      RETURNED: 1,
+      REVERSED: 1
     };
 
     const newStage = STAGE_MAP[target_status] !== undefined ? STAGE_MAP[target_status] : v.workflow_stage;
     const finalApprovedAmt = amount_approved !== undefined ? Number(amount_approved) : Number(v.assessed_amount || v.cost_impact);
     const finalDays = schedule_impact_days !== undefined ? Number(schedule_impact_days) : Number(v.schedule_impact_days || 0);
 
-    let updateFields = `status = :target_status, workflow_stage = :newStage`;
+    const forwarded_to_username = req.body?.forwarded_to_username !== undefined ? req.body.forwarded_to_username : (target_status === "DRAFT" || target_status === "REVERSED" ? null : v.forwarded_to_username);
+    let updateFields = `status = :target_status, workflow_stage = :newStage, forwarded_to_username = :forwarded_to_username`;
     const params = {
       id,
       target_status,
-      newStage
+      newStage,
+      forwarded_to_username
     };
 
     if (target_status === "APPROVED") {
@@ -3793,7 +4386,18 @@ export const listSafetyIncidents = async (req, res, next) => {
     const { companyId } = req.scope || {};
     await ensureConstructionTables();
     const projectId = toNumber(req.query.project_id);
-    let sql = `SELECT i.*, p.project_name FROM pm_safety_incidents i JOIN pm_projects p ON p.id = i.project_id WHERE i.company_id = :companyId`;
+    let sql = `SELECT i.*, 
+                      COALESCE(i.injured_person_name, i.persons_involved) AS injured_person_name,
+                      COALESCE(i.persons_involved, i.injured_person_name) AS persons_involved,
+                      COALESCE(i.days_lost, i.lost_workdays, 0) AS days_lost,
+                      COALESCE(i.lost_workdays, i.days_lost, 0) AS lost_workdays,
+                      COALESCE(i.root_cause, i.investigation_findings) AS root_cause,
+                      COALESCE(i.corrective_action, i.corrective_actions) AS corrective_action,
+                      COALESCE(i.reported_to_authority, 'N') AS reported_to_authority,
+                      p.project_name, p.project_code
+               FROM pm_safety_incidents i 
+               JOIN pm_projects p ON p.id = i.project_id 
+               WHERE i.company_id = :companyId`;
     const params = { companyId };
     if (projectId) {
       sql += ` AND i.project_id = :projectId`;
@@ -3809,32 +4413,60 @@ export const listSafetyIncidents = async (req, res, next) => {
 
 export const createSafetyIncident = async (req, res, next) => {
   try {
-    const { companyId } = req.scope || {};
+    const { companyId, branchId } = req.scope || {};
     const b = req.body || {};
     if (!b.project_id || !b.description) throw httpError(400, "VALIDATION_ERROR", "Project and incident description required");
 
+    await ensureConstructionTables();
+
+    const incidentNo = b.incident_no || b.incident_number || `INC-${Date.now().toString().slice(-6)}-${Math.floor(100 + Math.random() * 900)}`;
+    const branch_id = branchId || 1;
+    const reported_by = b.reported_by || req.user?.username || req.user?.name || "Safety Officer";
+    const location = b.location || "Site";
+    const person = b.injured_person_name || b.persons_involved || null;
+    const days = Number(b.days_lost ?? b.lost_workdays ?? b.lost_work_days ?? 0);
+    const cause = b.root_cause || b.investigation_findings || null;
+    const action = b.corrective_action || b.corrective_actions || null;
+    const reportedToAuth = b.reported_to_authority || (b.regulatory_notified ? "Y" : "N") || "N";
+    const incType = b.incident_type || "NEAR_MISS";
+    const severity = b.severity || "LOW";
+
     const result = await query(
       `INSERT INTO pm_safety_incidents 
-        (company_id, project_id, incident_date, incident_type, location, injured_person_name, description, root_cause, corrective_action, days_lost, reported_to_authority, status, reported_by)
+        (company_id, branch_id, project_id, incident_no, incident_date, incident_type, severity, location, 
+         description, persons_involved, injured_person_name, lost_workdays, days_lost, 
+         immediate_action_taken, investigation_findings, root_cause, corrective_actions, corrective_action, 
+         reported_to_authority, status, reported_by)
        VALUES 
-        (:companyId, :project_id, :incident_date, :incident_type, :location, :injured_person_name, :description, :root_cause, :corrective_action, :days_lost, :reported_to_authority, :status, :reported_by)`,
+        (:companyId, :branch_id, :project_id, :incident_no, :incident_date, :incident_type, :severity, :location,
+         :description, :persons_involved, :injured_person_name, :lost_workdays, :days_lost,
+         :immediate_action_taken, :investigation_findings, :root_cause, :corrective_actions, :corrective_action,
+         :reported_to_authority, :status, :reported_by)`,
       {
         companyId,
+        branch_id,
         project_id: toNumber(b.project_id),
+        incident_no: incidentNo,
         incident_date: b.incident_date || new Date().toISOString().split("T")[0],
-        incident_type: b.incident_type || "NEAR_MISS",
-        location: b.location || null,
-        injured_person_name: b.injured_person_name || null,
+        incident_type: incType,
+        severity,
+        location,
         description: b.description,
-        root_cause: b.root_cause || null,
-        corrective_action: b.corrective_action || null,
-        days_lost: Number(b.days_lost || 0),
-        reported_to_authority: b.reported_to_authority || "N",
+        persons_involved: person,
+        injured_person_name: person,
+        lost_workdays: days,
+        days_lost: days,
+        immediate_action_taken: b.immediate_action_taken || null,
+        investigation_findings: cause,
+        root_cause: cause,
+        corrective_actions: action,
+        corrective_action: action,
+        reported_to_authority: reportedToAuth,
         status: b.status || "REPORTED",
-        reported_by: req.user?.id || null,
+        reported_by,
       }
     );
-    res.status(201).json({ id: result.insertId, message: "Safety incident logged" });
+    res.status(201).json({ id: result.insertId, incident_no: incidentNo, message: "Safety incident logged" });
   } catch (err) {
     next(err);
   }
@@ -3845,7 +4477,17 @@ export const listToolboxTalks = async (req, res, next) => {
     const { companyId } = req.scope || {};
     await ensureConstructionTables();
     const projectId = toNumber(req.query.project_id);
-    let sql = `SELECT t.*, p.project_name FROM pm_toolbox_talks t JOIN pm_projects p ON p.id = t.project_id WHERE t.company_id = :companyId`;
+    let sql = `SELECT t.*, 
+                      COALESCE(t.conductor_name, t.delivered_by) AS conductor_name,
+                      COALESCE(t.delivered_by, t.conductor_name) AS delivered_by,
+                      COALESCE(t.attendee_count, t.attendees_count, 0) AS attendee_count,
+                      COALESCE(t.attendees_count, t.attendee_count, 0) AS attendees_count,
+                      COALESCE(t.notes, t.summary_points) AS notes,
+                      COALESCE(t.summary_points, t.notes) AS summary_points,
+                      p.project_name, p.project_code 
+               FROM pm_toolbox_talks t 
+               JOIN pm_projects p ON p.id = t.project_id 
+               WHERE t.company_id = :companyId`;
     const params = { companyId };
     if (projectId) {
       sql += ` AND t.project_id = :projectId`;
@@ -3861,21 +4503,36 @@ export const listToolboxTalks = async (req, res, next) => {
 
 export const createToolboxTalk = async (req, res, next) => {
   try {
-    const { companyId } = req.scope || {};
+    const { companyId, branchId } = req.scope || {};
     const b = req.body || {};
     if (!b.project_id || !b.topic) throw httpError(400, "VALIDATION_ERROR", "Project and topic required");
 
+    await ensureConstructionTables();
+
+    const branch_id = branchId || 1;
+    const conductor = b.conductor_name || b.delivered_by || req.user?.username || req.user?.name || "Safety Officer";
+    const count = Number(b.attendee_count ?? b.attendees_count ?? 0);
+    const notes = b.notes || b.summary_points || null;
+
     const result = await query(
-      `INSERT INTO pm_toolbox_talks (company_id, project_id, talk_date, topic, conductor_name, attendee_count, notes)
-       VALUES (:companyId, :project_id, :talk_date, :topic, :conductor_name, :attendee_count, :notes)`,
+      `INSERT INTO pm_toolbox_talks 
+        (company_id, branch_id, project_id, talk_date, topic, delivered_by, conductor_name, 
+         attendees_count, attendee_count, summary_points, notes)
+       VALUES 
+        (:companyId, :branch_id, :project_id, :talk_date, :topic, :delivered_by, :conductor_name, 
+         :attendees_count, :attendee_count, :summary_points, :notes)`,
       {
         companyId,
+        branch_id,
         project_id: toNumber(b.project_id),
         talk_date: b.talk_date || new Date().toISOString().split("T")[0],
         topic: b.topic,
-        conductor_name: b.conductor_name || req.user?.username || null,
-        attendee_count: Number(b.attendee_count || 0),
-        notes: b.notes || null,
+        delivered_by: conductor,
+        conductor_name: conductor,
+        attendees_count: count,
+        attendee_count: count,
+        summary_points: notes,
+        notes: notes,
       }
     );
     res.status(201).json({ id: result.insertId, message: "Toolbox talk recorded" });
@@ -3893,7 +4550,13 @@ export const listDocuments = async (req, res, next) => {
     const { companyId } = req.scope || {};
     await ensureConstructionTables();
     const projectId = toNumber(req.query.project_id);
-    let sql = `SELECT d.*, p.project_name FROM pm_documents d JOIN pm_projects p ON p.id = d.project_id WHERE d.company_id = :companyId`;
+    let sql = `SELECT d.*, 
+                      COALESCE(d.document_number, d.doc_number) AS document_number,
+                      COALESCE(d.discipline, d.doc_category) AS discipline,
+                      p.project_name, p.project_code
+               FROM pm_documents d 
+               JOIN pm_projects p ON p.id = d.project_id 
+               WHERE d.company_id = :companyId`;
     const params = { companyId };
     if (projectId) {
       sql += ` AND d.project_id = :projectId`;
@@ -3909,15 +4572,26 @@ export const listDocuments = async (req, res, next) => {
 
 export const createDocument = async (req, res, next) => {
   try {
-    const { companyId } = req.scope || {};
+    const { companyId, branchId } = req.scope || {};
     const b = req.body || {};
     if (!b.project_id || !b.document_number || !b.title) throw httpError(400, "VALIDATION_ERROR", "Project, document number, and title required");
 
+    await ensureConstructionTables();
+
+    const branch_id = branchId || 1;
+    const attachmentsJson = b.attachments_json
+      ? (typeof b.attachments_json === "string" ? b.attachments_json : JSON.stringify(b.attachments_json))
+      : (Array.isArray(b.attachments) ? JSON.stringify(b.attachments) : null);
+    const fileUrl = b.file_url || (Array.isArray(b.attachments) && b.attachments[0]?.url) || null;
+
     const result = await query(
-      `INSERT INTO pm_documents (company_id, project_id, document_number, title, discipline, category, current_revision, status, file_url, uploaded_by)
-       VALUES (:companyId, :project_id, :document_number, :title, :discipline, :category, :current_revision, :status, :file_url, :uploaded_by)`,
+      `INSERT INTO pm_documents 
+        (company_id, branch_id, project_id, doc_number, document_number, title, discipline, doc_category, category, current_revision, status, file_url, attachments_json, uploaded_by)
+       VALUES 
+        (:companyId, :branch_id, :project_id, :document_number, :document_number, :title, :discipline, :category, :category, :current_revision, :status, :file_url, :attachments_json, :uploaded_by)`,
       {
         companyId,
+        branch_id,
         project_id: toNumber(b.project_id),
         document_number: b.document_number,
         title: b.title,
@@ -3925,7 +4599,8 @@ export const createDocument = async (req, res, next) => {
         category: b.category || "DRAWING",
         current_revision: b.current_revision || "0",
         status: b.status || "APPROVED_FOR_CONSTRUCTION",
-        file_url: b.file_url || null,
+        file_url: fileUrl,
+        attachments_json: attachmentsJson,
         uploaded_by: req.user?.id || null,
       }
     );
@@ -3940,7 +4615,16 @@ export const listRFIs = async (req, res, next) => {
     const { companyId } = req.scope || {};
     await ensureConstructionTables();
     const projectId = toNumber(req.query.project_id);
-    let sql = `SELECT r.*, p.project_name FROM pm_rfis r JOIN pm_projects p ON p.id = r.project_id WHERE r.company_id = :companyId`;
+    let sql = `SELECT r.*, 
+                      COALESCE(r.rfi_number, r.rfi_no) AS rfi_number,
+                      COALESCE(r.drawing_reference, r.drawing_ref) AS drawing_reference,
+                      COALESCE(r.cost_impact, r.has_cost_impact, 'N') AS cost_impact,
+                      COALESCE(r.schedule_impact, r.has_schedule_impact, 'N') AS schedule_impact,
+                      COALESCE(r.answer, r.response) AS answer,
+                      p.project_name, p.project_code
+               FROM pm_rfis r 
+               JOIN pm_projects p ON p.id = r.project_id 
+               WHERE r.company_id = :companyId`;
     const params = { companyId };
     if (projectId) {
       sql += ` AND r.project_id = :projectId`;
@@ -3956,31 +4640,53 @@ export const listRFIs = async (req, res, next) => {
 
 export const createRFI = async (req, res, next) => {
   try {
-    const { companyId } = req.scope || {};
+    const { companyId, branchId } = req.scope || {};
     const b = req.body || {};
     if (!b.project_id || !b.subject || !b.question) throw httpError(400, "VALIDATION_ERROR", "Project, subject, and question required");
 
+    await ensureConstructionTables();
+
+    const branch_id = branchId || 1;
+    const rfiNo = b.rfi_number || b.rfi_no || `RFI-${Date.now().toString().slice(-6)}`;
+    const drawingRef = b.drawing_reference || b.drawing_ref || null;
+    const costImp = b.cost_impact || b.has_cost_impact || "N";
+    const schedImp = b.schedule_impact || b.has_schedule_impact || "N";
+    const attachmentsJson = b.attachments_json
+      ? (typeof b.attachments_json === "string" ? b.attachments_json : JSON.stringify(b.attachments_json))
+      : (Array.isArray(b.attachments) ? JSON.stringify(b.attachments) : null);
+    const fileUrl = b.file_url || (Array.isArray(b.attachments) && b.attachments[0]?.url) || null;
+
     const result = await query(
       `INSERT INTO pm_rfis 
-        (company_id, project_id, rfi_number, subject, question, drawing_reference, date_raised, due_date, cost_impact, schedule_impact, status, raised_by)
+        (company_id, branch_id, project_id, rfi_no, rfi_number, subject, question, drawing_ref, drawing_reference, 
+         file_url, attachments_json, date_issued, date_raised, due_date, has_cost_impact, cost_impact, 
+         has_schedule_impact, schedule_impact, status, created_by, raised_by)
        VALUES 
-        (:companyId, :project_id, :rfi_number, :subject, :question, :drawing_reference, :date_raised, :due_date, :cost_impact, :schedule_impact, :status, :raised_by)`,
+        (:companyId, :branch_id, :project_id, :rfi_no, :rfi_number, :subject, :question, :drawing_ref, :drawing_reference,
+         :file_url, :attachments_json, :date_raised, :date_raised, :due_date, :cost_impact, :cost_impact,
+         :schedule_impact, :schedule_impact, :status, :created_by, :raised_by)`,
       {
         companyId,
+        branch_id,
         project_id: toNumber(b.project_id),
-        rfi_number: b.rfi_number || `RFI-${Date.now().toString().slice(-6)}`,
+        rfi_no: rfiNo,
+        rfi_number: rfiNo,
         subject: b.subject,
         question: b.question,
-        drawing_reference: b.drawing_reference || null,
-        date_raised: b.date_raised || new Date().toISOString().split("T")[0],
+        drawing_ref: drawingRef,
+        drawing_reference: drawingRef,
+        file_url: fileUrl,
+        attachments_json: attachmentsJson,
+        date_raised: b.date_raised || b.date_issued || new Date().toISOString().split("T")[0],
         due_date: b.due_date || null,
-        cost_impact: b.cost_impact || "N",
-        schedule_impact: b.schedule_impact || "N",
+        cost_impact: costImp,
+        schedule_impact: schedImp,
         status: "OPEN",
+        created_by: req.user?.id || null,
         raised_by: req.user?.id || null,
       }
     );
-    res.status(201).json({ id: result.insertId, message: "RFI raised successfully" });
+    res.status(201).json({ id: result.insertId, rfi_number: rfiNo, message: "RFI raised successfully" });
   } catch (err) {
     next(err);
   }
@@ -3992,17 +4698,26 @@ export const updateRFI = async (req, res, next) => {
     const id = toNumber(req.params.id);
     const b = req.body || {};
 
+    const ans = b.answer || b.response || null;
+    const ansDate = ans ? new Date().toISOString().split("T")[0] : null;
+
     await query(
       `UPDATE pm_rfis SET 
-        answer = :answer, answered_by = :answered_by, answered_date = :answered_date, status = :status
+        answer = :answer, 
+        response = :answer,
+        answered_by = :answered_by, 
+        responded_by = :answered_by,
+        answered_date = :answered_date,
+        response_date = :answered_date,
+        status = :status
        WHERE id = :id AND company_id = :companyId`,
       {
         id,
         companyId,
-        answer: b.answer || null,
+        answer: ans,
         answered_by: req.user?.id || null,
-        answered_date: b.answer ? new Date().toISOString().split("T")[0] : null,
-        status: b.status || (b.answer ? "CLOSED" : "OPEN"),
+        answered_date: ansDate,
+        status: b.status || (ans ? "CLOSED" : "OPEN"),
       }
     );
     res.json({ ok: true, message: "RFI updated" });
@@ -4020,12 +4735,20 @@ export const listEquipmentLogs = async (req, res, next) => {
     const { companyId } = req.scope || {};
     await ensureConstructionTables();
     const projectId = toNumber(req.query.project_id);
-    let sql = `SELECT l.*, p.project_name, eq.name AS equipment_name
+    let sql = `SELECT l.*,
+                      COALESCE(l.operating_hours, l.hours_worked, 0) AS hours_worked,
+                      COALESCE(l.idle_hours, l.hours_idle, 0) AS hours_idle,
+                      COALESCE(l.breakdown_hours, l.hours_breakdown, 0) AS hours_breakdown,
+                      COALESCE(l.fuel_litres, l.fuel_consumed_litres, 0) AS fuel_consumed_litres,
+                      COALESCE(l.hourly_cost_rate, l.hourly_rate, 0) AS hourly_rate,
+                      COALESCE(eq.name, l.equipment_name, 'Heavy Equipment') AS equipment_name,
+                      p.project_name,
+                      p.project_code
                FROM pm_equipment_logs l
-               JOIN pm_projects p ON p.id = l.project_id
+               LEFT JOIN pm_projects p ON p.id = l.project_id
                LEFT JOIN pm_equipments eq ON eq.id = l.equipment_id
-               WHERE l.company_id = :companyId`;
-    const params = { companyId };
+               WHERE (l.company_id = :companyId OR :companyId IS NULL)`;
+    const params = { companyId: companyId || null };
     if (projectId) {
       sql += ` AND l.project_id = :projectId`;
       params.projectId = projectId;
@@ -4040,36 +4763,70 @@ export const listEquipmentLogs = async (req, res, next) => {
 
 export const createEquipmentLog = async (req, res, next) => {
   try {
-    const { companyId } = req.scope || {};
+    const { companyId, branchId } = req.scope || {};
     const b = req.body || {};
     if (!b.project_id || !b.equipment_id) throw httpError(400, "VALIDATION_ERROR", "Project and equipment required");
 
-    const hrsWorked = Number(b.hours_worked || 0);
-    const hourlyRate = Number(b.hourly_rate || 0);
+    await ensureConstructionTables();
+
+    const projRows = await query(`SELECT id, company_id, branch_id FROM pm_projects WHERE id = :id LIMIT 1`, { id: toNumber(b.project_id) });
+    const targetCompId = companyId || projRows[0]?.company_id || 1;
+    const targetBranchId = branchId || projRows[0]?.branch_id || 1;
+
+    let eqName = b.equipment_name;
+    if (!eqName) {
+      const eqRows = await query(`SELECT name FROM pm_equipments WHERE id = :id LIMIT 1`, { id: toNumber(b.equipment_id) });
+      eqName = eqRows[0]?.name || "Heavy Equipment";
+    }
+
+    const hrsWorked = Number(b.hours_worked || b.operating_hours || 0);
+    const hrsIdle = Number(b.hours_idle || b.idle_hours || 0);
+    const hrsBreakdown = Number(b.hours_breakdown || b.breakdown_hours || 0);
+    const fuelLitres = Number(b.fuel_consumed_litres || b.fuel_litres || 0);
+    const hourlyRate = Number(b.hourly_rate || b.hourly_cost_rate || 0);
     const calculatedCost = hrsWorked * hourlyRate;
 
     const result = await query(
       `INSERT INTO pm_equipment_logs 
-        (company_id, project_id, equipment_id, log_date, hours_worked, hours_idle, hours_breakdown, fuel_consumed_litres, operator_name, hourly_rate, total_cost, remarks, logged_by)
+        (company_id, branch_id, project_id, equipment_id, equipment_name, log_date, start_hours, end_hours, operating_hours, hours_worked, idle_hours, hours_idle, breakdown_hours, hours_breakdown, fuel_litres, fuel_consumed_litres, hourly_cost_rate, hourly_rate, total_cost, operator_name, remarks, created_by, logged_by)
        VALUES 
-        (:companyId, :project_id, :equipment_id, :log_date, :hours_worked, :hours_idle, :hours_breakdown, :fuel_consumed_litres, :operator_name, :hourly_rate, :total_cost, :remarks, :logged_by)`,
+        (:companyId, :branchId, :project_id, :equipment_id, :equipment_name, :log_date, 0.00, 0.00, :operating_hours, :hours_worked, :idle_hours, :hours_idle, :breakdown_hours, :hours_breakdown, :fuel_litres, :fuel_consumed_litres, :hourly_cost_rate, :hourly_rate, :total_cost, :operator_name, :remarks, :created_by, :logged_by)`,
       {
-        companyId,
+        companyId: targetCompId,
+        branchId: targetBranchId,
         project_id: toNumber(b.project_id),
         equipment_id: toNumber(b.equipment_id),
+        equipment_name: eqName,
         log_date: b.log_date || new Date().toISOString().split("T")[0],
+        operating_hours: hrsWorked,
         hours_worked: hrsWorked,
-        hours_idle: Number(b.hours_idle || 0),
-        hours_breakdown: Number(b.hours_breakdown || 0),
-        fuel_consumed_litres: Number(b.fuel_consumed_litres || 0),
-        operator_name: b.operator_name || null,
+        idle_hours: hrsIdle,
+        hours_idle: hrsIdle,
+        breakdown_hours: hrsBreakdown,
+        hours_breakdown: hrsBreakdown,
+        fuel_litres: fuelLitres,
+        fuel_consumed_litres: fuelLitres,
+        hourly_cost_rate: hourlyRate,
         hourly_rate: hourlyRate,
         total_cost: calculatedCost,
+        operator_name: b.operator_name || null,
         remarks: b.remarks || null,
+        created_by: req.user?.id || null,
         logged_by: req.user?.id || null,
       }
     );
     res.status(201).json({ id: result.insertId, total_cost: calculatedCost, message: "Equipment operating log recorded" });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const deleteEquipmentLog = async (req, res, next) => {
+  try {
+    const { companyId } = req.scope || {};
+    const id = toNumber(req.params.id);
+    await query(`DELETE FROM pm_equipment_logs WHERE id = :id AND (company_id = :companyId OR :companyId IS NULL)`, { id, companyId: companyId || null });
+    res.json({ success: true, message: "Equipment operating log deleted" });
   } catch (err) {
     next(err);
   }

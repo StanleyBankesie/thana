@@ -4,7 +4,9 @@
  */
 
 import React, { useEffect, useMemo, useState } from "react";
+import { Ruler } from "lucide-react";
 import { api } from "api/client";
+import Modal from "./common/Modal.jsx";
 
 /**
  * UnitConversionModal component
@@ -114,93 +116,25 @@ export default function UnitConversionModal({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg shadow max-w-xl w-full">
-        <div className="px-5 py-4 border-b flex justify-between items-center">
-          <h2 className="text-lg font-semibold">Unit Conversion</h2>
-          <button className="btn-outline" onClick={onClose}>
-            ×
-          </button>
-        </div>
-        <div className="p-5">
-          {error ? (
-            <div className="text-sm text-red-600 mb-3">{error}</div>
-          ) : null}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <label className="label">From Unit</label>
-              <select
-                className="input"
-                value={fromUom}
-                onChange={(e) => setFromUom(e.target.value)}
-              >
-                <option value="">Select unit</option>
-                {fromOptions.map((u) => (
-                  <option key={u} value={u}>
-                    {u}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="label">To Unit</label>
-              <select
-                className="input"
-                value={toUom}
-                onChange={(e) => setToUom(e.target.value)}
-              >
-                <option value="">Select unit</option>
-                {toOptions.map((u) => (
-                  <option key={u} value={u}>
-                    {u}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="label">Factor</label>
-              <input
-                type="text"
-                className="input"
-                value={factor != null ? String(factor) : ""}
-                readOnly
-              />
-            </div>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-            <div>
-              <label className="label">Value to Convert</label>
-              <input
-                type="number"
-                step="0.000001"
-                className="input"
-                value={valueToConvert}
-                onChange={(e) => setValueToConvert(e.target.value)}
-              />
-              <div className="text-xs text-slate-500 mt-1">
-                {factor
-                  ? `1 ${fromUom || ""} = ${factor} ${toUom || ""}`
-                  : "Select valid From and To units"}
-              </div>
-            </div>
-            <div className="flex items-end">
-              <div className="w-full">
-                <div className="label">Result</div>
-                <div className="p-3 border-2 rounded text-center text-lg font-semibold">
-                  {result != null
-                    ? `${valueToConvert || 0} ${fromUom || ""} = ${result} ${toUom || ""}`
-                    : "—"}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div className="px-5 py-4 border-t flex justify-end gap-2">
-          <button className="btn-outline" onClick={onClose}>
-            Close
+    <Modal
+      open={open}
+      onClose={onClose}
+      title="Unit Conversion"
+      subtitle="Convert inventory quantities between standard units of measure"
+      icon={Ruler}
+      maxWidth="max-w-xl"
+      footer={
+        <div className="flex justify-end gap-3 w-full">
+          <button
+            type="button"
+            className="btn btn-secondary px-4 py-2 text-sm font-medium"
+            onClick={onClose}
+          >
+            Cancel
           </button>
           <button
-            className="btn-success"
+            type="button"
+            className="btn btn-primary px-5 py-2 text-sm font-medium"
             disabled={
               !onApply ||
               !factor ||
@@ -219,10 +153,84 @@ export default function UnitConversionModal({
               onClose && onClose();
             }}
           >
-            Apply
+            Apply Conversion
           </button>
         </div>
+      }
+    >
+      <div className="space-y-4 text-sm">
+        {error ? (
+          <div className="text-sm text-red-600 bg-red-50 p-2.5 rounded-xl border border-red-200">{error}</div>
+        ) : null}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <label className="label">From Unit</label>
+            <select
+              className="input w-full"
+              value={fromUom}
+              onChange={(e) => setFromUom(e.target.value)}
+            >
+              <option value="">Select unit</option>
+              {fromOptions.map((u) => (
+                <option key={u} value={u}>
+                  {u}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="label">To Unit</label>
+            <select
+              className="input w-full"
+              value={toUom}
+              onChange={(e) => setToUom(e.target.value)}
+            >
+              <option value="">Select unit</option>
+              {toOptions.map((u) => (
+                <option key={u} value={u}>
+                  {u}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="label">Factor</label>
+            <input
+              type="text"
+              className="input w-full"
+              value={factor != null ? String(factor) : ""}
+              readOnly
+            />
+          </div>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+          <div>
+            <label className="label">Value to Convert</label>
+            <input
+              type="number"
+              step="0.000001"
+              className="input w-full"
+              value={valueToConvert}
+              onChange={(e) => setValueToConvert(e.target.value)}
+            />
+            <div className="text-xs text-slate-500 mt-1">
+              {factor
+                ? `1 ${fromUom || ""} = ${factor} ${toUom || ""}`
+                : "Select valid From and To units"}
+            </div>
+          </div>
+          <div className="flex items-end">
+            <div className="w-full">
+              <div className="label">Result</div>
+              <div className="p-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-center text-lg font-bold text-slate-900 dark:text-white">
+                {result != null
+                  ? `${valueToConvert || 0} ${fromUom || ""} = ${result} ${toUom || ""}`
+                  : "—"}
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
-    </div>
+    </Modal>
   );
 }

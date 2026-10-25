@@ -25,7 +25,8 @@ import {
   Eye,
   AlertTriangle,
   Receipt,
-  FileSpreadsheet
+  FileSpreadsheet,
+  FileCheck2
 } from "lucide-react";
 import { api } from "../../../../api/client.js";
 import { toast } from "react-toastify";
@@ -79,7 +80,7 @@ export default function PaymentApplicationList() {
     project_id: "",
     contract_ref: "",
     client_name: "",
-    contractor_name: "Stanness Technologies Ltd",
+    contractor_name: "",
     valuation_id: null,
     valuation_no: "",
     application_number: "",
@@ -87,7 +88,7 @@ export default function PaymentApplicationList() {
     period_from: "",
     period_to: "",
     due_date: new Date(Date.now() + 30 * 86400000).toISOString().split("T")[0],
-    payment_terms: "30 Days from Certification",
+    payment_terms: "",
     currency: "GHS",
     application_type: "INTERIM",
     status: "DRAFT",
@@ -174,7 +175,7 @@ export default function PaymentApplicationList() {
       project_id: selectedProjectId || (projects[0]?.id ? String(projects[0].id) : ""),
       contract_ref: curProj?.contract_ref_no || "CTR-001",
       client_name: curProj?.client_name || "Client",
-      contractor_name: "Stanness Technologies Ltd",
+      contractor_name: "",
       valuation_id: null,
       valuation_no: "",
       application_number: `IPA-${curProj?.project_code || "PRJ"}-${projApps.length + 1}`,

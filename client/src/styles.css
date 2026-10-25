@@ -1329,3 +1329,150 @@ textarea,
 .dark .input {
   background-color: #0f172a !important;
 }
+
+/* ==========================================================================
+   GLOBAL STANDARDIZED MODAL DESIGN SYSTEM (PROJECT MANAGEMENT STANDARD)
+   Standardizes all modal dialogs across all modules to match the Project
+   Management modal aesthetic:
+   - Backdrop blur (bg-black/60 backdrop-blur-sm)
+   - 16px / rounded-2xl dialog corners with smooth shadow-2xl
+   - Clean light/dark header surface (removes dark teal #0E3646 / solid bg-brand / bg-slate-800 from modal headers)
+   - High-contrast typography, close button ergonomics, and clean footers.
+   ========================================================================== */
+
+/* 1. Modal backdrop enhancement */
+.fixed.inset-0.z-50,
+.fixed.inset-0.z-40,
+[role="dialog"] {
+  backdrop-filter: blur(4px) !important;
+  -webkit-backdrop-filter: blur(4px) !important;
+}
+
+/* 2. Modal card surfaces */
+.fixed.inset-0:not(.print-container) > div:not(.fixed),
+.fixed.inset-0:not(.print-container) > form,
+.modal-box,
+.ant-modal-content {
+  border-radius: 1rem !important; /* rounded-2xl */
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25) !important; /* shadow-2xl */
+}
+
+/* 3. Modal headers: eliminate dark teal (#0E3646), solid brand, or dark headers in modals */
+.fixed.inset-0 .bg-brand:not(button):not(a):not(span),
+.fixed.inset-0 .card-header.bg-brand,
+.fixed.inset-0 .bg-brand-900:not(button):not(a):not(span),
+.fixed.inset-0 [style*="background-color: #0E3646"]:not(button):not(thead):not(th),
+.fixed.inset-0 [style*="background-color:#0E3646"]:not(button):not(thead):not(th),
+.fixed.inset-0 [style*="background-color: rgb(14, 54, 70)"]:not(button):not(thead):not(th),
+.fixed.inset-0 [style*="background-color:rgb(14, 54, 70)"]:not(button):not(thead):not(th) {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  border-bottom: 1px solid #e2e8f0 !important;
+}
+
+.dark .fixed.inset-0 .bg-brand:not(button):not(a):not(span),
+.fixed.inset-0 .card-header.bg-brand,
+.dark .fixed.inset-0 .bg-brand-900:not(button):not(a):not(span),
+.dark .fixed.inset-0 [style*="background-color: #0E3646"]:not(button):not(thead):not(th),
+.dark .fixed.inset-0 [style*="background-color:#0E3646"]:not(button):not(thead):not(th),
+.dark .fixed.inset-0 [style*="background-color: rgb(14, 54, 70)"]:not(button):not(thead):not(th),
+.dark .fixed.inset-0 [style*="background-color:rgb(14, 54, 70)"]:not(button):not(thead):not(th) {
+  background-color: #0f172a !important;
+  color: #f8fafc !important;
+  border-bottom: 1px solid #1e293b !important;
+}
+
+/* Ensure modal header headings and text remain high-contrast on light/dark backgrounds */
+.fixed.inset-0 .bg-brand:not(button):not(a):not(span) h1,
+.fixed.inset-0 .bg-brand:not(button):not(a):not(span) h2,
+.fixed.inset-0 .bg-brand:not(button):not(a):not(span) h3,
+.fixed.inset-0 .bg-brand:not(button):not(a):not(span) .font-bold,
+.fixed.inset-0 .bg-brand:not(button):not(a):not(span) .font-semibold,
+.fixed.inset-0 [style*="background-color: #0E3646"]:not(button):not(thead):not(th) h1,
+.fixed.inset-0 [style*="background-color: #0E3646"]:not(button):not(thead):not(th) h2,
+.fixed.inset-0 [style*="background-color: #0E3646"]:not(button):not(thead):not(th) h3,
+.fixed.inset-0 [style*="background-color: #0E3646"]:not(button):not(thead):not(th) .font-bold,
+.fixed.inset-0 [style*="background-color: #0E3646"]:not(button):not(thead):not(th) .font-semibold {
+  color: #0f172a !important;
+}
+
+.dark .fixed.inset-0 .bg-brand:not(button):not(a):not(span) h1,
+.dark .fixed.inset-0 .bg-brand:not(button):not(a):not(span) h2,
+.dark .fixed.inset-0 .bg-brand:not(button):not(a):not(span) h3,
+.dark .fixed.inset-0 .bg-brand:not(button):not(a):not(span) .font-bold,
+.dark .fixed.inset-0 .bg-brand:not(button):not(a):not(span) .font-semibold,
+.dark .fixed.inset-0 [style*="background-color: #0E3646"]:not(button):not(thead):not(th) h1,
+.dark .fixed.inset-0 [style*="background-color: #0E3646"]:not(button):not(thead):not(th) h2,
+.dark .fixed.inset-0 [style*="background-color: #0E3646"]:not(button):not(thead):not(th) h3,
+.dark .fixed.inset-0 [style*="background-color: #0E3646"]:not(button):not(thead):not(th) .font-bold,
+.dark .fixed.inset-0 [style*="background-color: #0E3646"]:not(button):not(thead):not(th) .font-semibold {
+  color: #f8fafc !important;
+}
+
+/* Ensure close buttons inside modal headers are cleanly visible */
+.fixed.inset-0 .bg-brand:not(button):not(a):not(span) button,
+.fixed.inset-0 [style*="background-color: #0E3646"]:not(button):not(thead):not(th) button {
+  color: #64748b !important;
+}
+.fixed.inset-0 .bg-brand:not(button):not(a):not(span) button:hover,
+.fixed.inset-0 [style*="background-color: #0E3646"]:not(button):not(thead):not(th) button:hover {
+  color: #0f172a !important;
+  background-color: #f1f5f9 !important;
+}
+.dark .fixed.inset-0 .bg-brand:not(button):not(a):not(span) button,
+.dark .fixed.inset-0 [style*="background-color: #0E3646"]:not(button):not(thead):not(th) button {
+  color: #94a3b8 !important;
+}
+.dark .fixed.inset-0 .bg-brand:not(button):not(a):not(span) button:hover,
+.dark .fixed.inset-0 [style*="background-color: #0E3646"]:not(button):not(thead):not(th) button:hover {
+  color: #ffffff !important;
+  background-color: #1e293b !important;
+}
+
+/* 4. Modal footers: clean surfaces */
+.fixed.inset-0 .bg-slate-50.rounded-b-lg,
+.fixed.inset-0 .bg-slate-50.rounded-b-xl,
+.fixed.inset-0 .bg-slate-50.rounded-b-2xl,
+.fixed.inset-0 .bg-gray-50.rounded-b-lg,
+.fixed.inset-0 .bg-gray-50.rounded-b-xl,
+.fixed.inset-0 .bg-gray-50.rounded-b-2xl {
+  background-color: #ffffff !important;
+  border-top: 1px solid #e2e8f0 !important;
+  border-radius: 0 0 1rem 1rem !important;
+}
+.dark .fixed.inset-0 .bg-slate-50.rounded-b-lg,
+.dark .fixed.inset-0 .bg-slate-50.rounded-b-xl,
+.dark .fixed.inset-0 .bg-slate-50.rounded-b-2xl,
+.dark .fixed.inset-0 .bg-gray-50.rounded-b-lg,
+.dark .fixed.inset-0 .bg-gray-50.rounded-b-xl,
+.dark .fixed.inset-0 .bg-gray-50.rounded-b-2xl {
+  background-color: #0f172a !important;
+  border-top: 1px solid #1e293b !important;
+  border-radius: 0 0 1rem 1rem !important;
+}
+
+/* 5. Ant Design Modal conformity */
+.ant-modal .ant-modal-content {
+  border-radius: 1rem !important;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25) !important;
+  border: 1px solid #e2e8f0 !important;
+}
+.dark .ant-modal .ant-modal-content {
+  background-color: #0f172a !important;
+  border-color: #1e293b !important;
+}
+.ant-modal .ant-modal-header {
+  border-bottom: 1px solid #e2e8f0 !important;
+  padding: 1rem 1.5rem !important;
+}
+.dark .ant-modal .ant-modal-header {
+  background-color: #0f172a !important;
+  border-bottom-color: #1e293b !important;
+}
+.ant-modal .ant-modal-title {
+  font-weight: 700 !important;
+  font-size: 1rem !important;
+}
+.dark .ant-modal .ant-modal-title {
+  color: #ffffff !important;
+}

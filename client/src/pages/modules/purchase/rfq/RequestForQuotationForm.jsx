@@ -7,7 +7,8 @@ import React, { useEffect, useState, useMemo, useRef } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { api } from "api/client";
 import { format } from "date-fns";
-import { Printer, Download } from "lucide-react";
+import { Printer, Download, Users } from "lucide-react";
+import Modal from "@/components/common/Modal.jsx";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 import { filterByPrefix } from "@/utils/searchUtils.js";
@@ -732,109 +733,103 @@ export default function RequestForQuotationForm() {
         </div>
 
         {/* Supplier Selection Modal */}
-        {showSupplierModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-            <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col">
-              <div className="p-6 bg-[#0E3646] text-white rounded-t-xl flex justify-between items-center">
-                <h3 className="text-xl font-bold">Select Suppliers</h3>
-                <button
-                  onClick={() => setShowSupplierModal(false)}
-                  className="text-white hover:bg-white/10 w-8 h-8 rounded flex items-center justify-center text-xl"
-                >
-                  ×
-                </button>
-              </div>
+        <Modal
+          open={showSupplierModal}
+          onClose={() => setShowSupplierModal(false)}
+          title="Select Suppliers"
+          subtitle="Choose registered suppliers to invite for quotation"
+          icon={Users}
+          maxWidth="max-w-4xl"
+          footer={
+            <div className="flex justify-end gap-3 w-full">
+              <button
+                type="button"
+                onClick={() => setShowSupplierModal(false)}
+                className="btn btn-secondary px-4 py-2 text-sm font-medium"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowSupplierModal(false)}
+                className="btn btn-primary px-6 py-2 text-sm font-medium"
+              >
+                Done ({selectedSuppliers.length} selected)
+              </button>
+            </div>
+          }
+        >
+          <div className="space-y-4 text-sm">
+            <div>
+              <input
+                type="text"
+                placeholder="Search suppliers by name or code..."
+                value={supplierSearch}
+                onChange={(e) => setSupplierSearch(e.target.value)}
+                className="input w-full"
+              />
+            </div>
 
-              <div className="p-6 flex-1 overflow-y-auto">
-                <div className="mb-4">
-                  <input
-                    type="text"
-                    placeholder="🔍 Search suppliers..."
-                    value={supplierSearch}
-                    onChange={(e) => setSupplierSearch(e.target.value)}
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0E3646] outline-none"
-                  />
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {filteredSuppliers.map((supplier) => {
-                    const isSelected = selectedSuppliers.some(
-                      (s) => s.id === supplier.id,
-                    );
-                    return (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-[55vh] overflow-y-auto pr-1">
+              {filteredSuppliers.map((supplier) => {
+                const isSelected = selectedSuppliers.some(
+                  (s) => s.id === supplier.id,
+                );
+                return (
+                  <div
+                    key={supplier.id}
+                    onClick={() => toggleSupplier(supplier)}
+                    className={`
+                    border-2 rounded-xl p-4 cursor-pointer transition
+                    ${
+                      isSelected
+                        ? "border-brand-500 bg-brand-50 dark:bg-brand-950/30"
+                        : "border-slate-200 dark:border-slate-800 hover:border-brand-300 dark:hover:border-slate-700"
+                    }
+                  `}
+                  >
+                    <div className="flex items-start gap-3">
                       <div
-                        key={supplier.id}
-                        onClick={() => toggleSupplier(supplier)}
                         className={`
-                        border-2 rounded-lg p-4 cursor-pointer transition
-                        ${
-                          isSelected
-                            ? "border-[#0E3646] bg-blue-50"
-                            : "border-gray-200 hover:border-blue-300"
-                        }
-                      `}
+                      w-5 h-5 rounded-md border flex items-center justify-center mt-0.5 text-xs font-bold
+                      ${
+                        isSelected
+                          ? "bg-brand-600 text-white border-brand-600"
+                          : "border-slate-400 bg-white dark:bg-slate-800 text-transparent"
+                      }
+                    `}
                       >
-                        <div className="flex items-start gap-3">
-                          <div
-                            className={`
-                          w-5 h-5 rounded border flex items-center justify-center mt-1
-                          ${
-                            isSelected
-                              ? "bg-[#0E3646] border-[#0E3646]"
-                              : "border-gray-400 bg-white"
-                          }
-                        `}
-                          >
-                            {isSelected && (
-                              <span className="text-white text-xs">✓</span>
-                            )}
-                          </div>
-                          <div>
-                            <div className="font-bold text-[#0E3646]">
-                              {supplier.supplier_name}
-                              {supplier.supplier_code && (
-                                <span className="text-xs text-gray-500 ml-2 font-normal">
-                                  ({supplier.supplier_code})
-                                </span>
-                              )}
-                            </div>
-                            <div className="text-sm text-gray-500 mt-1 space-y-1">
-                              {supplier.contact_person && (
-                                <div className="flex items-center gap-2">
-                                  👤 {supplier.contact_person}
-                                </div>
-                              )}
-                              <div className="flex items-center gap-2">
-                                📧 {supplier.email || "N/A"}
-                              </div>
-                              <div className="flex items-center gap-2">
-                                📞 {supplier.phone || "N/A"}
-                              </div>
-                            </div>
-                          </div>
+                        ✓
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="font-bold text-slate-900 dark:text-white truncate">
+                          {supplier.supplier_name}
+                          {supplier.supplier_code && (
+                            <span className="text-xs text-slate-500 ml-2 font-normal">
+                              ({supplier.supplier_code})
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-xs text-slate-500 dark:text-slate-400 mt-1 space-y-1">
+                          {supplier.contact_person && (
+                            <div>👤 {supplier.contact_person}</div>
+                          )}
+                          <div>📧 {supplier.email || "N/A"}</div>
+                          <div>📞 {supplier.phone || "N/A"}</div>
                         </div>
                       </div>
-                    );
-                  })}
-                  {filteredSuppliers.length === 0 && (
-                    <div className="col-span-full text-center py-8 text-gray-500">
-                      No suppliers found matching "{supplierSearch}"
                     </div>
-                  )}
+                  </div>
+                );
+              })}
+              {filteredSuppliers.length === 0 && (
+                <div className="col-span-full text-center py-8 text-slate-400">
+                  No suppliers found matching "{supplierSearch}"
                 </div>
-              </div>
-
-              <div className="p-4 border-t border-gray-200 flex justify-end gap-3 bg-gray-50 rounded-b-xl">
-                <button
-                  onClick={() => setShowSupplierModal(false)}
-                  className="px-6 py-2 bg-[#0E3646] text-white rounded hover:bg-[#082330] transition font-medium"
-                >
-                  Done
-                </button>
-              </div>
+              )}
             </div>
           </div>
-        )}
+        </Modal>
       </div>
 
       <div className="hidden print:block p-8 max-w-[19cm] mx-auto bg-white border border-gray-300">

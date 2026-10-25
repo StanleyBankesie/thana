@@ -3,7 +3,7 @@ import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
-import { ensureUploadDir, uploadFile } from "../controllers/upload.controller.js";
+import { ensureUploadDir, uploadFile, deleteFile } from "../controllers/upload.controller.js";
 import { requireAuth, requireCompanyScope } from "../middleware/auth.js";
 
 const router = express.Router();
@@ -69,6 +69,13 @@ router.post(
   requireCompanyScope,
   upload.single('file'),
   (req, res, next) => uploadFile(req, res, next),
+);
+
+router.post(
+  '/delete',
+  requireAuth,
+  requireCompanyScope,
+  (req, res, next) => deleteFile(req, res, next),
 );
 
 export default router;

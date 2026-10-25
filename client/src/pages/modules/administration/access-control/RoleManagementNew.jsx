@@ -12,6 +12,7 @@ import {
   getModuleFeatures,
 } from "../../../../data/modulesRegistry.js";
 import { usePermission } from "../../../../auth/PermissionContext.jsx";
+import { useAuth } from "../../../../auth/AuthContext.jsx";
 import { toast } from "react-toastify";
 import useSort from "@/hooks/useSort.js";
 import SortableHeader from "@/components/SortableHeader.jsx";

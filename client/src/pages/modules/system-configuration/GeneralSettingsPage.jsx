@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { api } from "../../../api/client.js";
 import { toast } from "react-toastify";
 import { useAuth } from "../../../auth/AuthContext.jsx";
-import { Brain, Sparkles, CheckCircle, ShieldCheck, Clock, Save } from "lucide-react";
+import { Brain, Sparkles, CheckCircle, ShieldCheck, Clock, Save, ArrowLeft } from "lucide-react";
 import BranchDataSharingSection from "../../../components/BranchDataSharingSection.jsx";
 import ExecutiveOverviewIsolationSection from "../../../components/ExecutiveOverviewIsolationSection.jsx";
 import BiIsolationSection from "../../../components/BiIsolationSection.jsx";
@@ -12,6 +12,7 @@ import AppModeControlSection from "../../../components/AppModeControlSection.jsx
 import AppBackgroundControlSection from "../../../components/AppBackgroundControlSection.jsx";
 
 export default function GeneralSettingsPage() {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const [cloud, setCloud] = useState({ cloud_name: "", api_key: "", api_secret: "", folder: "", has_secret: false });
   const [cloudLoading, setCloudLoading] = useState(false);
@@ -661,12 +662,23 @@ export default function GeneralSettingsPage() {
 
   return (
     <div className="p-6 max-w-4xl space-y-6">
-      <div>
-        <div className="text-xs text-slate-500 mb-1">
-          <Link to="/system-configuration" className="text-brand-600 hover:underline">System Configuration</Link> / General Settings
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <div className="text-xs text-slate-500 mb-1 flex items-center gap-1.5">
+            <Link to="/system-configuration" className="text-brand-600 hover:underline">System Configuration</Link> / General Settings
+          </div>
+          <h1 className="text-2xl font-bold text-slate-800 dark:text-white">General Settings</h1>
+          <p className="text-sm text-slate-500 dark:text-slate-400">Manage environment configurations, API integrations, AI copilot, and system defaults.</p>
         </div>
-        <h1 className="text-2xl font-bold text-slate-800">General Settings</h1>
-        <p className="text-sm text-slate-500">Manage environment configurations, API integrations, AI copilot, and system defaults.</p>
+        <div>
+          <button
+            type="button"
+            onClick={() => navigate(-1)}
+            className="btn btn-secondary inline-flex items-center gap-2"
+          >
+            <ArrowLeft size={16} /> Back
+          </button>
+        </div>
       </div>
 
       <div className="space-y-6">

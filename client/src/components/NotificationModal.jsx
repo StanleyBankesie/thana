@@ -1,6 +1,8 @@
 import React, { useState } from "react";
 import { toast } from "react-toastify";
+import { Bell, Loader2 } from "lucide-react";
 import { api } from "../api/client";
+import Modal from "./common/Modal.jsx";
 
 /**
  * Reusable modal for sending notifications (Email, SMS, WhatsApp)
@@ -42,12 +44,12 @@ export default function NotificationModal({
 
     setLoading(true);
     try {
-      const sendPromises = typesToHandle.map(type => 
-        api.post(endpoint, { type })
+      const sendPromises = typesToHandle.map((type) =>
+        api.post(endpoint, { type }),
       );
-      
+
       await Promise.all(sendPromises);
-      
+
       toast.success("Notification(s) sent successfully!");
       if (onSuccess) onSuccess();
       onOpenChange(false);
@@ -60,74 +62,66 @@ export default function NotificationModal({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-lg w-[500px] max-w-[95%]">
-        <div className="p-4 border-b flex justify-between items-center bg-brand text-white rounded-t-lg">
-          <div className="font-semibold">{title}</div>
+    <Modal
+      open={open}
+      onClose={() => onOpenChange(false)}
+      title={title}
+      subtitle="Select the channels through which you want to send this notification"
+      icon={Bell}
+      maxWidth="max-w-md"
+      footer={
+        <div className="flex justify-end gap-3 w-full">
           <button
             type="button"
-            className="btn btn-sm btn-ghost text-white"
-            onClick={() => onOpenChange(false)}
-            disabled={loading}
-          >
-            Close
-          </button>
-        </div>
-        <div className="p-4 space-y-4">
-          <p className="text-sm text-gray-500">
-            Select the channels through which you want to send this notification.
-          </p>
-
-          <div className="space-y-3">
-            <label className="flex items-center space-x-3 cursor-pointer">
-              <input
-                type="checkbox"
-                className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
-                checked={selectedTypes.email}
-                onChange={() => handleToggle("email")}
-              />
-              <span>Send via Email</span>
-            </label>
-
-            <label className="flex items-center space-x-3 cursor-pointer">
-              <input
-                type="checkbox"
-                className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
-                checked={selectedTypes.sms}
-                onChange={() => handleToggle("sms")}
-              />
-              <span>Send via SMS (Arkesel)</span>
-            </label>
-
-            <label className="flex items-center space-x-3 cursor-pointer">
-              <input
-                type="checkbox"
-                className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
-                checked={selectedTypes.whatsapp}
-                onChange={() => handleToggle("whatsapp")}
-              />
-              <span>Send via WhatsApp</span>
-            </label>
-          </div>
-        </div>
-
-        <div className="p-4 border-t bg-slate-50 flex justify-end gap-3 rounded-b-lg">
-          <button
-            className="px-4 py-2 border rounded text-slate-700 hover:bg-slate-100"
+            className="btn btn-secondary px-4 py-2 text-sm font-medium"
             onClick={() => onOpenChange(false)}
             disabled={loading}
           >
             Cancel
           </button>
-          <button 
-            className="px-4 py-2 bg-brand text-white rounded hover:bg-brand/90 disabled:opacity-50"
-            onClick={handleSend} 
+          <button
+            type="button"
+            className="btn btn-primary px-5 py-2 text-sm font-medium inline-flex items-center gap-2"
+            onClick={handleSend}
             disabled={loading}
           >
+            {loading ? <Loader2 size={16} className="animate-spin" /> : null}
             {loading ? "Sending..." : "Send"}
           </button>
         </div>
+      }
+    >
+      <div className="space-y-3 text-sm">
+        <label className="flex items-center space-x-3 cursor-pointer p-3 rounded-xl border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition">
+          <input
+            type="checkbox"
+            className="w-4 h-4 text-brand-600 rounded focus:ring-brand-500"
+            checked={selectedTypes.email}
+            onChange={() => handleToggle("email")}
+          />
+          <span className="font-medium text-slate-800 dark:text-slate-200">Send via Email</span>
+        </label>
+
+        <label className="flex items-center space-x-3 cursor-pointer p-3 rounded-xl border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition">
+          <input
+            type="checkbox"
+            className="w-4 h-4 text-brand-600 rounded focus:ring-brand-500"
+            checked={selectedTypes.sms}
+            onChange={() => handleToggle("sms")}
+          />
+          <span className="font-medium text-slate-800 dark:text-slate-200">Send via SMS (Arkesel)</span>
+        </label>
+
+        <label className="flex items-center space-x-3 cursor-pointer p-3 rounded-xl border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition">
+          <input
+            type="checkbox"
+            className="w-4 h-4 text-brand-600 rounded focus:ring-brand-500"
+            checked={selectedTypes.whatsapp}
+            onChange={() => handleToggle("whatsapp")}
+          />
+          <span className="font-medium text-slate-800 dark:text-slate-200">Send via WhatsApp</span>
+        </label>
       </div>
-    </div>
+    </Modal>
   );
 }

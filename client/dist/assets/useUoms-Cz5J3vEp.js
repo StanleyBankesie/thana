@@ -1,0 +1,1 @@
+import{t as u,C as e,r as f}from"./vendor-core-Dj39tBkK.js";import{Q as n}from"./index-CK_dT87d.js";const d=(r=0)=>{const o=u(),a=e(s=>s.inventoryRef.uoms),t=e(s=>s.inventoryRef.status.uoms),c=e(s=>s.inventoryRef.error.uoms);return f.useEffect(()=>{(t==="idle"||r)&&o(n())},[o,t,r]),{uoms:a,loading:t==="loading",error:c,refresh:()=>{o(n())}}};export{d as u};

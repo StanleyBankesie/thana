@@ -14,19 +14,25 @@ import { cacheGet, cacheSet, cacheDelPattern } from "../utils/redis.js";
  */
 export async function getRoles(req, res, next) {
   try {
-    const cacheKey = "roles:all";
+    const companyId = req.query.company_id || req.query.companyId || req.scope?.companyId;
+    const cacheKey = companyId ? `roles:company:${companyId}` : "roles:all";
     const cached = await cacheGet(cacheKey);
     if (cached) {
       return res.json(cached);
     }
-    const roles = await query(`SELECT id, name, code, is_active, created_at, updated_at,
-          created_at,
+    let queryStr = `SELECT r.id, r.company_id, c.name AS company_name, r.name, r.code, r.is_active, r.created_at, r.updated_at,
           u.username AS created_by_name
-         FROM adm_roles
-        LEFT JOIN adm_users u ON u.id = created_by
-         ORDER BY name`
-    );
-    await cacheSet(cacheKey, roles, 86400).catch(() => {});
+         FROM adm_roles r
+        LEFT JOIN adm_companies c ON c.id = r.company_id
+        LEFT JOIN adm_users u ON u.id = r.created_by`;
+    const params = {};
+    if (companyId) {
+      queryStr += ` WHERE r.company_id = :companyId`;
+      params.companyId = companyId;
+    }
+    queryStr += ` ORDER BY r.name`;
+    const roles = await query(queryStr, params);
+    await cacheSet(cacheKey, roles, 60).catch(() => {});
     res.json(roles);
   } catch (err) {
     next(err);
@@ -43,38 +49,39 @@ export async function getRoles(req, res, next) {
 export async function createRole(req, res, next) {
   try {
     // Extract role data from request body
-    const { name, code, is_active = true } = req.body;
+    const { name, code, is_active = true, company_id, companyId: bodyCompanyId } = req.body;
+    const companyId = company_id || bodyCompanyId || req.scope?.companyId || req.user?.company_id || 1;
     
     // Validate required fields
     if (!name || !code) {
       return next(httpError(400, "Name and code are required"));
     }
     
-    // Check if role code already exists
+    // Check if role code already exists for this company
     const existing = await query(`SELECT id,
           created_at,
           u.username AS created_by_name
          FROM adm_roles
         LEFT JOIN adm_users u ON u.id = created_by
-         WHERE code = :code`,
-      { code }
+         WHERE code = :code AND (company_id = :companyId OR company_id IS NULL)`,
+      { code, companyId }
     );
     
     if (existing.length > 0) {
-      return next(httpError(400, "Role code already exists"));
+      return next(httpError(400, "Role code already exists for this company"));
     }
     
-    const result = await query(`INSERT INTO adm_roles (name, code, is_active) 
-       VALUES (:name, :code, :is_active)`,
-      { name, code, is_active: is_active ? 1 : 0 }
+    const result = await query(`INSERT INTO adm_roles (company_id, name, code, is_active) 
+       VALUES (:companyId, :name, :code, :is_active)`,
+      { companyId, name, code, is_active: is_active ? 1 : 0 }
     );
     
-    const newRole = await query(`SELECT id, name, code, is_active, created_at, updated_at,
-          created_at,
+    const newRole = await query(`SELECT r.id, r.company_id, c.name AS company_name, r.name, r.code, r.is_active, r.created_at, r.updated_at,
           u.username AS created_by_name
-         FROM adm_roles
-        LEFT JOIN adm_users u ON u.id = created_by
-         WHERE id = :id`,
+         FROM adm_roles r
+        LEFT JOIN adm_companies c ON c.id = r.company_id
+        LEFT JOIN adm_users u ON u.id = r.created_by
+         WHERE r.id = :id`,
       { id: result.insertId }
     );
     
@@ -235,11 +242,8 @@ export async function saveRoleModules(req, res, next) {
       const allowedModuleCodes = licenseModules.map(m => m.module_code);
 
       // 3. Filter submitted moduleKeys against allowed license modules
-      // Always allow 'administration' and 'dashboard' as they are core modules
       const validModuleKeys = moduleKeys.filter(mk => 
-        allowedModuleCodes.includes(mk) || 
-        mk === 'administration' || 
-        mk === 'dashboard'
+        allowedModuleCodes.includes(mk)
       );
 
       // Replace role modules with the newly validated list

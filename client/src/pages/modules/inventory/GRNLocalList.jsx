@@ -1,3 +1,4 @@
+import { Send, Eye, X as LucideX } from "lucide-react";
 /**
  * @fileoverview GRNLocalList component.
  * Provides functionality for GRNLocalList.
@@ -786,23 +787,30 @@ export default function GRNLocalList() {
         </div>
       </div>
       {showForwardModal ? (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-erp w-full max-w-md">
-            <div className="p-4 border-b flex justify-between items-center bg-brand text-white rounded-t-lg">
-              <div className="font-semibold">Forward GRN for Approval</div>
-              <button
-                type="button"
-                onClick={() => {
-                  setShowForwardModal(false);
-                  setCandidateWorkflow(null);
-                  setFirstApprover(null);
-                  setWfError("");
-                }}
-                className="text-white hover:text-slate-200 text-xl font-bold"
-              >
-                &times;
-              </button>
-            </div>
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex justify-center items-start p-4 sm:p-6 md:p-10 z-50 animate-fadeIn">
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden my-auto sm:my-8 transition-all">
+              <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-white dark:bg-slate-900">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-brand-50 dark:bg-brand-900/30 text-brand-900 dark:text-brand-400 flex items-center justify-center font-bold flex-shrink-0 border border-brand-200/50 dark:border-brand-800/50">
+                    <Send size={20} />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                      Forward GRN for Approval
+                    </h3>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                      Submit Goods Receipt Note into the approval workflow
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                >
+                  <LucideX size={18} />
+                </button>
+              </div>
             <div className="p-4 space-y-3">
               <div className="text-sm text-slate-700">
                 Document No:{" "}
@@ -887,10 +895,10 @@ export default function GRNLocalList() {
                 })()}
               </div>
             </div>
-            <div className="p-4 border-t flex justify-end gap-2 bg-gray-50">
+            <div className="px-6 py-4 border-t border-slate-200 dark:border-slate-800 flex justify-end gap-3 bg-white dark:bg-slate-900">
               <button
                 type="button"
-                className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600"
+                className="btn btn-secondary px-4 py-2 text-sm font-medium"
                 onClick={() => {
                   setShowForwardModal(false);
                   setCandidateWorkflow(null);
@@ -902,7 +910,7 @@ export default function GRNLocalList() {
               </button>
               <button
                 type="button"
-                className="px-4 py-2 bg-brand text-white rounded hover:bg-brand-700"
+                className="btn btn-primary px-5 py-2 text-sm font-medium inline-flex items-center gap-2"
                 onClick={forwardForApproval}
                 disabled={submittingId != null}
               >
@@ -913,23 +921,30 @@ export default function GRNLocalList() {
         </div>
       ) : null}
       {showViewModal ? (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-lg w-[900px] max-w-[95%]">
-            <div className="p-4 border-b flex justify-between items-center bg-brand text-white rounded-t-lg">
-              <div className="font-semibold">View GRN Details</div>
-              <button
-                type="button"
-                onClick={() => {
-                  setShowViewModal(false);
-                  setViewDoc(null);
-                  setViewDetails([]);
-                  setViewError("");
-                }}
-                className="text-white hover:text-slate-200 text-xl font-bold"
-              >
-                &times;
-              </button>
-            </div>
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex justify-center items-start p-4 sm:p-6 md:p-10 z-50 animate-fadeIn">
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl w-[900px] max-w-[95%] shadow-2xl overflow-hidden my-auto sm:my-8 transition-all">
+              <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-white dark:bg-slate-900">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-brand-50 dark:bg-brand-900/30 text-brand-900 dark:text-brand-400 flex items-center justify-center font-bold flex-shrink-0 border border-brand-200/50 dark:border-brand-800/50">
+                    <Eye size={20} />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                      View GRN Details
+                    </h3>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                      Goods Receipt Note line items, received quantities, and verification
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                >
+                  <LucideX size={18} />
+                </button>
+              </div>
             <div className="p-4 space-y-4">
               {viewLoading ? <div className="text-sm">Loading...</div> : null}
               {viewError ? (
@@ -1057,10 +1072,10 @@ export default function GRNLocalList() {
                 </table>
               </div>
             </div>
-            <div className="p-4 border-t flex justify-end gap-2 bg-gray-50">
+            <div className="px-6 py-4 border-t border-slate-200 dark:border-slate-800 flex justify-end gap-3 bg-white dark:bg-slate-900">
               <button
                 type="button"
-                className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600"
+                className="btn btn-secondary px-4 py-2 text-sm font-medium"
                 onClick={() => {
                   setShowViewModal(false);
                   setViewDoc(null);

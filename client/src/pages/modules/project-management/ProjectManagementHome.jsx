@@ -54,6 +54,8 @@ import PaymentApplicationList from "./construction/PaymentApplicationList.jsx";
 import VariationRegister from "./construction/VariationRegister.jsx";
 import QualityControlPage from "./construction/QualityControlPage.jsx";
 import SafetyManagementPage from "./construction/SafetyManagementPage.jsx";
+import IncidentRegisterPage from "./construction/IncidentRegisterPage.jsx";
+import ToolboxTalksPage from "./construction/ToolboxTalksPage.jsx";
 import DocumentRegisterPage from "./construction/DocumentRegisterPage.jsx";
 import EquipmentLogsPage from "./construction/EquipmentLogsPage.jsx";
 
@@ -410,7 +412,9 @@ export const projectManagementSections = [
         title: "Safety Management (HSE)",
         path: "/project-management/safety",
         actions: [
-          { label: "View", path: "/project-management/safety", type: "outline" },
+          { label: "Overview", path: "/project-management/safety", type: "outline" },
+          { label: "Incidents", path: "/project-management/safety/incidents", type: "outline" },
+          { label: "Toolbox Talks", path: "/project-management/safety/toolbox-talks", type: "outline" },
         ],
         description: "Safety incidents, lost-time injuries, and toolbox briefings",
         icon: "🦺",
@@ -738,6 +742,8 @@ export default function ProjectManagementHome() {
         <Route path="/variations" element={<VariationRegister />} />
         <Route path="/quality-control" element={<QualityControlPage />} />
         <Route path="/safety" element={<SafetyManagementPage />} />
+        <Route path="/safety/incidents" element={<IncidentRegisterPage />} />
+        <Route path="/safety/toolbox-talks" element={<ToolboxTalksPage />} />
         <Route path="/documents" element={<DocumentRegisterPage />} />
         <Route path="/rfis" element={<DocumentRegisterPage />} />
         <Route path="/equipment-logs" element={<EquipmentLogsPage />} />
@@ -1023,7 +1029,11 @@ export const projectManagementFeatures = [
     module_key: "project-management",
     label: "Safety Management (HSE)",
     path: "/project-management/safety",
-    actions: [{ label: "View", path: "/project-management/safety", type: "outline" }],
+    actions: [
+      { label: "Overview", path: "/project-management/safety", type: "outline" },
+      { label: "Incidents", path: "/project-management/safety/incidents", type: "outline" },
+      { label: "Toolbox Talks", path: "/project-management/safety/toolbox-talks", type: "outline" },
+    ],
     type: "feature",
   },
   {

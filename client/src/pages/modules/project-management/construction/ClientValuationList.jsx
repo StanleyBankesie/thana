@@ -32,6 +32,7 @@ import {
 } from "lucide-react";
 import { api } from "../../../../api/client.js";
 import { toast } from "react-toastify";
+import { usePermission } from "../../../../auth/PermissionContext.jsx";
 import ProjectModal from "../components/ProjectModal.jsx";
 
 export default function ClientValuationList() {
@@ -43,6 +44,18 @@ export default function ClientValuationList() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
+  const { canReverseApproval } = usePermission();
+  const [showForwardModal, setShowForwardModal] = useState(false);
+  const [selectedValuation, setSelectedValuation] = useState(null);
+  const [candidateWorkflow, setCandidateWorkflow] = useState(null);
+  const [workflowSteps, setWorkflowSteps] = useState([]);
+  const [firstApprover, setFirstApprover] = useState(null);
+  const [workflowsCache, setWorkflowsCache] = useState(null);
+  const [targetApproverId, setTargetApproverId] = useState(null);
+  const [wfLoading, setWfLoading] = useState(false);
+  const [wfError, setWfError] = useState("");
+  const [submittingForward, setSubmittingForward] = useState(false);
+  const [forwardedTo, setForwardedTo] = useState({});
 
   // Modal State
   const [showModal, setShowModal] = useState(false);
@@ -57,7 +70,7 @@ export default function ClientValuationList() {
     valuation_no: "",
     contract_ref: "",
     client_name: "",
-    contractor_name: "Stanness Technologies Ltd",
+    contractor_name: "",
     valuation_date: new Date().toISOString().split("T")[0],
     period_from: "",
     period_to: "",
@@ -106,13 +119,169 @@ export default function ClientValuationList() {
     fetchValuations();
   }, [selectedProjectId]);
 
+  useEffect(() => {
+    let cancelled = false;
+    async function loadWorkflowFlags() {
+      try {
+        const res = await api.get("/workflows");
+        const list = Array.isArray(res.data?.items) ? res.data.items : [];
+        if (cancelled) return;
+        setWorkflowsCache(list);
+        const route = "/project-management/client-valuations";
+        const normalize = (s) => String(s || "").trim().toUpperCase().replace(/\s+/g, "_");
+        const chosen = list.find((w) => Number(w.is_active) === 1 && String(w.document_route) === route) ||
+          list.find((w) => Number(w.is_active) === 1 && normalize(w.document_type) === "CLIENT_VALUATION") ||
+          null;
+        setCandidateWorkflow(chosen || null);
+      } catch {}
+    }
+    loadWorkflowFlags();
+    return () => { cancelled = true; };
+  }, []);
+
+  const openForwardModal = async (val) => {
+    setSelectedValuation(val);
+    setShowForwardModal(true);
+    setWfError("");
+    try {
+      setWfLoading(true);
+      let list = workflowsCache;
+      if (!list) {
+        const res = await api.get("/workflows");
+        list = Array.isArray(res.data?.items) ? res.data.items : [];
+        setWorkflowsCache(list);
+      }
+      const route = "/project-management/client-valuations";
+      const normalize = (s) => String(s || "").trim().toUpperCase().replace(/\s+/g, "_");
+      const chosen = list.find((w) => Number(w.is_active) === 1 && String(w.document_route) === route) ||
+        list.find((w) => Number(w.is_active) === 1 && normalize(w.document_type) === "CLIENT_VALUATION") ||
+        null;
+      setCandidateWorkflow(chosen || null);
+      if (chosen) {
+        const dRes = await api.get(`/workflows/${chosen.id}`);
+        const steps = Array.isArray(dRes.data?.item?.steps) ? dRes.data.item.steps : [];
+        setWorkflowSteps(steps);
+        const first = steps[0] || null;
+        setFirstApprover(first ? {
+          userId: first.approver_user_id,
+          name: first.approver_name,
+          stepName: first.step_name,
+          stepOrder: first.step_order,
+          approvalLimit: first.approval_limit,
+        } : null);
+        const defaultTarget = (Array.isArray(first?.approvers) && first.approvers.length ? first.approvers[0].id : first?.approver_user_id) || null;
+        setTargetApproverId(defaultTarget);
+      } else {
+        setWorkflowSteps([]);
+        setFirstApprover(null);
+        setTargetApproverId(null);
+      }
+    } catch (e) {
+      setWfError(e?.response?.data?.message || "Failed to load workflow details");
+    } finally {
+      setWfLoading(false);
+    }
+  };
+
+  async function forwardDocument() {
+    if (!selectedValuation) return;
+    setSubmittingForward(true);
+    setWfError("");
+    try {
+      let approverName = "Approver";
+      if (firstApprover) {
+        const first = workflowSteps[0];
+        const opts = first?.approvers?.length ? first.approvers : (first?.approver_user_id ? [{ id: first.approver_user_id, username: first.approver_name }] : []);
+        const match = opts.find((u) => Number(u.id) === Number(targetApproverId));
+        if (match) approverName = match.username || match.name || approverName;
+      }
+
+      setValuations((prev) =>
+        prev.map((x) =>
+          x.id === selectedValuation.id
+            ? { ...x, status: "PENDING_APPROVAL", forwarded_to_username: approverName }
+            : x
+        )
+      );
+      setForwardedTo((prev) => ({ ...prev, [selectedValuation.id]: approverName }));
+      setShowForwardModal(false);
+
+      const amt = Number(selectedValuation.current_assessed_amount ?? selectedValuation.net_amount_due ?? 0);
+
+      await api.post(`/construction/client-valuations/${selectedValuation.id}/status`, {
+        status: "PENDING_APPROVAL",
+        forwarded_to_username: approverName,
+        remarks: "Forwarded for approval",
+      });
+
+      try {
+        await api.post("/workflows/start", {
+          workflow_id: candidateWorkflow ? candidateWorkflow.id : null,
+          document_id: selectedValuation.id,
+          document_type: "CLIENT_VALUATION",
+          target_user_id: targetApproverId || null,
+          amount: amt,
+        });
+      } catch (wfErr) {
+        console.warn("Workflow start warning:", wfErr);
+      }
+
+      toast.success("Client valuation forwarded for approval");
+      fetchValuations();
+    } catch (err) {
+      toast.error(err?.response?.data?.message || err?.response?.data?.error || "Failed to forward valuation");
+    } finally {
+      setSubmittingForward(false);
+    }
+  }
+
+  async function reverseValuation(valId) {
+    try {
+      try {
+        await api.post("/workflows/reverse-by-document", {
+          document_type: "CLIENT_VALUATION",
+          document_id: valId,
+          desired_status: "DRAFT",
+        });
+      } catch (wfErr) {
+        await api.post(`/construction/client-valuations/${valId}/status`, {
+          status: "DRAFT",
+          forwarded_to_username: null,
+          remarks: "Valuation approval reversed",
+        });
+      }
+
+      setValuations((prev) =>
+        prev.map((x) =>
+          x.id === valId
+            ? { ...x, status: "DRAFT", forwarded_to_username: null }
+            : x
+        )
+      );
+      setForwardedTo((prev) => {
+        const next = { ...prev };
+        delete next[valId];
+        return next;
+      });
+      toast.success("Client valuation reversed to draft");
+      fetchValuations();
+    } catch (err) {
+      toast.error(err?.response?.data?.message || "Failed to reverse valuation");
+    }
+  }
   const fetchValuations = async () => {
     setLoading(true);
     try {
       const res = await api.get("/construction/client-valuations", {
         params: selectedProjectId ? { project_id: selectedProjectId } : {},
       });
-      setValuations(res.data?.items || []);
+      const items = res.data?.items || [];
+      const fwd = {};
+      items.forEach((it) => {
+        if (it.forwarded_to_username) fwd[it.id] = it.forwarded_to_username;
+      });
+      setForwardedTo(fwd);
+      setValuations(items);
     } catch (e) {
       toast.error(e?.response?.data?.error || "Failed to load client valuations");
     } finally {
@@ -153,7 +322,7 @@ export default function ClientValuationList() {
         valuation_no: base.next_valuation_no || `VAL-${curProj?.project_code || "PRJ"}-01`,
         contract_ref: base.contract_ref || curProj?.contract_ref_no || "CTR-001",
         client_name: base.client_name || curProj?.client_name || "Client",
-        contractor_name: base.contractor_name || "Stanness Technologies Ltd",
+        contractor_name: base.contractor_name || "",
         valuation_date: new Date().toISOString().split("T")[0],
         period_from: new Date(Date.now() - 30 * 86400000).toISOString().split("T")[0],
         period_to: new Date().toISOString().split("T")[0],
@@ -200,7 +369,7 @@ export default function ClientValuationList() {
         valuation_no: v.valuation_no || v.application_no,
         contract_ref: v.contract_ref || "",
         client_name: v.client_name || "",
-        contractor_name: v.contractor_name || "Stanness Technologies Ltd",
+        contractor_name: v.contractor_name || "",
         valuation_date: v.valuation_date ? String(v.valuation_date).split("T")[0] : "",
         period_from: v.period_from ? String(v.period_from).split("T")[0] : "",
         period_to: v.period_to ? String(v.period_to).split("T")[0] : "",
@@ -612,33 +781,71 @@ export default function ClientValuationList() {
                         >
                           Edit
                         </button>
-                        {v.status === "APPROVED" && (
-                          <button
-                            onClick={() => handleCreatePaymentApplication(v.id)}
-                            className="btn btn-primary text-xs py-1 px-2.5 inline-flex items-center gap-1"
-                            title="Generate Interim Payment Application"
-                          >
-                            <Send size={12} /> Create IPA
-                          </button>
-                        )}
-                        {v.status === "DRAFT" && (
-                          <button
-                            onClick={() => handleUpdateStatus(v.id, "SUBMITTED")}
-                            className="btn btn-secondary text-xs py-1 px-2 text-blue-600"
-                            title="Submit for Review"
-                          >
-                            Submit
-                          </button>
-                        )}
-                        {v.status === "SUBMITTED" && (
-                          <button
-                            onClick={() => handleUpdateStatus(v.id, "APPROVED")}
-                            className="btn btn-secondary text-xs py-1 px-2 text-emerald-600 inline-flex items-center gap-0.5"
-                            title="Approve Valuation"
-                          >
-                            <Check size={12} /> Approve
-                          </button>
-                        )}
+                        {/* Unified Workflow Slot */}
+                        <div className="list-approval-slot inline-flex items-center gap-1.5">
+                          {v.status === "APPROVED" || v.status === "CERTIFIED" ? (
+                            <div className="flex items-center gap-1.5">
+                              <span className="list-approval-approved-pill">Approved</span>
+                              {canReverseApproval() && (
+                                <button
+                                  type="button"
+                                  onClick={() => reverseValuation(v.id)}
+                                  className="list-approval-reverse-btn"
+                                >
+                                  Reverse Approval
+                                </button>
+                              )}
+                              <button
+                                onClick={() => handleCreatePaymentApplication(v.id)}
+                                className="btn btn-primary text-xs py-1 px-2.5 inline-flex items-center gap-1"
+                                title="Generate Interim Payment Application"
+                              >
+                                <Send size={12} /> Create IPA
+                              </button>
+                            </div>
+                          ) : v.status === "PENDING_APPROVAL" ? (
+                            <div className="flex items-center gap-1.5">
+                              <span className="list-approval-forwarded-pill">
+                                Forwarded to {v.forwarded_to_username || forwardedTo[v.id] || "Approver"}
+                              </span>
+                              {canReverseApproval() && (
+                                <button
+                                  type="button"
+                                  onClick={() => reverseValuation(v.id)}
+                                  className="list-approval-reverse-btn"
+                                >
+                                  Reverse
+                                </button>
+                              )}
+                            </div>
+                          ) : v.status === "SUBMITTED" ? (
+                            <span className="list-approval-forwarded-pill">Submitted</span>
+                          ) : v.status === "REJECTED" ? (
+                            <div className="flex items-center gap-1.5">
+                              <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200">
+                                Rejected
+                              </span>
+                              {canReverseApproval() && (
+                                <button
+                                  type="button"
+                                  onClick={() => reverseValuation(v.id)}
+                                  className="list-approval-reverse-btn"
+                                >
+                                  Reset to Draft
+                                </button>
+                              )}
+                            </div>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => openForwardModal(v)}
+                              className="list-approval-forward-btn"
+                              disabled={submittingForward}
+                            >
+                              Forward for Approval
+                            </button>
+                          )}
+                        </div>
                       </div>
                     </td>
                   </tr>
@@ -1316,6 +1523,112 @@ export default function ClientValuationList() {
           </div>
         </div>
       </ProjectModal>
+      {/* Forward for Approval Modal (Sales Order Model) */}
+      {showForwardModal ? (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex justify-center items-start p-4 sm:p-6 md:p-10 z-50 animate-fadeIn">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden my-auto sm:my-8 transition-all">
+            <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-white dark:bg-slate-900">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-brand-50 dark:bg-brand-900/30 text-brand-900 dark:text-brand-400 flex items-center justify-center font-bold flex-shrink-0 border border-brand-200/50 dark:border-brand-800/50">
+                  <Send size={20} />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-900 dark:text-white">Forward for Approval</h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Submit valuation into the approval workflow</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowForwardModal(false);
+                  setSelectedValuation(null);
+                  setCandidateWorkflow(null);
+                  setFirstApprover(null);
+                  setTargetApproverId(null);
+                  setWorkflowSteps([]);
+                  setWfError("");
+                }}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              >
+                <X size={18} />
+              </button>
+            </div>
+            <div className="p-5 space-y-3.5">
+              <div className="text-sm text-slate-700 dark:text-slate-300">
+                Valuation No: <span className="font-semibold font-mono text-slate-900 dark:text-white">{selectedValuation?.valuation_no || selectedValuation?.application_no || "-"}</span>
+              </div>
+              <div className="text-sm text-slate-700 dark:text-slate-300">
+                Workflow: <span className="font-semibold text-slate-900 dark:text-white">{candidateWorkflow ? `${candidateWorkflow.workflow_name} (${candidateWorkflow.workflow_code})` : "Standard Client Valuation Approval"}</span>
+              </div>
+              {wfLoading && <div className="text-sm text-slate-500">Loading workflow details...</div>}
+              {wfError && <div className="text-sm text-red-600 font-medium">{wfError}</div>}
+              <div className="text-sm">
+                <div className="font-medium text-slate-800 dark:text-slate-200 mb-1">Target Approver</div>
+                {(() => {
+                  const hasSteps = Array.isArray(workflowSteps) && workflowSteps.length > 0;
+                  const first = hasSteps ? workflowSteps[0] : null;
+                  const opts = first
+                    ? Array.isArray(first.approvers) && first.approvers.length
+                      ? first.approvers.map((u) => ({ id: u.id, name: u.username }))
+                      : first.approver_user_id
+                        ? [{ id: first.approver_user_id, name: first.approver_name || String(first.approver_user_id) }]
+                        : []
+                    : [];
+                  return opts.length > 0 ? (
+                    <div>
+                      <select
+                        className="input w-full"
+                        value={targetApproverId || ""}
+                        onChange={(e) => setTargetApproverId(e.target.value ? Number(e.target.value) : null)}
+                      >
+                        <option value="">Select target approver</option>
+                        {opts.map((u) => (
+                          <option key={u.id} value={u.id}>{u.name}</option>
+                        ))}
+                      </select>
+                      {firstApprover && (
+                        <div className="text-xs text-slate-500 mt-1">
+                          Step {firstApprover.stepOrder} • {firstApprover.stepName}
+                          {firstApprover.approvalLimit != null ? ` • Limit: GH₵ ${Number(firstApprover.approvalLimit).toLocaleString()}` : ""}
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="text-xs text-slate-500 italic">
+                      {candidateWorkflow ? "No specific approver assigned to first step. Will route to department head." : "Standard approval routing will apply upon forward."}
+                    </div>
+                  );
+                })()}
+              </div>
+            </div>
+            <div className="px-6 py-4 border-t border-slate-200 dark:border-slate-800 flex justify-end gap-3 bg-slate-50/50 dark:bg-slate-900/50">
+              <button
+                type="button"
+                className="btn btn-secondary px-4 py-2 text-sm font-medium"
+                onClick={() => {
+                  setShowForwardModal(false);
+                  setSelectedValuation(null);
+                  setCandidateWorkflow(null);
+                  setFirstApprover(null);
+                  setTargetApproverId(null);
+                  setWorkflowSteps([]);
+                  setWfError("");
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="btn btn-primary px-5 py-2 text-sm font-medium"
+                onClick={forwardDocument}
+                disabled={submittingForward || !selectedValuation}
+              >
+                {submittingForward ? "Forwarding..." : "Forward"}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

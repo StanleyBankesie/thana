@@ -4,8 +4,10 @@
  */
 
 import React, { useEffect, useState, useRef } from "react";
+import { Paperclip } from "lucide-react";
 import { api } from "api/client";
 import { toast } from "react-toastify";
+import Modal from "../common/Modal.jsx";
 
 /**
  * DocumentAttachmentsModal component
@@ -213,21 +215,18 @@ export default function DocumentAttachmentsModal({
 
   if (!open) return null;
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-lg w-[720px] max-w-[95%]">
-        <div className="p-4 border-b flex justify-between items-center bg-brand text-white rounded-t-lg">
-          <div className="font-semibold">Attachments</div>
-          <button
-            type="button"
-            className="btn btn-sm btn-ghost text-white"
-            onClick={onClose}
-          >
-            Close
-          </button>
-        </div>
-        <div className="p-4 space-y-4">
-          {error ? <div className="text-sm text-red-600">{error}</div> : null}
-          <div className="space-y-3">
+    <Modal
+      open={open}
+      onClose={onClose}
+      title="Document Attachments"
+      subtitle={`Files and supporting documents for ${docType} #${docId}`}
+      icon={Paperclip}
+      maxWidth="max-w-3xl"
+      showFooter={false}
+    >
+      <div className="space-y-4 text-sm">
+        {error ? <div className="text-sm text-red-600 bg-red-50 p-2.5 rounded-xl border border-red-200">{error}</div> : null}
+        <div className="space-y-3">
             {!readOnly ? (
               <div className="flex items-center gap-3">
                 <input
@@ -530,7 +529,6 @@ export default function DocumentAttachmentsModal({
             )}
           </div>
         </div>
-      </div>
-    </div>
+    </Modal>
   );
 }

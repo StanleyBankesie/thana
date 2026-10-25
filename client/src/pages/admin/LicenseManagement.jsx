@@ -224,6 +224,14 @@ export default function LicenseManagement() {
 
       await refreshPermissions();
 
+      try {
+        window.dispatchEvent(
+          new CustomEvent("license:updated", {
+            detail: { companyId: selectedCompanyId, modules: selectedModules },
+          })
+        );
+      } catch {}
+
       toast.success("License saved successfully");
       fetchLicense(selectedCompanyId);
     } catch (err) {

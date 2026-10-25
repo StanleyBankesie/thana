@@ -8,10 +8,12 @@ import {
   FolderTree,
   Package,
   Ruler,
+  Layers,
   X,
 } from "lucide-react";
 import { api } from "api/client";
 import { toast } from "react-toastify";
+import Modal from "@/components/common/Modal.jsx";
 import { useUoms } from "@/hooks/useUoms";
 import { useItemCategories } from "@/hooks/useItemCategories";
 import { useItemTypes } from "@/hooks/useItemTypes";
@@ -448,7 +450,7 @@ const ItemGroupForm = () => {
   ]);
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <div className="min-h-screen bg-gray-50 p-6 no-overview" data-no-overview="true">
       <div className="max-w-7xl mx-auto">
         <div className="mb-6">
           <div className="mb-2">
@@ -901,35 +903,56 @@ const ItemGroupForm = () => {
         </div>
       </div>
 
-      {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg max-w-lg w-full">
-            <div
-              className="p-6 border-b"
-              style={{ backgroundColor: "#0E3646" }}
+      <Modal
+        open={showModal}
+        onClose={() => setShowModal(false)}
+        title={`${modalMode === "create" ? "Add" : "Edit"} ${
+          modalType === "group"
+            ? "Group"
+            : modalType === "category"
+              ? "Category"
+              : modalType === "type"
+                ? "Item Type"
+                : "UOM"
+        }`}
+        subtitle="Configure item classification attributes"
+        icon={
+          modalType === "group"
+            ? FolderTree
+            : modalType === "category"
+              ? Package
+              : modalType === "type"
+                ? Layers
+                : Ruler
+        }
+        maxWidth="max-w-lg"
+        footer={
+          <div className="flex justify-end gap-3 w-full">
+            <button
+              type="button"
+              onClick={() => setShowModal(false)}
+              className="btn btn-secondary px-4 py-2 text-sm font-medium"
             >
-              <div className="flex items-center justify-between">
-                <h2 className="text-xl font-bold text-white">
-                  {modalMode === "create" ? "Add" : "Edit"}{" "}
-                  {modalType === "group"
-                    ? "Group"
-                    : modalType === "category"
-                      ? "Category"
-                      : modalType === "type"
-                        ? "Item Type"
-                        : "UOM"}
-                </h2>
-                <button
-                  onClick={() => setShowModal(false)}
-                  className="text-white hover:text-gray-200"
-                >
-                  <X className="w-6 h-6" />
-                </button>
-              </div>
-            </div>
-
-            <div className="p-6 space-y-4">
-              <div>
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={handleSubmit}
+              disabled={loading}
+              className={
+                modalMode === "create"
+                  ? "btn-success px-5 py-2 font-medium"
+                  : "btn btn-primary px-5 py-2 text-sm font-medium"
+              }
+              data-rbac-exempt="true"
+            >
+              {loading ? "Saving..." : modalMode === "create" ? "Add" : "Save Changes"}
+            </button>
+          </div>
+        }
+      >
+        <div className="space-y-4 text-sm">
+          <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Code *
                 </label>
@@ -1070,31 +1093,8 @@ const ItemGroupForm = () => {
                   <option value="N">Inactive</option>
                 </select>
               </div>
-            </div>
-
-            <div className="p-6 border-t bg-gray-50 flex justify-end gap-3 rounded-b-lg">
-              <button
-                onClick={() => setShowModal(false)}
-                className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleSubmit}
-                className={
-                  modalMode === "create"
-                    ? "btn-success px-5 py-2 font-medium"
-                    : "px-4 py-2 text-white rounded-lg hover:opacity-90 font-medium"
-                }
-                style={modalMode === "create" ? undefined : { backgroundColor: "#0E3646" }}
-                data-rbac-exempt="true"
-              >
-                {modalMode === "create" ? "Add" : "Save Changes"}
-              </button>
-            </div>
-          </div>
         </div>
-      )}
+      </Modal>
     </div>
   );
 };

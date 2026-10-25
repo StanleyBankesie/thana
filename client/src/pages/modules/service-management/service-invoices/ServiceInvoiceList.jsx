@@ -5,7 +5,7 @@
 
 import React, { useState, useEffect, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Send } from "lucide-react";
 import { api } from "../../../../api/client";
 import { toast } from "react-toastify";
 import { renderHtmlToPdf } from "@/utils/pdfUtils.js";
@@ -720,21 +720,24 @@ export default function InvoiceList() {
         docId={activeDocId}
       />
       {showForwardModal && (
-        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-erp w-full max-w-md overflow-hidden">
-            <div className="p-4 bg-brand text-white flex justify-between items-center">
-              <h2 className="text-lg font-bold">Forward for Approval</h2>
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex justify-center items-start p-4 sm:p-6 md:p-10 z-50 animate-fadeIn">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden my-auto sm:my-8 transition-all">
+            <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-white dark:bg-slate-900">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-brand-50 dark:bg-brand-900/30 text-brand-900 dark:text-brand-400 flex items-center justify-center font-bold flex-shrink-0 border border-brand-200/50 dark:border-brand-800/50">
+                  <Send size={20} />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-900 dark:text-white">Forward for Approval</h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Submit document into the approval workflow</p>
+                </div>
+              </div>
               <button
-                onClick={() => {
-                  setShowForwardModal(false);
-                  setSelectedDoc(null);
-                  setCandidateWorkflow(null);
-                  setWfError("");
-                    setForwardComments("");
-                }}
-                className="text-white hover:text-slate-200 text-xl font-bold"
+                type="button"
+                
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
               >
-                &times;
+                <X size={18} />
               </button>
             </div>
             <div className="p-4 space-y-4">

@@ -56,6 +56,12 @@ router.get("/cost-control/:projectId", cc.getCostControlSummary);
 router.post("/budgets", cc.createProjectBudget);
 
 // 4. Planning, CPM & EOT
+router.get("/schedule/:projectId", cc.getProjectSchedule);
+router.post("/schedule/:projectId/recalculate", cc.calculateProjectCPM);
+router.post("/schedule/:projectId/baseline", cc.setScheduleBaseline);
+router.post("/schedule/:projectId/activities", cc.createScheduleActivity);
+router.put("/schedule/:projectId/activities/:taskId", cc.updateScheduleActivity);
+router.delete("/schedule/:projectId/activities/:taskId", cc.deleteScheduleActivity);
 router.post("/cpm/:projectId/calculate", cc.calculateProjectCPM);
 router.get("/eot-requests", cc.listEOTRequests);
 router.post("/eot-requests", cc.createEOTRequest);
@@ -64,6 +70,8 @@ router.post("/eot-requests", cc.createEOTRequest);
 router.get("/daily-reports", cc.listDailyReports);
 router.get("/daily-reports/:id", cc.getDailyReportById);
 router.post("/daily-reports", cc.createDailyReport);
+router.put("/daily-reports/:id", cc.updateDailyReport);
+router.delete("/daily-reports/:id", cc.deleteDailyReport);
 
 // 6. Subcontracts & Valuations (IPCs)
 router.get("/subcontracts", cc.listSubcontracts);
@@ -123,5 +131,6 @@ router.put("/rfis/:id", cc.updateRFI);
 // 12. Plant & Equipment Logs
 router.get("/equipment-logs", cc.listEquipmentLogs);
 router.post("/equipment-logs", cc.createEquipmentLog);
+router.delete("/equipment-logs/:id", cc.deleteEquipmentLog);
 
 export default router;

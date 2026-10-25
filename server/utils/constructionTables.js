@@ -1055,6 +1055,111 @@ export async function ensureConstructionTables() {
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     `);
 
+    // Schema compatibility alterations for daily reports and equipment logs
+    const schemaCompatibilityAlts = [
+      ["pm_daily_site_reports", "ADD COLUMN report_number VARCHAR(50) NULL AFTER report_no"],
+      ["pm_daily_site_reports", "ADD COLUMN site_engineer_name VARCHAR(200) NULL AFTER shift"],
+      ["pm_daily_site_reports", "ADD COLUMN weather_morning VARCHAR(50) DEFAULT 'SUNNY' AFTER weather"],
+      ["pm_daily_site_reports", "ADD COLUMN weather_afternoon VARCHAR(50) DEFAULT 'SUNNY' AFTER weather_morning"],
+      ["pm_daily_site_reports", "ADD COLUMN working_hours_from VARCHAR(20) DEFAULT '08:00:00' AFTER site_condition"],
+      ["pm_daily_site_reports", "ADD COLUMN working_hours_to VARCHAR(20) DEFAULT '17:00:00' AFTER working_hours_from"],
+      ["pm_daily_site_reports", "ADD COLUMN general_remarks TEXT NULL AFTER supervisor_comments"],
+      ["pm_daily_site_reports", "ADD COLUMN safety_observations TEXT NULL AFTER general_remarks"],
+      ["pm_daily_site_reports", "ADD COLUMN prepared_by BIGINT UNSIGNED NULL AFTER created_by"],
+      ["pm_daily_site_reports", "MODIFY COLUMN reporting_officer_name VARCHAR(200) NULL"],
+      ["pm_daily_site_reports", "DROP INDEX uq_site_rep"],
+
+      ["pm_daily_site_activities", "ADD COLUMN location_grid VARCHAR(200) NULL AFTER location"],
+      ["pm_daily_site_activities", "ADD COLUMN description TEXT NULL AFTER location_grid"],
+      ["pm_daily_site_activities", "ADD COLUMN quantity_completed DECIMAL(15,4) DEFAULT 0.00 AFTER measured_qty_completed"],
+      ["pm_daily_site_activities", "ADD COLUMN unit VARCHAR(50) NULL AFTER uom"],
+      ["pm_daily_site_activities", "MODIFY COLUMN activity_name VARCHAR(255) NULL"],
+      ["pm_daily_site_activities", "MODIFY COLUMN project_id INT NULL"],
+
+      ["pm_daily_site_workforce", "ADD COLUMN trade_name VARCHAR(200) NULL AFTER trade_category"],
+
+      ["pm_daily_site_equipment", "ADD COLUMN equipment_tag VARCHAR(100) NULL AFTER equipment_name"],
+      ["pm_daily_site_equipment", "ADD COLUMN hours_worked DECIMAL(6,2) DEFAULT 0.00 AFTER asset_no"],
+      ["pm_daily_site_equipment", "ADD COLUMN hours_idle DECIMAL(6,2) DEFAULT 0.00 AFTER hours_worked"],
+      ["pm_daily_site_equipment", "ADD COLUMN hours_breakdown DECIMAL(6,2) DEFAULT 0.00 AFTER hours_idle"],
+      ["pm_daily_site_equipment", "ADD COLUMN remarks TEXT NULL AFTER operator_name"],
+
+      ["pm_daily_site_materials", "ADD COLUMN material_name VARCHAR(255) NULL AFTER item_name"],
+      ["pm_daily_site_materials", "ADD COLUMN quantity DECIMAL(15,4) DEFAULT 0.00 AFTER qty_consumed"],
+      ["pm_daily_site_materials", "ADD COLUMN unit VARCHAR(50) NULL AFTER uom"],
+      ["pm_daily_site_materials", "ADD COLUMN supplier_name VARCHAR(255) NULL AFTER unit"],
+      ["pm_daily_site_materials", "ADD COLUMN delivery_note_no VARCHAR(100) NULL AFTER supplier_name"],
+      ["pm_daily_site_materials", "ADD COLUMN remarks TEXT NULL AFTER delivery_note_no"],
+      ["pm_daily_site_materials", "MODIFY COLUMN item_name VARCHAR(255) NULL"],
+
+      ["pm_equipment_logs", "ADD COLUMN hours_worked DECIMAL(8,2) DEFAULT 0.00 AFTER operating_hours"],
+      ["pm_equipment_logs", "ADD COLUMN hours_idle DECIMAL(8,2) DEFAULT 0.00 AFTER hours_worked"],
+      ["pm_equipment_logs", "ADD COLUMN hours_breakdown DECIMAL(8,2) DEFAULT 0.00 AFTER hours_idle"],
+      ["pm_equipment_logs", "ADD COLUMN fuel_consumed_litres DECIMAL(8,2) DEFAULT 0.00 AFTER fuel_litres"],
+      ["pm_equipment_logs", "ADD COLUMN hourly_rate DECIMAL(15,2) DEFAULT 0.00 AFTER hourly_cost_rate"],
+      ["pm_equipment_logs", "ADD COLUMN logged_by BIGINT UNSIGNED NULL AFTER created_by"],
+      ["pm_equipment_logs", "MODIFY COLUMN equipment_name VARCHAR(200) NULL"],
+
+      ["pm_eot_requests", "ADD COLUMN request_number VARCHAR(50) NULL AFTER request_no"],
+      ["pm_eot_requests", "ADD COLUMN delay_cause VARCHAR(255) NULL AFTER reason"],
+      ["pm_eot_requests", "ADD COLUMN financial_claim_amount DECIMAL(18,2) DEFAULT 0.00 AFTER days_requested"],
+      ["pm_eot_requests", "ADD COLUMN requested_date DATE NULL AFTER delay_category"],
+      ["pm_eot_requests", "ADD COLUMN justification TEXT NULL AFTER impact_assessment"],
+
+      ["pm_safety_incidents", "MODIFY COLUMN branch_id BIGINT UNSIGNED NOT NULL DEFAULT 1"],
+      ["pm_safety_incidents", "MODIFY COLUMN incident_no VARCHAR(50) NOT NULL DEFAULT ''"],
+      ["pm_safety_incidents", "MODIFY COLUMN location VARCHAR(200) NOT NULL DEFAULT 'Site'"],
+      ["pm_safety_incidents", "MODIFY COLUMN reported_by VARCHAR(200) NOT NULL DEFAULT 'Safety Officer'"],
+      ["pm_safety_incidents", "MODIFY COLUMN incident_type ENUM('NEAR_MISS','FIRST_AID','MEDICAL_TREATMENT','LOST_TIME_INJURY','LOST_TIME','FATALITY','DANGEROUS_OCCURRENCE','ENVIRONMENTAL') DEFAULT 'NEAR_MISS'"],
+      ["pm_safety_incidents", "ADD COLUMN injured_person_name VARCHAR(200) NULL AFTER persons_involved"],
+      ["pm_safety_incidents", "ADD COLUMN days_lost INT DEFAULT 0 AFTER lost_workdays"],
+      ["pm_safety_incidents", "ADD COLUMN root_cause TEXT NULL AFTER immediate_action_taken"],
+      ["pm_safety_incidents", "ADD COLUMN corrective_action TEXT NULL AFTER corrective_actions"],
+      ["pm_safety_incidents", "ADD COLUMN reported_to_authority VARCHAR(10) DEFAULT 'N' AFTER status"],
+
+      ["pm_toolbox_talks", "MODIFY COLUMN branch_id BIGINT UNSIGNED NOT NULL DEFAULT 1"],
+      ["pm_toolbox_talks", "MODIFY COLUMN delivered_by VARCHAR(200) NOT NULL DEFAULT 'Safety Officer'"],
+      ["pm_toolbox_talks", "ADD COLUMN conductor_name VARCHAR(200) NULL AFTER delivered_by"],
+      ["pm_toolbox_talks", "ADD COLUMN attendee_count INT DEFAULT 0 AFTER attendees_count"],
+      ["pm_toolbox_talks", "ADD COLUMN notes TEXT NULL AFTER summary_points"],
+
+      ["pm_rfis", "ADD COLUMN file_url VARCHAR(500) NULL AFTER drawing_ref"],
+      ["pm_rfis", "ADD COLUMN attachments_json JSON NULL AFTER file_url"],
+      ["pm_rfis", "ADD COLUMN rfi_number VARCHAR(50) NULL AFTER rfi_no"],
+      ["pm_rfis", "ADD COLUMN drawing_reference VARCHAR(200) NULL AFTER drawing_ref"],
+      ["pm_rfis", "ADD COLUMN cost_impact VARCHAR(10) DEFAULT 'N' AFTER has_cost_impact"],
+      ["pm_rfis", "ADD COLUMN schedule_impact VARCHAR(10) DEFAULT 'N' AFTER has_schedule_impact"],
+      ["pm_rfis", "ADD COLUMN answer TEXT NULL AFTER response"],
+      ["pm_rfis", "ADD COLUMN answered_by BIGINT UNSIGNED NULL AFTER response_date"],
+      ["pm_rfis", "ADD COLUMN answered_date DATE NULL AFTER answered_by"],
+      ["pm_rfis", "ADD COLUMN date_raised DATE NULL AFTER date_issued"],
+      ["pm_rfis", "ADD COLUMN raised_by BIGINT UNSIGNED NULL AFTER created_by"],
+      ["pm_rfis", "MODIFY COLUMN branch_id BIGINT UNSIGNED NOT NULL DEFAULT 1"],
+      ["pm_rfis", "MODIFY COLUMN rfi_no VARCHAR(50) NOT NULL DEFAULT ''"],
+
+      ["pm_documents", "MODIFY COLUMN file_url VARCHAR(500) NULL"],
+      ["pm_documents", "MODIFY COLUMN doc_category VARCHAR(100) NULL DEFAULT 'ARCHITECTURAL'"],
+      ["pm_documents", "ADD COLUMN category VARCHAR(100) NULL AFTER doc_category"],
+      ["pm_documents", "MODIFY COLUMN current_revision VARCHAR(50) NULL DEFAULT '0'"],
+      ["pm_documents", "MODIFY COLUMN status VARCHAR(50) NULL DEFAULT 'APPROVED_FOR_CONSTRUCTION'"],
+      ["pm_documents", "MODIFY COLUMN doc_number VARCHAR(100) NOT NULL DEFAULT ''"],
+      ["pm_documents", "ADD COLUMN attachments_json JSON NULL AFTER file_url"],
+      ["pm_documents", "ADD COLUMN document_number VARCHAR(100) NULL AFTER doc_number"],
+      ["pm_documents", "ADD COLUMN discipline VARCHAR(100) NULL AFTER doc_category"],
+
+      ["pm_client_valuations", "MODIFY COLUMN status VARCHAR(50) NOT NULL DEFAULT 'DRAFT'"],
+      ["pm_client_valuations", "ADD COLUMN forwarded_to_username VARCHAR(150) NULL AFTER status"],
+      ["pm_variations", "ADD COLUMN forwarded_to_username VARCHAR(150) NULL AFTER status"]
+    ];
+
+    for (const [tbl, sql] of schemaCompatibilityAlts) {
+      try {
+        await query(`ALTER TABLE ${tbl} ${sql}`);
+      } catch (e) {
+        // Safe to ignore duplicate column / index not found
+      }
+    }
+
     console.log("[Construction] Schema migrations verified and completed successfully.");
   } catch (err) {
     console.error("[Construction] Error in ensureConstructionTables:", err);

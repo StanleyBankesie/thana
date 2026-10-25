@@ -249,6 +249,28 @@ async function applyAutoApprovalToLinkedDocument(instance) {
     );
     return;
   }
+
+  if (docType === "CLIENT_VALUATION" || docType === "CLIENT VALUATION") {
+    await query(
+      `UPDATE pm_client_valuations SET status = 'APPROVED' WHERE id = :id AND company_id = :companyId`,
+      { id: documentId, companyId },
+    );
+    return;
+  }
+
+  if (
+    docType === "VARIATION" ||
+    docType === "Variation" ||
+    docType === "CHANGE_ORDER" ||
+    docType === "CHANGE ORDER" ||
+    docType === "PROJECT_VARIATION"
+  ) {
+    await query(
+      `UPDATE pm_variations SET status = 'APPROVED' WHERE id = :id AND company_id = :companyId`,
+      { id: documentId, companyId },
+    );
+    return;
+  }
 }
 
 async function autoApprovePendingWorkflowDocuments({
@@ -744,6 +766,28 @@ export const reverseApproval = async (req, res, next) => {
           { id: instance.document_id, companyId: instance.company_id },
         );
       } catch {}
+    } else if (
+      instance.document_type === "CLIENT_VALUATION" ||
+      instance.document_type === "Client Valuation"
+    ) {
+      try {
+        await query(
+          `UPDATE pm_client_valuations SET status = 'DRAFT', forwarded_to_username = NULL WHERE id = :id AND company_id = :companyId`,
+          { id: instance.document_id, companyId: instance.company_id },
+        );
+      } catch {}
+    } else if (
+      instance.document_type === "VARIATION" ||
+      instance.document_type === "Variation" ||
+      instance.document_type === "CHANGE_ORDER" ||
+      instance.document_type === "Change Order"
+    ) {
+      try {
+        await query(
+          `UPDATE pm_variations SET status = 'DRAFT', forwarded_to_username = NULL WHERE id = :id AND company_id = :companyId`,
+          { id: instance.document_id, companyId: instance.company_id },
+        );
+      } catch {}
     }
     // Notify initiator
     // Notify initiator
@@ -853,7 +897,13 @@ export const reverseByDocument = async (req, res, next) => {
         SERVICE_REQUEST: "srv_service_requests",
         CUSTOMER_PROSPECT: "sal_prospect_customers",
         PROJECT_BOQ: "pm_boqs",
-        BOQ: "pm_boqs"
+        BOQ: "pm_boqs",
+        CLIENT_VALUATION: "pm_client_valuations",
+        "CLIENT VALUATION": "pm_client_valuations",
+        VARIATION: "pm_variations",
+        CHANGE_ORDER: "pm_variations",
+        "CHANGE ORDER": "pm_variations",
+        PROJECT_VARIATION: "pm_variations"
       };
       const tableName = tableMap[docTypeRaw.toUpperCase()];
       if (tableName) {
@@ -2132,6 +2182,26 @@ export const performAction = async (req, res, next) => {
           );
         }
         if (
+          instance.document_type === "CLIENT_VALUATION" ||
+          instance.document_type === "Client Valuation"
+        ) {
+          await query(
+            `UPDATE pm_client_valuations SET status = 'APPROVED' WHERE id = :id AND company_id = :companyId`,
+            { id: instance.document_id, companyId: instance.company_id },
+          );
+        }
+        if (
+          instance.document_type === "VARIATION" ||
+          instance.document_type === "Variation" ||
+          instance.document_type === "CHANGE_ORDER" ||
+          instance.document_type === "Change Order"
+        ) {
+          await query(
+            `UPDATE pm_variations SET status = 'APPROVED' WHERE id = :id AND company_id = :companyId`,
+            { id: instance.document_id, companyId: instance.company_id },
+          );
+        }
+        if (
           instance.document_type === "SALES_ORDER" ||
           instance.document_type === "Sales Order"
         ) {
@@ -2388,6 +2458,28 @@ export const performAction = async (req, res, next) => {
             { id: instance.document_id, companyId: instance.company_id },
           );
         } catch (e) {}
+      } else if (
+        instance.document_type === "CLIENT_VALUATION" ||
+        instance.document_type === "Client Valuation"
+      ) {
+        try {
+          await query(
+            `UPDATE pm_client_valuations SET status = 'REJECTED' WHERE id = :id AND company_id = :companyId`,
+            { id: instance.document_id, companyId: instance.company_id },
+          );
+        } catch (e) {}
+      } else if (
+        instance.document_type === "VARIATION" ||
+        instance.document_type === "Variation" ||
+        instance.document_type === "CHANGE_ORDER" ||
+        instance.document_type === "Change Order"
+      ) {
+        try {
+          await query(
+            `UPDATE pm_variations SET status = 'REJECTED' WHERE id = :id AND company_id = :companyId`,
+            { id: instance.document_id, companyId: instance.company_id },
+          );
+        } catch (e) {}
       }
       const initiatorId = await getInitiator();
       await notifyUser(
@@ -2559,6 +2651,28 @@ export const performAction = async (req, res, next) => {
         try {
           await query(
             `UPDATE pm_purchase_requisitions SET status = 'DRAFT' WHERE id = :id AND company_id = :companyId`,
+            { id: instance.document_id, companyId: instance.company_id },
+          );
+        } catch (e) {}
+      } else if (
+        instance.document_type === "CLIENT_VALUATION" ||
+        instance.document_type === "Client Valuation"
+      ) {
+        try {
+          await query(
+            `UPDATE pm_client_valuations SET status = 'DRAFT', forwarded_to_username = NULL WHERE id = :id AND company_id = :companyId`,
+            { id: instance.document_id, companyId: instance.company_id },
+          );
+        } catch (e) {}
+      } else if (
+        instance.document_type === "VARIATION" ||
+        instance.document_type === "Variation" ||
+        instance.document_type === "CHANGE_ORDER" ||
+        instance.document_type === "Change Order"
+      ) {
+        try {
+          await query(
+            `UPDATE pm_variations SET status = 'DRAFT', forwarded_to_username = NULL WHERE id = :id AND company_id = :companyId`,
             { id: instance.document_id, companyId: instance.company_id },
           );
         } catch (e) {}
@@ -3022,6 +3136,30 @@ export const performAction = async (req, res, next) => {
               }
             }
           }
+        } catch (e) {}
+      } else if (
+        wf.status === "APPROVED" &&
+        (wf.document_type === "CLIENT_VALUATION" ||
+          wf.document_type === "Client Valuation")
+      ) {
+        try {
+          await query(
+            `UPDATE pm_client_valuations SET status = 'APPROVED' WHERE id = :id AND company_id = :companyId`,
+            { id: wf.document_id, companyId: wf.company_id },
+          );
+        } catch (e) {}
+      } else if (
+        wf.status === "APPROVED" &&
+        (wf.document_type === "VARIATION" ||
+          wf.document_type === "Variation" ||
+          wf.document_type === "CHANGE_ORDER" ||
+          wf.document_type === "Change Order")
+      ) {
+        try {
+          await query(
+            `UPDATE pm_variations SET status = 'APPROVED' WHERE id = :id AND company_id = :companyId`,
+            { id: wf.document_id, companyId: wf.company_id },
+          );
         } catch (e) {}
       } else if (
         wf.status === "APPROVED" &&

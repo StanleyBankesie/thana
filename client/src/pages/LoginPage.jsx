@@ -500,11 +500,11 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-100 p-4 sm:p-6 md:p-8">
-      <div className="w-full max-w-6xl bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col md:flex-row min-h-[600px]">
+    <div className="min-h-screen w-full flex items-center justify-center bg-slate-100 dark:bg-slate-950 p-2 sm:p-4 md:p-6 lg:p-8 xl:p-12 transition-all">
+      <div className="w-full max-w-md sm:max-w-xl md:max-w-4xl lg:max-w-5xl xl:max-w-6xl 2xl:max-w-7xl bg-white dark:bg-slate-900 rounded-3xl shadow-2xl overflow-hidden flex flex-col md:flex-row min-h-[520px] md:min-h-[560px] lg:h-[86vh] lg:max-h-[820px] transition-all my-auto">
         {/* Left Side: Form */}
         <div
-          className="w-full md:w-1/2 p-8 md:p-12 lg:p-16 flex flex-col justify-center relative bg-slate-900"
+          className="w-full md:w-1/2 p-6 sm:p-8 md:p-8 lg:p-10 xl:p-12 flex flex-col justify-center relative bg-slate-900 overflow-hidden [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
           style={{
             backgroundImage: `url(${loginBackgroundUrl || backgroundImage})`,
             backgroundSize: "cover",
@@ -514,26 +514,26 @@ export default function LoginPage() {
           {/* Overlay to ensure form text readability */}
           <div className="absolute inset-0 bg-white/90"></div>
 
-          <div className="max-w-md w-full mx-auto relative z-10">
+          <div className="max-w-lg w-full mx-auto relative z-10 my-auto">
             {/* Logo on top for all devices */}
-            <div className="flex justify-center mb-12">
-              <div className="bg-white/80 backdrop-blur px-5 py-2.5 rounded-full shadow-md flex items-center gap-3 border border-slate-100">
+            <div className="flex justify-center mb-4 sm:mb-5 lg:mb-6">
+              <div className="bg-white/95 backdrop-blur-md px-6 py-2.5 rounded-full shadow-md flex items-center gap-3 border border-slate-200">
                 <img
                   src="/OMNISUITE_ICON_CLEAR.png"
                   alt="Omnisuite ERP"
-                  className="h-7 w-auto"
+                  className="h-8 w-auto"
                 />
-                <span className="font-bold text-slate-800 text-lg tracking-tight">
+                <span className="font-extrabold text-slate-900 text-xl tracking-tight">
                   Omnisuite ERP
                 </span>
               </div>
             </div>
 
-            <div className="text-center mb-8">
-              <h1 className="text-3xl md:text-4xl font-bold text-slate-800 mb-2">
+            <div className="text-center mb-4 sm:mb-5">
+              <h1 className="text-3xl sm:text-4xl lg:text-4xl font-black text-slate-900 tracking-tight mb-1.5 sm:mb-2">
                 {savedProfiles.length > 0 ? "Welcome Back" : "Welcome"}
               </h1>
-              <p className="text-slate-600">
+              <p className="text-base sm:text-lg text-slate-700 font-medium">
                 Sign in to continue your enterprise journey.
               </p>
             </div>
@@ -546,13 +546,13 @@ export default function LoginPage() {
 
             <form
               onSubmit={onSubmit}
-              className="space-y-5"
+              className="space-y-3.5 sm:space-y-4.5"
               autoComplete="on"
               method="post"
             >
               <div className="relative w-full">
                 <label
-                  className="block text-sm font-medium text-slate-700 mb-1"
+                  className="block text-base sm:text-lg font-bold text-slate-900 mb-1.5 tracking-wide"
                   htmlFor="username"
                 >
                   Username
@@ -561,7 +561,7 @@ export default function LoginPage() {
                   id="username"
                   name="username"
                   type="text"
-                  className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white/80 focus:bg-white focus:ring-2 focus:ring-amber-400 focus:border-amber-400 outline-none transition-all"
+                  className="w-full px-5 py-3.5 sm:py-4 rounded-xl border-2 border-slate-300 text-base sm:text-lg font-semibold text-slate-900 bg-white shadow-sm focus:border-amber-500 focus:ring-4 focus:ring-amber-400/20 outline-none transition-all"
                   ref={usernameRef}
                   autoComplete="username"
                   required
@@ -644,7 +644,7 @@ export default function LoginPage() {
 
               <div className="w-full">
                 <label
-                  className="block text-sm font-medium text-slate-700 mb-1"
+                  className="block text-base sm:text-lg font-bold text-slate-900 mb-1.5 tracking-wide"
                   htmlFor="password"
                 >
                   Password
@@ -654,7 +654,7 @@ export default function LoginPage() {
                     id="password"
                     name="password"
                     type={showPassword ? "text" : "password"}
-                    className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white/80 focus:bg-white focus:ring-2 focus:ring-amber-400 focus:border-amber-400 outline-none transition-all pr-12"
+                    className="w-full px-5 py-3.5 sm:py-4 rounded-xl border-2 border-slate-300 text-base sm:text-lg font-semibold text-slate-900 bg-white shadow-sm focus:border-amber-500 focus:ring-4 focus:ring-amber-400/20 outline-none transition-all pr-14"
                     ref={passwordRef}
                     autoComplete="current-password"
                     required
@@ -670,10 +670,10 @@ export default function LoginPage() {
                 </div>
               </div>
 
-              <label className="inline-flex items-center gap-2 text-sm text-slate-600 cursor-pointer">
+              <label className="inline-flex items-center gap-3 text-base sm:text-lg font-semibold text-slate-800 cursor-pointer">
                 <input
                   type="checkbox"
-                  className="rounded border-slate-300 text-amber-500 focus:ring-amber-500 w-4 h-4"
+                  className="rounded-md border-2 border-slate-300 text-amber-500 focus:ring-amber-500 w-5 h-5"
                   checked={rememberMe}
                   onChange={(e) => {
                     const checked = e.target.checked;
@@ -686,23 +686,23 @@ export default function LoginPage() {
 
               <button
                 type="submit"
-                className="w-full bg-amber-400 hover:bg-amber-500 text-brand-700 font-bold py-3 px-4 rounded-xl shadow-sm transition-colors mt-2"
+                className="w-full bg-amber-400 hover:bg-amber-500 text-slate-950 font-black text-lg sm:text-xl py-3.5 sm:py-4 px-6 rounded-xl shadow-md hover:shadow-lg transition-all mt-2 tracking-wide uppercase"
                 disabled={loading}
               >
                 {loading ? "Signing in…" : "Submit"}
               </button>
 
-              <div className="mt-4 text-center">
+              <div className="mt-5 text-center">
                 <Link
                   to="/forgot-password"
-                  className="text-sm text-slate-500 hover:text-slate-800 font-medium transition-colors"
+                  className="text-base sm:text-lg text-slate-700 hover:text-slate-950 font-bold underline underline-offset-4 transition-colors"
                 >
                   Forgot password?
                 </Link>
               </div>
             </form>
 
-            <div className="mt-8 pt-8 border-t border-amber-200/50 flex flex-col items-center gap-2 text-xs text-slate-500">
+            <div className="mt-4 sm:mt-5 pt-3.5 sm:pt-4 border-t border-amber-200/60 flex flex-col items-center gap-1.5 text-sm font-medium text-slate-600">
               <div>
                 Powered by{" "}
                 <a
@@ -728,7 +728,7 @@ export default function LoginPage() {
 
         {/* Right Side: Image and Glassmorphic Elements */}
         <div
-          className="hidden md:block w-full md:w-1/2 relative bg-slate-900 overflow-hidden"
+          className="hidden md:flex md:w-1/2 relative bg-slate-900 overflow-hidden flex-col justify-between p-6 lg:p-8 xl:p-10"
           style={{
             backgroundImage: `url(${loginHeroImageUrl || backgroundImage})`,
             backgroundSize: "cover",
@@ -737,16 +737,16 @@ export default function LoginPage() {
           }}
         >
           {/* Overlay to ensure text readability */}
-          <div className="absolute inset-0 bg-black/20"></div>
+          <div className="absolute inset-0 bg-black/25"></div>
 
           {/* Glassmorphic Carousel */}
-          <div className="absolute top-12 left-1/2 -translate-x-1/2 w-4/5 max-w-md z-20">
-            <div className="backdrop-blur-md bg-white/20 border border-white/30 p-4 rounded-2xl shadow-xl flex items-center justify-between text-white">
+          <div className="w-full flex justify-center z-20">
+            <div className="backdrop-blur-md bg-white/20 border border-white/30 p-4 rounded-2xl shadow-xl flex items-center justify-between text-white w-full max-w-md">
               <div className="flex-1 overflow-hidden relative h-6">
                 {CAROUSEL_MESSAGES.map((msg, idx) => (
                   <div
                     key={idx}
-                    className="absolute inset-0 w-full flex items-center font-medium transition-all duration-500 ease-in-out"
+                    className="absolute inset-0 w-full flex items-center font-bold transition-all duration-500 ease-in-out text-base sm:text-lg text-white"
                     style={{
                       transform: `translateY(${(idx - carouselIndex) * 100}%)`,
                       opacity: idx === carouselIndex ? 1 : 0,
@@ -756,14 +756,14 @@ export default function LoginPage() {
                   </div>
                 ))}
               </div>
-              <div className="w-2 h-2 bg-amber-400 rounded-full animate-pulse ml-4 shrink-0"></div>
+              <div className="w-2.5 h-2.5 bg-amber-400 rounded-full animate-pulse ml-4 shrink-0"></div>
             </div>
           </div>
 
-          {/* Glassmorphic Calendar & Date */}
-          <div className="absolute bottom-12 left-12 right-12 flex flex-col gap-6 z-20">
+          {/* Glassmorphic Calendar & Upcoming Events */}
+          <div className="w-full flex flex-col gap-3 lg:gap-4 z-20 mt-auto">
             {/* Calendar Strip */}
-            <div className="backdrop-blur-md bg-black/20 border border-white/20 p-4 rounded-3xl text-white">
+            <div className="backdrop-blur-md bg-black/20 border border-white/20 p-3 sm:p-4 rounded-3xl text-white">
               <div className="flex justify-between items-center px-2">
                 {[...Array(7)].map((_, i) => {
                   const d = new Date(currentDate);
@@ -772,13 +772,13 @@ export default function LoginPage() {
                   return (
                     <div
                       key={i}
-                      className={`flex flex-col items-center p-2 rounded-xl transition-all ${isToday ? "bg-white/20 scale-110" : "opacity-70"}`}
+                      className={`flex flex-col items-center px-2 py-1.5 rounded-xl transition-all ${isToday ? "bg-white/20 scale-110 font-black" : "opacity-75"}`}
                     >
-                      <span className="text-xs mb-1">
+                      <span className="text-xs sm:text-sm mb-1 font-semibold">
                         {d.toLocaleDateString("en-US", { weekday: "short" })}
                       </span>
                       <span
-                        className={`font-bold ${isToday ? "text-lg" : "text-sm"}`}
+                        className={`font-bold ${isToday ? "text-lg sm:text-xl" : "text-sm sm:text-base"}`}
                       >
                         {d.getDate()}
                       </span>
@@ -789,8 +789,8 @@ export default function LoginPage() {
             </div>
 
             {/* Upcoming Events Widget */}
-            <div className="backdrop-blur-md bg-white/90 border border-white p-4 rounded-2xl shadow-xl flex flex-col gap-3  w-full max-h-[500px] overflow-y-auto custom-scrollbar">
-              <h3 className="font-bold text-slate-800 text-base border-b pb-2">
+            <div className="backdrop-blur-md bg-white/95 dark:bg-slate-900/95 border border-white/40 dark:border-slate-800 p-3.5 lg:p-4 rounded-2xl shadow-xl flex flex-col gap-2.5 w-full max-h-[170px] lg:max-h-[220px] xl:max-h-[260px] overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+              <h3 className="font-black text-slate-900 text-lg sm:text-xl border-b-2 border-slate-200 pb-2.5">
                 Upcoming Events
               </h3>
 
@@ -809,7 +809,7 @@ export default function LoginPage() {
                           opacity: idx === announcementIndex ? 1 : 0,
                         }}
                       >
-                        <p className="text-slate-700 text-sm font-medium leading-relaxed w-full">
+                        <p className="text-slate-900 text-base sm:text-lg font-bold leading-relaxed w-full">
                           {ann}
                         </p>
                       </div>

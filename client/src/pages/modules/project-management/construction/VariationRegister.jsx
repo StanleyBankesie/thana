@@ -59,6 +59,7 @@ import {
 } from "lucide-react";
 import { api } from "../../../../api/client.js";
 import { toast } from "react-toastify";
+import { usePermission } from "../../../../auth/PermissionContext.jsx";
 import ProjectModal from "../components/ProjectModal.jsx";
 import { fetchReportHeader, renderHtmlToPdf } from "../../../../utils/pdfUtils.js";
 import PrintPreviewModal from "../../../../components/PrintPreviewModal.jsx";
@@ -199,6 +200,17 @@ export default function VariationRegister() {
 
   // Subcontracts and Active Contracts
   const [subcontracts, setSubcontracts] = useState([]);
+  const { canReverseApproval } = usePermission();
+  const [showForwardModal, setShowForwardModal] = useState(false);
+  const [candidateWorkflow, setCandidateWorkflow] = useState(null);
+  const [workflowSteps, setWorkflowSteps] = useState([]);
+  const [firstApprover, setFirstApprover] = useState(null);
+  const [workflowsCache, setWorkflowsCache] = useState(null);
+  const [targetApproverId, setTargetApproverId] = useState(null);
+  const [wfLoading, setWfLoading] = useState(false);
+  const [wfError, setWfError] = useState("");
+  const [submittingForward, setSubmittingForward] = useState(false);
+  const [forwardedTo, setForwardedTo] = useState({});
 
   // Attachments Modal & Cloudinary Upload States (Procurement module pattern)
   const [showAttachModal, setShowAttachModal] = useState(false);
@@ -428,12 +440,168 @@ export default function VariationRegister() {
     fetchVariations();
   }, [selectedProjectId]);
 
+  useEffect(() => {
+    let cancelled = false;
+    async function loadWorkflowFlags() {
+      try {
+        const res = await api.get("/workflows");
+        const list = Array.isArray(res.data?.items) ? res.data.items : [];
+        if (cancelled) return;
+        setWorkflowsCache(list);
+        const route = "/project-management/variations";
+        const normalize = (s) => String(s || "").trim().toUpperCase().replace(/\s+/g, "_");
+        const chosen = list.find((w) => Number(w.is_active) === 1 && String(w.document_route) === route) ||
+          list.find((w) => Number(w.is_active) === 1 && (normalize(w.document_type) === "VARIATION" || normalize(w.document_type) === "CHANGE_ORDER")) ||
+          null;
+        setCandidateWorkflow(chosen || null);
+      } catch {}
+    }
+    loadWorkflowFlags();
+    return () => { cancelled = true; };
+  }, []);
+
+  const openForwardModal = async (v) => {
+    setSelectedVariation(v);
+    setShowForwardModal(true);
+    setWfError("");
+    try {
+      setWfLoading(true);
+      let list = workflowsCache;
+      if (!list) {
+        const res = await api.get("/workflows");
+        list = Array.isArray(res.data?.items) ? res.data.items : [];
+        setWorkflowsCache(list);
+      }
+      const route = "/project-management/variations";
+      const normalize = (s) => String(s || "").trim().toUpperCase().replace(/\s+/g, "_");
+      const chosen = list.find((w) => Number(w.is_active) === 1 && String(w.document_route) === route) ||
+        list.find((w) => Number(w.is_active) === 1 && (normalize(w.document_type) === "VARIATION" || normalize(w.document_type) === "CHANGE_ORDER")) ||
+        null;
+      setCandidateWorkflow(chosen || null);
+      if (chosen) {
+        const dRes = await api.get(`/workflows/${chosen.id}`);
+        const steps = Array.isArray(dRes.data?.item?.steps) ? dRes.data.item.steps : [];
+        setWorkflowSteps(steps);
+        const first = steps[0] || null;
+        setFirstApprover(first ? {
+          userId: first.approver_user_id,
+          name: first.approver_name,
+          stepName: first.step_name,
+          stepOrder: first.step_order,
+          approvalLimit: first.approval_limit,
+        } : null);
+        const defaultTarget = (Array.isArray(first?.approvers) && first.approvers.length ? first.approvers[0].id : first?.approver_user_id) || null;
+        setTargetApproverId(defaultTarget);
+      } else {
+        setWorkflowSteps([]);
+        setFirstApprover(null);
+        setTargetApproverId(null);
+      }
+    } catch (e) {
+      setWfError(e?.response?.data?.message || "Failed to load workflow details");
+    } finally {
+      setWfLoading(false);
+    }
+  };
+
+  async function forwardVariation() {
+    if (!selectedVariation) return;
+    setSubmittingForward(true);
+    setWfError("");
+    try {
+      let approverName = "Approver";
+      if (firstApprover) {
+        const first = workflowSteps[0];
+        const opts = first?.approvers?.length ? first.approvers : (first?.approver_user_id ? [{ id: first.approver_user_id, username: first.approver_name }] : []);
+        const match = opts.find((u) => Number(u.id) === Number(targetApproverId));
+        if (match) approverName = match.username || match.name || approverName;
+      }
+
+      setVariations((prev) =>
+        prev.map((x) =>
+          x.id === selectedVariation.id
+            ? { ...x, status: "PENDING_APPROVAL", forwarded_to_username: approverName }
+            : x
+        )
+      );
+      setForwardedTo((prev) => ({ ...prev, [selectedVariation.id]: approverName }));
+      setShowForwardModal(false);
+
+      const amt = Number(selectedVariation.assessed_amount || selectedVariation.cost_impact || 0);
+
+      await api.post(`/construction/variations/${selectedVariation.id}/advance-workflow`, {
+        target_status: "PENDING_APPROVAL",
+        forwarded_to_username: approverName,
+        comments: "Forwarded for approval",
+      });
+
+      try {
+        await api.post("/workflows/start", {
+          workflow_id: candidateWorkflow ? candidateWorkflow.id : null,
+          document_id: selectedVariation.id,
+          document_type: "VARIATION",
+          target_user_id: targetApproverId || null,
+          amount: amt,
+        });
+      } catch (wfErr) {
+        console.warn("Workflow start warning:", wfErr);
+      }
+
+      toast.success("Variation forwarded for approval");
+      fetchVariations();
+    } catch (err) {
+      toast.error(err?.response?.data?.message || "Failed to forward variation");
+    } finally {
+      setSubmittingForward(false);
+    }
+  }
+
+  async function reverseVariation(varId) {
+    try {
+      try {
+        await api.post("/workflows/reverse-by-document", {
+          document_type: "VARIATION",
+          document_id: varId,
+          desired_status: "DRAFT",
+        });
+      } catch (wfErr) {
+        await api.post(`/construction/variations/${varId}/advance-workflow`, {
+          target_status: "DRAFT",
+          forwarded_to_username: null,
+          comments: "Variation approval reversed",
+        });
+      }
+
+      setVariations((prev) =>
+        prev.map((x) =>
+          x.id === varId
+            ? { ...x, status: "DRAFT", forwarded_to_username: null }
+            : x
+        )
+      );
+      setForwardedTo((prev) => {
+        const next = { ...prev };
+        delete next[varId];
+        return next;
+      });
+      toast.success("Variation reversed to draft");
+      fetchVariations();
+    } catch (err) {
+      toast.error(err?.response?.data?.message || "Failed to reverse variation");
+    }
+  }
   const fetchVariations = async () => {
     if (!selectedProjectId) return;
     setLoading(true);
     try {
       const res = await api.get("/construction/variations", { params: { project_id: selectedProjectId } });
-      setVariations(res.data?.items || []);
+      const items = res.data?.items || [];
+      const fwd = {};
+      items.forEach((it) => {
+        if (it.forwarded_to_username) fwd[it.id] = it.forwarded_to_username;
+      });
+      setForwardedTo(fwd);
+      setVariations(items);
     } catch (e) {
       toast.error("Failed to load variations");
     } finally {
@@ -1215,23 +1383,73 @@ export default function VariationRegister() {
                                     }}
                                     title="Attachments (Cloudinary)"
                                   />
-                                  {v.status !== "APPROVED" && v.status !== "COMPLETED" && (
-                                    <button
-                                      onClick={() => openWorkflowModal(v, v.status === "DRAFT" ? "SUBMITTED" : "APPROVED")}
-                                      className="px-2 py-1 rounded-lg bg-brand-50 hover:bg-brand-100 text-brand-700 dark:bg-brand-950/40 dark:text-brand-300 text-[11px] font-bold"
-                                    >
-                                      {v.status === "DRAFT" ? "Submit" : "Review"}
-                                    </button>
-                                  )}
-                                  {v.status === "DRAFT" && (
-                                    <button
-                                      onClick={() => handleDeleteVariation(v.id)}
-                                      className="p-1.5 rounded-lg border border-rose-200 text-rose-600 hover:bg-rose-50"
-                                      title="Delete Draft"
-                                    >
-                                      <Trash2 size={14} />
-                                    </button>
-                                  )}
+                                  {/* Unified Approval Workflow Slot */}
+                                  <div className="list-approval-slot inline-flex items-center gap-1.5">
+                                    {v.status === "APPROVED" || v.status === "COMPLETED" ? (
+                                      <div className="flex items-center gap-1.5">
+                                        <span className="list-approval-approved-pill">Approved</span>
+                                        {canReverseApproval() && (
+                                          <button
+                                            type="button"
+                                            onClick={() => reverseVariation(v.id)}
+                                            className="list-approval-reverse-btn"
+                                          >
+                                            Reverse Approval
+                                          </button>
+                                        )}
+                                      </div>
+                                    ) : v.status === "PENDING_APPROVAL" ? (
+                                      <div className="flex items-center gap-1.5">
+                                        <span className="list-approval-forwarded-pill">
+                                          Forwarded to {v.forwarded_to_username || forwardedTo[v.id] || "Approver"}
+                                        </span>
+                                        {canReverseApproval() && (
+                                          <button
+                                            type="button"
+                                            onClick={() => reverseVariation(v.id)}
+                                            className="list-approval-reverse-btn"
+                                          >
+                                            Reverse
+                                          </button>
+                                        )}
+                                      </div>
+                                    ) : v.status === "SUBMITTED" ? (
+                                      <span className="list-approval-forwarded-pill">Submitted</span>
+                                    ) : v.status === "REJECTED" ? (
+                                      <div className="flex items-center gap-1.5">
+                                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200">
+                                          Rejected
+                                        </span>
+                                        {canReverseApproval() && (
+                                          <button
+                                            type="button"
+                                            onClick={() => reverseVariation(v.id)}
+                                            className="list-approval-reverse-btn"
+                                          >
+                                            Reset to Draft
+                                          </button>
+                                        )}
+                                      </div>
+                                    ) : (
+                                      <div className="flex items-center gap-1.5">
+                                        <button
+                                          type="button"
+                                          onClick={() => openForwardModal(v)}
+                                          className="list-approval-forward-btn"
+                                          disabled={submittingForward}
+                                        >
+                                          Forward for Approval
+                                        </button>
+                                        <button
+                                          onClick={() => handleDeleteVariation(v.id)}
+                                          className="p-1.5 rounded-lg border border-rose-200 text-rose-600 hover:bg-rose-50"
+                                          title="Delete Draft"
+                                        >
+                                          <Trash2 size={14} />
+                                        </button>
+                                      </div>
+                                    )}
+                                  </div>
                                 </div>
                               </td>
                             </tr>
@@ -1308,33 +1526,7 @@ export default function VariationRegister() {
               </div>
             </div>
 
-            {/* 7-Stage Workflow Progress Stepper */}
-            <div className="pt-6 border-t border-slate-100 dark:border-slate-800 mt-6">
-              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-3">
-                Change Order Approval Lifecycle:
-              </span>
-              <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2 text-center text-xs">
-                {WORKFLOW_STAGES.filter(s => s.stage > 0).map((st) => {
-                  const isCurrent = form.status === st.key;
-                  const isPassed = (form.workflow_stage || 1) >= st.stage;
-                  return (
-                    <div
-                      key={st.stage}
-                      className={`p-2.5 rounded-xl border text-[11px] font-bold transition-all ${
-                        isCurrent
-                          ? "bg-brand-50 border-brand-500 text-brand-700 dark:bg-brand-950/40 dark:text-brand-300 shadow-sm ring-2 ring-brand-500/20"
-                          : isPassed
-                          ? "bg-white border-emerald-400 text-emerald-700 dark:bg-slate-900 dark:text-emerald-400"
-                          : "bg-white border-slate-200 text-slate-400 dark:bg-slate-900 dark:border-slate-800"
-                      }`}
-                    >
-                      <span className="block text-[9px] font-black uppercase opacity-60">Step {st.stage}</span>
-                      <span className="truncate block mt-0.5">{st.label.split(" / ")[0]}</span>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
+
           </div>
 
           {/* SECTION 1. CHANGE IDENTIFICATION */}
@@ -2407,6 +2599,112 @@ export default function VariationRegister() {
         docId={activeDocId}
         allowPreview={true}
       />
+      {/* Forward for Approval Modal (Sales Order Model) */}
+      {showForwardModal ? (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex justify-center items-start p-4 sm:p-6 md:p-10 z-50 animate-fadeIn">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden my-auto sm:my-8 transition-all">
+            <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-white dark:bg-slate-900">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-brand-50 dark:bg-brand-900/30 text-brand-900 dark:text-brand-400 flex items-center justify-center font-bold flex-shrink-0 border border-brand-200/50 dark:border-brand-800/50">
+                  <FileEdit size={20} />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-900 dark:text-white">Forward for Approval</h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Submit change order into the approval workflow</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowForwardModal(false);
+                  setSelectedVariation(null);
+                  setCandidateWorkflow(null);
+                  setFirstApprover(null);
+                  setTargetApproverId(null);
+                  setWorkflowSteps([]);
+                  setWfError("");
+                }}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              >
+                <X size={18} />
+              </button>
+            </div>
+            <div className="p-5 space-y-3.5">
+              <div className="text-sm text-slate-700 dark:text-slate-300">
+                Change Order No: <span className="font-semibold font-mono text-slate-900 dark:text-white">{selectedVariation?.variation_no || "-"}</span>
+              </div>
+              <div className="text-sm text-slate-700 dark:text-slate-300">
+                Workflow: <span className="font-semibold text-slate-900 dark:text-white">{candidateWorkflow ? `${candidateWorkflow.workflow_name} (${candidateWorkflow.workflow_code})` : "Standard Change Order Approval"}</span>
+              </div>
+              {wfLoading && <div className="text-sm text-slate-500">Loading workflow details...</div>}
+              {wfError && <div className="text-sm text-red-600 font-medium">{wfError}</div>}
+              <div className="text-sm">
+                <div className="font-medium text-slate-800 dark:text-slate-200 mb-1">Target Approver</div>
+                {(() => {
+                  const hasSteps = Array.isArray(workflowSteps) && workflowSteps.length > 0;
+                  const first = hasSteps ? workflowSteps[0] : null;
+                  const opts = first
+                    ? Array.isArray(first.approvers) && first.approvers.length
+                      ? first.approvers.map((u) => ({ id: u.id, name: u.username }))
+                      : first.approver_user_id
+                        ? [{ id: first.approver_user_id, name: first.approver_name || String(first.approver_user_id) }]
+                        : []
+                    : [];
+                  return opts.length > 0 ? (
+                    <div>
+                      <select
+                        className="input w-full"
+                        value={targetApproverId || ""}
+                        onChange={(e) => setTargetApproverId(e.target.value ? Number(e.target.value) : null)}
+                      >
+                        <option value="">Select target approver</option>
+                        {opts.map((u) => (
+                          <option key={u.id} value={u.id}>{u.name}</option>
+                        ))}
+                      </select>
+                      {firstApprover && (
+                        <div className="text-xs text-slate-500 mt-1">
+                          Step {firstApprover.stepOrder} • {firstApprover.stepName}
+                          {firstApprover.approvalLimit != null ? ` • Limit: GH₵ ${Number(firstApprover.approvalLimit).toLocaleString()}` : ""}
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="text-xs text-slate-500 italic">
+                      {candidateWorkflow ? "No specific approver assigned to first step. Will route to department head." : "Standard approval routing will apply upon forward."}
+                    </div>
+                  );
+                })()}
+              </div>
+            </div>
+            <div className="px-6 py-4 border-t border-slate-200 dark:border-slate-800 flex justify-end gap-3 bg-slate-50/50 dark:bg-slate-900/50">
+              <button
+                type="button"
+                className="btn btn-secondary px-4 py-2 text-sm font-medium"
+                onClick={() => {
+                  setShowForwardModal(false);
+                  setSelectedVariation(null);
+                  setCandidateWorkflow(null);
+                  setFirstApprover(null);
+                  setTargetApproverId(null);
+                  setWorkflowSteps([]);
+                  setWfError("");
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="btn btn-primary px-5 py-2 text-sm font-medium"
+                onClick={forwardVariation}
+                disabled={submittingForward || !selectedVariation}
+              >
+                {submittingForward ? "Forwarding..." : "Forward"}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

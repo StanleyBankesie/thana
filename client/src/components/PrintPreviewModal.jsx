@@ -4,6 +4,8 @@
  */
 
 import React, { useEffect, useRef } from "react";
+import { Printer, Download, Loader2 } from "lucide-react";
+import Modal from "./common/Modal.jsx";
 
 /**
  * PrintPreviewModal component
@@ -31,27 +33,29 @@ export default function PrintPreviewModal({
       if (f && f.contentWindow) f.contentWindow.focus();
     } catch {}
   }, [open, html]);
+
   if (!open) return null;
+
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg shadow max-w-5xl w-full">
-        <div className="px-5 py-4 border-b flex justify-between items-center">
-          <h2 className="text-lg font-semibold">Print Preview</h2>
-          <button className="btn-outline" onClick={onClose}>
-            ×
-          </button>
-        </div>
-        <div className="p-0">
-          <iframe
-            ref={iframeRef}
-            title="preview"
-            srcDoc={String(html || "")}
-            className="w-full h-[70vh]"
-          />
-        </div>
-        <div className="px-5 py-4 border-t flex justify-end gap-2">
+    <Modal
+      open={open}
+      onClose={onClose}
+      title="Print Preview"
+      subtitle="Document formatted output and layout preview"
+      icon={Printer}
+      maxWidth="max-w-5xl lg:max-w-6xl"
+      footer={
+        <div className="flex justify-end gap-3 w-full">
           <button
-            className="btn-outline"
+            type="button"
+            className="btn btn-secondary px-4 py-2 text-sm font-medium"
+            onClick={onClose}
+          >
+            Close
+          </button>
+          <button
+            type="button"
+            className="btn btn-secondary px-4 py-2 text-sm font-medium inline-flex items-center gap-2"
             onClick={() => {
               try {
                 const f = iframeRef.current;
@@ -59,17 +63,31 @@ export default function PrintPreviewModal({
               } catch {}
             }}
           >
+            <Printer size={16} />
             Print
           </button>
-          <button
-            className="btn-success"
-            disabled={downloading}
-            onClick={onDownload}
-          >
-            {downloading ? "Downloading..." : "Download PDF"}
-          </button>
+          {onDownload && (
+            <button
+              type="button"
+              className="btn btn-primary px-5 py-2 text-sm font-medium inline-flex items-center gap-2"
+              disabled={downloading}
+              onClick={onDownload}
+            >
+              {downloading ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
+              {downloading ? "Downloading..." : "Download PDF"}
+            </button>
+          )}
         </div>
+      }
+    >
+      <div className="-mx-6 -my-4">
+        <iframe
+          ref={iframeRef}
+          title="preview"
+          srcDoc={String(html || "")}
+          className="w-full h-[70vh] rounded-b-none border-0"
+        />
       </div>
-    </div>
+    </Modal>
   );
 }

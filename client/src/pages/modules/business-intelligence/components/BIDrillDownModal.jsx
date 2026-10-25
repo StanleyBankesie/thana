@@ -85,19 +85,23 @@ export default function BIDrillDownModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 animate-in fade-in">
       <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl w-full max-w-4xl max-h-[85vh] flex flex-col shadow-erp-2xl overflow-hidden">
         {/* Header */}
-        <div className="p-5 border-b border-slate-100 dark:border-slate-800 bg-brand-900 text-white flex items-center justify-between">
-          <div>
-            <div className="flex items-center gap-2 text-xs font-semibold text-brand-300 uppercase tracking-wider mb-1">
-              <Layers size={14} />
-              <span>Interactive Drill-Down Engine</span>
+        <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-white dark:bg-slate-900">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-brand-50 dark:bg-brand-900/30 text-brand-900 dark:text-brand-400 flex items-center justify-center font-bold flex-shrink-0 border border-brand-200/50 dark:border-brand-800/50">
+              <Layers size={20} />
             </div>
-            <h2 className="text-lg font-bold text-white">
-              {currentLevel?.levelTitle || activeStep?.title || "Analytical Drill Down"}
-            </h2>
+            <div>
+              <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                {currentLevel?.levelTitle || activeStep?.title || "Analytical Drill Down"}
+              </h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                Interactive Multi-Dimensional Drill-Down Engine
+              </p>
+            </div>
           </div>
           <button
             onClick={onClose}
-            className="p-2 rounded-xl text-brand-200 hover:text-white hover:bg-white/10 transition-colors"
+            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
           >
             <X size={18} />
           </button>

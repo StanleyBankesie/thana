@@ -1,6 +1,8 @@
 /**
  * @file DocumentRegisterPage.jsx
  * @description Technical Drawing Register and Requests for Information (RFI) workflow.
+ * Fully integrated with Cloudinary for document uploads, featuring intelligent previous-file
+ * detection with Keep vs Discard options.
  */
 
 import React, { useState, useEffect } from "react";
@@ -17,11 +19,14 @@ import {
   ExternalLink,
   MessageSquare,
   Search,
-  RefreshCw
+  RefreshCw,
+  Cloud,
+  Paperclip
 } from "lucide-react";
 import { api } from "../../../../api/client.js";
 import { toast } from "react-toastify";
 import ProjectModal from "../components/ProjectModal.jsx";
+import CloudinaryDocumentUploader from "../components/CloudinaryDocumentUploader.jsx";
 
 export default function DocumentRegisterPage() {
   const [activeTab, setActiveTab] = useState("documents"); // 'documents' | 'rfis'
@@ -45,6 +50,8 @@ export default function DocumentRegisterPage() {
     current_revision: "0",
     status: "APPROVED_FOR_CONSTRUCTION",
     file_url: "",
+    attachments: [],
+    attachments_json: null,
   });
 
   const [rfiForm, setRfiForm] = useState({
@@ -55,6 +62,9 @@ export default function DocumentRegisterPage() {
     due_date: "",
     cost_impact: "N",
     schedule_impact: "N",
+    file_url: "",
+    attachments: [],
+    attachments_json: null,
   });
 
   const [answerText, setAnswerText] = useState("");
@@ -97,12 +107,16 @@ export default function DocumentRegisterPage() {
 
   const handleCreateDocument = async (e) => {
     e.preventDefault();
+    if (!selectedProjectId) {
+      toast.error("Please select a project");
+      return;
+    }
     try {
       await api.post("/construction/documents", {
         ...docForm,
         project_id: selectedProjectId,
       });
-      toast.success("Document registered");
+      toast.success("Document registered in drawing register");
       setShowDocModal(false);
       fetchRecords();
     } catch (e) {
@@ -112,12 +126,16 @@ export default function DocumentRegisterPage() {
 
   const handleCreateRFI = async (e) => {
     e.preventDefault();
+    if (!selectedProjectId) {
+      toast.error("Please select a project");
+      return;
+    }
     try {
       await api.post("/construction/rfis", {
         ...rfiForm,
         project_id: selectedProjectId,
       });
-      toast.success("RFI raised");
+      toast.success("RFI raised successfully");
       setShowRFIModal(false);
       fetchRecords();
     } catch (e) {
@@ -192,7 +210,17 @@ export default function DocumentRegisterPage() {
           {activeTab === "documents" ? (
             <button
               onClick={() => {
-                setDocForm(f => ({ ...f, document_number: `DWG-${Date.now().toString().slice(-4)}` }));
+                setDocForm({
+                  document_number: `DWG-${Date.now().toString().slice(-4)}`,
+                  title: "",
+                  discipline: "ARCHITECTURAL",
+                  category: "DRAWING",
+                  current_revision: "0",
+                  status: "APPROVED_FOR_CONSTRUCTION",
+                  file_url: "",
+                  attachments: [],
+                  attachments_json: null,
+                });
                 setShowDocModal(true);
               }}
               className="btn btn-primary inline-flex items-center gap-2"
@@ -202,7 +230,18 @@ export default function DocumentRegisterPage() {
           ) : (
             <button
               onClick={() => {
-                setRfiForm(f => ({ ...f, rfi_number: `RFI-${Date.now().toString().slice(-4)}` }));
+                setRfiForm({
+                  rfi_number: `RFI-${Date.now().toString().slice(-4)}`,
+                  subject: "",
+                  question: "",
+                  drawing_reference: "",
+                  due_date: "",
+                  cost_impact: "N",
+                  schedule_impact: "N",
+                  file_url: "",
+                  attachments: [],
+                  attachments_json: null,
+                });
                 setShowRFIModal(true);
               }}
               className="btn btn-primary inline-flex items-center gap-2"
@@ -239,58 +278,68 @@ export default function DocumentRegisterPage() {
         </button>
       </div>
 
-      {/* TAB 1: Documents */}
+      {/* TAB 1: Documents / Drawings */}
       {activeTab === "documents" && (
         <div className="card overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-            <thead className="bg-slate-100 dark:bg-slate-900 font-bold uppercase text-slate-600 dark:text-slate-300">
-              <tr>
-                <th className="p-3">Drawing #</th>
-                <th className="p-3">Title</th>
-                <th className="p-3">Discipline</th>
-                <th className="p-3">Category</th>
-                <th className="p-3 text-center">Rev</th>
-                <th className="p-3 text-center">Status</th>
-                <th className="p-3 text-center">File</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-medium">
-              {documents.length === 0 ? (
+            <table className="table">
+              <thead>
                 <tr>
-                  <td colSpan={7} className="p-8 text-center text-slate-400 italic">
-                    No drawings registered for this project yet. Click "Register Drawing" to log drawing sheets.
-                  </td>
+                  <th>Drawing #</th>
+                  <th>Title</th>
+                  <th>Discipline</th>
+                  <th>Category</th>
+                  <th className="text-center">Revision</th>
+                  <th className="text-center">Status</th>
+                  <th className="text-center">Cloudinary File</th>
                 </tr>
-              ) : (
-                documents.map(d => (
-                  <tr key={d.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/40">
-                    <td className="p-3 font-mono font-bold text-brand-600">{d.document_number}</td>
-                    <td className="p-3 font-bold text-slate-900 dark:text-white">{d.title}</td>
-                    <td className="p-3 uppercase text-[10px] font-bold text-slate-500">{d.discipline}</td>
-                    <td className="p-3 uppercase text-[10px] text-slate-500">{d.category}</td>
-                    <td className="p-3 text-center font-mono font-bold">Rev {d.current_revision}</td>
-                    <td className="p-3 text-center">
-                      <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider ${
-                        d.status === "APPROVED_FOR_CONSTRUCTION" ? "bg-emerald-100 text-emerald-700" : "bg-blue-100 text-blue-700"
-                      }`}>
-                        {d.status?.replace(/_/g, " ")}
-                      </span>
-                    </td>
-                    <td className="p-3 text-center">
-                      {d.file_url ? (
-                        <a href={d.file_url} target="_blank" rel="noreferrer" className="text-brand-600 hover:text-brand-800 inline-block">
-                          <ExternalLink size={14} />
-                        </a>
-                      ) : (
-                        <span className="text-slate-400">-</span>
-                      )}
+              </thead>
+              <tbody>
+                {documents.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} className="p-8 text-center text-slate-400 italic">
+                      No drawings or documents uploaded for this project yet. Click "Register Drawing" to upload files to Cloudinary.
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                ) : (
+                  documents.map(d => (
+                    <tr key={d.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors">
+                      <td className="font-mono font-bold text-xs text-brand-900 dark:text-brand-400">
+                        {d.document_number || d.doc_number}
+                      </td>
+                      <td className="font-bold text-xs text-slate-900 dark:text-white">{d.title}</td>
+                      <td className="uppercase text-[10px] font-bold text-slate-500">{d.discipline || d.doc_category}</td>
+                      <td className="uppercase text-[10px] text-slate-500">{d.category || d.doc_category}</td>
+                      <td className="text-center font-mono font-bold text-xs">Rev {d.current_revision}</td>
+                      <td className="text-center">
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                          d.status === "APPROVED_FOR_CONSTRUCTION"
+                            ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300"
+                            : "bg-blue-100 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300"
+                        }`}>
+                          {d.status?.replace(/_/g, " ")}
+                        </span>
+                      </td>
+                      <td className="text-center">
+                        {d.file_url ? (
+                          <a
+                            href={d.file_url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-sky-50 dark:bg-sky-950/40 text-sky-700 dark:text-sky-300 hover:bg-sky-100 dark:hover:bg-sky-900/50 border border-sky-200 dark:border-sky-800 transition"
+                            title="Open Cloudinary file"
+                          >
+                            <Cloud size={13} className="text-sky-500" /> View <ExternalLink size={12} />
+                          </a>
+                        ) : (
+                          <span className="text-slate-400 text-xs">-</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
           </div>
         </div>
       )}
@@ -299,71 +348,103 @@ export default function DocumentRegisterPage() {
       {activeTab === "rfis" && (
         <div className="card overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-            <thead className="bg-slate-100 dark:bg-slate-900 font-bold uppercase text-slate-600 dark:text-slate-300">
-              <tr>
-                <th className="p-3">RFI #</th>
-                <th className="p-3">Subject</th>
-                <th className="p-3">Clarification Question</th>
-                <th className="p-3">Drawing Ref</th>
-                <th className="p-3 text-center">Cost Impact</th>
-                <th className="p-3 text-center">Schedule Impact</th>
-                <th className="p-3 text-center">Status</th>
-                <th className="p-3 text-center">Action</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-medium">
-              {rfis.length === 0 ? (
+            <table className="table">
+              <thead>
                 <tr>
-                  <td colSpan={8} className="p-8 text-center text-slate-400 italic">
-                    No requests for information raised. Click "Raise RFI" to submit a question to the design team.
-                  </td>
+                  <th>RFI #</th>
+                  <th>Subject</th>
+                  <th>Clarification Question</th>
+                  <th>Drawing Ref</th>
+                  <th>Cloudinary File</th>
+                  <th className="text-center">Cost Impact</th>
+                  <th className="text-center">Schedule Impact</th>
+                  <th className="text-center">Status</th>
+                  <th className="text-center">Action</th>
                 </tr>
-              ) : (
-                rfis.map(r => (
-                  <tr key={r.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/40">
-                    <td className="p-3 font-mono font-bold text-brand-600">{r.rfi_number}</td>
-                    <td className="p-3 font-bold text-slate-900 dark:text-white">{r.subject}</td>
-                    <td className="p-3">
-                      <div className="text-slate-700 dark:text-slate-300">{r.question}</div>
-                      {r.answer && (
-                        <div className="mt-1 p-2 bg-emerald-50 dark:bg-emerald-900/30 rounded text-[11px] text-emerald-800 dark:text-emerald-300 border-l-2 border-emerald-500">
-                          <span className="font-bold">Consultant Response: </span>{r.answer}
-                        </div>
-                      )}
-                    </td>
-                    <td className="p-3 font-mono">{r.drawing_reference || "-"}</td>
-                    <td className="p-3 text-center font-bold text-[10px]">
-                      {r.cost_impact === "Y" ? <span className="text-rose-600">YES</span> : <span className="text-slate-400">NO</span>}
-                    </td>
-                    <td className="p-3 text-center font-bold text-[10px]">
-                      {r.schedule_impact === "Y" ? <span className="text-rose-600">YES</span> : <span className="text-slate-400">NO</span>}
-                    </td>
-                    <td className="p-3 text-center">
-                      <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider ${
-                        r.status === "CLOSED" ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"
-                      }`}>
-                        {r.status}
-                      </span>
-                    </td>
-                    <td className="p-3 text-center">
-                      {r.status !== "CLOSED" && (
-                        <button
-                          onClick={() => {
-                            setActiveRFIForAnswer(r);
-                            setAnswerText(r.answer || "");
-                          }}
-                          className="btn btn-secondary text-[10px] py-1 px-2.5 rounded font-bold"
-                        >
-                          Respond
-                        </button>
-                      )}
+              </thead>
+              <tbody>
+                {rfis.length === 0 ? (
+                  <tr>
+                    <td colSpan={9} className="p-8 text-center text-slate-400 italic">
+                      No requests for information raised. Click "Raise RFI" to submit a question to the design team.
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                ) : (
+                  rfis.map(r => (
+                    <tr key={r.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors">
+                      <td className="font-mono font-bold text-xs text-brand-900 dark:text-brand-400 whitespace-nowrap">
+                        {r.rfi_number || r.rfi_no}
+                      </td>
+                      <td className="font-bold text-xs text-slate-900 dark:text-white max-w-[180px] truncate" title={r.subject}>
+                        {r.subject}
+                      </td>
+                      <td className="text-xs max-w-[260px]">
+                        <div className="text-slate-700 dark:text-slate-300 line-clamp-2">{r.question}</div>
+                        {r.answer && (
+                          <div className="mt-1 p-2 bg-emerald-50 dark:bg-emerald-950/30 rounded text-[11px] text-emerald-800 dark:text-emerald-300 border-l-2 border-emerald-500">
+                            <span className="font-bold">Consultant Response: </span>{r.answer}
+                          </div>
+                        )}
+                      </td>
+                      <td className="font-mono text-xs">{r.drawing_reference || r.drawing_ref || "-"}</td>
+                      <td>
+                        {r.file_url ? (
+                          <a
+                            href={r.file_url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-sky-50 dark:bg-sky-950/40 text-sky-700 dark:text-sky-300 border border-sky-200 dark:border-sky-800 hover:underline"
+                            title="View Cloudinary document"
+                          >
+                            <Cloud size={11} className="text-sky-500" />
+                            <span>Attachment</span>
+                            <ExternalLink size={10} />
+                          </a>
+                        ) : (
+                          <span className="text-slate-400 text-xs">-</span>
+                        )}
+                      </td>
+                      <td className="text-center font-bold text-[10px]">
+                        {r.cost_impact === "Y" ? (
+                          <span className="text-rose-600 bg-rose-50 dark:bg-rose-950/40 px-1.5 py-0.5 rounded border border-rose-200 dark:border-rose-800">YES</span>
+                        ) : (
+                          <span className="text-slate-400">NO</span>
+                        )}
+                      </td>
+                      <td className="text-center font-bold text-[10px]">
+                        {r.schedule_impact === "Y" ? (
+                          <span className="text-rose-600 bg-rose-50 dark:bg-rose-950/40 px-1.5 py-0.5 rounded border border-rose-200 dark:border-rose-800">YES</span>
+                        ) : (
+                          <span className="text-slate-400">NO</span>
+                        )}
+                      </td>
+                      <td className="text-center">
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${
+                          r.status === "CLOSED"
+                            ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300"
+                            : "bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300"
+                        }`}>
+                          {r.status}
+                        </span>
+                      </td>
+                      <td className="text-center">
+                        {r.status !== "CLOSED" && (
+                          <button
+                            onClick={() => {
+                              setActiveRFIForAnswer(r);
+                              setAnswerText(r.answer || "");
+                            }}
+                            className="btn btn-secondary text-[11px] py-1 px-2.5 rounded font-bold"
+                          >
+                            Respond
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
           </div>
         </div>
       )}
@@ -373,10 +454,10 @@ export default function DocumentRegisterPage() {
         open={showDocModal}
         onClose={() => setShowDocModal(false)}
         title="Register Technical Drawing"
-        subtitle="Add a new engineering, architectural, or MEP drawing revision"
+        subtitle="Catalog approved-for-construction drawing, revision tag, and Cloudinary storage link"
         icon={FileCode}
         onSubmit={handleCreateDocument}
-        submitLabel="Save Drawing"
+        submitLabel="Register Drawing"
       >
         <div className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -422,37 +503,41 @@ export default function DocumentRegisterPage() {
             />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">
-                Discipline <span className="text-red-500">*</span>
-              </label>
-              <select
-                className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500"
-                value={docForm.discipline}
-                onChange={e => setDocForm({ ...docForm, discipline: e.target.value })}
-              >
-                <option value="ARCHITECTURAL">Architectural</option>
-                <option value="STRUCTURAL">Structural</option>
-                <option value="ELECTRICAL">Electrical</option>
-                <option value="MECHANICAL">Mechanical / HVAC</option>
-                <option value="PLUMBING">Plumbing & Drainage</option>
-                <option value="CIVIL">Civil Infrastructure</option>
-                <option value="AS_BUILT">As-Built Record</option>
-              </select>
-            </div>
-            <div>
-              <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">
-                File URL / Storage Link
-              </label>
-              <input
-                type="text"
-                placeholder="https://..."
-                className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500"
-                value={docForm.file_url}
-                onChange={e => setDocForm({ ...docForm, file_url: e.target.value })}
-              />
-            </div>
+          <div>
+            <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">
+              Discipline <span className="text-red-500">*</span>
+            </label>
+            <select
+              className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500"
+              value={docForm.discipline}
+              onChange={e => setDocForm({ ...docForm, discipline: e.target.value })}
+            >
+              <option value="ARCHITECTURAL">Architectural</option>
+              <option value="STRUCTURAL">Structural</option>
+              <option value="ELECTRICAL">Electrical</option>
+              <option value="MECHANICAL">Mechanical / HVAC</option>
+              <option value="PLUMBING">Plumbing & Drainage</option>
+              <option value="CIVIL">Civil Infrastructure</option>
+              <option value="AS_BUILT">As-Built Record</option>
+            </select>
+          </div>
+
+          {/* Cloudinary Document Uploader Component */}
+          <div>
+            <CloudinaryDocumentUploader
+              value={docForm.attachments || (docForm.file_url ? [{ url: docForm.file_url, filename: docForm.file_url.split("/").pop() }] : [])}
+              onChange={(files) => {
+                setDocForm({
+                  ...docForm,
+                  attachments: files,
+                  file_url: files.length > 0 ? files[0].url : "",
+                  attachments_json: JSON.stringify(files),
+                });
+              }}
+              folder="omnisuite/construction/drawings"
+              label="Drawing & CAD Files (Cloudinary)"
+              description="Upload PDF, DWG, DXF, PNG, JPG directly to Cloudinary (Max 50MB)"
+            />
           </div>
         </div>
       </ProjectModal>
@@ -462,7 +547,7 @@ export default function DocumentRegisterPage() {
         open={showRFIModal}
         onClose={() => setShowRFIModal(false)}
         title="Raise Request for Information (RFI)"
-        subtitle="Submit technical query or request clarification from the consulting engineer"
+        subtitle="Submit technical query, attach clash evidence to Cloudinary, and request consultant direction"
         icon={HelpCircle}
         onSubmit={handleCreateRFI}
         submitLabel="Submit RFI"
@@ -550,6 +635,24 @@ export default function DocumentRegisterPage() {
               </select>
             </div>
           </div>
+
+          {/* Cloudinary Document Uploader Component for RFI */}
+          <div>
+            <CloudinaryDocumentUploader
+              value={rfiForm.attachments || (rfiForm.file_url ? [{ url: rfiForm.file_url, filename: rfiForm.file_url.split("/").pop() }] : [])}
+              onChange={(files) => {
+                setRfiForm({
+                  ...rfiForm,
+                  attachments: files,
+                  file_url: files.length > 0 ? files[0].url : "",
+                  attachments_json: JSON.stringify(files),
+                });
+              }}
+              folder="omnisuite/construction/rfis"
+              label="Supporting Documents & Evidence (Cloudinary)"
+              description="Upload clash photo, sketch, markup, or specification (Max 50MB)"
+            />
+          </div>
         </div>
       </ProjectModal>
 
@@ -557,7 +660,7 @@ export default function DocumentRegisterPage() {
       <ProjectModal
         open={Boolean(activeRFIForAnswer)}
         onClose={() => setActiveRFIForAnswer(null)}
-        title={activeRFIForAnswer ? `Respond to ${activeRFIForAnswer.rfi_number}` : "Respond to RFI"}
+        title={activeRFIForAnswer ? `Respond to ${activeRFIForAnswer.rfi_number || activeRFIForAnswer.rfi_no}` : "Respond to RFI"}
         subtitle="Record official consultant or engineer determination and close RFI"
         icon={MessageSquare}
         onSubmit={handleAnswerRFI}
@@ -565,11 +668,25 @@ export default function DocumentRegisterPage() {
       >
         <div className="space-y-4">
           {activeRFIForAnswer && (
-            <div className="p-3.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700/60 rounded-xl text-xs space-y-1.5">
+            <div className="p-3.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700/60 rounded-xl text-xs space-y-2">
               <p className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                <span className="text-brand-600 font-mono">{activeRFIForAnswer.rfi_number}</span> - {activeRFIForAnswer.subject}
+                <span className="text-brand-600 font-mono">{activeRFIForAnswer.rfi_number || activeRFIForAnswer.rfi_no}</span> - {activeRFIForAnswer.subject}
               </p>
               <p className="text-slate-600 dark:text-slate-300">{activeRFIForAnswer.question}</p>
+
+              {activeRFIForAnswer.file_url && (
+                <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                  <span className="text-[11px] font-bold text-slate-500">Supporting Document:</span>
+                  <a
+                    href={activeRFIForAnswer.file_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-sky-50 dark:bg-sky-950/40 text-sky-700 dark:text-sky-300 border border-sky-200 dark:border-sky-800 hover:bg-sky-100"
+                  >
+                    <Cloud size={13} className="text-sky-500" /> View in Cloudinary <ExternalLink size={11} />
+                  </a>
+                </div>
+              )}
             </div>
           )}
 

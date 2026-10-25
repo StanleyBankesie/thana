@@ -302,6 +302,32 @@ const modules = [
   },
 ];
 
+
+const MODULE_HOME_PATHS = new Set([
+  "/",
+  "/dashboard",
+  "/asset-management",
+  ...modules.map((m) => m.path.replace(/\/+$/, "")),
+]);
+
+function isModuleHomeOrSection(pathname, search = "") {
+  if (!pathname) return false;
+  const normalized = pathname.replace(/\/+$/, "") || "/";
+  if (MODULE_HOME_PATHS.has(normalized)) {
+    return true;
+  }
+  const segments = normalized.split("/").filter(Boolean);
+  if (
+    segments.length === 2 &&
+    (segments[1] === "dashboard" || segments[1] === "dashboards")
+  ) {
+    if (MODULE_HOME_PATHS.has(`/${segments[0]}`)) {
+      return true;
+    }
+  }
+  return false;
+}
+
 const BACKGROUND_GET_CONFIG = { __background: true };
 
 function scheduleDeferredTask(task, delayMs = 200) {
@@ -706,9 +732,14 @@ export default function AppShell() {
   const [profileOpen, setProfileOpen] = useState(false);
   const profileRef = useRef(null);
   const [contextModalOpen, setContextModalOpen] = useState(false);
+    // Automatically close the side menu bar when a page is opened
+  // (Excludes module homes and module home sections)
   useEffect(() => {
-    if (window.innerWidth < 768) setSidebarOpen(false);
-  }, [location.pathname]);
+    if (isModuleHomeOrSection(location.pathname, location.search)) {
+      return;
+    }
+    setSidebarOpen(false);
+  }, [location.pathname, location.search]);
   const [lowStockPrompted, setLowStockPrompted] = useState(false);
   const [lowStockCount, setLowStockCount] = useState(0);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -2210,6 +2241,9 @@ export default function AppShell() {
             <NavLink
               to="/"
               end
+              onClick={() => {
+                if (window.innerWidth < 768) setSidebarOpen(false);
+              }}
               className={({ isActive }) =>
                 `flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 group ` +
                 (isActive
@@ -2237,6 +2271,9 @@ export default function AppShell() {
                 <NavLink
                   key={m.key}
                   to={m.path}
+                  onClick={() => {
+                    if (window.innerWidth < 768) setSidebarOpen(false);
+                  }}
                   className={({ isActive }) =>
                     `flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 group ` +
                     (isActive

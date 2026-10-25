@@ -35,6 +35,8 @@ const OVERVIEW_EXCLUDED_PATHS = [
   "/project-management/safety",
   "/project-management/documents",
   "/project-management/rfis",
+  "/inventory/item-groups",
+  "/inventory/item-group",
 ];
 
 function isOverviewExcludedPath(pathname = "") {
@@ -61,8 +63,7 @@ function isOverviewExcludedPath(pathname = "") {
 }
 
 function isFormPage(root, pathname = "") {
-  if (/(?:^|\/)(?:new|create|edit|form)(?:\/|$)/i.test(pathname))
-    return true;
+  if (/(?:^|\/)(?:new|create|edit|form)(?:\/|$)/i.test(pathname)) return true;
 
   return [...root.querySelectorAll("form")].some((form) => {
     if (form.closest("[role='dialog'], dialog, .ant-modal, .modal"))
@@ -141,12 +142,10 @@ function summarizeProjectOrders(snapshot) {
     label: label.trim(),
     index,
   }));
-  const statusColumn = columns.find(({ label }) => /^status$/i.test(label));
   const priorityColumn = columns.find(({ label }) => /^priority$/i.test(label));
   const projectColumn = columns.find(({ label }) => /^project$/i.test(label));
   const amountColumn = columns.find(({ label }) => /total amount/i.test(label));
-  if (!statusColumn || !priorityColumn || !projectColumn || !amountColumn)
-    return null;
+  if (!priorityColumn || !projectColumn || !amountColumn) return null;
 
   const rows = snapshot.rows;
   const groupBy = (column) => {
@@ -194,12 +193,6 @@ function summarizeProjectOrders(snapshot) {
 
   return [
     {
-      label: "Status mix",
-      value: `${formatNumber(rows.length)} orders`,
-      detail: "Order volume and share by status",
-      breakdown: groupBy(statusColumn),
-    },
-    {
       label: "Priority mix",
       value: `${formatNumber(rows.length)} orders`,
       detail: "Workload distribution across priority levels",
@@ -232,8 +225,11 @@ function summarize(snapshot) {
   const addCard = (card) => {
     if (
       cards.length < 4 &&
-      !cards.some(({ label }) => label.toLowerCase() === card.label.toLowerCase())
-    ) cards.push(card);
+      !cards.some(
+        ({ label }) => label.toLowerCase() === card.label.toLowerCase(),
+      )
+    )
+      cards.push(card);
   };
   const validText = (value) => {
     const text = String(value || "").trim();
@@ -258,16 +254,15 @@ function summarize(snapshot) {
       }));
   };
 
-  // Status and payment mixes show both volume and share of the displayed rows.
+  // Payment mixes show both volume and share of the displayed rows.
   columns
-    .filter(({ label }) => STATUS_HEADER.test(label) || PAYMENT_HEADER.test(label))
+    .filter(({ label }) => PAYMENT_HEADER.test(label))
     .forEach((column) => {
       const distribution = getDistribution(column);
       if (!distribution.length) return;
       const top = distribution[0];
-      const isPayment = PAYMENT_HEADER.test(column.label);
       addCard({
-        label: isPayment ? "Payment mix" : "Status mix",
+        label: "Payment mix",
         value: `${top.label} · ${formatNumber(top.share)}%`,
         detail: `${formatNumber(top.count)} of ${rows.length} rows · ${distribution.length} observed categories`,
         breakdown: distribution.slice(0, 4),
@@ -276,7 +271,9 @@ function summarize(snapshot) {
 
   // Financial summaries are calculated from the monetary values visible in this table.
   columns
-    .filter(({ label }) => MONEY_HEADER.test(label) && !PAYMENT_HEADER.test(label))
+    .filter(
+      ({ label }) => MONEY_HEADER.test(label) && !PAYMENT_HEADER.test(label),
+    )
     .forEach((column) => {
       const values = rows
         .map((row) => parseNumericValue(row[column.index]))
@@ -287,7 +284,8 @@ function summarize(snapshot) {
       const currency = rows
         .map((row) => row[column.index]?.match(/[A-Z]{3}|[$€£]/)?.[0])
         .find(Boolean);
-      const money = (value) => `${currency ? `${currency} ` : ""}${formatNumber(value)}`;
+      const money = (value) =>
+        `${currency ? `${currency} ` : ""}${formatNumber(value)}`;
       addCard({
         label: `${column.label} analysis`,
         value: money(total),
@@ -308,9 +306,13 @@ function summarize(snapshot) {
         .filter((date) => !Number.isNaN(date.getTime()));
       if (!dates.length) return;
       const overdue = dates.filter((date) => date < now).length;
-      const upcoming = dates.filter((date) => date >= now && date <= soon).length;
+      const upcoming = dates.filter(
+        (date) => date >= now && date <= soon,
+      ).length;
       addCard({
-        label: /expiry|expiration/i.test(column.label) ? "Expiry risk" : "Due-date risk",
+        label: /expiry|expiration/i.test(column.label)
+          ? "Expiry risk"
+          : "Due-date risk",
         value: `${formatNumber((overdue / dates.length) * 100)}% overdue`,
         detail: `${overdue} overdue · ${upcoming} due within 30 days · ${dates.length} dates analyzed`,
       });
@@ -318,13 +320,16 @@ function summarize(snapshot) {
 
   // Numeric operational columns provide an average and range, not a bare total.
   columns
-    .filter(({ label }) => NUMBER_HEADER.test(label) && !MONEY_HEADER.test(label))
+    .filter(
+      ({ label }) => NUMBER_HEADER.test(label) && !MONEY_HEADER.test(label),
+    )
     .forEach((column) => {
       const values = rows
         .map((row) => parseNumericValue(row[column.index]))
         .filter((value) => value !== null);
       if (!values.length) return;
-      const average = values.reduce((sum, value) => sum + value, 0) / values.length;
+      const average =
+        values.reduce((sum, value) => sum + value, 0) / values.length;
       const unit = /progress|completion/i.test(column.label) ? "%" : "";
       addCard({
         label: `${column.label} profile`,
@@ -353,20 +358,6 @@ function summarize(snapshot) {
         breakdown: distribution.slice(0, 4),
       });
     });
-
-  // A completeness rate gives otherwise sparse lists a data-quality KPI.
-  if (cards.length < 4 && columns.length) {
-    const populatedCells = rows.reduce(
-      (total, row) => total + columns.filter(({ index }) => validText(row[index])).length,
-      0,
-    );
-    const possibleCells = rows.length * columns.length;
-    addCard({
-      label: "Data completeness",
-      value: `${formatNumber((populatedCells / possibleCells) * 100)}%`,
-      detail: `${formatNumber(populatedCells)} of ${formatNumber(possibleCells)} visible fields populated`,
-    });
-  }
 
   return cards;
 }
@@ -485,7 +476,7 @@ export default function ListPageOverview({ contentRef, pathname }) {
       {cards.map((card, index) => (
         <article
           key={`${card.label}-${index}`}
-          className="min-w-0 rounded-xl border border-slate-200 bg-white/95 p-4 shadow-sm dark:border-slate-700 dark:bg-slate-800/95"
+          className="flex h-44 min-w-0 flex-col overflow-hidden rounded-xl border border-slate-200 bg-white/95 p-4 shadow-sm dark:border-slate-700 dark:bg-slate-800/95"
         >
           <p
             className="truncate text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400"
@@ -506,8 +497,8 @@ export default function ListPageOverview({ contentRef, pathname }) {
             {card.detail}
           </p>
           {card.breakdown?.length > 0 && (
-            <div className="mt-3 space-y-2">
-              {card.breakdown.map((item) => (
+            <div className="mt-auto space-y-2 pt-3">
+              {card.breakdown.slice(0, 2).map((item) => (
                 <div key={item.label}>
                   <div className="mb-1 flex items-center justify-between gap-2 text-[11px] text-slate-600 dark:text-slate-300">
                     <span className="truncate">{item.label}</span>

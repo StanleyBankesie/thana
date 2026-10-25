@@ -34,9 +34,8 @@ export default function DailySiteReportList() {
         const res = await api.get("/projects/projects", { params: { active: "all" } });
         const prjs = res.data?.items || [];
         setProjects(prjs);
-        if (prjs.length > 0) {
-          setSelectedProjectId(String(prjs[0].id));
-        }
+        // Do not make any project default selection
+        setSelectedProjectId("");
       } catch (e) {
         toast.error("Failed to load projects");
       }
@@ -44,14 +43,15 @@ export default function DailySiteReportList() {
   }, []);
 
   useEffect(() => {
-    if (!selectedProjectId) return;
     fetchReports();
   }, [selectedProjectId]);
 
   const fetchReports = async () => {
     setLoading(true);
     try {
-      const res = await api.get("/construction/daily-reports", { params: { project_id: selectedProjectId } });
+      const params = {};
+      if (selectedProjectId) params.project_id = selectedProjectId;
+      const res = await api.get("/construction/daily-reports", { params });
       setReports(res.data?.items || []);
     } catch (e) {
       toast.error("Failed to load daily site reports");
@@ -95,13 +95,14 @@ export default function DailySiteReportList() {
 
         <div className="flex flex-wrap items-center gap-3">
           <select
-            className="input text-sm py-1.5 h-auto min-w-[180px]"
+            className="input text-sm py-1.5 h-auto min-w-[200px]"
             value={selectedProjectId}
             onChange={e => setSelectedProjectId(e.target.value)}
           >
+            <option value="">All Projects</option>
             {projects.map(p => (
               <option key={p.id} value={p.id}>
-                {p.project_code} - {p.project_name}
+                {p.project_code ? `${p.project_code} - ` : ""}{p.project_name || p.name}
               </option>
             ))}
           </select>
@@ -123,7 +124,7 @@ export default function DailySiteReportList() {
             <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
           </button>
           <Link
-            to={`/project-management/daily-reports/new?project_id=${selectedProjectId}`}
+            to={selectedProjectId ? `/project-management/daily-reports/new?project_id=${selectedProjectId}` : `/project-management/daily-reports/new`}
             className="btn btn-primary inline-flex items-center gap-2"
           >
             <Plus size={16} /> New Daily Report

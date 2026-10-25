@@ -31,14 +31,15 @@ export default function EquipmentLogsPage() {
 
   const [showModal, setShowModal] = useState(false);
   const [form, setForm] = useState({
+    project_id: "",
     equipment_id: "",
     log_date: new Date().toISOString().split("T")[0],
-    hours_worked: 8,
-    hours_idle: 0,
-    hours_breakdown: 0,
-    fuel_consumed_litres: 45,
+    hours_worked: "",
+    hours_idle: "",
+    hours_breakdown: "",
+    fuel_consumed_litres: "",
     operator_name: "",
-    hourly_rate: 150,
+    hourly_rate: "",
     remarks: "",
   });
 
@@ -47,15 +48,18 @@ export default function EquipmentLogsPage() {
       try {
         const [pRes, eqRes] = await Promise.all([
           api.get("/projects/projects", { params: { active: "all" } }),
-          api.get("/projects/equipments").catch(() => ({ data: { items: [] } })),
+          api.get("/projects/equipments").catch(() => ({ data: [] })),
         ]);
         const prjs = pRes.data?.items || [];
         setProjects(prjs);
-        if (prjs.length > 0) setSelectedProjectId(String(prjs[0].id));
+        // Do not default select any project
+        setSelectedProjectId("");
 
-        const eqs = eqRes.data?.items || [];
+        const eqs = Array.isArray(eqRes.data)
+          ? eqRes.data
+          : (eqRes.data?.items || eqRes.data?.data?.items || eqRes.data?.data || []);
         setEquipments(eqs);
-        if (eqs.length > 0) setForm(f => ({ ...f, equipment_id: String(eqs[0].id) }));
+        // Do not auto-select equipment
       } catch (e) {
         toast.error("Failed to load initial data");
       }
@@ -63,14 +67,15 @@ export default function EquipmentLogsPage() {
   }, []);
 
   useEffect(() => {
-    if (!selectedProjectId) return;
     fetchLogs();
   }, [selectedProjectId]);
 
   const fetchLogs = async () => {
     setLoading(true);
     try {
-      const res = await api.get("/construction/equipment-logs", { params: { project_id: selectedProjectId } });
+      const params = {};
+      if (selectedProjectId) params.project_id = selectedProjectId;
+      const res = await api.get("/construction/equipment-logs", { params });
       setLogs(res.data?.items || []);
     } catch (e) {
       toast.error("Failed to load equipment logs");
@@ -81,17 +86,32 @@ export default function EquipmentLogsPage() {
 
   const handleCreateLog = async (e) => {
     e.preventDefault();
+    const pId = form.project_id || selectedProjectId;
+    if (!pId) return toast.error("Please select a project");
     if (!form.equipment_id) return toast.error("Please select equipment");
     try {
       await api.post("/construction/equipment-logs", {
         ...form,
-        project_id: selectedProjectId,
+        project_id: pId,
       });
       toast.success("Equipment operating log recorded");
       setShowModal(false);
+      setForm({
+        project_id: "",
+        equipment_id: "",
+        equipment_name: "",
+        log_date: new Date().toISOString().split("T")[0],
+        hours_worked: "",
+        hours_idle: "",
+        hours_breakdown: "",
+        fuel_consumed_litres: "",
+        operator_name: "",
+        hourly_rate: "",
+        remarks: "",
+      });
       fetchLogs();
     } catch (e) {
-      toast.error("Failed to record equipment log");
+      toast.error(e?.response?.data?.message || "Failed to record equipment log");
     }
   };
 
@@ -128,13 +148,14 @@ export default function EquipmentLogsPage() {
 
         <div className="flex flex-wrap items-center gap-3">
           <select
-            className="input text-sm py-1.5 h-auto min-w-[180px]"
+            className="input text-sm py-1.5 h-auto min-w-[200px]"
             value={selectedProjectId}
             onChange={e => setSelectedProjectId(e.target.value)}
           >
+            <option value="">All Projects</option>
             {projects.map(p => (
               <option key={p.id} value={p.id}>
-                {p.project_code} - {p.project_name}
+                {p.project_code ? `${p.project_code} - ` : ""}{p.project_name || p.name}
               </option>
             ))}
           </select>
@@ -156,7 +177,22 @@ export default function EquipmentLogsPage() {
             <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
           </button>
           <button
-            onClick={() => setShowModal(true)}
+            onClick={() => {
+              setForm(prev => ({
+                ...prev,
+                project_id: selectedProjectId || "",
+                equipment_id: "",
+                equipment_name: "",
+                hours_worked: "",
+                hours_idle: "",
+                hours_breakdown: "",
+                fuel_consumed_litres: "",
+                operator_name: "",
+                hourly_rate: "",
+                remarks: "",
+              }));
+              setShowModal(true);
+            }}
             className="btn btn-primary inline-flex items-center gap-2"
           >
             <Plus size={16} /> Log Operating Hours
@@ -254,6 +290,24 @@ export default function EquipmentLogsPage() {
         submitLabel="Save Machine Log"
       >
         <div className="space-y-4">
+          <div>
+            <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">
+              Project <span className="text-red-500">*</span>
+            </label>
+            <select
+              required
+              className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500"
+              value={form.project_id || selectedProjectId || ""}
+              onChange={e => setForm({ ...form, project_id: e.target.value })}
+            >
+              <option value="">-- Select Project --</option>
+              {projects.map(p => (
+                <option key={p.id} value={p.id}>
+                  {p.project_code ? `${p.project_code} - ` : ""}{p.project_name || p.name}
+                </option>
+              ))}
+            </select>
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">
@@ -263,20 +317,23 @@ export default function EquipmentLogsPage() {
                 required
                 className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500"
                 value={form.equipment_id}
-                onChange={e => setForm({ ...form, equipment_id: e.target.value })}
+                onChange={e => {
+                  const sId = e.target.value;
+                  const item = equipments.find(x => String(x.id) === String(sId));
+                  setForm({
+                    ...form,
+                    equipment_id: sId,
+                    equipment_name: item ? (item.name || item.equipment_name) : "",
+                  });
+                }}
               >
                 <option value="">Select Equipment...</option>
                 {equipments.map(eq => (
-                  <option key={eq.id} value={eq.id}>{eq.name}</option>
+                  <option key={eq.id} value={eq.id}>
+                    {eq.name || eq.equipment_name}{eq.maint_equipment_name ? ` (${eq.maint_equipment_name})` : ""}
+                  </option>
                 ))}
-                {equipments.length === 0 && (
-                  <>
-                    <option value="1">CAT 320D Excavator</option>
-                    <option value="2">JCB 3DX Backhoe Loader</option>
-                    <option value="3">Bomag Single Drum Roller</option>
-                    <option value="4">Iveco Trakker 20m3 Tipper</option>
-                  </>
-                )}
+                {equipments.length === 0 && <option value="" disabled>No equipment registered yet (Add in Operational Setup)</option>}
               </select>
             </div>
             <div>
@@ -303,8 +360,8 @@ export default function EquipmentLogsPage() {
                 step="0.5"
                 required
                 className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500 font-mono font-bold"
-                value={form.hours_worked}
-                onChange={e => setForm({ ...form, hours_worked: Number(e.target.value) })}
+                placeholder="0" value={form.hours_worked ?? ""}
+                onChange={e => setForm({ ...form, hours_worked: e.target.value === "" ? "" : Number(e.target.value) })}
               />
             </div>
             <div>
@@ -315,8 +372,8 @@ export default function EquipmentLogsPage() {
                 type="number"
                 step="0.5"
                 className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500 font-mono"
-                value={form.hours_idle}
-                onChange={e => setForm({ ...form, hours_idle: Number(e.target.value) })}
+                placeholder="0" value={form.hours_idle ?? ""}
+                onChange={e => setForm({ ...form, hours_idle: e.target.value === "" ? "" : Number(e.target.value) })}
               />
             </div>
             <div>
@@ -327,8 +384,8 @@ export default function EquipmentLogsPage() {
                 type="number"
                 step="0.5"
                 className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500 font-mono"
-                value={form.hours_breakdown}
-                onChange={e => setForm({ ...form, hours_breakdown: Number(e.target.value) })}
+                placeholder="0" value={form.hours_breakdown ?? ""}
+                onChange={e => setForm({ ...form, hours_breakdown: e.target.value === "" ? "" : Number(e.target.value) })}
               />
             </div>
           </div>
@@ -341,8 +398,8 @@ export default function EquipmentLogsPage() {
               <input
                 type="number"
                 className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500 font-mono"
-                value={form.fuel_consumed_litres}
-                onChange={e => setForm({ ...form, fuel_consumed_litres: Number(e.target.value) })}
+                placeholder="0.00" value={form.fuel_consumed_litres ?? ""}
+                onChange={e => setForm({ ...form, fuel_consumed_litres: e.target.value === "" ? "" : Number(e.target.value) })}
               />
             </div>
             <div>
@@ -352,8 +409,8 @@ export default function EquipmentLogsPage() {
               <input
                 type="number"
                 className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500 font-mono"
-                value={form.hourly_rate}
-                onChange={e => setForm({ ...form, hourly_rate: Number(e.target.value) })}
+                placeholder="0.00" value={form.hourly_rate ?? ""}
+                onChange={e => setForm({ ...form, hourly_rate: e.target.value === "" ? "" : Number(e.target.value) })}
               />
             </div>
             <div>
@@ -362,7 +419,7 @@ export default function EquipmentLogsPage() {
               </label>
               <input
                 type="text"
-                placeholder="Operator name"
+                placeholder="e.g. Operator Name"
                 className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500"
                 value={form.operator_name}
                 onChange={e => setForm({ ...form, operator_name: e.target.value })}
@@ -375,9 +432,8 @@ export default function EquipmentLogsPage() {
               Notes / Maintenance Remarks
             </label>
             <textarea
-              placeholder="Service interval, tire pressure, grease..."
               className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500 min-h-[70px]"
-              value={form.remarks}
+              placeholder="Enter remarks or service notes..." value={form.remarks || ""}
               onChange={e => setForm({ ...form, remarks: e.target.value })}
             />
           </div>

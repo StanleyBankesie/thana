@@ -47,22 +47,17 @@ export default function DailySiteReportForm() {
     status: "DRAFT",
   });
 
-  // Sub-items
-  const [activities, setActivities] = useState([
-    { location_grid: "Grid A-C / Level 1", description: "Formwork and reinforcement installation for columns", quantity_completed: 12, unit: "NR", progress_percent: 60 }
-  ]);
-  const [workforce, setWorkforce] = useState([
-    { trade_category: "SKILLED", trade_name: "Carpenters", subcontractor_name: "Apex Formwork", headcount: 6, total_hours: 48 },
-    { trade_category: "SKILLED", trade_name: "Steel Benders", subcontractor_name: "Apex Formwork", headcount: 8, total_hours: 64 },
-    { trade_category: "UNSKILLED", trade_name: "General Labour", subcontractor_name: "Direct", headcount: 12, total_hours: 96 }
-  ]);
-  const [equipment, setEquipment] = useState([
-    { equipment_name: "Concrete Mixer 400L", equipment_tag: "MIX-01", hours_worked: 7, hours_idle: 1, hours_breakdown: 0 },
-    { equipment_name: "Tower Hoist", equipment_tag: "HST-02", hours_worked: 8, hours_idle: 0, hours_breakdown: 0 }
-  ]);
-  const [materials, setMaterials] = useState([
-    { material_name: "Dangote Portland Cement 42.5R", quantity: 200, unit: "BAGS", supplier_name: "Ghacem Direct", delivery_note_no: "DN-9844" }
-  ]);
+    const [subcontractors, setSubcontractors] = useState([]);
+
+  // Sub-items (clean initial state, no dummy typed data)
+  const [activities, setActivities] = useState(
+    isEdit ? [] : [{ location_grid: "", description: "", quantity_completed: "", unit: "M3", progress_percent: "" }]
+  );
+  const [workforce, setWorkforce] = useState(
+    isEdit ? [] : [{ trade_category: "SKILLED", trade_name: "", subcontractor_name: "", headcount: "", total_hours: "" }]
+  );
+  const [equipment, setEquipment] = useState([]);
+  const [materials, setMaterials] = useState([]);
 
   useEffect(() => {
     (async () => {
@@ -70,10 +65,23 @@ export default function DailySiteReportForm() {
         const res = await api.get("/projects/projects", { params: { active: "all" } });
         const prjs = res.data?.items || [];
         setProjects(prjs);
-        if (!form.project_id && prjs.length > 0) {
-          setForm(f => ({ ...f, project_id: String(prjs[0].id) }));
-        }
+        // Do not auto-select project if not preselected
       } catch (e) {}
+    })();
+  }, []);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const sRes = await api.get("/purchase/suppliers?contractor=Y");
+        const list = sRes.data?.items || sRes.data?.data?.items || [];
+        if (list.length > 0) {
+          setSubcontractors(list);
+        } else {
+          const fallback = await api.get("/purchase/suppliers");
+          setSubcontractors(fallback.data?.items || fallback.data?.data?.items || []);
+        }
+      } catch {}
     })();
   }, []);
 
@@ -107,17 +115,28 @@ export default function DailySiteReportForm() {
     if (!form.project_id) return toast.error("Please select a project");
     setSaving(true);
     try {
-      await api.post("/construction/daily-reports", {
-        ...form,
-        activities,
-        workforce,
-        equipment,
-        materials,
-      });
-      toast.success("Daily site report saved successfully");
+      if (isEdit) {
+        await api.put(`/construction/daily-reports/${id}`, {
+          ...form,
+          activities,
+          workforce,
+          equipment,
+          materials,
+        });
+        toast.success("Daily site report updated successfully");
+      } else {
+        await api.post("/construction/daily-reports", {
+          ...form,
+          activities,
+          workforce,
+          equipment,
+          materials,
+        });
+        toast.success("Daily site report saved successfully");
+      }
       navigate("/project-management/daily-reports");
     } catch (e) {
-      toast.error("Failed to save daily site report");
+      toast.error(e?.response?.data?.message || "Failed to save daily site report");
     } finally {
       setSaving(false);
     }
@@ -168,12 +187,15 @@ export default function DailySiteReportForm() {
               <label className="label text-xs uppercase font-bold text-slate-500 dark:text-slate-400">Project</label>
               <select
                 className="input w-full"
-                value={form.project_id}
+                value={form.project_id || ""}
                 onChange={e => setForm({ ...form, project_id: e.target.value })}
                 disabled={isEdit}
               >
+                <option value="">-- Select Project --</option>
                 {projects.map(p => (
-                  <option key={p.id} value={p.id}>{p.project_code} - {p.project_name}</option>
+                  <option key={p.id} value={p.id}>
+                    {p.project_code ? `${p.project_code} - ` : ""}{p.project_name || p.name}
+                  </option>
                 ))}
               </select>
             </div>
@@ -228,7 +250,7 @@ export default function DailySiteReportForm() {
             </div>
             <button
               type="button"
-              onClick={() => setWorkforce([...workforce, { trade_category: "SKILLED", trade_name: "", subcontractor_name: "", headcount: 1, total_hours: 8 }])}
+              onClick={() => setWorkforce([...workforce, { trade_category: "SKILLED", trade_name: "", subcontractor_name: "", headcount: "", total_hours: "" }])}
               className="btn btn-secondary text-xs flex items-center gap-1"
             >
               <Plus size={14} /> Add Trade
@@ -252,8 +274,8 @@ export default function DailySiteReportForm() {
                 <tr key={idx}>
                   <td className="p-1.5">
                     <select
-                      className="w-full p-1 border rounded bg-transparent"
-                      value={w.trade_category}
+                      className="w-full p-1 border rounded bg-transparent text-xs"
+                      value={w.trade_category || "SKILLED"}
                       onChange={e => {
                         const copy = [...workforce];
                         copy[idx].trade_category = e.target.value;
@@ -269,9 +291,9 @@ export default function DailySiteReportForm() {
                   <td className="p-1.5">
                     <input
                       type="text"
-                      className="w-full p-1 border rounded bg-transparent"
-                      placeholder="e.g. Carpenters"
-                      value={w.trade_name}
+                      className="w-full p-1 border rounded bg-transparent text-xs"
+                      placeholder="e.g. Carpenters, Steel Benders, Mason..."
+                      value={w.trade_name || ""}
                       onChange={e => {
                         const copy = [...workforce];
                         copy[idx].trade_name = e.target.value;
@@ -280,33 +302,50 @@ export default function DailySiteReportForm() {
                     />
                   </td>
                   <td className="p-1.5">
-                    <input
-                      type="text"
-                      className="w-full p-1 border rounded bg-transparent"
-                      placeholder="Subcontractor"
-                      value={w.subcontractor_name}
+                    <select
+                      className="w-full p-1 border rounded bg-transparent text-xs"
+                      value={w.subcontractor_name || ""}
                       onChange={e => {
                         const copy = [...workforce];
                         copy[idx].subcontractor_name = e.target.value;
                         setWorkforce(copy);
                       }}
-                    />
+                    >
+                      <option value="">-- Select Subcontractor / Direct --</option>
+                      <option value="Direct">Direct (Internal Workforce)</option>
+                      {subcontractors.map(s => {
+                        const sName = s.supplier_name || s.name;
+                        return (
+                          <option key={s.id || sName} value={sName}>
+                            {sName} {s.supplier_code ? `(${s.supplier_code})` : ""}
+                          </option>
+                        );
+                      })}
+                      {w.subcontractor_name &&
+                        w.subcontractor_name !== "Direct" &&
+                        !subcontractors.some(s => (s.supplier_name || s.name) === w.subcontractor_name) && (
+                          <option value={w.subcontractor_name}>{w.subcontractor_name}</option>
+                      )}
+                    </select>
                   </td>
                   <td className="p-1.5 text-right">
                     <input
                       type="number"
-                      className="w-full p-1 border rounded text-right bg-transparent font-mono"
-                      value={w.headcount}
+                      min="0"
+                      className="w-full p-1 border rounded text-right bg-transparent font-mono text-xs"
+                      placeholder="0"
+                      value={w.headcount ?? ""}
                       onChange={e => {
+                        const val = e.target.value === "" ? "" : Number(e.target.value);
                         const copy = [...workforce];
-                        copy[idx].headcount = Number(e.target.value);
-                        copy[idx].total_hours = Number(e.target.value) * 8;
+                        copy[idx].headcount = val;
+                        copy[idx].total_hours = val === "" ? "" : val * 8;
                         setWorkforce(copy);
                       }}
                     />
                   </td>
-                  <td className="p-1.5 text-right font-mono font-bold">
-                    {w.total_hours} hrs
+                  <td className="p-1.5 text-right font-mono font-bold text-xs">
+                    {w.total_hours ? `${w.total_hours} hrs` : "0 hrs"}
                   </td>
                   <td className="p-1.5 text-center">
                     <button
@@ -333,7 +372,7 @@ export default function DailySiteReportForm() {
             </div>
             <button
               type="button"
-              onClick={() => setActivities([...activities, { location_grid: "", description: "", quantity_completed: 1, unit: "M3", progress_percent: 0 }])}
+              onClick={() => setActivities([...activities, { location_grid: "", description: "", quantity_completed: "", unit: "M3", progress_percent: "" }])}
               className="btn btn-secondary text-xs flex items-center gap-1"
             >
               <Plus size={14} /> Add Activity
@@ -358,9 +397,9 @@ export default function DailySiteReportForm() {
                   <td className="p-1.5">
                     <input
                       type="text"
-                      className="w-full p-1 border rounded bg-transparent"
-                      placeholder="e.g. Grid 1-4 / B"
-                      value={act.location_grid}
+                      className="w-full p-1 border rounded bg-transparent text-xs"
+                      placeholder="e.g. Grid A-C / Level 1"
+                      value={act.location_grid || ""}
                       onChange={e => {
                         const copy = [...activities];
                         copy[idx].location_grid = e.target.value;
@@ -371,9 +410,9 @@ export default function DailySiteReportForm() {
                   <td className="p-1.5">
                     <input
                       type="text"
-                      className="w-full p-1 border rounded bg-transparent"
-                      placeholder="Work executed..."
-                      value={act.description}
+                      className="w-full p-1 border rounded bg-transparent text-xs"
+                      placeholder="e.g. Formwork and reinforcement installation..."
+                      value={act.description || ""}
                       onChange={e => {
                         const copy = [...activities];
                         copy[idx].description = e.target.value;
@@ -385,19 +424,22 @@ export default function DailySiteReportForm() {
                     <input
                       type="number"
                       step="any"
-                      className="w-full p-1 border rounded text-right bg-transparent font-mono"
-                      value={act.quantity_completed}
+                      min="0"
+                      className="w-full p-1 border rounded text-right bg-transparent font-mono text-xs"
+                      placeholder="0.00"
+                      value={act.quantity_completed ?? ""}
                       onChange={e => {
+                        const val = e.target.value === "" ? "" : Number(e.target.value);
                         const copy = [...activities];
-                        copy[idx].quantity_completed = Number(e.target.value);
+                        copy[idx].quantity_completed = val;
                         setActivities(copy);
                       }}
                     />
                   </td>
                   <td className="p-1.5">
                     <select
-                      className="w-full p-1 border rounded bg-transparent"
-                      value={act.unit}
+                      className="w-full p-1 border rounded bg-transparent text-xs"
+                      value={act.unit || "M3"}
                       onChange={e => {
                         const copy = [...activities];
                         copy[idx].unit = e.target.value;
@@ -414,11 +456,13 @@ export default function DailySiteReportForm() {
                       type="number"
                       min="0"
                       max="100"
-                      className="w-full p-1 border rounded text-right bg-transparent font-mono font-bold"
-                      value={act.progress_percent}
+                      className="w-full p-1 border rounded text-right bg-transparent font-mono font-bold text-xs"
+                      placeholder="0"
+                      value={act.progress_percent ?? ""}
                       onChange={e => {
+                        const val = e.target.value === "" ? "" : Number(e.target.value);
                         const copy = [...activities];
-                        copy[idx].progress_percent = Number(e.target.value);
+                        copy[idx].progress_percent = val;
                         setActivities(copy);
                       }}
                     />

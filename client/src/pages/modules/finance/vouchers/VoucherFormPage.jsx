@@ -1,3 +1,4 @@
+import { Send, X } from "lucide-react";
 import React, { useEffect, useMemo, useState } from "react";
 import PendingApprovalTooltip from "@/components/PendingApprovalTooltip.jsx";
 import { Link, useNavigate, useParams, useLocation } from "react-router-dom";
@@ -3470,23 +3471,28 @@ export default function VoucherFormPage({ voucherTypeCode, title }) {
           </div>
         </form>
         {showForwardModal ? (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg shadow-erp w-full max-w-md">
-              <div className="p-4 border-b flex justify-between items-center bg-brand text-white rounded-t-lg">
-                <div className="font-semibold">
-                  Forward Receipt Voucher for Approval
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex justify-center items-start p-4 sm:p-6 md:p-10 z-50 animate-fadeIn">
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden my-auto sm:my-8 transition-all">
+              <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-white dark:bg-slate-900">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-brand-50 dark:bg-brand-900/30 text-brand-900 dark:text-brand-400 flex items-center justify-center font-bold flex-shrink-0 border border-brand-200/50 dark:border-brand-800/50">
+                    <Send size={20} />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                      Forward Receipt Voucher for Approval
+                    </h3>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                      Submit document into the approval workflow
+                    </p>
+                  </div>
                 </div>
                 <button
                   type="button"
-                  onClick={() => {
-                    setShowForwardModal(false);
-                    setCandidateWorkflow(null);
-                    setFirstApprover(null);
-                    setWfError("");
-                  }}
-                  className="text-white hover:text-slate-200 text-xl font-bold"
+                  
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                 >
-                  &times;
+                  <X size={18} />
                 </button>
               </div>
               <div className="p-4 space-y-3">
@@ -3545,10 +3551,10 @@ export default function VoucherFormPage({ voucherTypeCode, title }) {
                   )}
                 </div>
               </div>
-              <div className="p-4 border-t flex justify-end gap-2 bg-gray-50">
+              <div className="px-6 py-4 border-t border-slate-200 dark:border-slate-800 flex justify-end gap-3 bg-white dark:bg-slate-900">
                 <button
                   type="button"
-                  className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600"
+                  className="btn btn-secondary px-4 py-2 text-sm font-medium"
                   onClick={() => {
                     setShowForwardModal(false);
                     setCandidateWorkflow(null);
@@ -3560,7 +3566,7 @@ export default function VoucherFormPage({ voucherTypeCode, title }) {
                 </button>
                 <button
                   type="button"
-                  className="px-4 py-2 bg-brand text-white rounded hover:bg-brand-700"
+                  className="btn btn-primary px-5 py-2 text-sm font-medium inline-flex items-center gap-2"
                   onClick={async () => {
                     if (!isEdit) return;
                     setSubmittingForward(true);
@@ -4553,23 +4559,28 @@ export default function VoucherFormPage({ voucherTypeCode, title }) {
           </div>
         </form>
         {showForwardModal ? (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg shadow-erp w-full max-w-md">
-              <div className="p-4 border-b flex justify-between items-center bg-brand text-white rounded-t-lg">
-                <div className="font-semibold">
-                  Forward Contra Voucher for Approval
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex justify-center items-start p-4 sm:p-6 md:p-10 z-50 animate-fadeIn">
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden my-auto sm:my-8 transition-all">
+              <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-white dark:bg-slate-900">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-brand-50 dark:bg-brand-900/30 text-brand-900 dark:text-brand-400 flex items-center justify-center font-bold flex-shrink-0 border border-brand-200/50 dark:border-brand-800/50">
+                    <Send size={20} />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                      Forward Contra Voucher for Approval
+                    </h3>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                      Submit document into the approval workflow
+                    </p>
+                  </div>
                 </div>
                 <button
                   type="button"
-                  onClick={() => {
-                    setShowForwardModal(false);
-                    setCandidateWorkflow(null);
-                    setFirstApprover(null);
-                    setWfError("");
-                  }}
-                  className="text-white hover:text-slate-200 text-xl font-bold"
+                  
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                 >
-                  &times;
+                  <X size={18} />
                 </button>
               </div>
               <div className="p-4 space-y-3">
@@ -4628,10 +4639,10 @@ export default function VoucherFormPage({ voucherTypeCode, title }) {
                   )}
                 </div>
               </div>
-              <div className="p-4 border-t flex justify-end gap-2 bg-gray-50">
+              <div className="px-6 py-4 border-t border-slate-200 dark:border-slate-800 flex justify-end gap-3 bg-white dark:bg-slate-900">
                 <button
                   type="button"
-                  className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600"
+                  className="btn btn-secondary px-4 py-2 text-sm font-medium"
                   onClick={() => {
                     setShowForwardModal(false);
                     setCandidateWorkflow(null);
@@ -4643,7 +4654,7 @@ export default function VoucherFormPage({ voucherTypeCode, title }) {
                 </button>
                 <button
                   type="button"
-                  className="px-4 py-2 bg-brand text-white rounded hover:bg-brand-700"
+                  className="btn btn-primary px-5 py-2 text-sm font-medium inline-flex items-center gap-2"
                   onClick={async () => {
                     if (!isEdit) return;
                     setSubmittingForward(true);
@@ -5662,23 +5673,28 @@ export default function VoucherFormPage({ voucherTypeCode, title }) {
           </div>
         </form>
         {showForwardModal ? (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg shadow-erp w-full max-w-md">
-              <div className="p-4 border-b flex justify-between items-center bg-brand text-white rounded-t-lg">
-                <div className="font-semibold">
-                  Forward Payment Voucher for Approval
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex justify-center items-start p-4 sm:p-6 md:p-10 z-50 animate-fadeIn">
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden my-auto sm:my-8 transition-all">
+              <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-white dark:bg-slate-900">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-brand-50 dark:bg-brand-900/30 text-brand-900 dark:text-brand-400 flex items-center justify-center font-bold flex-shrink-0 border border-brand-200/50 dark:border-brand-800/50">
+                    <Send size={20} />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                      Forward Payment Voucher for Approval
+                    </h3>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                      Submit document into the approval workflow
+                    </p>
+                  </div>
                 </div>
                 <button
                   type="button"
-                  onClick={() => {
-                    setShowForwardModal(false);
-                    setCandidateWorkflow(null);
-                    setFirstApprover(null);
-                    setWfError("");
-                  }}
-                  className="text-white hover:text-slate-200 text-xl font-bold"
+                  
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                 >
-                  &times;
+                  <X size={18} />
                 </button>
               </div>
               <div className="p-4 space-y-3">
@@ -5737,10 +5753,10 @@ export default function VoucherFormPage({ voucherTypeCode, title }) {
                   )}
                 </div>
               </div>
-              <div className="p-4 border-t flex justify-end gap-2 bg-gray-50">
+              <div className="px-6 py-4 border-t border-slate-200 dark:border-slate-800 flex justify-end gap-3 bg-white dark:bg-slate-900">
                 <button
                   type="button"
-                  className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600"
+                  className="btn btn-secondary px-4 py-2 text-sm font-medium"
                   onClick={() => {
                     setShowForwardModal(false);
                     setCandidateWorkflow(null);
@@ -5752,7 +5768,7 @@ export default function VoucherFormPage({ voucherTypeCode, title }) {
                 </button>
                 <button
                   type="button"
-                  className="px-4 py-2 bg-brand text-white rounded hover:bg-brand-700"
+                  className="btn btn-primary px-5 py-2 text-sm font-medium inline-flex items-center gap-2"
                   onClick={async () => {
                     if (!isEdit) return;
                     setSubmittingForward(true);
@@ -6138,23 +6154,28 @@ export default function VoucherFormPage({ voucherTypeCode, title }) {
           </div>
         </form>
         {showForwardModal ? (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg shadow-erp w-full max-w-md">
-              <div className="p-4 border-b flex justify-between items-center bg-brand text-white rounded-t-lg">
-                <div className="font-semibold">
-                  Forward Contra Voucher for Approval
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex justify-center items-start p-4 sm:p-6 md:p-10 z-50 animate-fadeIn">
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden my-auto sm:my-8 transition-all">
+              <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-white dark:bg-slate-900">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-brand-50 dark:bg-brand-900/30 text-brand-900 dark:text-brand-400 flex items-center justify-center font-bold flex-shrink-0 border border-brand-200/50 dark:border-brand-800/50">
+                    <Send size={20} />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                      Forward Contra Voucher for Approval
+                    </h3>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                      Submit document into the approval workflow
+                    </p>
+                  </div>
                 </div>
                 <button
                   type="button"
-                  onClick={() => {
-                    setShowForwardModal(false);
-                    setCandidateWorkflow(null);
-                    setFirstApprover(null);
-                    setWfError("");
-                  }}
-                  className="text-white hover:text-slate-200 text-xl font-bold"
+                  
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                 >
-                  &times;
+                  <X size={18} />
                 </button>
               </div>
               <div className="p-4 space-y-3">
@@ -6213,10 +6234,10 @@ export default function VoucherFormPage({ voucherTypeCode, title }) {
                   )}
                 </div>
               </div>
-              <div className="p-4 border-t flex justify-end gap-2 bg-gray-50">
+              <div className="px-6 py-4 border-t border-slate-200 dark:border-slate-800 flex justify-end gap-3 bg-white dark:bg-slate-900">
                 <button
                   type="button"
-                  className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600"
+                  className="btn btn-secondary px-4 py-2 text-sm font-medium"
                   onClick={() => {
                     setShowForwardModal(false);
                     setCandidateWorkflow(null);
@@ -6228,7 +6249,7 @@ export default function VoucherFormPage({ voucherTypeCode, title }) {
                 </button>
                 <button
                   type="button"
-                  className="px-4 py-2 bg-brand text-white rounded hover:bg-brand-700"
+                  className="btn btn-primary px-5 py-2 text-sm font-medium inline-flex items-center gap-2"
                   onClick={async () => {
                     if (!isEdit) return;
                     setSubmittingForward(true);

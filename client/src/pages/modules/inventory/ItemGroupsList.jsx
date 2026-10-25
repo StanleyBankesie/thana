@@ -19,6 +19,7 @@ import {
 import { api } from "api/client";
 import { toast } from "react-toastify";
 import { filterAndSort } from "@/utils/searchUtils.js";
+import Modal from "@/components/common/Modal.jsx";
 
 const UOM_TYPES = [
   { value: "COUNT", label: "Count" },
@@ -425,7 +426,7 @@ const DEFAULT_PRESET_ITEM_TYPES = [
   }, [uoms, searchTerm]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 no-overview" data-no-overview="true">
       {/* Top Banner Card */}
       <div className="card bg-brand text-white rounded-xl overflow-hidden shadow">
         <div className="p-6">
@@ -896,221 +897,210 @@ const DEFAULT_PRESET_ITEM_TYPES = [
       </div>
 
       {/* Direct In-Place Modal for Adding / Editing Classification Sections */}
-      {showModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-in fade-in duration-150">
-          <div className="bg-white dark:bg-slate-900 rounded-2xl max-w-lg w-full shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden">
-            {/* Modal Header */}
-            <div
-              className="p-5 border-b"
-              style={{ backgroundColor: "#0E3646" }}
+      <Modal
+        open={showModal}
+        onClose={() => setShowModal(false)}
+        title={`${modalMode === "create" ? "Add" : modalMode === "edit" ? "Edit" : "View"} ${
+          modalType === "group"
+            ? "Item Group"
+            : modalType === "category"
+              ? "Item Category"
+              : modalType === "type"
+                ? "Item Type"
+                : "Unit of Measure"
+        }`}
+        subtitle={
+          modalMode === "view"
+            ? "Classification details (Read-Only)"
+            : "Configure hierarchy linkage and attributes"
+        }
+        icon={
+          modalType === "group"
+            ? FolderTree
+            : modalType === "category"
+              ? Package
+              : modalType === "type"
+                ? Layers
+                : Ruler
+        }
+        maxWidth="max-w-lg"
+        footer={
+          <div className="flex justify-end gap-3 w-full">
+            <button
+              type="button"
+              onClick={() => setShowModal(false)}
+              className="btn btn-secondary px-4 py-2 text-sm font-medium"
             >
-              <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-xl font-bold text-white">
-                    {modalMode === "create" ? "Add" : modalMode === "edit" ? "Edit" : "View"}{" "}
-                    {modalType === "group"
-                      ? "Item Group"
-                      : modalType === "category"
-                        ? "Item Category"
-                        : modalType === "type"
-                          ? "Item Type"
-                          : "Unit of Measure"}
-                  </h2>
-                  <p className="text-xs text-slate-200 mt-0.5">
-                    {modalMode === "view"
-                      ? "Classification details (Read-Only)"
-                      : "Configure hierarchy linkage and attributes"}
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setShowModal(false)}
-                  className="text-white/80 hover:text-white p-1 rounded-lg hover:bg-white/10 transition-colors"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-            </div>
-
-            {/* Modal Body */}
-            <fieldset disabled={modalMode === "view"} className="p-6 space-y-4 border-0 m-0">
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                  Code *
-                </label>
-                <input
-                  type="text"
-                  value={formData.code}
-                  onChange={(e) =>
-                    setFormData({ ...formData, code: e.target.value })
-                  }
-                  className="input w-full"
-                  readOnly={modalType !== "uom" && modalType !== "type" && modalMode === "create"}
-                  placeholder={modalType === "type" ? "e.g. RAW_MATERIAL, PROD_01" : ""}
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                  Name *
-                </label>
-                <input
-                  type="text"
-                  value={formData.name}
-                  onChange={(e) =>
-                    setFormData({ ...formData, name: e.target.value })
-                  }
-                  className="input w-full"
-                  placeholder="Enter classification name"
-                />
-              </div>
-
-              {/* Group Modal: Select Parent Item Type */}
-              {modalType === "group" && (
-                <div>
-                  <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                    Item Type *
-                  </label>
-                  <select
-                    value={formData.item_type_id}
-                    onChange={(e) =>
-                      setFormData({ ...formData, item_type_id: e.target.value })
-                    }
-                    className="input w-full"
-                    required
-                  >
-                    <option value="">-- Select Item Type --</option>
-                    {itemTypes.map((t) => (
-                      <option key={t.type_id || t.id} value={t.type_id || t.id}>
-                        {t.type_name || t.type_code || t.name}
-                      </option>
-                    ))}
-                  </select>
-                  <p className="text-xs text-slate-500 mt-1">Item groups must fall under an item type.</p>
-                </div>
-              )}
-
-              {/* Category Modal: Select Parent Item Group */}
-              {modalType === "category" && (
-                <div>
-                  <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                    Item Group *
-                  </label>
-                  <select
-                    value={formData.item_group_id}
-                    onChange={(e) =>
-                      setFormData({ ...formData, item_group_id: e.target.value })
-                    }
-                    className="input w-full"
-                    required
-                  >
-                    <option value="">-- Select Item Group --</option>
-                    {groups.map((g) => (
-                      <option key={g.group_id || g.id} value={g.group_id || g.id}>
-                        {g.group_name} {g.item_type_name ? `(${g.item_type_name})` : ""}
-                      </option>
-                    ))}
-                  </select>
-                  <p className="text-xs text-slate-500 mt-1">Item categories must fall under an item group.</p>
-                </div>
-              )}
-
-              {/* Category Modal: Optional Parent Category */}
-              {modalType === "category" && (
-                <div>
-                  <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                    Parent Category (Optional)
-                  </label>
-                  <select
-                    value={formData.parent}
-                    onChange={(e) =>
-                      setFormData({ ...formData, parent: e.target.value })
-                    }
-                    className="input w-full"
-                  >
-                    <option value="">Root (No Parent)</option>
-                    {categories
-                      .filter(
-                        (c) =>
-                          String(c.category_id || c.id) !==
-                          String(selectedItem?.category_id || selectedItem?.id),
-                      )
-                      .map((c) => (
-                        <option key={c.category_id || c.id} value={c.category_id || c.id}>
-                          {c.category_name}
-                        </option>
-                      ))}
-                  </select>
-                </div>
-              )}
-
-              {/* UOM Modal: Select UOM Type */}
-              {modalType === "uom" && (
-                <div>
-                  <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                    Measurement Type
-                  </label>
-                  <select
-                    value={formData.type}
-                    onChange={(e) =>
-                      setFormData({ ...formData, type: e.target.value })
-                    }
-                    className="input w-full"
-                  >
-                    {UOM_TYPES.map((t) => (
-                      <option key={t.value} value={t.value}>
-                        {t.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
-
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                  Status
-                </label>
-                <select
-                  value={formData.active}
-                  onChange={(e) =>
-                    setFormData({ ...formData, active: e.target.value })
-                  }
-                  className="input w-full"
-                >
-                  <option value="Y">Active</option>
-                  <option value="N">Inactive</option>
-                </select>
-              </div>
-            </fieldset>
-
-            {/* Modal Footer */}
-            <div className="p-5 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 flex justify-end gap-3 rounded-b-2xl">
+              {modalMode === "view" ? "Close" : "Cancel"}
+            </button>
+            {modalMode !== "view" && (
               <button
                 type="button"
-                onClick={() => setShowModal(false)}
-                className="btn-secondary"
+                onClick={handleSubmitModal}
+                disabled={savingModal}
+                className={
+                  modalMode === "create"
+                    ? "btn-success px-5 py-2 font-medium"
+                    : "btn btn-primary px-5 py-2 text-sm font-medium"
+                }
+                data-rbac-exempt="true"
               >
-                {modalMode === "view" ? "Close" : "Cancel"}
+                {savingModal ? "Saving..." : modalMode === "create" ? "Add" : "Save Changes"}
               </button>
-              {modalMode !== "view" && (
-                <button
-                  type="button"
-                  onClick={handleSubmitModal}
-                  disabled={savingModal}
-                  className={
-                    modalMode === "create"
-                      ? "btn-success px-5 py-2 font-medium"
-                      : "btn-primary px-5 py-2 font-medium"
-                  }
-                  data-rbac-exempt="true"
-                >
-                  {savingModal ? "Saving..." : modalMode === "create" ? "Add" : "Save Changes"}
-                </button>
-              )}
-            </div>
+            )}
           </div>
-        </div>
-      )}
+        }
+      >
+        <fieldset disabled={modalMode === "view"} className="space-y-4 border-0 m-0 p-0">
+          <div>
+            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">
+              Code *
+            </label>
+            <input
+              type="text"
+              value={formData.code}
+              onChange={(e) =>
+                setFormData({ ...formData, code: e.target.value })
+              }
+              className="input w-full"
+              readOnly={modalType !== "uom" && modalType !== "type" && modalMode === "create"}
+              placeholder={modalType === "type" ? "e.g. RAW_MATERIAL, PROD_01" : ""}
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">
+              Name *
+            </label>
+            <input
+              type="text"
+              value={formData.name}
+              onChange={(e) =>
+                setFormData({ ...formData, name: e.target.value })
+              }
+              className="input w-full"
+              placeholder="Enter classification name"
+            />
+          </div>
+
+          {/* Group Modal: Select Parent Item Type */}
+          {modalType === "group" && (
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                Item Type *
+              </label>
+              <select
+                value={formData.item_type_id}
+                onChange={(e) =>
+                  setFormData({ ...formData, item_type_id: e.target.value })
+                }
+                className="input w-full"
+                required
+              >
+                <option value="">-- Select Item Type --</option>
+                {itemTypes.map((t) => (
+                  <option key={t.type_id || t.id} value={t.type_id || t.id}>
+                    {t.type_name || t.type_code || t.name}
+                  </option>
+                ))}
+              </select>
+              <p className="text-xs text-slate-500 mt-1">Item groups must fall under an item type.</p>
+            </div>
+          )}
+
+          {/* Category Modal: Select Parent Item Group */}
+          {modalType === "category" && (
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                Item Group *
+              </label>
+              <select
+                value={formData.item_group_id}
+                onChange={(e) =>
+                  setFormData({ ...formData, item_group_id: e.target.value })
+                }
+                className="input w-full"
+                required
+              >
+                <option value="">-- Select Item Group --</option>
+                {groups.map((g) => (
+                  <option key={g.group_id || g.id} value={g.group_id || g.id}>
+                    {g.group_name} {g.item_type_name ? `(${g.item_type_name})` : ""}
+                  </option>
+                ))}
+              </select>
+              <p className="text-xs text-slate-500 mt-1">Item categories must fall under an item group.</p>
+            </div>
+          )}
+
+          {/* Category Modal: Optional Parent Category */}
+          {modalType === "category" && (
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                Parent Category (Optional)
+              </label>
+              <select
+                value={formData.parent}
+                onChange={(e) =>
+                  setFormData({ ...formData, parent: e.target.value })
+                }
+                className="input w-full"
+              >
+                <option value="">Root (No Parent)</option>
+                {categories
+                  .filter(
+                    (c) =>
+                      String(c.category_id || c.id) !==
+                      String(selectedItem?.category_id || selectedItem?.id),
+                  )
+                  .map((c) => (
+                    <option key={c.category_id || c.id} value={c.category_id || c.id}>
+                      {c.category_name}
+                    </option>
+                  ))}
+              </select>
+            </div>
+          )}
+
+          {/* UOM Modal: Select UOM Type */}
+          {modalType === "uom" && (
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                Measurement Type
+              </label>
+              <select
+                value={formData.type}
+                onChange={(e) =>
+                  setFormData({ ...formData, type: e.target.value })
+                }
+                className="input w-full"
+              >
+                {UOM_TYPES.map((t) => (
+                  <option key={t.value} value={t.value}>
+                    {t.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          <div>
+            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">
+              Status
+            </label>
+            <select
+              value={formData.active}
+              onChange={(e) =>
+                setFormData({ ...formData, active: e.target.value })
+              }
+              className="input w-full"
+            >
+              <option value="Y">Active</option>
+              <option value="N">Inactive</option>
+            </select>
+          </div>
+        </fieldset>
+      </Modal>
     </div>
   );
 }

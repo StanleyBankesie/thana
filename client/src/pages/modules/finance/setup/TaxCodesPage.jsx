@@ -7,6 +7,7 @@ import React, { useEffect, useState } from "react";
 import { toast } from "react-toastify";
 import { api } from "api/client";
 import { Link } from "react-router-dom";
+import { Percent, Layers, X } from "lucide-react";
 
 // Page ID constants (matching numeric IDs for storage in database)
 const PAGE_IDS = {
@@ -1007,30 +1008,36 @@ export default function TaxCodesPage() {
 
       {/* ───── Components Section (Modal) ───── */}
       {selectedTaxId && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/50 overflow-y-auto pt-10 pb-10">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-5xl relative shadow-2xl scale-100 transition-transform">
-            <div className="flex justify-between items-center border-b px-6 py-4 bg-brand text-white rounded-t-lg shadow-sm">
-              <div>
-                <h2 className="text-xl font-semibold text-white">
-                  Components for {selectedTax?.code} - {selectedTax?.name}
-                </h2>
-                <p className="text-sm opacity-90 text-white mt-1">
-                  Define composite taxes/deductions. Each component auto-creates
-                  a ledger account under "Tax Payables".
-                </p>
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-sm flex justify-center items-start p-4 sm:p-6 md:p-10 animate-fadeIn">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl w-full max-w-5xl shadow-2xl overflow-hidden my-auto sm:my-8 transition-all relative">
+            <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-white dark:bg-slate-900">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-brand-50 dark:bg-brand-900/30 text-brand-900 dark:text-brand-400 flex items-center justify-center font-bold flex-shrink-0 border border-brand-200/50 dark:border-brand-800/50">
+                  <Layers size={20} />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                    Components for {selectedTax?.code} - {selectedTax?.name}
+                  </h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                    Define composite taxes/deductions. Each component auto-creates a ledger account under "Tax Payables".
+                  </p>
+                </div>
               </div>
-              <div className="flex gap-2">
+              <div className="flex items-center gap-2">
                 <button
-                  className="px-3 py-1.5 rounded bg-white text-brand hover:bg-slate-100 font-semibold shadow-sm transition-colors"
+                  type="button"
+                  className="btn btn-secondary px-3 py-1.5 text-xs font-semibold"
                   onClick={() => loadComponents(selectedTaxId)}
                 >
                   Refresh
                 </button>
                 <button
-                  className="px-3 py-1.5 rounded bg-white text-brand hover:bg-slate-100 font-semibold shadow-sm transition-colors"
+                  type="button"
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                   onClick={() => setSelectedTaxId(null)}
                 >
-                  Close
+                  <X size={18} />
                 </button>
               </div>
             </div>

@@ -62,19 +62,26 @@ export default function QualityControlPage() {
   const [snagForm, setSnagForm] = useState({
     room_area: "",
     defect_description: "",
-    trade_responsible: "Carpentry",
+    trade_responsible: "",
     priority: "MEDIUM",
   });
 
   const [testForm, setTestForm] = useState({
-    test_name: "Concrete 28-Day Cube Test",
+    test_type: "",
+    sample_reference: "",
+    spec_requirement: "",
+    actual_result: "",
+    pass_fail: "PASS",
+    testing_lab: "",
+    test_date: new Date().toISOString().split("T")[0],
+    test_name: "",
     material_type: "CONCRETE",
     batch_number: "",
     sample_date: new Date().toISOString().split("T")[0],
-    required_strength: "C25/30",
-    achieved_strength: "28.5 MPa",
+    required_strength: "",
+    achieved_strength: "",
     result: "PASS",
-    lab_name: "Ghana Standards Authority",
+    lab_name: "",
   });
 
   useEffect(() => {
@@ -83,7 +90,8 @@ export default function QualityControlPage() {
         const res = await api.get("/projects/projects", { params: { active: "all" } });
         const prjs = res.data?.items || [];
         setProjects(prjs);
-        if (prjs.length > 0) setSelectedProjectId(String(prjs[0].id));
+        // Do not auto-select project
+        setSelectedProjectId("");
       } catch (e) {
         toast.error("Failed to load projects");
       }
@@ -91,14 +99,14 @@ export default function QualityControlPage() {
   }, []);
 
   useEffect(() => {
-    if (!selectedProjectId) return;
     fetchQAQCData();
   }, [selectedProjectId, activeTab]);
 
   const fetchQAQCData = async () => {
     setLoading(true);
     try {
-      const params = { project_id: selectedProjectId };
+      const params = {};
+      if (selectedProjectId) params.project_id = selectedProjectId;
       if (activeTab === "inspections") {
         const res = await api.get("/construction/inspections", { params });
         setInspections(res.data?.items || []);

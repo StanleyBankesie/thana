@@ -2236,18 +2236,25 @@ export default function ItemsList() {
         </div>
       </div>
       {previewOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40">
-          <div className="w-[96vw] max-w-[1100px] max-h-[85vh] bg-white rounded-xl shadow-erp-lg overflow-hidden border border-slate-200">
-            <div className="px-4 py-3 bg-brand text-white flex items-center justify-between">
-              <div>
-                <div className="text-lg font-bold">Bulk Upload Preview</div>
-                <div className="text-xs opacity-90">
-                  Review parsed rows. Only valid rows will be uploaded.
+        <div className="fixed inset-0 z-[100] overflow-y-auto bg-black/60 backdrop-blur-sm flex justify-center items-start p-4 sm:p-6 md:p-10 animate-fadeIn">
+          <div className="w-[96vw] max-w-[1100px] max-h-[85vh] bg-white dark:bg-slate-900 rounded-2xl shadow-2xl overflow-hidden border border-slate-200 dark:border-slate-800 my-auto sm:my-8 transition-all flex flex-col">
+            <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-white dark:bg-slate-900">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-brand-50 dark:bg-brand-900/30 text-brand-900 dark:text-brand-400 flex items-center justify-center font-bold flex-shrink-0 border border-brand-200/50 dark:border-brand-800/50">
+                  <Upload size={20} />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                    Bulk Upload Preview
+                  </h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                    Review parsed rows. Only valid rows will be uploaded.
+                  </p>
                 </div>
               </div>
               <button
                 type="button"
-                className="text-white hover:text-slate-100 text-xl"
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                 onClick={() => {
                   setPreviewOpen(false);
                   setPreviewRows([]);
@@ -2255,7 +2262,7 @@ export default function ItemsList() {
                 }}
                 aria-label="Close"
               >
-                ✕
+                <X size={18} />
               </button>
             </div>
             <div className="p-4 space-y-4">
