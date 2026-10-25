@@ -21,6 +21,7 @@ export default function ResetPasswordPage() {
   const [error, setError] = useState(null);
   const [showPassword, setShowPassword] = useState(false);
   const [loginBackgroundUrl, setLoginBackgroundUrl] = useState("");
+  const [loginBackgroundOpacity, setLoginBackgroundOpacity] = useState(20);
   const [loginHeroImageUrl, setLoginHeroImageUrl] = useState("");
   const [carouselIndex, setCarouselIndex] = useState(0);
 
@@ -86,20 +87,21 @@ export default function ResetPasswordPage() {
   const year = format(currentDate, "yyyy");
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-100 p-4 sm:p-6 md:p-8">
-      <div className="w-full max-w-6xl bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col md:flex-row min-h-[600px]">
+    <div className="min-h-screen w-full flex items-center justify-center bg-slate-100 dark:bg-slate-950 p-2 sm:p-3 md:p-4 overflow-y-auto">
+      <div className="w-full max-w-5xl bg-white dark:bg-slate-900 rounded-2xl sm:rounded-3xl shadow-2xl overflow-hidden flex flex-col md:flex-row max-h-[calc(100vh-1rem)] sm:max-h-[calc(100vh-1.5rem)] my-auto transition-all">
         
         {/* Left Side: Form */}
         <div 
-          className="w-full md:w-1/2 p-8 md:p-12 lg:p-16 flex flex-col justify-center relative bg-slate-900"
-          style={{
-            backgroundImage: `url(${loginBackgroundUrl || backgroundImage})`,
-            backgroundSize: "cover",
-            backgroundPosition: "center",
-          }}
+          className="w-full md:w-1/2 p-4 sm:p-6 md:p-8 flex flex-col justify-between relative bg-white dark:bg-slate-900 overflow-y-auto [scrollbar-width:thin]"
         >
-          {/* Overlay to ensure form text readability */}
-          <div className="absolute inset-0 bg-white/90"></div>
+          {/* Background image with configurable opacity */}
+          <div
+            className="absolute inset-0 pointer-events-none transition-opacity duration-300 z-0 bg-cover bg-center"
+            style={{
+              backgroundImage: `url(${loginBackgroundUrl || backgroundImage})`,
+              opacity: Math.max(0, Math.min(100, Number(loginBackgroundOpacity ?? 20))) / 100,
+            }}
+          />
           
           <div className="max-w-md w-full mx-auto relative z-10">
             {/* Logo on top for all devices */}
@@ -195,14 +197,19 @@ export default function ResetPasswordPage() {
         
         {/* Right Side: Image and Glassmorphic Elements */}
         <div 
-          className="hidden md:block w-full md:w-1/2 relative bg-slate-900 overflow-hidden"
-          style={{
-            backgroundImage: `url(${loginHeroImageUrl || backgroundImage})`,
-            backgroundSize: "cover",
-            backgroundPosition: "center center",
-            backgroundRepeat: "no-repeat",
-          }}
+          className="hidden md:flex w-full md:w-1/2 relative bg-slate-900 overflow-hidden flex-col justify-between p-4 sm:p-6 select-none max-h-[calc(100vh-1rem)] sm:max-h-[calc(100vh-1.5rem)]"
         >
+          {/* Full-bleed hero image covering the entire right window */}
+          <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none select-none">
+            <img
+              src={loginHeroImageUrl || backgroundImage}
+              alt="Hero Illustration"
+              className="w-full h-full object-cover object-center transition-all duration-300"
+            />
+          </div>
+
+          {/* Subtle dimming layer */}
+          <div className="absolute inset-0 bg-black/20 pointer-events-none z-[1]" />
           {/* Overlay to ensure text readability */}
           <div className="absolute inset-0 bg-black/20"></div>
 

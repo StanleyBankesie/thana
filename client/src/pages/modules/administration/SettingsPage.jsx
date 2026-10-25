@@ -428,7 +428,7 @@ export default function SettingsPage() {
                     <img
                       src={loginHeroImageUrl}
                       alt="Hero Background Preview"
-                      className="w-full h-full object-cover rounded-xl"
+                      className="w-full h-full object-contain rounded-xl p-1"
                     />
                     <span className="absolute bottom-1 right-1 text-[9px] font-bold px-1.5 py-0.5 rounded bg-black/60 text-white backdrop-blur-xs">
                       4:5

@@ -1775,6 +1775,9 @@ async function ensureLoginBrandingTable() {
     if (!colNames.includes('hero_mime')) {
       await query(`ALTER TABLE adm_login_branding ADD COLUMN hero_mime VARCHAR(100) NULL AFTER hero_image`);
     }
+    if (!colNames.includes('background_opacity')) {
+      await query(`ALTER TABLE adm_login_branding ADD COLUMN background_opacity INT NOT NULL DEFAULT 20 AFTER hero_mime`);
+    }
   } catch (err) {
     console.error("Failed to alter adm_login_branding:", err);
   }
@@ -1786,7 +1789,7 @@ router.get("/settings/login-bg-info", async (req, res) => {
   try {
     await ensureLoginBrandingTable().catch(() => {});
     const rows = await query(
-      `SELECT background_image IS NOT NULL AS has_background, updated_at
+      `SELECT background_image IS NOT NULL AS has_background, background_opacity, updated_at
          FROM adm_login_branding
         WHERE id = 1
         LIMIT 1`,
@@ -1794,10 +1797,11 @@ router.get("/settings/login-bg-info", async (req, res) => {
     const row = rows[0] || {};
     res.json({
       hasBackground: Number(row.has_background || 0) === 1,
+      opacity: typeof row.background_opacity === "number" && !isNaN(row.background_opacity) ? row.background_opacity : 20,
       updatedAt: row.updated_at || null,
     });
   } catch (err) {
-    res.json({ hasBackground: false, updatedAt: null });
+    res.json({ hasBackground: false, opacity: 20, updatedAt: null });
   }
 });
 
@@ -1960,6 +1964,28 @@ router.delete(
       await ensureLoginBrandingTable();
       await query(`UPDATE adm_login_branding SET background_image = NULL, background_mime = NULL WHERE id = 1`);
       res.json({ success: true });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
+router.post(
+  "/settings/login-background-opacity",
+  requireAuth,
+  requirePageAccess("/administration/settings", "edit"),
+  async (req, res, next) => {
+    try {
+      const { opacity } = req.body;
+      const num = Math.max(0, Math.min(100, Math.round(Number(opacity) ?? 20)));
+      await ensureLoginBrandingTable();
+      await query(
+        `INSERT INTO adm_login_branding (id, background_opacity)
+         VALUES (1, :opacity)
+         ON DUPLICATE KEY UPDATE background_opacity = VALUES(background_opacity)`,
+        { opacity: num },
+      );
+      res.json({ success: true, opacity: num });
     } catch (err) {
       next(err);
     }

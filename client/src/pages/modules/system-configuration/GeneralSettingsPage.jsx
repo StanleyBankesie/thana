@@ -22,6 +22,8 @@ export default function GeneralSettingsPage() {
   const [loginBackgroundUrl, setLoginBackgroundUrl] = useState("");
   const [loginBackgroundVersion, setLoginBackgroundVersion] = useState("");
   const [loginBackgroundSaving, setLoginBackgroundSaving] = useState(false);
+  const [loginBackgroundOpacity, setLoginBackgroundOpacity] = useState(20);
+  const [loginBackgroundOpacitySaving, setLoginBackgroundOpacitySaving] = useState(false);
   const [loginHeroImageUrl, setLoginHeroImageUrl] = useState("");
   const [loginHeroImageVersion, setLoginHeroImageVersion] = useState("");
   const [loginHeroImageSaving, setLoginHeroImageSaving] = useState(false);
@@ -297,6 +299,9 @@ export default function GeneralSettingsPage() {
         const version = res?.data?.version ? `?v=${res.data.version}` : "";
         setLoginBackgroundUrl(hasBackground ? `/api/admin/settings/login-background${version}` : "");
         setLoginBackgroundVersion(res?.data?.version || "");
+        if (typeof res?.data?.opacity === "number" && !isNaN(res.data.opacity)) {
+          setLoginBackgroundOpacity(res.data.opacity);
+        }
       }
     } catch {
       setLoginBackgroundUrl("");
@@ -341,6 +346,19 @@ export default function GeneralSettingsPage() {
     } catch (e) {
       toast.error(e?.response?.data?.message || e?.message || "Failed to update login background");
     } finally { setLoginBackgroundSaving(false); }
+  }
+
+  async function saveLoginBackgroundOpacity(targetOpacity) {
+    const val = typeof targetOpacity === "number" ? targetOpacity : loginBackgroundOpacity;
+    try {
+      setLoginBackgroundOpacitySaving(true);
+      await api.post("/admin/settings/login-background-opacity", { opacity: val });
+      toast.success(`Login background opacity saved (${val}%)`);
+    } catch (e) {
+      toast.error(e?.response?.data?.message || e?.message || "Failed to save login background opacity");
+    } finally {
+      setLoginBackgroundOpacitySaving(false);
+    }
   }
 
   async function clearLoginBackground() {
@@ -1064,16 +1082,79 @@ export default function GeneralSettingsPage() {
         </div>
 
         <div className="card">
-          <div className="card-body space-y-3">
+          <div className="card-body space-y-4">
             <div className="flex justify-between items-start gap-4">
               <div>
-                <div className="text-lg font-semibold">Login Background Image</div>
-                <div className="text-sm text-slate-500">Set the background image for the login and password reset forms.</div>
+                <div className="text-lg font-semibold text-slate-900 dark:text-white">Login Background Image</div>
+                <div className="text-sm text-slate-500 dark:text-slate-400">
+                  Set the background image and adjust its opacity for the login and password reset forms.
+                </div>
               </div>
-              {loginBackgroundUrl && (
-                <img src={loginBackgroundUrl} alt="Login Background" className="h-20 w-auto rounded border border-slate-200" />
-              )}
+              <div className="relative w-28 h-20 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 overflow-hidden flex items-center justify-center shrink-0 shadow-sm">
+                <div
+                  className="absolute inset-0 bg-cover bg-center transition-opacity duration-200"
+                  style={{
+                    backgroundImage: loginBackgroundUrl ? `url(${loginBackgroundUrl})` : "url(/BACKGROUND.jpg)",
+                    opacity: loginBackgroundOpacity / 100,
+                  }}
+                />
+                <span className="relative z-10 text-[10px] font-bold px-1.5 py-0.5 rounded bg-black/70 text-white backdrop-blur-xs">
+                  {loginBackgroundOpacity}%
+                </span>
+              </div>
             </div>
+
+            {/* Opacity Control Slider & Presets */}
+            <div className="p-3.5 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-200 dark:border-slate-700/60 space-y-2.5">
+              <div className="flex items-center justify-between text-sm">
+                <span className="font-semibold text-slate-700 dark:text-slate-200">
+                  Background Opacity: <span className="text-brand-600 dark:text-brand-400 font-bold">{loginBackgroundOpacity}%</span>
+                </span>
+                <span className="text-xs text-slate-500 dark:text-slate-400">
+                  {loginBackgroundOpacity <= 15 ? "Subtle / Recommended" : loginBackgroundOpacity <= 40 ? "Medium" : "Prominent"}
+                </span>
+              </div>
+              <div className="flex items-center gap-3">
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  step="5"
+                  value={loginBackgroundOpacity}
+                  onChange={(e) => setLoginBackgroundOpacity(Number(e.target.value))}
+                  className="w-full accent-brand-600 h-2 bg-slate-200 dark:bg-slate-700 rounded-lg cursor-pointer"
+                />
+                <button
+                  type="button"
+                  onClick={() => saveLoginBackgroundOpacity()}
+                  disabled={loginBackgroundOpacitySaving}
+                  className="btn-primary text-xs py-1.5 px-3 shrink-0"
+                >
+                  {loginBackgroundOpacitySaving ? "Saving..." : "Save Opacity"}
+                </button>
+              </div>
+              <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                <span className="text-[11px] text-slate-500 dark:text-slate-400 mr-1">Presets:</span>
+                {[5, 10, 15, 20, 30, 50, 80, 100].map((preset) => (
+                  <button
+                    key={preset}
+                    type="button"
+                    onClick={() => {
+                      setLoginBackgroundOpacity(preset);
+                      saveLoginBackgroundOpacity(preset);
+                    }}
+                    className={`px-2.5 py-0.5 text-xs rounded-md font-medium transition-all ${
+                      loginBackgroundOpacity === preset
+                        ? "bg-brand-600 text-white font-bold shadow-xs"
+                        : "bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-600"
+                    }`}
+                  >
+                    {preset}%
+                  </button>
+                ))}
+              </div>
+            </div>
+
             <div className="flex flex-wrap gap-2">
               <label className="btn-primary cursor-pointer">
                 {loginBackgroundSaving ? "Saving..." : "Upload Background"}
@@ -1095,7 +1176,7 @@ export default function GeneralSettingsPage() {
               </div>
               {loginHeroImageUrl ? (
                 <div className="w-28 sm:w-32 h-36 sm:h-40 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-900 overflow-hidden flex items-center justify-center shadow-md relative group shrink-0">
-                  <img src={loginHeroImageUrl} alt="Hero Background Preview" className="w-full h-full object-cover rounded-xl" />
+                  <img src={loginHeroImageUrl} alt="Hero Background Preview" className="w-full h-full object-contain rounded-xl p-1" />
                   <span className="absolute bottom-1 right-1 text-[9px] font-bold px-1.5 py-0.5 rounded bg-black/60 text-white backdrop-blur-xs">
                     4:5
                   </span>
