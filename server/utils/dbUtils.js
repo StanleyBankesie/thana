@@ -3441,6 +3441,10 @@ export async function ensurePMQuotationTables() {
   };
   await ensureCol("project_id", "BIGINT UNSIGNED NULL");
   await ensureCol("project_name", "VARCHAR(255) NULL");
+  await ensureCol("project_manager", "VARCHAR(255) NULL");
+  await ensureCol("start_date", "DATE NULL");
+  await ensureCol("end_date", "DATE NULL");
+  await ensureCol("scope_of_work", "TEXT NULL");
 
   const ti = "prj_quotation_details";
   if (!(await hasTable(ti))) {
@@ -3457,6 +3461,8 @@ export async function ensurePMQuotationTables() {
         tax_amount DECIMAL(18,2) NOT NULL DEFAULT 0,
         tax_type BIGINT UNSIGNED NULL,
         uom VARCHAR(20) NULL,
+        phase_name VARCHAR(255) NULL,
+        description TEXT NULL,
         PRIMARY KEY (id),
         KEY idx_prj_qd_q (quotation_id),
         KEY idx_prj_qd_item (item_id),
@@ -3464,6 +3470,13 @@ export async function ensurePMQuotationTables() {
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     `).catch(() => null);
   }
+  const ensureColTi = async (col, ddl) => {
+    if (!(await hasColumn(ti, col))) {
+      await query(`ALTER TABLE ${ti} ADD COLUMN ${ddl}`).catch(() => null);
+    }
+  };
+  await ensureColTi("phase_name", "VARCHAR(255) NULL");
+  await ensureColTi("description", "TEXT NULL");
 }
 
 export async function ensurePMInvoiceTables() {

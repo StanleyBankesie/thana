@@ -869,6 +869,14 @@ app.get("/api/ping", (_req, res) => res.json({ ok: true }));
       console.warn("Could not ensure facilities management tables:", e.message);
     }
 
+    // Facilities Management Expansion (Hard Services, Helpdesk, Onboarding, Inspections, Security, Workforce, Compliance, SLA)
+    try {
+      const { migrateFMExpansionMaster } = await import("./scripts/migrate_fm_expansion_master.js");
+      await migrateFMExpansionMaster();
+    } catch (e) {
+      console.warn("Could not run FM expansion migration:", e.message);
+    }
+
     // Asset Management Tables & Schema (Fixed Assets & Depreciation)
     try {
       await ensureAssetManagementTables();

@@ -17,6 +17,7 @@ import {} from "lucide-react";
 import { usePermission } from "../../../../auth/PermissionContext.jsx";
 import { useExchangeRate } from "../../../../hooks/useExchangeRate";
 import { filterByPrefix } from "@/utils/searchUtils.js";
+import TaxPricingModal, { TaxModeRadioSelector } from "@/components/common/TaxPricingModal.jsx";
 
 /**
  *  component
@@ -74,6 +75,9 @@ export default function PurchaseOrdersLocalForm() {
   const [standardPrices, setStandardPrices] = useState([]);
   const [unitConversions, setUnitConversions] = useState([]);
   const [taxes, setTaxes] = useState([]);
+  const [taxModalOpen, setTaxModalOpen] = useState(false);
+  const [showTaxModeAlert, setShowTaxModeAlert] = useState(false);
+  const [hasPromptedTaxMode, setHasPromptedTaxMode] = useState(false);
   const [taxComponentsByCode, setTaxComponentsByCode] = useState({});
   const [projects, setProjects] = useState([]);
   const pdfRef = useRef(null);
@@ -94,6 +98,10 @@ export default function PurchaseOrdersLocalForm() {
     payment_type: "CASH",
     payment_terms: 30,
     remarks: "",
+    tax_mode: "EXCLUSIVE",
+    tax_code_id: "",
+    tax_rate: 0,
+    tax_component_name: "",
     // Import specific fields
     port_loading: "",
     port_discharge: "",
@@ -564,74 +572,101 @@ export default function PurchaseOrdersLocalForm() {
     };
   }, [id]);
 
+  const handleTaxModeChange = (newMode) => {
+    setFormData((prev) => ({
+      ...prev,
+      tax_mode: newMode,
+    }));
+    const isInclusive = newMode === "INCLUSIVE";
+    setItems((prev) =>
+      prev.map((it) => {
+        const qty = Number(it.qty) || 0;
+        const price = Number(it.unit_price) || 0;
+        const discPct = Number(it.discount_percent) || 0;
+        const base = qty * price;
+        const disc = base * (discPct / 100);
+        const taxable = Math.max(0, base - disc);
+        const taxRate = Number(it.tax_percent) > 0 ? Number(it.tax_percent) : Number(formData.tax_rate || 0);
+        let taxAmt = 0;
+        let lineTot = taxable;
+        if (isInclusive) {
+          const net = taxRate > 0 ? Math.round((taxable / (1 + taxRate / 100)) * 100) / 100 : taxable;
+          taxAmt = Math.round((taxable - net) * 100) / 100;
+          lineTot = taxable;
+        } else {
+          taxAmt = taxRate > 0 ? Math.round((taxable * (taxRate / 100)) * 100) / 100 : 0;
+          lineTot = Math.round((taxable + taxAmt) * 100) / 100;
+        }
+        return {
+          ...it,
+          tax_mode: newMode,
+          tax_percent: taxRate,
+          tax_amount: taxAmt,
+          line_total: lineTot,
+        };
+      }),
+    );
+  };
+
   // Calculations
   const summary = useMemo(() => {
-    let subTotal = 0;
+    let grossSub = 0;
+    let netSub = 0;
     let totalDiscount = 0;
     let totalTax = 0;
-    const compTotals = {};
+    const isInclusive = String(formData.tax_mode || "").toUpperCase() === "INCLUSIVE";
 
     items.forEach((item) => {
       if (!item) return;
       const qty = Number(item.qty) || 0;
       const price = Number(item.unit_price) || 0;
       const discPct = Number(item.discount_percent) || 0;
-      const taxCodeId = String(item.tax_code_id || "");
-
       const base = qty * price;
       const disc = base * (discPct / 100);
-      const taxable = base - disc;
-
-      let itemTax = 0;
-      const comps = taxComponentsByCode[taxCodeId] || [];
-      if (comps.length > 0) {
-        comps.forEach((c) => {
-          const rate = Number(c.rate_percent) || 0;
-          const amt = (taxable * rate) / 100;
-          const name = c.component_name;
-          if (!compTotals[name]) {
-            compTotals[name] = {
-              amount: 0,
-              rate,
-              sort_order: c.sort_order || 0,
-            };
-          }
-          compTotals[name].amount += amt;
-          itemTax += amt;
-        });
-      } else {
-        const taxPct = Number(item.tax_percent) || 0;
-        itemTax = taxable * (taxPct / 100);
-        if (itemTax > 0) {
-          const name = "Tax";
-          if (!compTotals[name]) {
-            compTotals[name] = { amount: 0, rate: taxPct, sort_order: 99 };
-          }
-          compTotals[name].amount += itemTax;
-        }
-      }
-
-      subTotal += base;
+      const taxable = Math.max(0, base - disc);
+      grossSub += base;
       totalDiscount += disc;
-      totalTax += itemTax;
+
+      const taxRate = Number(
+        item.tax_percent !== undefined && item.tax_percent !== null && Number(item.tax_percent) > 0
+          ? item.tax_percent
+          : (formData.tax_rate || 0)
+      );
+
+      if (isInclusive) {
+        const lineNet = taxRate > 0 ? Math.round((taxable / (1 + taxRate / 100)) * 100) / 100 : taxable;
+        const lineTax = Math.round((taxable - lineNet) * 100) / 100;
+        netSub += lineNet;
+        totalTax += lineTax;
+      } else {
+        const lineTax = taxRate > 0 ? Math.round((taxable * (taxRate / 100)) * 100) / 100 : 0;
+        netSub += taxable;
+        totalTax += lineTax;
+      }
     });
 
     const freight = Number(formData.freight_amount) || 0;
     const other = Number(formData.other_charges) || 0;
 
-    const components = Object.keys(compTotals)
-      .map((name) => ({
-        name,
-        amount: compTotals[name].amount,
-        rate: compTotals[name].rate,
-        sort_order: compTotals[name].sort_order,
-      }))
-      .sort((a, b) => a.sort_order - b.sort_order);
+    // Subtotal: when inclusive, recalculated to be LESS TAX
+    const subTotal = isInclusive ? netSub : grossSub;
+    const grandTotal = isInclusive
+      ? grossSub - totalDiscount + freight + other
+      : subTotal - totalDiscount + totalTax + freight + other;
 
-    const grandTotal = subTotal - totalDiscount + totalTax + freight + other;
+    const components = [];
+    if (totalTax > 0) {
+      components.push({
+        name: formData.tax_component_name || (formData.tax_rate ? `Tax (${formData.tax_rate}%)` : "Tax"),
+        amount: totalTax,
+        rate: formData.tax_rate || 0,
+        sort_order: 1,
+      });
+    }
 
     return {
       subTotal,
+      grossSub,
       totalDiscount,
       totalTax,
       freight,
@@ -641,9 +676,11 @@ export default function PurchaseOrdersLocalForm() {
     };
   }, [
     items,
+    formData.tax_mode,
+    formData.tax_rate,
+    formData.tax_component_name,
     formData.freight_amount,
     formData.other_charges,
-    taxComponentsByCode,
   ]);
 
   const baseCurrencyCode = useMemo(() => {
@@ -852,6 +889,7 @@ export default function PurchaseOrdersLocalForm() {
 
   const handleItemChange = (index, field, value) => {
     const updated = [...items];
+    const isInclusive = String(formData.tax_mode || "EXCLUSIVE").toUpperCase() === "INCLUSIVE";
     updated[index] = { ...updated[index], [field]: value };
 
     if (field === "item_id") {
@@ -867,40 +905,52 @@ export default function PurchaseOrdersLocalForm() {
       let unitPrice = fallbackPrice;
 
       updated[index].unit_price = unitPrice;
+      updated[index].tax_mode = formData.tax_mode || "EXCLUSIVE";
+      updated[index].tax_code_id = formData.tax_code_id || updated[index].tax_code_id || "";
+      updated[index].tax_percent = formData.tax_rate !== undefined ? formData.tax_rate : (updated[index].tax_percent || 0);
     }
 
     const qty = Number(updated[index].qty) || 0;
     const price = Number(updated[index].unit_price) || 0;
     const discPct = Number(updated[index].discount_percent) || 0;
-    const taxCodeId = String(updated[index].tax_code_id || "");
-
-    if (field === "tax_code_id") {
-      const tc = taxes.find((t) => String(t.id) === taxCodeId);
-      updated[index].tax_percent = tc ? Number(tc.rate_percent) || 0 : 0;
-    }
 
     const base = qty * price;
     const disc = base * (discPct / 100);
-    const taxable = base - disc;
+    const taxable = Math.max(0, base - disc);
 
     let itemTax = 0;
-    const comps = taxComponentsByCode[taxCodeId] || [];
-    if (comps.length > 0) {
-      comps.forEach((c) => {
-        itemTax += (taxable * (Number(c.rate_percent) || 0)) / 100;
-      });
+    let net = taxable;
+    let lineTotal = taxable;
+
+    const taxRate = Number(updated[index].tax_percent) > 0
+      ? Number(updated[index].tax_percent)
+      : Number(formData.tax_rate || 0);
+
+    if (isInclusive) {
+      if (taxRate > 0) {
+        net = Math.round((taxable / (1 + taxRate / 100)) * 100) / 100;
+        itemTax = Math.round((taxable - net) * 100) / 100;
+      }
+      lineTotal = taxable;
     } else {
-      const taxPct = Number(updated[index].tax_percent) || 0;
-      itemTax = taxable * (taxPct / 100);
+      if (taxRate > 0) {
+        itemTax = Math.round((taxable * (taxRate / 100)) * 100) / 100;
+        lineTotal = Math.round((taxable + itemTax) * 100) / 100;
+      } else {
+        itemTax = 0;
+        lineTotal = taxable;
+      }
+      net = taxable;
     }
 
     updated[index].tax_amount = itemTax;
-    updated[index].line_total = taxable + itemTax;
+    updated[index].line_total = lineTotal;
 
     setItems(updated);
   };
 
   const addItem = () => {
+    const isInclusive = String(formData.tax_mode || "EXCLUSIVE").toUpperCase() === "INCLUSIVE";
     setItems((prev) => [
       ...prev,
       {
@@ -909,8 +959,10 @@ export default function PurchaseOrdersLocalForm() {
         uom: "",
         unit_price: 0,
         discount_percent: 0,
-        tax_code_id: taxes.length > 0 ? String(taxes[0].id) : "",
-        tax_percent: taxes.length > 0 ? Number(taxes[0].rate_percent) : 0,
+        tax_mode: formData.tax_mode || "EXCLUSIVE",
+        tax_code_id: formData.tax_code_id || "",
+        tax_percent: formData.tax_rate || 0,
+        tax_amount: 0,
         line_total: 0,
       },
     ]);
@@ -1756,13 +1808,24 @@ export default function PurchaseOrdersLocalForm() {
                   <div className="text-lg font-semibold text-[#0E3646]">
                     📦 Order Items
                   </div>
-                  <button
-                    type="button"
-                    onClick={addItem}
-                    className="px-4 py-2 bg-[#0E3646] text-white rounded hover:bg-[#082330] transition-all text-sm font-medium flex items-center gap-2"
-                  >
-                    ➕ Add Item
-                  </button>
+                  <div className="flex items-center gap-4">
+                    <TaxModeRadioSelector
+                      taxMode={formData.tax_mode || "EXCLUSIVE"}
+                      onModeChange={handleTaxModeChange}
+                      onOpenTaxModal={() => setTaxModalOpen(true)}
+                      selectedTaxLabel={formData.tax_component_name}
+                      openAlert={showTaxModeAlert}
+                      onCloseAlert={() => setShowTaxModeAlert(false)}
+                      anchorSelector="#po-local-item-search-0"
+                    />
+                    <button
+                      type="button"
+                      onClick={addItem}
+                      className="px-4 py-2 bg-[#0E3646] text-white rounded hover:bg-[#082330] transition-all text-sm font-medium flex items-center gap-2"
+                    >
+                      ➕ Add Item
+                    </button>
+                  </div>
                 </div>
 
                 <div className="overflow-x-auto">
@@ -1819,6 +1882,18 @@ export default function PurchaseOrdersLocalForm() {
                                 <div className="relative">
                                   <input
                                     id={`po-local-item-search-${idx}`} autoComplete="off"
+                                    onFocus={() => {
+                                      if (!hasPromptedTaxMode) {
+                                        setShowTaxModeAlert(true);
+                                        setHasPromptedTaxMode(true);
+                                      }
+                                    }}
+                                    onClick={() => {
+                                      if (!hasPromptedTaxMode) {
+                                        setShowTaxModeAlert(true);
+                                        setHasPromptedTaxMode(true);
+                                      }
+                                    }}
                                     className="w-full p-2 border border-[#dee2e6] rounded text-sm focus:outline-none focus:border-[#0E3646]"
                                           placeholder="Scan barcode or type item name"
                                           value={itemQueries[idx] || ""}
@@ -2049,32 +2124,31 @@ export default function PurchaseOrdersLocalForm() {
                                 </div>
                               </td>
                               <td className="p-3">
-                                <select
-                                  value={row.tax_code_id}
-                                  onChange={(e) =>
-                                    handleItemChange(
-                                      idx,
-                                      "tax_code_id",
-                                      e.target.value,
-                                    )
-                                  }
-                                  className="w-full p-2 border border-[#dee2e6] rounded text-sm text-left focus:outline-none focus:border-[#0E3646]"
+                                <button
+                                  type="button"
+                                  onClick={() => setTaxModalOpen(true)}
+                                  className="w-full text-left p-1.5 border border-[#dee2e6] rounded text-xs bg-white hover:bg-slate-50 flex items-center justify-between"
                                 >
-                                  <option value="">No Tax</option>
-                                  {taxes.map((t) => (
-                                    <option key={t.id} value={t.id}>
-                                      {t.name}
-                                    </option>
-                                  ))}
-                                </select>
+                                  <span className="truncate">
+                                    {formData.tax_component_name || (row.tax_percent ? `Tax (${row.tax_percent}%)` : "Select Tax")}
+                                  </span>
+                                  <span className="text-blue-600 font-semibold ml-1">Edit</span>
+                                </button>
                               </td>
                               <td className="p-3 text-right text-sm text-slate-500">
-                                {Number(row.tax_amount || 0).toLocaleString(
-                                  undefined,
-                                  {
-                                    minimumFractionDigits: 2,
-                                    maximumFractionDigits: 2,
-                                  },
+                                <div>
+                                  {Number(row.tax_amount || 0).toLocaleString(
+                                    undefined,
+                                    {
+                                      minimumFractionDigits: 2,
+                                      maximumFractionDigits: 2,
+                                    },
+                                  )}
+                                </div>
+                                {Number(row.tax_percent || 0) > 0 && (
+                                  <span className="inline-block px-1.5 py-0.5 text-[10px] bg-blue-50 text-blue-700 rounded font-medium mt-0.5">
+                                    {row.tax_percent}%
+                                  </span>
                                 )}
                               </td>
                               <td className="p-3 text-right font-medium text-sm">
@@ -2212,6 +2286,21 @@ export default function PurchaseOrdersLocalForm() {
                   ) : null}
                 </div>
               </div>
+            </div>
+
+            {/* Remarks / Notes */}
+            <div className="mb-6">
+              <label className="label font-semibold text-[#0E3646] mb-2 block">
+                Remarks / Notes
+              </label>
+              <textarea
+                name="remarks"
+                value={formData.remarks || ""}
+                onChange={handleInputChange}
+                rows="3"
+                className="p-3 border border-[#dee2e6] rounded-md text-sm w-full focus:outline-none focus:border-[#0E3646] focus:ring-2 focus:ring-[#0E3646]/10"
+                placeholder="Enter remarks or notes..."
+              />
             </div>
 
             {/* Terms & Conditions */}
@@ -2396,6 +2485,70 @@ export default function PurchaseOrdersLocalForm() {
           </div>
         </div>
       )}
+      <TaxPricingModal
+        open={taxModalOpen}
+        form="LOCAL_PURCHASE_ORDER"
+        pageId={5}
+        onClose={() => setTaxModalOpen(false)}
+        taxMode={formData.tax_mode || "EXCLUSIVE"}
+        price={0}
+        selectedComponent={{
+          name: formData.tax_component_name,
+          rate: formData.tax_rate,
+          id: formData.tax_code_id,
+        }}
+        onSelectComponent={(comp) => {
+          const compLabel = `${comp.name}${comp.rate !== undefined ? ` (${comp.rate}%)` : ""}`;
+          const taxCodeId = comp.taxCodeId || comp.originalId || comp.id;
+          const taxRate = comp.rate;
+          const currentMode = formData.tax_mode || "EXCLUSIVE";
+          const isInclusive = currentMode === "INCLUSIVE";
+
+          setFormData((prev) => ({
+            ...prev,
+            tax_mode: currentMode,
+            tax_code_id: taxCodeId || prev.tax_code_id,
+            tax_rate: taxRate,
+            tax_component_name: compLabel,
+          }));
+
+          setItems((prev) =>
+            prev.map((it) => {
+              const qty = Number(it.qty) || 0;
+              const price = Number(it.unit_price) || 0;
+              const discPct = Number(it.discount_percent) || 0;
+              const base = qty * price;
+              const disc = base * (discPct / 100);
+              const taxable = Math.max(0, base - disc);
+              let net = taxable;
+              let taxAmt = 0;
+              let lineTot = taxable;
+              if (isInclusive) {
+                net = taxRate > 0 ? Math.round((taxable / (1 + taxRate / 100)) * 100) / 100 : taxable;
+                taxAmt = Math.round((taxable - net) * 100) / 100;
+                lineTot = taxable;
+              } else {
+                taxAmt = taxRate > 0 ? Math.round((taxable * (taxRate / 100)) * 100) / 100 : 0;
+                lineTot = Math.round((taxable + taxAmt) * 100) / 100;
+              }
+
+              return {
+                ...it,
+                tax_mode: currentMode,
+                tax_code_id: taxCodeId || it.tax_code_id,
+                tax_percent: taxRate,
+                tax_amount: taxAmt,
+                line_total: lineTot,
+              };
+            }),
+          );
+
+          if (taxCodeId) {
+            fetchTaxComponentsForCode(taxCodeId);
+          }
+          setTaxModalOpen(false);
+        }}
+      />
       <UnitConversionModal
         open={convModal.open}
         itemId={convModal.itemId}

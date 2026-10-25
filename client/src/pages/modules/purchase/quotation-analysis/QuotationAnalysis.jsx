@@ -212,8 +212,8 @@ export default function QuotationAnalysis() {
             color: white;
         }
 
-        .btn-secondary {
-            background: #6c757d;
+        .quotation-analysis-container .btn-secondary {
+            background: #0E3646;
             color: white;
         }
 

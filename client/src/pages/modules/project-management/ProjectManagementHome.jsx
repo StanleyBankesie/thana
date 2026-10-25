@@ -12,6 +12,7 @@ import { api } from "../../../api/client.js";
 import ProjectList from "./projects/ProjectList.jsx";
 import ProjectForm from "./projects/ProjectForm.jsx";
 import ProjectDetailDashboard from "./projects/ProjectDetailDashboard.jsx";
+import ProjectMilestonesTimeline from "./projects/ProjectMilestonesTimeline.jsx";
 import TaskList from "./tasks/TaskList.jsx";
 import TaskForm from "./tasks/TaskForm.jsx";
 import TaskExecution from "./tasks/TaskExecution.jsx";
@@ -36,6 +37,7 @@ import ProjectExpenseReport from "./reports/ProjectExpenseReport.jsx";
 import TaskExecutionReportPage from "./reports/TaskExecutionReportPage.jsx";
 import TaskManagementAndExecutionPage from "./reports/TaskManagementAndExecutionPage.jsx";
 import ProjectManagementDashboardPage from "./ProjectManagementDashboardPage.jsx";
+import ResourceManagement from "./resources/ResourceManagement.jsx";
 import ProjectQuotationList from "./quotations/ProjectQuotationList.jsx";
 import ProjectQuotationForm from "./quotations/ProjectQuotationForm.jsx";
 import ProjectInvoiceList from "./project-invoices/ProjectInvoiceList.jsx";
@@ -48,6 +50,7 @@ import DailySiteReportList from "./construction/DailySiteReportList.jsx";
 import DailySiteReportForm from "./construction/DailySiteReportForm.jsx";
 import SubcontractorManager from "./construction/SubcontractorManager.jsx";
 import ClientValuationList from "./construction/ClientValuationList.jsx";
+import PaymentApplicationList from "./construction/PaymentApplicationList.jsx";
 import VariationRegister from "./construction/VariationRegister.jsx";
 import QualityControlPage from "./construction/QualityControlPage.jsx";
 import SafetyManagementPage from "./construction/SafetyManagementPage.jsx";
@@ -80,12 +83,12 @@ export const projectManagementSections = [
         icon: "📜",
       },
       {
-        title: "Setup & WBS",
+        title: "Operations Setup",
         path: "/project-management/setup",
         actions: [
           { label: "View", path: "/project-management/setup", type: "outline" }
         ],
-        description: "Project categories, types, and WBS templates",
+        description: "Project categories, types, and operations setup",
         icon: "⚙️",
       },
       {
@@ -93,7 +96,7 @@ export const projectManagementSections = [
         path: "/project-management/milestones",
         actions: [
           { label: "View", path: "/project-management/milestones", type: "outline" },
-          { label: "New", path: "/project-management/milestones/new", type: "primary" }
+          { label: "New", path: "/project-management/tasks/new", type: "primary" }
         ],
         description: "Track key project events and deadlines",
         icon: "🎯",
@@ -328,12 +331,21 @@ export const projectManagementSections = [
     badge: "Billing",
     items: [
       {
-        title: "Client Valuations (IPAs)",
+        title: "Client Valuations",
         path: "/project-management/client-valuations",
         actions: [
           { label: "View", path: "/project-management/client-valuations", type: "outline" },
         ],
-        description: "Measured interim payment claims, retention, and advance recovery",
+        description: "Physical work measurement, BOQ items, variations, and assessed value",
+        icon: "📐",
+      },
+      {
+        title: "Interim Payment Applications (IPAs)",
+        path: "/project-management/payment-applications",
+        actions: [
+          { label: "View", path: "/project-management/payment-applications", type: "outline" },
+        ],
+        description: "Formal payment applications, certifications, deductions, and payment tracking",
         icon: "📑",
       },
       {
@@ -540,7 +552,46 @@ function ProjectManagementLanding() {
  */
 export default function ProjectManagementHome() {
   return (
-    <ModuleLayout
+    <div className="pm-module-scope w-full">
+      <style>{`
+        /* Scoped strictly to the Project Management module */
+        .pm-module-scope div[class*="bg-slate-50"],
+        .pm-module-scope div[class*="bg-slate-100"],
+        .pm-module-scope div[class*="bg-gray-50"],
+        .pm-module-scope div[class*="bg-gray-100"],
+        .pm-module-scope section[class*="bg-slate-50"],
+        .pm-module-scope section[class*="bg-slate-100"],
+        .pm-module-scope form[class*="bg-slate-50"],
+        .pm-module-scope form[class*="bg-slate-100"],
+        .pm-module-scope [class*="bg-slate-850"] {
+          background-color: #ffffff;
+        }
+
+        :is(.dark) .pm-module-scope div[class*="bg-slate-50"],
+        :is(.dark) .pm-module-scope div[class*="bg-slate-100"],
+        :is(.dark) .pm-module-scope div[class*="bg-gray-50"],
+        :is(.dark) .pm-module-scope div[class*="bg-gray-100"],
+        :is(.dark) .pm-module-scope section[class*="bg-slate-50"],
+        :is(.dark) .pm-module-scope section[class*="bg-slate-100"],
+        :is(.dark) .pm-module-scope form[class*="bg-slate-50"],
+        :is(.dark) .pm-module-scope form[class*="bg-slate-100"],
+        :is(.dark) .pm-module-scope [class*="bg-slate-850"] {
+          background-color: #0f172a;
+        }
+
+        /* Strictly ensure table headings preserve their distinct background across the module */
+        .pm-module-scope thead,
+        .pm-module-scope thead tr,
+        .pm-module-scope thead th {
+          background-color: #f8fafc !important;
+        }
+        :is(.dark) .pm-module-scope thead,
+        :is(.dark) .pm-module-scope thead tr,
+        :is(.dark) .pm-module-scope thead th {
+          background-color: rgba(30, 41, 59, 0.7) !important;
+        }
+      `}</style>
+      <ModuleLayout
       sections={projectManagementSections}
       moduleKey="project-management"
     >
@@ -563,9 +614,23 @@ export default function ProjectManagementHome() {
         <Route path="/tasks/:id" element={<TaskForm />} />
 
         <Route path="/expenses" element={<ExpenseList />} />
+        <Route path="/expenses/new" element={<ExpenseList />} />
         <Route path="/income" element={<ProjectIncomeList />} />
+        <Route path="/income/new" element={<ProjectIncomeList />} />
 
         <Route path="/reports" element={<ProjectReports />} />
+        <Route
+          path="/reports/task-management"
+          element={<TaskExecutionReportPage />}
+        />
+        <Route
+          path="/reports/task-management-execution"
+          element={<TaskExecutionReportPage />}
+        />
+        <Route
+          path="/reports/task-management-and-execution"
+          element={<TaskExecutionReportPage />}
+        />
         <Route
           path="/reports/task-execution"
           element={<TaskExecutionReportPage />}
@@ -581,10 +646,6 @@ export default function ProjectManagementHome() {
         <Route
           path="/reports/project-expense"
           element={<ProjectExpenseReport />}
-        />
-        <Route
-          path="/reports/task-management-and-execution"
-          element={<TaskManagementAndExecutionPage />}
         />
 
         <Route path="/setup" element={<PMSetup />} />
@@ -640,9 +701,12 @@ export default function ProjectManagementHome() {
           element={<ProjectInvoiceForm />}
         />
 
-        <Route path="/milestones" element={<ProjectManagementDashboardPage />} />
-        <Route path="/resources" element={<ProjectManagementDashboardPage />} />
+        <Route path="/milestones" element={<ProjectMilestonesTimeline />} />
+        <Route path="/milestones/new" element={<TaskForm />} />
+        <Route path="/resources" element={<ResourceManagement />} />
+        <Route path="/resources/new" element={<ResourceManagement />} />
         <Route path="/timesheets" element={<TimesheetList />} />
+        <Route path="/timesheets/new" element={<TimesheetList />} />
         <Route path="/income" element={<ProjectIncomeList />} />
 
         <Route
@@ -657,6 +721,10 @@ export default function ProjectManagementHome() {
           path="/purchase-requisitions/:id"
           element={<PMPurchaseRequisitionForm />}
         />
+        <Route
+          path="/purchase-requisitions/:id/edit"
+          element={<PMPurchaseRequisitionForm />}
+        />
         {/* Construction Management Module Routes */}
         <Route path="/boqs" element={<BOQManager />} />
         <Route path="/cost-control" element={<CostControlDashboard />} />
@@ -666,6 +734,7 @@ export default function ProjectManagementHome() {
         <Route path="/daily-reports/:id" element={<DailySiteReportForm />} />
         <Route path="/subcontracts" element={<SubcontractorManager />} />
         <Route path="/client-valuations" element={<ClientValuationList />} />
+        <Route path="/payment-applications" element={<PaymentApplicationList />} />
         <Route path="/variations" element={<VariationRegister />} />
         <Route path="/quality-control" element={<QualityControlPage />} />
         <Route path="/safety" element={<SafetyManagementPage />} />
@@ -674,6 +743,7 @@ export default function ProjectManagementHome() {
         <Route path="/equipment-logs" element={<EquipmentLogsPage />} />
       </Routes>
     </ModuleLayout>
+    </div>
   );
 }
 
@@ -720,7 +790,7 @@ export const projectManagementFeatures = [
   },
   {
     module_key: "project-management",
-    label: "Project Setup",
+    label: "Operations Setup",
     path: "/project-management/setup",
         actions: [
           { label: "View", path: "/project-management/setup", type: "outline" }
@@ -783,7 +853,7 @@ export const projectManagementFeatures = [
     path: "/project-management/milestones",
         actions: [
           { label: "View", path: "/project-management/milestones", type: "outline" },
-          { label: "New", path: "/project-management/milestones/new", type: "primary" }
+          { label: "New", path: "/project-management/tasks/new", type: "primary" }
         ],
     type: "feature",
   },
@@ -923,9 +993,16 @@ export const projectManagementFeatures = [
   },
   {
     module_key: "project-management",
-    label: "Client Valuations (IPAs)",
+    label: "Client Valuations",
     path: "/project-management/client-valuations",
     actions: [{ label: "View", path: "/project-management/client-valuations", type: "outline" }],
+    type: "feature",
+  },
+  {
+    module_key: "project-management",
+    label: "Interim Payment Applications (IPAs)",
+    path: "/project-management/payment-applications",
+    actions: [{ label: "View", path: "/project-management/payment-applications", type: "outline" }],
     type: "feature",
   },
   {

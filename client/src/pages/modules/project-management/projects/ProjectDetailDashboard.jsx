@@ -10,7 +10,7 @@ import { api } from "../../../../api/client.js";
 import { toast } from "react-toastify";
 
 const statusBadge = (status) => {
-  const m = { PLANNING: "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300", IN_PROGRESS: "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300", ON_HOLD: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300", COMPLETED: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300", CANCELLED: "bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300" };
+  const m = { PLANNING: "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300", IN_PROGRESS: "bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300 border border-blue-200 dark:border-blue-800", ON_HOLD: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300", COMPLETED: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300", CANCELLED: "bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300" };
   return <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${m[status] || m.PLANNING}`}>{status}</span>;
 };
 
@@ -110,7 +110,7 @@ export default function ProjectDetailDashboard() {
           <div className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider font-semibold mt-1">Blocked</div>
         </div>
         <div className="card p-4 text-center">
-          <div className="flex items-center justify-center w-10 h-10 mx-auto rounded-xl bg-slate-50 dark:bg-slate-900 text-slate-600 dark:text-slate-400 mb-2"><Layout size={20} /></div>
+          <div className="flex items-center justify-center w-10 h-10 mx-auto rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 mb-2"><Layout size={20} /></div>
           <div className="text-2xl font-bold text-slate-900 dark:text-white">{taskSummary.pending}</div>
           <div className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider font-semibold mt-1">Pending</div>
         </div>
@@ -124,15 +124,15 @@ export default function ProjectDetailDashboard() {
           </div>
           <BudgetBar budget={Number(project.budget || 0)} spent={totalSpent} />
           <div className="grid grid-cols-3 gap-4 pt-2">
-            <div className="p-3 bg-slate-50 dark:bg-slate-900 rounded-xl text-center">
+            <div className="p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-center shadow-sm">
               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Expenses</p>
               <p className="text-lg font-bold text-slate-900 dark:text-white">GHS {Number(totalExpenses).toLocaleString()}</p>
             </div>
-            <div className="p-3 bg-slate-50 dark:bg-slate-900 rounded-xl text-center">
+            <div className="p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-center shadow-sm">
               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Labor (@50/hr)</p>
               <p className="text-lg font-bold text-slate-900 dark:text-white">GHS {Number(totalLaborCost).toLocaleString()}</p>
             </div>
-            <div className="p-3 bg-slate-50 dark:bg-slate-900 rounded-xl text-center">
+            <div className="p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-center shadow-sm">
               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Remaining</p>
               <p className={`text-lg font-bold ${remaining > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>GHS {Number(remaining).toLocaleString()}</p>
             </div>

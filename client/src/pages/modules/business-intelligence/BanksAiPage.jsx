@@ -5,8 +5,11 @@
 
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import {
-  Send, Sparkles, RefreshCw, CheckCircle, Copy, Check, Database, Trash2, AlertTriangle, Plus
+  Send, Sparkles, RefreshCw, CheckCircle, Copy, Check, Database, Trash2, AlertTriangle, Plus,
+  Mic, MicOff, Volume2, VolumeX, Headphones
 } from "lucide-react";
+import { useSpeech } from "../../../components/ai/useSpeech.js";
+import VoiceVisualizer from "../../../components/ai/VoiceVisualizer.jsx";
 import { toast } from "react-toastify";
 import banksIcon from "../../../assets/banks_ai_icon.png";
 import { api } from "../../../api/client.js";
@@ -122,6 +125,42 @@ export default function BanksAiPage() {
     deleteChatHistory,
     startNewChat,
   } = useBanksChat();
+
+  const {
+    isListening,
+    isSpeaking,
+    speakingId,
+    isVoiceMode,
+    speechError,
+    audioLevel,
+    isTranscribing,
+    activeEngine,
+    startListening,
+    stopListening,
+    toggleListening,
+    speak,
+    stopSpeaking,
+    toggleSpeak,
+    toggleVoiceMode,
+  } = useSpeech({
+    onAutoSend: (spokenText) => {
+      if (spokenText && spokenText.trim()) {
+        sendMessage(spokenText, activeModel);
+      }
+    },
+  });
+
+  // Auto-speak in continuous Voice Mode
+  const prevMsgCountRef = useRef(messages.length);
+  useEffect(() => {
+    if (isVoiceMode && messages.length > prevMsgCountRef.current) {
+      const lastMsg = messages[messages.length - 1];
+      if (lastMsg && lastMsg.role === "assistant" && lastMsg.content) {
+        speak(lastMsg.content, messages.length - 1);
+      }
+    }
+    prevMsgCountRef.current = messages.length;
+  }, [messages, isVoiceMode, speak]);
 
   const [activeModel, setActiveModel] = useState("openai/gpt-oss-120b");
   const [copiedIdx, setCopiedIdx] = useState(null);
@@ -298,13 +337,67 @@ export default function BanksAiPage() {
                 <span className="text-xs font-bold text-slate-800 dark:text-white">Banks AI</span>
               </div>
             </div>
-            <button
-              onClick={() => setMessages([{ role: "assistant", content: "Conversation reset. How can I help you today?" }])}
-              className="text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 flex items-center gap-1"
-            >
-              <RefreshCw size={12} /> Clear
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() =>
+                  toggleVoiceMode(
+                    (interim) => setInput(interim),
+                    (final) => setInput(final)
+                  )
+                }
+                title={isVoiceMode ? "Disable Voice Mode (Speech-to-Speech)" : "Enable Voice Mode (Speech-to-Speech Continuous Conversation)"}
+                className={`px-2.5 py-1 rounded-lg transition-all flex items-center gap-1.5 text-xs font-semibold shadow-sm active:scale-95 ${
+                  isVoiceMode
+                    ? "bg-emerald-500 text-white animate-pulse"
+                    : "bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-100 border border-slate-200 dark:border-slate-700"
+                }`}
+              >
+                <Headphones size={13} />
+                <span>{isVoiceMode ? "Voice Mode ON" : "Voice Mode"}</span>
+              </button>
+              <button
+                onClick={() => setMessages([{ role: "assistant", content: "Conversation reset. How can I help you today?" }])}
+                className="text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 flex items-center gap-1 px-2 py-1"
+              >
+                <RefreshCw size={12} /> Clear
+              </button>
+            </div>
           </div>
+
+          {/* Live Speaking Status */}
+          {isSpeaking && (
+            <div className="bg-emerald-50 dark:bg-emerald-950/70 border-b border-emerald-200 dark:border-emerald-900/60 px-5 py-2 flex items-center justify-between text-xs text-emerald-800 dark:text-emerald-200 animate-fadeIn">
+              <span className="flex items-center gap-2 font-medium">
+                <Volume2 size={14} className="text-emerald-600 dark:text-emerald-400 animate-bounce" />
+                <span>Banks is speaking...</span>
+              </span>
+              <button
+                type="button"
+                onClick={stopSpeaking}
+                className="px-2 py-0.5 rounded text-[11px] font-semibold bg-emerald-200 dark:bg-emerald-800 text-emerald-900 dark:text-emerald-100 hover:bg-emerald-300 transition-colors"
+              >
+                Stop Audio
+              </button>
+            </div>
+          )}
+
+          {/* Live Microphone Status */}
+          {isListening && (
+            <div className="bg-rose-50 dark:bg-rose-950/70 border-b border-rose-200 dark:border-rose-900/60 px-5 py-2 flex items-center justify-between text-xs text-rose-800 dark:text-rose-200 animate-pulse">
+              <span className="flex items-center gap-2 font-medium">
+                <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping" />
+                <span>Listening... speak into your microphone</span>
+              </span>
+              <button
+                type="button"
+                onClick={stopListening}
+                className="px-2 py-0.5 rounded text-[11px] font-semibold bg-rose-200 dark:bg-rose-800 text-rose-900 dark:text-rose-100 hover:bg-rose-300 transition-colors"
+              >
+                Stop Mic
+              </button>
+            </div>
+          )}
 
           {/* Messages */}
           <div className="flex-1 overflow-y-auto p-5 space-y-4 bg-slate-50/40 dark:bg-slate-950/40">
@@ -355,13 +448,26 @@ export default function BanksAiPage() {
                   )}
 
                   {msg.role === "assistant" && (
-                    <button
-                      onClick={() => handleCopy(msg.content, idx)}
-                      className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
-                      title="Copy Answer"
-                    >
-                      {copiedIdx === idx ? <Check size={13} className="text-secondary" /> : <Copy size={13} />}
-                    </button>
+                    <div className="absolute top-2 right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button
+                        type="button"
+                        onClick={() => toggleSpeak(msg.content, idx)}
+                        className={`p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors ${
+                          isSpeaking && speakingId === idx ? "text-emerald-600 dark:text-emerald-400 font-bold" : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                        }`}
+                        title={isSpeaking && speakingId === idx ? "Stop Audio" : "Read Aloud (Speech-to-Speech)"}
+                      >
+                        {isSpeaking && speakingId === idx ? <VolumeX size={13} /> : <Volume2 size={13} />}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleCopy(msg.content, idx)}
+                        className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                        title="Copy Answer"
+                      >
+                        {copiedIdx === idx ? <Check size={13} className="text-secondary" /> : <Copy size={13} />}
+                      </button>
+                    </div>
                   )}
                 </div>
               </div>
@@ -384,6 +490,21 @@ export default function BanksAiPage() {
 
           {/* Prompt input */}
           <div className="p-4 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800">
+            {/* Live Audio Visualizer & Level Indicator */}
+            <VoiceVisualizer
+              isListening={isListening}
+              isSpeaking={isSpeaking}
+              isTranscribing={isTranscribing}
+              audioLevel={audioLevel}
+              activeEngine={activeEngine}
+              onStopAndSend={() => {
+                stopListening(true);
+                if (input.trim()) {
+                  handleSend();
+                }
+              }}
+            />
+
             <form
               onSubmit={(e) => {
                 e.preventDefault();
@@ -395,10 +516,45 @@ export default function BanksAiPage() {
                 type="text"
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                placeholder="Ask Banks anything about your ERP data, analytics, or workflows..."
-                className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500"
+                placeholder={isListening ? "Listening... speak now..." : "Ask Banks anything about your ERP data, analytics, or workflows..."}
+                className={`w-full bg-white dark:bg-slate-900 border rounded-xl px-4 py-3 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-all ${
+                  isListening ? "border-rose-500 ring-1 ring-rose-500" : "border-slate-200 dark:border-slate-700"
+                }`}
                 disabled={loading}
               />
+              {/* Voice Input (Speech-to-Text) Button */}
+              <button
+                type="button"
+                onClick={() => {
+                  if (isListening) {
+                    stopListening(true);
+                    if (input.trim()) {
+                      handleSend();
+                    }
+                  } else {
+                    toggleListening(
+                      (interim) => setInput(interim),
+                      (final) => setInput(final)
+                    );
+                  }
+                }}
+                disabled={loading}
+                className={`p-3 rounded-xl transition-all flex items-center justify-center flex-shrink-0 shadow-sm ${
+                  isListening
+                    ? "bg-rose-600 text-white animate-pulse shadow-md scale-105 ring-2 ring-rose-400"
+                    : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 active:scale-95"
+                }`}
+                title={isListening ? "Finish & Send (or click to stop)" : "Voice Input (Speech-to-Text)"}
+              >
+                {isListening ? (
+                  <div className="flex items-center gap-1">
+                    <MicOff size={18} />
+                    {audioLevel > 15 && <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping" />}
+                  </div>
+                ) : (
+                  <Mic size={18} />
+                )}
+              </button>
               <button
                 type="submit"
                 disabled={loading || !input.trim()}

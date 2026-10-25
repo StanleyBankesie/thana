@@ -19,6 +19,7 @@ import { usePermission } from "@/auth/PermissionContext.jsx";
  * @returns {JSX.Element} The rendered component
  */
 export default function RequestForQuotationForm() {
+  const { hasExceptional = () => false } = usePermission();
   // Form State
   const [formData, setFormData] = useState({
     rfq_no: "",

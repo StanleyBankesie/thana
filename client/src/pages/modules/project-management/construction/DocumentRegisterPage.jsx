@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { api } from "../../../../api/client.js";
 import { toast } from "react-toastify";
+import ProjectModal from "../components/ProjectModal.jsx";
 
 export default function DocumentRegisterPage() {
   const [activeTab, setActiveTab] = useState("documents"); // 'documents' | 'rfis'
@@ -241,7 +242,8 @@ export default function DocumentRegisterPage() {
       {/* TAB 1: Documents */}
       {activeTab === "documents" && (
         <div className="card overflow-hidden">
-          <table className="w-full text-left text-xs">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs">
             <thead className="bg-slate-100 dark:bg-slate-900 font-bold uppercase text-slate-600 dark:text-slate-300">
               <tr>
                 <th className="p-3">Drawing #</th>
@@ -289,13 +291,15 @@ export default function DocumentRegisterPage() {
               )}
             </tbody>
           </table>
+          </div>
         </div>
       )}
 
       {/* TAB 2: RFIs */}
       {activeTab === "rfis" && (
         <div className="card overflow-hidden">
-          <table className="w-full text-left text-xs">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs">
             <thead className="bg-slate-100 dark:bg-slate-900 font-bold uppercase text-slate-600 dark:text-slate-300">
               <tr>
                 <th className="p-3">RFI #</th>
@@ -360,238 +364,229 @@ export default function DocumentRegisterPage() {
               )}
             </tbody>
           </table>
+          </div>
         </div>
       )}
 
       {/* Modal: Register Drawing */}
-      {showDocModal && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="card max-w-md w-full p-6 space-y-4 animate-in fade-in zoom-in-95 duration-200">
-            <div className="flex justify-between items-center border-b pb-2">
-              <h3 className="font-bold text-lg text-slate-900 dark:text-white flex items-center gap-2">
-                <FileCode size={18} className="text-brand-600" /> Register Technical Drawing
-              </h3>
-              <button onClick={() => setShowDocModal(false)} className="text-slate-400 hover:text-slate-600">
-                <X size={20} />
-              </button>
+      <ProjectModal
+        open={showDocModal}
+        onClose={() => setShowDocModal(false)}
+        title="Register Technical Drawing"
+        subtitle="Add a new engineering, architectural, or MEP drawing revision"
+        icon={FileCode}
+        onSubmit={handleCreateDocument}
+        submitLabel="Save Drawing"
+      >
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                Drawing Number <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                required
+                placeholder="e.g. AR-101-PLN"
+                className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500 font-mono"
+                value={docForm.document_number}
+                onChange={e => setDocForm({ ...docForm, document_number: e.target.value })}
+              />
             </div>
-            <form onSubmit={handleCreateDocument} className="space-y-3">
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-500 uppercase">Drawing Number</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. AR-101-PLN"
-                  className="w-full px-3 py-1.5 border rounded-lg text-sm bg-white dark:bg-slate-900 font-mono"
-                  value={docForm.document_number}
-                  onChange={e => setDocForm({ ...docForm, document_number: e.target.value })}
-                />
-              </div>
+            <div>
+              <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                Revision No. <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                required
+                placeholder="0"
+                className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500 font-mono"
+                value={docForm.current_revision}
+                onChange={e => setDocForm({ ...docForm, current_revision: e.target.value })}
+              />
+            </div>
+          </div>
 
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-500 uppercase">Drawing Title</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Ground Floor GA Layout"
-                  className="w-full px-3 py-1.5 border rounded-lg text-sm bg-white dark:bg-slate-900"
-                  value={docForm.title}
-                  onChange={e => setDocForm({ ...docForm, title: e.target.value })}
-                />
-              </div>
+          <div>
+            <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">
+              Drawing Title <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              required
+              placeholder="e.g. Ground Floor GA Layout"
+              className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500"
+              value={docForm.title}
+              onChange={e => setDocForm({ ...docForm, title: e.target.value })}
+            />
+          </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-500 uppercase">Discipline</label>
-                  <select
-                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-white dark:bg-slate-900"
-                    value={docForm.discipline}
-                    onChange={e => setDocForm({ ...docForm, discipline: e.target.value })}
-                  >
-                    <option value="ARCHITECTURAL">Architectural</option>
-                    <option value="STRUCTURAL">Structural</option>
-                    <option value="ELECTRICAL">Electrical</option>
-                    <option value="MECHANICAL">Mechanical / HVAC</option>
-                    <option value="PLUMBING">Plumbing & Drainage</option>
-                    <option value="CIVIL">Civil Infrastructure</option>
-                    <option value="AS_BUILT">As-Built Record</option>
-                  </select>
-                </div>
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-500 uppercase">Revision No.</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="0"
-                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-white dark:bg-slate-900 font-mono"
-                    value={docForm.current_revision}
-                    onChange={e => setDocForm({ ...docForm, current_revision: e.target.value })}
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-500 uppercase">File URL / Storage Link</label>
-                <input
-                  type="text"
-                  placeholder="https://..."
-                  className="w-full px-3 py-1.5 border rounded-lg text-sm bg-white dark:bg-slate-900"
-                  value={docForm.file_url}
-                  onChange={e => setDocForm({ ...docForm, file_url: e.target.value })}
-                />
-              </div>
-
-              <div className="flex justify-end gap-2 pt-2 border-t">
-                <button type="button" onClick={() => setShowDocModal(false)} className="btn btn-secondary text-xs">
-                  Cancel
-                </button>
-                <button type="submit" className="btn-success text-xs font-bold">
-                  Save Drawing
-                </button>
-              </div>
-            </form>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                Discipline <span className="text-red-500">*</span>
+              </label>
+              <select
+                className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500"
+                value={docForm.discipline}
+                onChange={e => setDocForm({ ...docForm, discipline: e.target.value })}
+              >
+                <option value="ARCHITECTURAL">Architectural</option>
+                <option value="STRUCTURAL">Structural</option>
+                <option value="ELECTRICAL">Electrical</option>
+                <option value="MECHANICAL">Mechanical / HVAC</option>
+                <option value="PLUMBING">Plumbing & Drainage</option>
+                <option value="CIVIL">Civil Infrastructure</option>
+                <option value="AS_BUILT">As-Built Record</option>
+              </select>
+            </div>
+            <div>
+              <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                File URL / Storage Link
+              </label>
+              <input
+                type="text"
+                placeholder="https://..."
+                className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500"
+                value={docForm.file_url}
+                onChange={e => setDocForm({ ...docForm, file_url: e.target.value })}
+              />
+            </div>
           </div>
         </div>
-      )}
+      </ProjectModal>
 
       {/* Modal: Raise RFI */}
-      {showRFIModal && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="card max-w-lg w-full p-6 space-y-4 animate-in fade-in zoom-in-95 duration-200">
-            <div className="flex justify-between items-center border-b pb-2">
-              <h3 className="font-bold text-lg text-slate-900 dark:text-white flex items-center gap-2">
-                <HelpCircle size={18} className="text-brand-600" /> Raise Request for Information (RFI)
-              </h3>
-              <button onClick={() => setShowRFIModal(false)} className="text-slate-400 hover:text-slate-600">
-                <X size={20} />
-              </button>
+      <ProjectModal
+        open={showRFIModal}
+        onClose={() => setShowRFIModal(false)}
+        title="Raise Request for Information (RFI)"
+        subtitle="Submit technical query or request clarification from the consulting engineer"
+        icon={HelpCircle}
+        onSubmit={handleCreateRFI}
+        submitLabel="Submit RFI"
+      >
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                RFI Number <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                required
+                className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500 font-mono"
+                value={rfiForm.rfi_number}
+                onChange={e => setRfiForm({ ...rfiForm, rfi_number: e.target.value })}
+              />
             </div>
-            <form onSubmit={handleCreateRFI} className="space-y-3">
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-500 uppercase">RFI Number</label>
-                  <input
-                    type="text"
-                    required
-                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-white dark:bg-slate-900 font-mono"
-                    value={rfiForm.rfi_number}
-                    onChange={e => setRfiForm({ ...rfiForm, rfi_number: e.target.value })}
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-500 uppercase">Drawing Ref</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. ST-201 / Detail 4"
-                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-white dark:bg-slate-900"
-                    value={rfiForm.drawing_reference}
-                    onChange={e => setRfiForm({ ...rfiForm, drawing_reference: e.target.value })}
-                  />
-                </div>
-              </div>
+            <div>
+              <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                Drawing Ref
+              </label>
+              <input
+                type="text"
+                placeholder="e.g. ST-201 / Detail 4"
+                className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500"
+                value={rfiForm.drawing_reference}
+                onChange={e => setRfiForm({ ...rfiForm, drawing_reference: e.target.value })}
+              />
+            </div>
+          </div>
 
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-500 uppercase">Subject</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Beam rebar clash with HVAC duct at Grid 3"
-                  className="w-full px-3 py-1.5 border rounded-lg text-sm bg-white dark:bg-slate-900"
-                  value={rfiForm.subject}
-                  onChange={e => setRfiForm({ ...rfiForm, subject: e.target.value })}
-                />
-              </div>
+          <div>
+            <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">
+              Subject <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              required
+              placeholder="e.g. Beam rebar clash with HVAC duct at Grid 3"
+              className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500"
+              value={rfiForm.subject}
+              onChange={e => setRfiForm({ ...rfiForm, subject: e.target.value })}
+            />
+          </div>
 
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-500 uppercase">Clarification Question</label>
-                <textarea
-                  required
-                  placeholder="State technical conflict and requested consultant direction..."
-                  className="w-full px-3 py-2 border rounded-lg text-sm bg-white dark:bg-slate-900 min-h-[80px]"
-                  value={rfiForm.question}
-                  onChange={e => setRfiForm({ ...rfiForm, question: e.target.value })}
-                />
-              </div>
+          <div>
+            <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">
+              Clarification Question <span className="text-red-500">*</span>
+            </label>
+            <textarea
+              required
+              placeholder="State technical conflict and requested consultant direction..."
+              className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500 min-h-[90px]"
+              value={rfiForm.question}
+              onChange={e => setRfiForm({ ...rfiForm, question: e.target.value })}
+            />
+          </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-500 uppercase">Potential Cost Impact?</label>
-                  <select
-                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-white dark:bg-slate-900"
-                    value={rfiForm.cost_impact}
-                    onChange={e => setRfiForm({ ...rfiForm, cost_impact: e.target.value })}
-                  >
-                    <option value="N">No Cost Impact</option>
-                    <option value="Y">Yes (Potential Variation)</option>
-                  </select>
-                </div>
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-500 uppercase">Schedule Impact?</label>
-                  <select
-                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-white dark:bg-slate-900"
-                    value={rfiForm.schedule_impact}
-                    onChange={e => setRfiForm({ ...rfiForm, schedule_impact: e.target.value })}
-                  >
-                    <option value="N">No Delay</option>
-                    <option value="Y">Critical Path Delay</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="flex justify-end gap-2 pt-2 border-t">
-                <button type="button" onClick={() => setShowRFIModal(false)} className="btn btn-secondary text-xs">
-                  Cancel
-                </button>
-                <button type="submit" className="btn-success text-xs font-bold">
-                  Submit RFI
-                </button>
-              </div>
-            </form>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                Potential Cost Impact?
+              </label>
+              <select
+                className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500"
+                value={rfiForm.cost_impact}
+                onChange={e => setRfiForm({ ...rfiForm, cost_impact: e.target.value })}
+              >
+                <option value="N">No Cost Impact</option>
+                <option value="Y">Yes (Potential Variation)</option>
+              </select>
+            </div>
+            <div>
+              <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                Schedule Impact?
+              </label>
+              <select
+                className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500"
+                value={rfiForm.schedule_impact}
+                onChange={e => setRfiForm({ ...rfiForm, schedule_impact: e.target.value })}
+              >
+                <option value="N">No Delay</option>
+                <option value="Y">Critical Path Delay</option>
+              </select>
+            </div>
           </div>
         </div>
-      )}
+      </ProjectModal>
 
       {/* Modal: Answer RFI */}
-      {activeRFIForAnswer && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="card max-w-lg w-full p-6 space-y-4 animate-in fade-in zoom-in-95 duration-200">
-            <div className="flex justify-between items-center border-b pb-2">
-              <h3 className="font-bold text-lg text-slate-900 dark:text-white flex items-center gap-2">
-                <MessageSquare size={18} className="text-emerald-600" /> Respond to {activeRFIForAnswer.rfi_number}
-              </h3>
-              <button onClick={() => setActiveRFIForAnswer(null)} className="text-slate-400 hover:text-slate-600">
-                <X size={20} />
-              </button>
+      <ProjectModal
+        open={Boolean(activeRFIForAnswer)}
+        onClose={() => setActiveRFIForAnswer(null)}
+        title={activeRFIForAnswer ? `Respond to ${activeRFIForAnswer.rfi_number}` : "Respond to RFI"}
+        subtitle="Record official consultant or engineer determination and close RFI"
+        icon={MessageSquare}
+        onSubmit={handleAnswerRFI}
+        submitLabel="Save Response & Close RFI"
+      >
+        <div className="space-y-4">
+          {activeRFIForAnswer && (
+            <div className="p-3.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700/60 rounded-xl text-xs space-y-1.5">
+              <p className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <span className="text-brand-600 font-mono">{activeRFIForAnswer.rfi_number}</span> - {activeRFIForAnswer.subject}
+              </p>
+              <p className="text-slate-600 dark:text-slate-300">{activeRFIForAnswer.question}</p>
             </div>
-            <form onSubmit={handleAnswerRFI} className="space-y-3">
-              <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-lg text-xs space-y-1">
-                <p className="font-bold text-slate-900 dark:text-white">{activeRFIForAnswer.subject}</p>
-                <p className="text-slate-600 dark:text-slate-300">{activeRFIForAnswer.question}</p>
-              </div>
+          )}
 
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-500 uppercase">Consultant / Engineer Determination</label>
-                <textarea
-                  required
-                  placeholder="Official technical instructions, resolution, revised specification..."
-                  className="w-full px-3 py-2 border rounded-lg text-sm bg-white dark:bg-slate-900 min-h-[90px]"
-                  value={answerText}
-                  onChange={e => setAnswerText(e.target.value)}
-                />
-              </div>
-
-              <div className="flex justify-end gap-2 pt-2 border-t">
-                <button type="button" onClick={() => setActiveRFIForAnswer(null)} className="btn btn-secondary text-xs">
-                  Cancel
-                </button>
-                <button type="submit" className="btn-success text-xs font-bold">
-                  Save Response & Close RFI
-                </button>
-              </div>
-            </form>
+          <div>
+            <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">
+              Consultant / Engineer Determination <span className="text-red-500">*</span>
+            </label>
+            <textarea
+              required
+              placeholder="Official technical instructions, resolution, revised specification..."
+              className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500 min-h-[110px]"
+              value={answerText}
+              onChange={e => setAnswerText(e.target.value)}
+            />
           </div>
         </div>
-      )}
+      </ProjectModal>
     </div>
   );
 }

@@ -18,12 +18,14 @@ import {
   ArrowLeft,
   Printer,
   Download,
+  FileSpreadsheet,
 } from "lucide-react";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 import defaultLogo from "../../../../assets/resources/OMNISUITE_LOGO_FILL.png";
 import { useExchangeRate } from "@/hooks/useExchangeRate";
 import { usePermission } from "../../../../auth/PermissionContext.jsx";
+import { renderHtmlToPdf } from "@/utils/pdfUtils.js";
 
 // Ghana Regions and Countries data
 const GHANA_REGIONS = [
@@ -666,11 +668,73 @@ export default function ProjectQuotationForm() {
     setItems(items.filter((i) => i.line_id !== lineId));
   };
 
-  const handlePrint = () => {
+  const handlePrint = async () => {
+    if (id) {
+      try {
+        const resp = await api.post(
+          `/documents/project-quotation/${id}/render`,
+          { format: "html", feature_name: "project-quotation" },
+          { headers: { "Content-Type": "application/json" } },
+        );
+        const html = typeof resp.data === "string" ? resp.data : String(resp.data || "");
+        if (html && html.trim()) {
+          const iframe = document.createElement("iframe");
+          iframe.style.position = "absolute";
+          iframe.style.left = "-9999px";
+          iframe.style.width = "800px";
+          iframe.style.height = "600px";
+          iframe.style.border = "0";
+          document.body.appendChild(iframe);
+          const doc = iframe.contentWindow?.document || iframe.contentDocument || null;
+          if (doc) {
+            doc.open();
+            const patchCss = `<style>@media print{img{-webkit-print-color-adjust:exact;print-color-adjust:exact}}</style>`;
+            doc.write(patchCss + html);
+            doc.close();
+            const win = iframe.contentWindow || window;
+            const doPrint = () => {
+              win.focus();
+              try { win.print(); } catch {}
+              setTimeout(() => { document.body.removeChild(iframe); }, 100);
+            };
+            const waitForImages = () => {
+              const images = doc.querySelectorAll("img");
+              if (images.length === 0) { doPrint(); return; }
+              let loaded = 0;
+              images.forEach((img) => {
+                if (img.complete) { loaded++; if (loaded === images.length) doPrint(); return; }
+                img.onload = () => { loaded++; if (loaded === images.length) doPrint(); };
+                img.onerror = () => { loaded++; if (loaded === images.length) doPrint(); };
+              });
+            };
+            setTimeout(waitForImages, 200);
+            return;
+          }
+        }
+      } catch (e) {
+        console.warn("Template print error, falling back to standard print", e);
+      }
+    }
     ensureTaxComponentsLoaded().finally(() => window.print());
   };
 
   const handleDownload = async () => {
+    if (id) {
+      try {
+        const resp = await api.post(
+          `/documents/project-quotation/${id}/render`,
+          { format: "html", feature_name: "project-quotation" },
+          { headers: { "Content-Type": "application/json" } },
+        );
+        const html = typeof resp.data === "string" ? resp.data : String(resp.data || "");
+        if (html && html.trim()) {
+          await renderHtmlToPdf(html, `project-quotation-${formData.quotation_no || id}.pdf`);
+          return;
+        }
+      } catch (e) {
+        console.warn("Template PDF error, falling back to local export", e);
+      }
+    }
     await ensureTaxComponentsLoaded();
     const el = pdfRef.current;
     if (!el) return;
@@ -728,7 +792,7 @@ export default function ProjectQuotationForm() {
       items.length === 0
     ) {
       alert(
-        "Please enter customer name, project name and add at least one phase/milestone",
+        "Please enter client name, project name and add at least one phase/milestone",
       );
       return;
     }
@@ -752,7 +816,7 @@ export default function ProjectQuotationForm() {
     try {
       const customerId = formData.customer_id;
       if (!customerId) {
-        alert("Failed to get customer ID. Please try again.");
+        alert("Failed to get client ID. Please try again.");
         setLoading(false);
         return;
       }
@@ -831,7 +895,7 @@ export default function ProjectQuotationForm() {
 
       // Final validation: ensure customer_id is a valid number
       if (!cleanedPayload.customer_id || isNaN(cleanedPayload.customer_id)) {
-        alert("Invalid customer ID. Please try again.");
+        alert("Invalid client ID. Please try again.");
         setLoading(false);
         return;
       }
@@ -892,7 +956,7 @@ export default function ProjectQuotationForm() {
           : "Project quotation created successfully.",
       );
       setTimeout(() => {
-        navigate("/project-management?section=Reports%20%26%20Analytics");
+        navigate("/project-management/quotations");
       }, 600);
     } catch (error) {
       console.error("Error saving project quotation:", error);
@@ -995,52 +1059,50 @@ export default function ProjectQuotationForm() {
           }
         }
       `}</style>
-      {/* Header */}
-      <div
-        className="p-6 border-b text-white print:hidden"
-        style={{ backgroundColor: "#0E3646" }}
-      >
-        <div className="flex justify-between items-center">
+      {/* Canonical ERP Flex Header */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-6 print:hidden">
+        <div className="flex items-center gap-4">
+          <Link
+            to="/project-management/quotations"
+            className="btn btn-secondary inline-flex items-center gap-1.5 text-sm"
+          >
+            <ArrowLeft size={16} /> Back
+          </Link>
           <div>
-            <h2 className="text-xl font-bold">
-              {isEditMode ? "Edit" : "New"} Project Quotation
-            </h2>
-            <p className="text-sm opacity-80">
+            <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2.5">
+              <FileSpreadsheet size={26} className="text-brand-900 dark:text-brand-400" />
+              {isEditMode ? "Edit Project Quotation" : "New Project Quotation"}
+            </h1>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
               {isEditMode
                 ? "Update project quotation details"
                 : "Create a new project quotation"}
             </p>
           </div>
-          <div className="flex gap-4 print:hidden items-center">
-            <Link
-              to={`/sales/prospect-customers/new?returnUrl=${encodeURIComponent(location.pathname)}`}
-              className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-lg transition-colors text-sm font-medium border border-green-500"
-            >
-              <Plus className="w-4 h-4" />
-              Create Prospect
-            </Link>
-            <button
-              onClick={handleDownload}
-              className="flex items-center gap-2 bg-white/10 hover:bg-white/20 text-white px-3 py-1.5 rounded-lg transition-colors text-sm font-medium border border-white/20"
-              title="Save as PDF"
-            >
-              <Download className="w-4 h-4" />
-              Download PDF
-            </button>
-            <button
-              onClick={handlePrint}
-              className="text-white hover:text-gray-200"
-              title="Print"
-            >
-              <Printer className="w-6 h-6" />
-            </button>
-            <Link
-              to="/project-management?section=Reports%20%26%20Analytics"
-              className="text-white hover:text-gray-200"
-            >
-              <ArrowLeft className="w-6 h-6" />
-            </Link>
-          </div>
+        </div>
+        <div className="flex flex-wrap items-center gap-2.5">
+          <Link
+            to={`/sales/prospect-customers/new?returnUrl=${encodeURIComponent(location.pathname)}`}
+            className="btn btn-secondary inline-flex items-center gap-1.5 text-xs font-semibold"
+          >
+            <Plus size={14} /> Create Prospect
+          </Link>
+          <button
+            type="button"
+            onClick={handleDownload}
+            className="btn btn-secondary inline-flex items-center gap-1.5 text-xs font-semibold"
+            title="Save as PDF"
+          >
+            <Download size={14} /> Download PDF
+          </button>
+          <button
+            type="button"
+            onClick={handlePrint}
+            className="btn btn-secondary p-2.5"
+            title="Print"
+          >
+            <Printer size={16} />
+          </button>
         </div>
       </div>
       <div className="p-6 print:hidden">
@@ -1065,7 +1127,7 @@ export default function ProjectQuotationForm() {
                 name="quotation_no"
                 value={formData.quotation_no}
                 onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white dark:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-[#0E3646]"
+                className="input text-sm w-full"
                 placeholder="Auto-generated"
                 readOnly={!isEditMode && !formData.quotation_no}
               />
@@ -1079,19 +1141,19 @@ export default function ProjectQuotationForm() {
                 name="quotation_date"
                 value={formData.quotation_date}
                 onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0E3646]"
+                className="input text-sm w-full"
                 required
                 disabled={isEditMode && !hasExceptional("DOCUMENT.EDIT_DATE")}
               />
             </div>
             <div className="relative">
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Customer *
+                Client *
               </label>
               <input
                 type="text"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0E3646]"
-                placeholder="Search customer..."
+                className="input text-sm w-full"
+                placeholder="Search client..."
                 required={!formData.customer_id}
                 disabled={readOnly}
                 value={
@@ -1148,7 +1210,7 @@ export default function ProjectQuotationForm() {
                   ) : q.length >= 2 ? (
                     <div className="absolute z-30 w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg shadow-lg mt-1">
                       <div className="p-3 text-sm text-slate-600 dark:text-slate-400 text-center">
-                        Customer not found.{" "}
+                        Client not found.{" "}
                       </div>
                     </div>
                   ) : null;
@@ -1165,7 +1227,7 @@ export default function ProjectQuotationForm() {
                 name="project_name"
                 value={formData.project_name}
                 onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0E3646]"
+                className="input text-sm w-full"
                 placeholder="e.g. Office Fit-out Phase 1"
                 required
               />
@@ -1179,7 +1241,7 @@ export default function ProjectQuotationForm() {
                 name="project_manager"
                 value={formData.project_manager}
                 onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0E3646]"
+                className="input text-sm w-full"
                 placeholder="Assigned project manager"
               />
             </div>
@@ -1192,7 +1254,7 @@ export default function ProjectQuotationForm() {
                 name="valid_days"
                 value={formData.valid_days}
                 onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0E3646]"
+                className="input text-sm w-full"
                 required
               />
             </div>
@@ -1205,7 +1267,7 @@ export default function ProjectQuotationForm() {
                 name="start_date"
                 value={formData.start_date}
                 onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0E3646]"
+                className="input text-sm w-full"
               />
             </div>
             <div>
@@ -1217,7 +1279,7 @@ export default function ProjectQuotationForm() {
                 name="end_date"
                 value={formData.end_date}
                 onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0E3646]"
+                className="input text-sm w-full"
               />
             </div>
             <div>
@@ -1243,7 +1305,7 @@ export default function ProjectQuotationForm() {
                 name="status"
                 value={formData.status}
                 onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0E3646]"
+                className="input text-sm w-full"
               >
                 {statuses.map((s) => (
                   <option key={s.value} value={s.value}>
@@ -1260,7 +1322,7 @@ export default function ProjectQuotationForm() {
                 name="payment_type"
                 value={formData.payment_type}
                 onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0E3646]"
+                className="input text-sm w-full"
               >
                 <option value="CASH">Cash</option>
                 <option value="CHEQUE">Cheque</option>
@@ -1275,7 +1337,7 @@ export default function ProjectQuotationForm() {
                 name="currency_id"
                 value={formData.currency_id}
                 onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0E3646]"
+                className="input text-sm w-full"
               >
                 {currencies.map((c) => (
                   <option key={c.id} value={c.id}>
@@ -1297,7 +1359,7 @@ export default function ProjectQuotationForm() {
                 name="exchange_rate"
                 value={formData.exchange_rate}
                 onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0E3646]"
+                className="input text-sm w-full"
                 readOnly
               />
             </div>
@@ -1310,7 +1372,7 @@ export default function ProjectQuotationForm() {
                 value={formData.scope_of_work}
                 onChange={handleInputChange}
                 rows="3"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0E3646] print:hidden"
+                className="input text-sm w-full print:hidden"
                 placeholder="Describe the overall scope of work for this project..."
               />
               <div className="hidden print:block whitespace-pre-wrap text-sm text-gray-800 border-none p-0">
@@ -1326,7 +1388,7 @@ export default function ProjectQuotationForm() {
                 value={formData.terms_and_conditions}
                 onChange={handleInputChange}
                 rows="2"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0E3646] print:hidden"
+                className="input text-sm w-full print:hidden"
                 placeholder="Enter terms and conditions..."
               />
               <div className="hidden print:block whitespace-pre-wrap text-sm text-gray-800 border-none p-0">
@@ -1342,7 +1404,7 @@ export default function ProjectQuotationForm() {
                 value={formData.remarks}
                 onChange={handleInputChange}
                 rows="2"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0E3646] print:hidden"
+                className="input text-sm w-full print:hidden"
                 placeholder="Enter remarks..."
               />
               <div className="hidden print:block whitespace-pre-wrap text-sm text-gray-800 border-none p-0">
@@ -1354,7 +1416,7 @@ export default function ProjectQuotationForm() {
             <h3 className="text-lg font-semibold mb-4 text-gray-800">
               Project Phases / Milestones
             </h3>
-            <div className="bg-gray-50 p-4 rounded-lg mb-6 border border-gray-200 print:hidden">
+            <div className="bg-white dark:bg-slate-900 p-4 rounded-xl mb-6 border border-slate-200 dark:border-slate-800 print:hidden">
               <div className="grid grid-cols-1 md:grid-cols-6 gap-3 mb-3">
                 <div className="md:col-span-2">
                   <label className="block text-xs font-medium text-gray-700 mb-1">
@@ -1365,7 +1427,7 @@ export default function ProjectQuotationForm() {
                     name="phase_name"
                     value={newItem.phase_name}
                     onChange={handleNewItemChange}
-                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0E3646]"
+                    className="input text-sm w-full"
                     placeholder="e.g. Site Survey & Design"
                   />
                 </div>
@@ -1378,7 +1440,7 @@ export default function ProjectQuotationForm() {
                     name="description"
                     value={newItem.description}
                     onChange={handleNewItemChange}
-                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0E3646]"
+                    className="input text-sm w-full"
                     placeholder="Deliverables for this phase"
                   />
                 </div>
@@ -1391,7 +1453,7 @@ export default function ProjectQuotationForm() {
                     name="est_hours"
                     value={newItem.est_hours}
                     onChange={handleNewItemChange}
-                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0E3646]"
+                    className="input text-sm w-full"
                     min="0"
                     step="0.5"
                   />
@@ -1405,7 +1467,7 @@ export default function ProjectQuotationForm() {
                     name="rate"
                     value={newItem.rate}
                     onChange={handleNewItemChange}
-                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0E3646]"
+                    className="input text-sm w-full"
                   />
                 </div>
               </div>
@@ -1419,7 +1481,7 @@ export default function ProjectQuotationForm() {
                     name="discount_percent"
                     value={newItem.discount_percent}
                     onChange={handleNewItemChange}
-                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0E3646]"
+                    className="input text-sm w-full"
                     min="0"
                     max="100"
                   />
@@ -1432,7 +1494,7 @@ export default function ProjectQuotationForm() {
                     name="tax_type"
                     value={newItem.tax_type}
                     onChange={handleNewItemChange}
-                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0E3646]"
+                    className="input text-sm w-full"
                   >
                     {taxes.map((t) => (
                       <option key={t.value} value={t.value}>
@@ -1450,7 +1512,7 @@ export default function ProjectQuotationForm() {
                     name="remarks"
                     value={newItem.remarks}
                     onChange={handleNewItemChange}
-                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0E3646]"
+                    className="input text-sm w-full"
                     placeholder="Optional notes"
                   />
                 </div>
@@ -1469,9 +1531,9 @@ export default function ProjectQuotationForm() {
             </div>
             {items.length > 0 && (
               <>
-                <div className="overflow-x-auto rounded-lg border border-gray-200">
-                  <table className="w-full text-sm">
-                    <thead className="bg-gray-100">
+                <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800">
+                  <table className="table w-full text-sm">
+                    <thead>
                       <tr>
                         <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
                           Phase / Milestone
@@ -1542,7 +1604,7 @@ export default function ProjectQuotationForm() {
                     </tbody>
                   </table>
                 </div>
-                <div className="mt-4 ml-auto w-full max-w-md rounded-md bg-gray-100 px-4 py-3 space-y-2">
+                <div className="mt-4 ml-auto w-full max-w-md rounded-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-4 py-3 space-y-2 shadow-sm">
                   <div className="flex items-center justify-between text-sm font-semibold text-slate-700">
                     <span>Total Estimated Hours:</span>
                     <span>{totalEstHours.toFixed(2)}</span>
@@ -1576,7 +1638,7 @@ export default function ProjectQuotationForm() {
               </>
             )}
             {items.length === 0 && (
-              <div className="text-center py-10 text-gray-500 bg-gray-50 rounded-lg border border-dashed border-gray-300">
+              <div className="text-center py-10 text-gray-500 bg-white dark:bg-slate-900 rounded-lg border border-dashed border-slate-300 dark:border-slate-700">
                 <p>
                   No phases added yet. Use the form above to add project phases
                   or milestones to this quotation.
@@ -1584,18 +1646,20 @@ export default function ProjectQuotationForm() {
               </div>
             )}
           </div>
-          <div className="flex justify-end gap-3 mt-6 pt-6 border-t border-gray-200 print:hidden">
-            <button onClick={() => window.history.back()} className="px-6 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+          <div className="flex justify-end gap-3 mt-6 pt-6 border-t border-slate-200 dark:border-slate-800 print:hidden">
+            <button
+              type="button"
+              onClick={() => window.history.back()}
+              className="btn btn-secondary text-sm"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="flex items-center gap-2 px-6 py-2 text-white rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50"
-              style={{ backgroundColor: "#0E3646" }}
+              className="btn btn-primary inline-flex items-center gap-2 text-sm font-semibold"
               disabled={loading}
             >
-              <Save className="w-5 h-5" />
+              <Save size={16} />
               {loading
                 ? "Saving..."
                 : isEditMode
@@ -1640,7 +1704,7 @@ export default function ProjectQuotationForm() {
             <div>DATE: {formData.quotation_date || ""}</div>
             <div>Quotation #: {formData.quotation_no || ""}</div>
             <div>
-              Customer:{" "}
+              Client:{" "}
               {customerSearch || formData.potential_cust_name || ""}
             </div>
             <div>Valid until: {formData.valid_until || ""}</div>
@@ -1650,7 +1714,7 @@ export default function ProjectQuotationForm() {
         <div className="grid grid-cols-2 gap-4 text-sm mb-4">
           <div>
             <div className="flex">
-              <div className="w-32">Customer Name</div>
+              <div className="w-32">Client Name</div>
               <div className="flex-1">
                 {customerSearch ||
                   customers.find(
@@ -1745,7 +1809,7 @@ export default function ProjectQuotationForm() {
         <div className="grid grid-cols-2 gap-6">
           <div></div>
           <div>
-            <div className="rounded-md bg-gray-100 px-4 py-3 space-y-2">
+            <div className="rounded-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-4 py-3 space-y-2 shadow-sm">
               <div className="flex items-center justify-between text-[30px] font-semibold text-slate-700">
                 <span>Subtotal:</span>
                 <span>{calcAggregates().netSub.toFixed(2)}</span>
@@ -1821,7 +1885,7 @@ export default function ProjectQuotationForm() {
           <div className="text-right text-sm">
             <div>DATE: {formData.quotation_date || ""}</div>
             <div>Quotation #: {formData.quotation_no || ""}</div>
-            <div>Customer: {customerSearch || ""}</div>
+            <div>Client: {customerSearch || ""}</div>
             <div>Valid until: {formData.valid_until || ""}</div>
             <div>Prepared by: {preparedBy || ""}</div>
           </div>
@@ -1829,7 +1893,7 @@ export default function ProjectQuotationForm() {
         <div className="grid grid-cols-2 gap-4 text-sm mb-4">
           <div>
             <div className="flex">
-              <div className="w-32">Customer Name</div>
+              <div className="w-32">Client Name</div>
               <div className="flex-1">
                 {customerSearch ||
                   customers.find(
@@ -1927,7 +1991,7 @@ export default function ProjectQuotationForm() {
         <div className="grid grid-cols-2 gap-6">
           <div></div>
           <div>
-            <div className="rounded-md bg-gray-100 px-4 py-3 space-y-2">
+            <div className="rounded-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-4 py-3 space-y-2 shadow-sm">
               <div className="flex items-center justify-between text-[30px] font-semibold text-slate-700">
                 <span>Subtotal:</span>
                 <span>{calcAggregates().netSub.toFixed(2)}</span>

@@ -28,31 +28,79 @@ import { usePermission } from "../auth/PermissionContext.jsx";
 import { useTheme } from "../theme/ThemeContext.jsx";
 import { resolveBackgroundForTheme } from "../utils/appBackground.js";
 import ThemeToggle from "../components/ThemeToggle.jsx";
-const DashboardPage = React.lazy(() => import("../pages/dashboard/DashboardPage.jsx"));
+import ListPageOverview from "../components/ListPageOverview.jsx";
+const DashboardPage = React.lazy(
+  () => import("../pages/dashboard/DashboardPage.jsx"),
+);
 const HomePage = React.lazy(() => import("../pages/home/HomePage.jsx"));
-const AdministrationHome = React.lazy(() => import("../pages/modules/administration/AdministrationHome.jsx"));
-const SalesHome = React.lazy(() => import("../pages/modules/sales/SalesHome.jsx"));
-const InventoryHome = React.lazy(() => import("../pages/modules/inventory/InventoryHome.jsx"));
-const PurchaseHome = React.lazy(() => import("../pages/modules/purchase/PurchaseHome.jsx"));
-const FinanceRoutes = React.lazy(() => import("../pages/modules/finance/FinanceRoutes.jsx"));
-const HumanResourcesHome = React.lazy(() => import("../pages/modules/human-resources/HumanResourcesHome.jsx"));
-const MaintenanceHome = React.lazy(() => import("../pages/modules/maintenance/MaintenanceHome.jsx"));
-const FacilitiesHome = React.lazy(() => import("../pages/modules/facilities/FacilitiesHome.jsx"));
-const AssetManagementHome = React.lazy(() => import("../pages/modules/asset-management/AssetManagementHome.jsx"));
-const ProjectManagementHome = React.lazy(() => import("../pages/modules/project-management/ProjectManagementHome.jsx"));
-const ProductionHome = React.lazy(() => import("../pages/modules/production/ProductionHome.jsx"));
+const AdministrationHome = React.lazy(
+  () => import("../pages/modules/administration/AdministrationHome.jsx"),
+);
+const SalesHome = React.lazy(
+  () => import("../pages/modules/sales/SalesHome.jsx"),
+);
+const InventoryHome = React.lazy(
+  () => import("../pages/modules/inventory/InventoryHome.jsx"),
+);
+const PurchaseHome = React.lazy(
+  () => import("../pages/modules/purchase/PurchaseHome.jsx"),
+);
+const FinanceRoutes = React.lazy(
+  () => import("../pages/modules/finance/FinanceRoutes.jsx"),
+);
+const HumanResourcesHome = React.lazy(
+  () => import("../pages/modules/human-resources/HumanResourcesHome.jsx"),
+);
+const MaintenanceHome = React.lazy(
+  () => import("../pages/modules/maintenance/MaintenanceHome.jsx"),
+);
+const FacilitiesHome = React.lazy(
+  () => import("../pages/modules/facilities/FacilitiesHome.jsx"),
+);
+const AssetManagementHome = React.lazy(
+  () => import("../pages/modules/asset-management/AssetManagementHome.jsx"),
+);
+const ProjectManagementHome = React.lazy(
+  () => import("../pages/modules/project-management/ProjectManagementHome.jsx"),
+);
+const ProductionHome = React.lazy(
+  () => import("../pages/modules/production/ProductionHome.jsx"),
+);
 const PosHome = React.lazy(() => import("../pages/modules/pos/PosHome.jsx"));
-const BusinessIntelligenceHome = React.lazy(() => import("../pages/modules/business-intelligence/BusinessIntelligenceHome.jsx"));
-const ServiceManagementHome = React.lazy(() => import("../pages/modules/service-management/ServiceManagementHome.jsx"));
-const TransportLayout = React.lazy(() => import("../pages/modules/transport/TransportLayout.jsx"));
-const ExecutiveOverviewRoutes = React.lazy(() => import("../pages/modules/executive-overview/ExecutiveOverviewRoutes.jsx"));
-const SystemConfigurationHome = React.lazy(() => import("../pages/modules/system-configuration/SystemConfigurationHome.jsx"));
-const NotificationsPage = React.lazy(() => import("../pages/NotificationsPage.jsx"));
-const SocialFeedPage = React.lazy(() => import("../pages/social/SocialFeedPage.jsx"));
+const BusinessIntelligenceHome = React.lazy(
+  () =>
+    import("../pages/modules/business-intelligence/BusinessIntelligenceHome.jsx"),
+);
+const ServiceManagementHome = React.lazy(
+  () => import("../pages/modules/service-management/ServiceManagementHome.jsx"),
+);
+const TransportLayout = React.lazy(
+  () => import("../pages/modules/transport/TransportLayout.jsx"),
+);
+const ExecutiveOverviewRoutes = React.lazy(
+  () =>
+    import("../pages/modules/executive-overview/ExecutiveOverviewRoutes.jsx"),
+);
+const SystemConfigurationHome = React.lazy(
+  () =>
+    import("../pages/modules/system-configuration/SystemConfigurationHome.jsx"),
+);
+const NotificationsPage = React.lazy(
+  () => import("../pages/NotificationsPage.jsx"),
+);
+const SocialFeedPage = React.lazy(
+  () => import("../pages/social/SocialFeedPage.jsx"),
+);
 const RoleSetup = React.lazy(() => import("../pages/admin/RoleSetup.jsx"));
-const UserPermissions = React.lazy(() => import("../pages/admin/UserPermissions.jsx"));
-const SocialFeedNotification = React.lazy(() => import("../components/CompanyFeed/SocialFeedNotification.jsx"));
-const DashboardPermissions = React.lazy(() => import("../pages/admin/DashboardPermissions.jsx"));
+const UserPermissions = React.lazy(
+  () => import("../pages/admin/UserPermissions.jsx"),
+);
+const SocialFeedNotification = React.lazy(
+  () => import("../components/CompanyFeed/SocialFeedNotification.jsx"),
+);
+const DashboardPermissions = React.lazy(
+  () => import("../pages/admin/DashboardPermissions.jsx"),
+);
 import addNotification from "../utils/addNotification.js";
 
 import logoDark from "../assets/resources/OMNISUITE_WHITE_LOGO.png";
@@ -116,22 +164,43 @@ const AppRoutes = React.memo(function AppRoutes({ user }) {
         <Route path="/facilities/*" element={<FacilitiesHome />} />
         <Route path="/assets/*" element={<AssetManagementHome />} />
         <Route path="/asset-management/*" element={<AssetManagementHome />} />
-        <Route path="/project-management/*" element={<ProjectManagementHome />} />
+        <Route
+          path="/project-management/*"
+          element={<ProjectManagementHome />}
+        />
         <Route path="/production/*" element={<ProductionHome />} />
         <Route path="/pos/*" element={<PosHome />} />
-        <Route path="/business-intelligence/*" element={<BusinessIntelligenceHome />} />
-        <Route path="/service-management/*" element={<ServiceManagementHome />} />
+        <Route
+          path="/business-intelligence/*"
+          element={<BusinessIntelligenceHome />}
+        />
+        <Route
+          path="/service-management/*"
+          element={<ServiceManagementHome />}
+        />
         <Route path="/transport/*" element={<TransportLayout />} />
-        <Route path="/executive-overview/*" element={<ExecutiveOverviewRoutes />} />
-        <Route path="/administration/access/dashboard-permissions" element={<DashboardPermissions />} />
+        <Route
+          path="/executive-overview/*"
+          element={<ExecutiveOverviewRoutes />}
+        />
+        <Route
+          path="/administration/access/dashboard-permissions"
+          element={<DashboardPermissions />}
+        />
         <Route path="/notifications" element={<NotificationsPage />} />
         <Route path="/social-feed" element={<SocialFeedPage />} />
         <Route path="/social-feed/:id" element={<SocialFeedPage />} />
         <Route path="/admin/roles" element={<RoleSetup />} />
         <Route path="/admin/user-permissions" element={<UserPermissions />} />
-        <Route 
-          path="/system-configuration/*" 
-          element={(user?.id === 1 || user?.id === 2) ? <SystemConfigurationHome /> : <Navigate to="/" replace />} 
+        <Route
+          path="/system-configuration/*"
+          element={
+            user?.id === 1 || user?.id === 2 ? (
+              <SystemConfigurationHome />
+            ) : (
+              <Navigate to="/" replace />
+            )
+          }
         />
       </Routes>
     </React.Suspense>
@@ -151,9 +220,24 @@ const modules = [
     path: "/administration",
     icon: <Settings />,
   },
-  { key: "sales", label: "Sales Management", path: "/sales", icon: <Banknote /> },
-  { key: "inventory", label: "Inventory Management", path: "/inventory", icon: <Archive /> },
-  { key: "purchase", label: "Procurement", path: "/purchase", icon: <ShoppingCart /> },
+  {
+    key: "sales",
+    label: "Sales Management",
+    path: "/sales",
+    icon: <Banknote />,
+  },
+  {
+    key: "inventory",
+    label: "Inventory Management",
+    path: "/inventory",
+    icon: <Archive />,
+  },
+  {
+    key: "purchase",
+    label: "Procurement",
+    path: "/purchase",
+    icon: <ShoppingCart />,
+  },
   { key: "finance", label: "Finance", path: "/finance", icon: <Landmark /> },
   {
     key: "human-resources",
@@ -185,7 +269,12 @@ const modules = [
     path: "/project-management",
     icon: <Blocks />,
   },
-  { key: "production", label: "Manufacturing", path: "/production", icon: <Factory /> },
+  {
+    key: "production",
+    label: "Manufacturing",
+    path: "/production",
+    icon: <Factory />,
+  },
   { key: "pos", label: "POS", path: "/pos", icon: <ShoppingBasket /> },
   {
     key: "business-intelligence",
@@ -264,7 +353,7 @@ function scheduleDeferredTask(task, delayMs = 200) {
  * AppShell component
  * Acts as the primary shell around all authenticated routes.
  * Initializes real-time sockets, manages offline queue state, and handles user session inactivity.
- * 
+ *
  * @returns {JSX.Element} The rendered application shell.
  */
 export default function AppShell() {
@@ -281,10 +370,13 @@ export default function AppShell() {
     appBackground,
   } = usePermission();
   const { theme } = useTheme();
-  const isDark = theme === "dark" || (typeof document !== "undefined" && document.documentElement.classList.contains("dark"));
+  const isDark =
+    theme === "dark" ||
+    (typeof document !== "undefined" &&
+      document.documentElement.classList.contains("dark"));
   const resolvedBg = useMemo(
     () => resolveBackgroundForTheme(appBackground, isDark),
-    [appBackground, isDark]
+    [appBackground, isDark],
   );
   const { pending, failed, completed, items, lastEvent } = useOfflineQueue();
   const navigate = useNavigate();
@@ -293,6 +385,7 @@ export default function AppShell() {
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [savedToast, setSavedToast] = useState(false);
   const lastChatToneAtRef = useRef(0);
+  const listPageContentRef = useRef(null);
   useEffect(() => {
     if (lastEvent === "queued") {
       setSavedToast(true);
@@ -321,7 +414,15 @@ export default function AppShell() {
         if (mounted && res?.data) {
           const l = res.data;
           console.log("License Data:", l);
-          if (["ACTIVE", "EXPIRED", "INACTIVE", "SUSPENDED", "CANCELLED"].includes(l.status)) {
+          if (
+            [
+              "ACTIVE",
+              "EXPIRED",
+              "INACTIVE",
+              "SUSPENDED",
+              "CANCELLED",
+            ].includes(l.status)
+          ) {
             const exp = new Date(l.expiry_date);
             const graceDays = l.grace_days || 0;
             const finalExp = new Date(
@@ -333,13 +434,27 @@ export default function AppShell() {
               Math.ceil((finalExp - now) / (1000 * 60 * 60 * 24)),
             );
 
-            const alertDays = l.alert_days !== undefined && l.alert_days !== null ? l.alert_days : 30;
-            console.log("License Expiry:", { daysRemaining, alertDays, finalExp, now, status: l.status });
-            
-            const shouldAlert = l.status !== "ACTIVE" || daysRemaining <= alertDays || isNaN(daysRemaining);
+            const alertDays =
+              l.alert_days !== undefined && l.alert_days !== null
+                ? l.alert_days
+                : 30;
+            console.log("License Expiry:", {
+              daysRemaining,
+              alertDays,
+              finalExp,
+              now,
+              status: l.status,
+            });
+
+            const shouldAlert =
+              l.status !== "ACTIVE" ||
+              daysRemaining <= alertDays ||
+              isNaN(daysRemaining);
 
             if (shouldAlert) {
-              const formattedDate = new Date(l.expiry_date).toLocaleDateString();
+              const formattedDate = new Date(
+                l.expiry_date,
+              ).toLocaleDateString();
               let title = "";
               let text = "";
 
@@ -353,15 +468,19 @@ export default function AppShell() {
                 title = "License Cancelled";
                 text = "Your license is cancelled. Please renew.";
               } else {
-                title = daysRemaining === 0 ? "License Expired" : "License Expiring Soon";
-                text = daysRemaining === 0 
-                  ? `Your license expired on ${formattedDate} (including ${graceDays} days grace).`
-                  : `Your license expires on ${formattedDate} + ${graceDays} days grace period.`;
+                title =
+                  daysRemaining === 0
+                    ? "License Expired"
+                    : "License Expiring Soon";
+                text =
+                  daysRemaining === 0
+                    ? `Your license expired on ${formattedDate} (including ${graceDays} days grace).`
+                    : `Your license expires on ${formattedDate} + ${graceDays} days grace period.`;
               }
-              
+
               // Temporarily ignore the dismissal check to guarantee it shows during our testing
               const isDismissed = false; // sessionStorage.getItem("licenseAlertDismissed") === "true";
-              const canDismiss = (l.status === "ACTIVE" && daysRemaining > 0);
+              const canDismiss = l.status === "ACTIVE" && daysRemaining > 0;
               const canRenew = canAccessFeatureKey("system", "license-renewal");
 
               if (!isDismissed || !canDismiss) {
@@ -380,11 +499,11 @@ export default function AppShell() {
                   width: "20em",
                   padding: "0.5em",
                   customClass: {
-                    container: 'z-[999999]',
-                    title: 'text-sm m-0 p-0',
-                    htmlContainer: 'text-xs m-1 p-0',
-                    actions: 'm-0 p-0 scale-75',
-                    icon: 'border-0 m-0 mr-2'
+                    container: "z-[999999]",
+                    title: "text-sm m-0 p-0",
+                    htmlContainer: "text-xs m-1 p-0",
+                    actions: "m-0 p-0 scale-75",
+                    icon: "border-0 m-0 mr-2",
                   },
                   timerProgressBar: true,
                   showCloseButton: canDismiss,
@@ -748,7 +867,9 @@ export default function AppShell() {
   }
 
   const [branchOptions, setBranchOptions] = useState([]);
-  const [selectedBranchId, setSelectedBranchId] = useState(() => scope?.branchId || null);
+  const [selectedBranchId, setSelectedBranchId] = useState(
+    () => scope?.branchId || null,
+  );
   const [companies, setCompanies] = useState([]);
 
   useEffect(() => {
@@ -1004,12 +1125,12 @@ export default function AppShell() {
         throttleTimer = null;
       }, 5000); // Throttle activity updates to once every 5 seconds
     };
-    
+
     window.addEventListener("mousemove", handleActivity, { passive: true });
     window.addEventListener("keydown", handleActivity, { passive: true });
     window.addEventListener("click", handleActivity, { passive: true });
     window.addEventListener("scroll", handleActivity, { passive: true });
-    
+
     return () => {
       window.removeEventListener("mousemove", handleActivity);
       window.removeEventListener("keydown", handleActivity);
@@ -1128,7 +1249,9 @@ export default function AppShell() {
       found = branchOptions.find((b) => Number(b.id) === targetId);
     }
     if (!found) {
-      found = branchOptions.find((b) => b.name === profile.branchName) || (branchOptions.length ? branchOptions[0] : null);
+      found =
+        branchOptions.find((b) => b.name === profile.branchName) ||
+        (branchOptions.length ? branchOptions[0] : null);
     }
     if (found) {
       const comp = found.company_name || `Company #${found.company_id}`;
@@ -1176,7 +1299,6 @@ export default function AppShell() {
     if (path === "/" || path === "/dashboard") return true;
     return modules.some((m) => m.path === path);
   }, [location.pathname]);
-
 
   useEffect(() => {
     function onDocClick(e) {
@@ -1276,10 +1398,30 @@ export default function AppShell() {
         } catch {}
       }
       const allow = {
-        view: pageAllow.view !== null ? pageAllow.view : (fk ? canPerformAction(fk, "view") : true),
-        create: pageAllow.create !== null ? pageAllow.create : (fk ? canPerformAction(fk, "create") : true),
-        edit: pageAllow.edit !== null ? pageAllow.edit : (fk ? canPerformAction(fk, "edit") : true),
-        delete: pageAllow.delete !== null ? pageAllow.delete : (fk ? canPerformAction(fk, "delete") : true),
+        view:
+          pageAllow.view !== null
+            ? pageAllow.view
+            : fk
+              ? canPerformAction(fk, "view")
+              : true,
+        create:
+          pageAllow.create !== null
+            ? pageAllow.create
+            : fk
+              ? canPerformAction(fk, "create")
+              : true,
+        edit:
+          pageAllow.edit !== null
+            ? pageAllow.edit
+            : fk
+              ? canPerformAction(fk, "edit")
+              : true,
+        delete:
+          pageAllow.delete !== null
+            ? pageAllow.delete
+            : fk
+              ? canPerformAction(fk, "delete")
+              : true,
       };
       const nodes = Array.from(
         document.querySelectorAll(
@@ -1315,19 +1457,20 @@ export default function AppShell() {
       for (const el of nodes) {
         try {
           if (
-            (el.getAttribute && (el.getAttribute("data-rbac-exempt") === "" || el.getAttribute("data-rbac-exempt") === "true")) ||
-            (el.closest && (
-              el.closest("[data-rbac-exempt='true']") ||
-              el.closest("[data-rbac-exempt]") ||
-              el.closest("header") ||
-              el.closest("aside") ||
-              el.closest("nav") ||
-              el.closest(".app-header") ||
-              el.closest(".app-sidebar") ||
-              el.closest("form") ||
-              el.closest(".form-section") ||
-              el.closest("[data-form]")
-            ))
+            (el.getAttribute &&
+              (el.getAttribute("data-rbac-exempt") === "" ||
+                el.getAttribute("data-rbac-exempt") === "true")) ||
+            (el.closest &&
+              (el.closest("[data-rbac-exempt='true']") ||
+                el.closest("[data-rbac-exempt]") ||
+                el.closest("header") ||
+                el.closest("aside") ||
+                el.closest("nav") ||
+                el.closest(".app-header") ||
+                el.closest(".app-sidebar") ||
+                el.closest("form") ||
+                el.closest(".form-section") ||
+                el.closest("[data-form]")))
           ) {
             continue;
           }
@@ -1428,7 +1571,10 @@ export default function AppShell() {
       {/* Floating Social Feed Notification - Always Visible */}
       <SocialFeedNotification />
 
-      <header data-rbac-exempt="true" className="h-14 flex justify-between items-center px-4 sm:px-6 border-b border-slate-200/80 dark:border-slate-800/80 bg-white/95 dark:bg-slate-950/95 backdrop-blur-md shadow-apple-xs z-50 sticky top-0">
+      <header
+        data-rbac-exempt="true"
+        className="h-14 flex justify-between items-center px-4 sm:px-6 border-b border-slate-200/80 dark:border-slate-800/80 bg-white/95 dark:bg-slate-950/95 backdrop-blur-md shadow-apple-xs z-50 sticky top-0"
+      >
         <div className="flex items-center gap-3 flex-nowrap">
           <button
             type="button"
@@ -1607,7 +1753,10 @@ export default function AppShell() {
       )}
       {!online && (
         <div className="px-6 py-2 bg-amber-50 dark:bg-amber-950/70 text-amber-900 dark:text-amber-200 border-b border-amber-200 dark:border-amber-800 text-sm flex items-center justify-between">
-          <span>Reconnecting to network. Your changes are saved and will sync automatically.</span>
+          <span>
+            Reconnecting to network. Your changes are saved and will sync
+            automatically.
+          </span>
         </div>
       )}
       {queueOpen && (
@@ -1825,13 +1974,38 @@ export default function AppShell() {
                       tabIndex={-1}
                     >
                       {showPwCurrent ? (
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                        <svg
+                          className="w-5 h-5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"
+                          />
                         </svg>
                       ) : (
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                        <svg
+                          className="w-5 h-5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                          />
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                          />
                         </svg>
                       )}
                     </button>
@@ -1856,13 +2030,38 @@ export default function AppShell() {
                       tabIndex={-1}
                     >
                       {showPwNew ? (
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                        <svg
+                          className="w-5 h-5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"
+                          />
                         </svg>
                       ) : (
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                        <svg
+                          className="w-5 h-5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                          />
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                          />
                         </svg>
                       )}
                     </button>
@@ -1887,13 +2086,38 @@ export default function AppShell() {
                       tabIndex={-1}
                     >
                       {showPwConfirm ? (
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                        <svg
+                          className="w-5 h-5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"
+                          />
                         </svg>
                       ) : (
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                        <svg
+                          className="w-5 h-5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                          />
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                          />
                         </svg>
                       )}
                     </button>
@@ -2058,18 +2282,27 @@ export default function AppShell() {
               style={{
                 left: sidebarOpen ? "280px" : "0px",
                 backgroundImage: `url(${resolvedBg.url})`,
-                opacity: Math.max(0, Math.min(1, Number(resolvedBg.opacity ?? 40) / 100)),
-                filter: [
-                  resolvedBg.blur ? `blur(${resolvedBg.blur}px)` : "",
-                  resolvedBg.isCustom && isDark ? "brightness(0.38) contrast(1.15)" : "",
-                ]
-                  .filter(Boolean)
-                  .join(" ") || undefined,
+                opacity: Math.max(
+                  0,
+                  Math.min(1, Number(resolvedBg.opacity ?? 40) / 100),
+                ),
+                filter:
+                  [
+                    resolvedBg.blur ? `blur(${resolvedBg.blur}px)` : "",
+                    resolvedBg.isCustom && isDark
+                      ? "brightness(0.38) contrast(1.15)"
+                      : "",
+                  ]
+                    .filter(Boolean)
+                    .join(" ") || undefined,
               }}
             />
           ) : null}
 
-          <div className="relative z-10 w-full max-w-full 2xl:max-w-[1600px] mx-auto p-2 md:p-2 lg:p-3">
+          <div
+            ref={listPageContentRef}
+            className="relative z-10 w-full max-w-full 2xl:max-w-[1600px] mx-auto p-2 md:p-2 lg:p-3"
+          >
             {pushPromptVisible ? (
               <div className="mb-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-3 flex items-center justify-between">
                 <div className="text-sm">
@@ -2088,6 +2321,10 @@ export default function AppShell() {
                 </div>
               </div>
             ) : null}
+            <ListPageOverview
+              contentRef={listPageContentRef}
+              pathname={location.pathname}
+            />
             <React.Suspense fallback={<div>Loading...</div>}>
               <AppRoutes user={user} />
             </React.Suspense>
@@ -2101,7 +2338,11 @@ export default function AppShell() {
           title="New Verification"
         />
       ) : null}
-      <PaymentPackageModal isOpen={showPaymentModal} onClose={() => setShowPaymentModal(false)} companyId={user?.company_id || user?.companyIds?.[0]} />
+      <PaymentPackageModal
+        isOpen={showPaymentModal}
+        onClose={() => setShowPaymentModal(false)}
+        companyId={user?.company_id || user?.companyIds?.[0]}
+      />
       <FloatingChat />
       <BanksAiFloating />
 

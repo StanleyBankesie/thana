@@ -9,6 +9,7 @@ import { api } from "../../../../api/client.js";
 import { toast } from "react-toastify";
 import { Plus, Trash2 } from "lucide-react";
 import { usePermission } from "@/auth/PermissionContext.jsx";
+import TaxPricingModal, { TaxModeRadioSelector } from "@/components/common/TaxPricingModal.jsx";
 
 export default function PurchaseReturnForm() {
   const { hasExceptional } = usePermission();
@@ -28,6 +29,9 @@ export default function PurchaseReturnForm() {
   const [supplierSearch, setSupplierSearch] = useState("");
   const [taxComponentsByCode, setTaxComponentsByCode] = useState({});
   const [defaultTaxId, setDefaultTaxId] = useState("");
+  const [taxModalOpen, setTaxModalOpen] = useState(false);
+  const [showTaxModeAlert, setShowTaxModeAlert] = useState(false);
+  const [hasPromptedTaxMode, setHasPromptedTaxMode] = useState(false);
   const initialLineId = useMemo(() => Date.now(), []);
   const fallbackReasons = [
     { code: "DAMAGED", name: "Damaged" },
@@ -44,6 +48,10 @@ export default function PurchaseReturnForm() {
     warehouseId: "",
     returnType: "",
     remarks: "",
+    tax_mode: "EXCLUSIVE",
+    tax_code_id: "",
+    tax_rate: 0,
+    tax_component_name: "",
   });
 
   const [lines, setLines] = useState([
@@ -335,13 +343,27 @@ export default function PurchaseReturnForm() {
 
   const handleItemChange = (lineId, itemId) => {
     const item = itemsMaster.find((i) => String(i.id) === String(itemId));
-    const activeTaxId = String(item?.vat_on_purchase_id || defaultTaxId || "");
-    const comps = taxComponentsByCode[activeTaxId] || [];
-    const rate = comps.reduce((sum, c) => sum + Number(c.rate_percent || 0), 0);
+    const isInclusive = String(formData.tax_mode || "EXCLUSIVE").toUpperCase() === "INCLUSIVE";
     const qty = 1;
     const price =
       Number(item?.cost_price || 0) || Number(item?.standard_price || 0) || 0;
-    const taxAmount = Math.round(((qty * price * rate) / 100) * 100) / 100;
+    const gross = qty * price;
+
+    let taxAmount = 0;
+    let taxRate = 0;
+    let activeTaxId = "";
+
+    taxRate = Number(formData.tax_rate || 0);
+    activeTaxId = formData.tax_code_id || "";
+    if (isInclusive) {
+      if (taxRate > 0) {
+        const net = Math.round((gross / (1 + taxRate / 100)) * 100) / 100;
+        taxAmount = Math.round((gross - net) * 100) / 100;
+      }
+    } else {
+      taxAmount = taxRate > 0 ? Math.round((gross * (taxRate / 100)) * 100) / 100 : 0;
+    }
+
     setLines((prev) =>
       prev.map((l) =>
         l.id !== lineId
@@ -354,7 +376,9 @@ export default function PurchaseReturnForm() {
               qtyReturned: qty,
               unitPrice: price,
               reasonCode: formData.returnType || "DAMAGED",
+              tax_mode: isInclusive ? "INCLUSIVE" : "EXCLUSIVE",
               tax_type: activeTaxId,
+              tax_rate: taxRate,
               taxAmount,
               uom: item?.uom || "",
             },
@@ -426,14 +450,22 @@ export default function PurchaseReturnForm() {
         }
         const qtyVal = Number(updated.qtyReturned || 0);
         const priceVal = Number(updated.unitPrice || 0);
-        const taxIdVal = String(updated.tax_type || "");
-        const c = taxComponentsByCode[taxIdVal] || [];
-        const r = c.reduce(
-          (sum, comp) => sum + Number(comp.rate_percent || 0),
-          0,
-        );
-        updated.taxAmount =
-          Math.round(((qtyVal * priceVal * r) / 100) * 100) / 100;
+        const gross = qtyVal * priceVal;
+        const isInclusive = String(formData.tax_mode || "EXCLUSIVE").toUpperCase() === "INCLUSIVE";
+
+        const taxRate = Number(updated.tax_rate) > 0
+          ? Number(updated.tax_rate)
+          : Number(formData.tax_rate || 0);
+        if (isInclusive) {
+          if (taxRate > 0) {
+            const net = Math.round((gross / (1 + taxRate / 100)) * 100) / 100;
+            updated.taxAmount = Math.round((gross - net) * 100) / 100;
+          } else {
+            updated.taxAmount = 0;
+          }
+        } else {
+          updated.taxAmount = taxRate > 0 ? Math.round((gross * (taxRate / 100)) * 100) / 100 : 0;
+        }
         return updated;
       }),
     );
@@ -522,22 +554,90 @@ export default function PurchaseReturnForm() {
     return { sub, components, taxTotal, total };
   };
 
-  const totals = useMemo(() => {
-    const grossSub = lines.reduce(
-      (sum, ln) =>
-        sum + Number(ln.qtyReturned || 0) * Number(ln.unitPrice || 0),
-      0,
+  const handleTaxModeChange = (newMode) => {
+    setFormData((prev) => ({
+      ...prev,
+      tax_mode: newMode,
+    }));
+    setLines((prev) =>
+      prev.map((ln) => {
+        const gross = Number(ln.qtyReturned || 0) * Number(ln.unitPrice || 0);
+        const isInclusive = newMode === "INCLUSIVE";
+        const taxRate = Number(
+          ln.tax_rate !== undefined && ln.tax_rate !== null
+            ? ln.tax_rate
+            : (formData.tax_rate || 0)
+        );
+        let taxAmount = 0;
+        let lineTotal = gross;
+        let net = gross;
+        if (isInclusive && taxRate > 0) {
+          net = Math.round((gross / (1 + taxRate / 100)) * 100) / 100;
+          taxAmount = Math.round((gross - net) * 100) / 100;
+          lineTotal = gross;
+        } else if (!isInclusive && taxRate > 0) {
+          taxAmount = Math.round((gross * (taxRate / 100)) * 100) / 100;
+          lineTotal = Math.round((gross + taxAmount) * 100) / 100;
+        }
+        return {
+          ...ln,
+          tax_mode: newMode,
+          tax_code_id: ln.tax_code_id || formData.tax_code_id || "",
+          tax_rate: taxRate,
+          taxAmount,
+          net,
+          lineTotal,
+        };
+      }),
     );
-    const tc = calcTaxComponentsTotals();
-    const taxTotal = tc.taxTotal;
-    const grand = grossSub + taxTotal;
+  };
+
+  const totals = useMemo(() => {
+    let grossSub = 0;
+    let netSub = 0;
+    let totalTax = 0;
+    const isInclusive = String(formData.tax_mode || "").toUpperCase() === "INCLUSIVE";
+
+    lines.forEach((ln) => {
+      const gross = Number(ln.qtyReturned || 0) * Number(ln.unitPrice || 0);
+      grossSub += gross;
+
+      const taxRate = Number(
+        ln.tax_rate !== undefined && ln.tax_rate !== null && Number(ln.tax_rate) > 0
+          ? ln.tax_rate
+          : (formData.tax_rate || 0)
+      );
+      if (isInclusive) {
+        const lineNet = taxRate > 0 ? Math.round((gross / (1 + taxRate / 100)) * 100) / 100 : gross;
+        const lineTax = Math.round((gross - lineNet) * 100) / 100;
+        netSub += lineNet;
+        totalTax += lineTax;
+      } else {
+        const lineTax = taxRate > 0 ? Math.round((gross * (taxRate / 100)) * 100) / 100 : 0;
+        netSub += gross;
+        totalTax += lineTax;
+      }
+    });
+
+    const subTotal = isInclusive ? netSub : grossSub;
+    const grandTotal = isInclusive ? grossSub : subTotal + totalTax;
+
+    const components = [];
+    if (totalTax > 0) {
+      components.push({
+        name: formData.tax_component_name || (formData.tax_rate ? `Tax (${formData.tax_rate}%)` : "Tax"),
+        amount: totalTax,
+        rate: formData.tax_rate || 0,
+      });
+    }
+
     return {
-      subTotal: Math.round(grossSub * 100) / 100,
-      components: tc.components,
-      taxTotal: Math.round(taxTotal * 100) / 100,
-      grandTotal: Math.round(grand * 100) / 100,
+      subTotal: Math.round(subTotal * 100) / 100,
+      components,
+      taxTotal: Math.round(totalTax * 100) / 100,
+      grandTotal: Math.round(grandTotal * 100) / 100,
     };
-  }, [lines, taxComponentsByCode]);
+  }, [lines, formData.tax_mode, formData.tax_rate, formData.tax_component_name]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -753,35 +853,47 @@ export default function PurchaseReturnForm() {
                   ))}
                 </select>
               </div>
-              <div>
-                <label className="label">Reason / Remarks</label>
-                <textarea
-                  className="textarea w-full border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 rounded-lg p-2 focus:ring-2 focus:ring-brand focus:border-brand"
-                  rows={4}
-                  placeholder="Reason for rejection or return details"
-                  value={formData.remarks}
-                  onChange={(e) =>
-                    setFormData((p) => ({ ...p, remarks: e.target.value }))
-                  }
-                  readOnly={readOnly}
-                />
-              </div>
+            </div>
+
+            <div className="w-full">
+              <label className="label">Remarks / Notes</label>
+              <textarea
+                className="textarea w-full border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 rounded-lg p-2 focus:ring-2 focus:ring-brand focus:border-brand"
+                rows={3}
+                placeholder="Reason for rejection or return details"
+                value={formData.remarks}
+                onChange={(e) =>
+                  setFormData((p) => ({ ...p, remarks: e.target.value }))
+                }
+                readOnly={readOnly}
+              />
             </div>
 
             <div className="rounded-lg border bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700">
               <div className="p-4 flex items-center justify-between">
                 <div className="font-medium">Return Items</div>
-                {!readOnly ? (
-                  <button
-                    type="button"
-                    className="btn btn-primary btn-sm"
-                    onClick={addLine}
-                  >
-                    <Plus className="w-4 h-4 mr-1" /> Add Line
-                  </button>
-                ) : (
-                  <div className="h-9 w-28" aria-hidden />
-                )}
+                <div className="flex items-center gap-4">
+                  <TaxModeRadioSelector
+                    taxMode={formData.tax_mode || "EXCLUSIVE"}
+                    onModeChange={handleTaxModeChange}
+                    onOpenTaxModal={() => setTaxModalOpen(true)}
+                    selectedTaxLabel={formData.tax_component_name}
+                    openAlert={showTaxModeAlert}
+                    onCloseAlert={() => setShowTaxModeAlert(false)}
+                    anchorSelector={`#pr-item-search-${lines[0]?.id || 0}`}
+                  />
+                  {!readOnly ? (
+                    <button
+                      type="button"
+                      className="btn btn-primary btn-sm"
+                      onClick={addLine}
+                    >
+                      <Plus className="w-4 h-4 mr-1" /> Add Line
+                    </button>
+                  ) : (
+                    <div className="h-9 w-28" aria-hidden />
+                  )}
+                </div>
               </div>
               <div className="overflow-x-auto">
                 <table className="table w-full">
@@ -836,6 +948,18 @@ export default function PurchaseReturnForm() {
                                 <input
                                   id={`pr-item-search-${ln.id}`}
                                   autoComplete="off"
+                                  onFocus={() => {
+                                    if (!hasPromptedTaxMode) {
+                                      setShowTaxModeAlert(true);
+                                      setHasPromptedTaxMode(true);
+                                    }
+                                  }}
+                                  onClick={() => {
+                                    if (!hasPromptedTaxMode) {
+                                      setShowTaxModeAlert(true);
+                                      setHasPromptedTaxMode(true);
+                                    }
+                                  }}
                                   className="input text-sm py-1 w-full"
                                   placeholder="Type to search items..."
                                   value={
@@ -944,21 +1068,16 @@ export default function PurchaseReturnForm() {
                             />
                           </td>
                           <td className="text-right">
-                            <select
-                              className="input w-full min-w-[7rem]"
-                              value={ln.tax_type}
-                              onChange={(e) =>
-                                updateLine(ln.id, "tax_type", e.target.value)
-                              }
-                              disabled={readOnly}
+                            <button
+                              type="button"
+                              onClick={() => setTaxModalOpen(true)}
+                              className="w-full text-left p-1.5 border border-slate-300 dark:border-slate-700 rounded text-xs bg-white dark:bg-slate-800 hover:bg-slate-50 flex items-center justify-between"
                             >
-                              <option value="">No Tax</option>
-                              {taxes.map((t) => (
-                                <option key={t.id} value={t.id}>
-                                  {t.code} ({Number(t.rate_percent || 0)}%)
-                                </option>
-                              ))}
-                            </select>
+                              <span className="truncate">
+                                {formData.tax_component_name || (ln.tax_rate ? `Tax (${ln.tax_rate}%)` : "Select Tax")}
+                              </span>
+                              <span className="text-blue-600 font-semibold ml-1">Edit</span>
+                            </button>
                           </td>
                           <td className="text-right">
                             <input
@@ -967,6 +1086,13 @@ export default function PurchaseReturnForm() {
                               value={Number(ln.taxAmount || 0).toFixed(2)}
                               readOnly
                             />
+                            {Number(ln.tax_rate || 0) > 0 && (
+                              <div className="mt-0.5">
+                                <span className="inline-block px-1.5 py-0.5 text-[10px] bg-blue-50 text-blue-700 rounded font-medium">
+                                  {ln.tax_rate}%
+                                </span>
+                              </div>
+                            )}
                           </td>
                           <td className="text-right">
                             {(lineTotal + Number(ln.taxAmount || 0)).toFixed(2)}
@@ -1036,7 +1162,7 @@ export default function PurchaseReturnForm() {
                       className="flex justify-between text-sm text-slate-600 dark:text-slate-400 pl-4 border-l-2 border-slate-300"
                     >
                       <span>
-                        {comp.name} ({comp.rate}%)
+                        {comp.name && comp.name.includes("%") ? comp.name : `${comp.name} (${comp.rate}%)`}
                       </span>
                       <span>{comp.amount.toFixed(2)}</span>
                     </div>
@@ -1071,6 +1197,61 @@ export default function PurchaseReturnForm() {
           </form>
         </div>
       </div>
+      <TaxPricingModal
+        open={taxModalOpen}
+        form="PURCHASE_RETURN"
+        pageId={20}
+        onClose={() => setTaxModalOpen(false)}
+        taxMode={formData.tax_mode || "EXCLUSIVE"}
+        price={0}
+        selectedComponent={{
+          name: formData.tax_component_name,
+          rate: formData.tax_rate,
+          id: formData.tax_code_id,
+        }}
+        onSelectComponent={(comp) => {
+          const compLabel = `${comp.name}${comp.rate !== undefined ? ` (${comp.rate}%)` : ""}`;
+          const taxCodeId = comp.taxCodeId || comp.originalId || comp.id;
+          const taxRate = comp.rate;
+          const currentMode = formData.tax_mode || "EXCLUSIVE";
+          const isInclusive = currentMode === "INCLUSIVE";
+
+          setFormData((prev) => ({
+            ...prev,
+            tax_mode: currentMode,
+            tax_code_id: taxCodeId || prev.tax_code_id,
+            tax_rate: taxRate,
+            tax_component_name: compLabel,
+          }));
+
+          setLines((prev) =>
+            prev.map((ln) => {
+              const gross = Number(ln.qtyReturned || 0) * Number(ln.unitPrice || 0);
+              let net = gross;
+              let taxAmount = 0;
+              let lineTotal = gross;
+              if (isInclusive && taxRate > 0) {
+                net = Math.round((gross / (1 + taxRate / 100)) * 100) / 100;
+                taxAmount = Math.round((gross - net) * 100) / 100;
+                lineTotal = gross;
+              } else if (!isInclusive && taxRate > 0) {
+                taxAmount = Math.round((gross * (taxRate / 100)) * 100) / 100;
+                lineTotal = Math.round((gross + taxAmount) * 100) / 100;
+              }
+              return {
+                ...ln,
+                tax_mode: currentMode,
+                tax_code_id: taxCodeId || ln.tax_code_id,
+                tax_rate: taxRate,
+                taxAmount,
+                net,
+                lineTotal,
+              };
+            })
+          );
+          setTaxModalOpen(false);
+        }}
+      />
     </div>
   );
 }

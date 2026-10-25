@@ -13,7 +13,7 @@ const statusStyles = {
   DRAFT: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300",
   SUBMITTED: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300",
   APPROVED: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300",
-  POSTED: "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300",
+  POSTED: "bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300 border border-blue-200 dark:border-blue-800",
   CANCELLED: "bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300",
   REVERSED: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300",
 };
@@ -106,8 +106,8 @@ export default function ProjectExpenseReport() {
           <button onClick={fetchData} className="btn btn-secondary p-2" title="Refresh"><RefreshCw size={18} /></button>
           {items.length > 0 && (
             <div className="flex items-center gap-2">
-              <button onClick={exportExcel} className="btn-success flex items-center gap-2"><Download size={18} /> Excel</button>
-              <button onClick={exportPdf} className="btn-error flex items-center gap-2 text-white bg-rose-600 hover:bg-rose-700"><Download size={18} /> PDF</button>
+              <button onClick={exportExcel} className="btn btn-secondary inline-flex items-center gap-1.5 text-sm"><Download size={18} /> Excel</button>
+              <button onClick={exportPdf} className="btn btn-outline inline-flex items-center gap-1.5 text-sm text-rose-600 border-rose-300 hover:bg-rose-50 dark:hover:bg-rose-950/30"><Download size={18} /> PDF</button>
             </div>
           )}
         </div>

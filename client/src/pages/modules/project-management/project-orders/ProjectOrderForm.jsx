@@ -10,6 +10,7 @@ import { useAuth } from "../../../../auth/AuthContext";
 import { usePermission } from "../../../../auth/PermissionContext";
 import { useUoms } from "@/hooks/useUoms";
 import { filterByPrefix } from "@/utils/searchUtils.js";
+import { ArrowLeft, ShoppingCart, Save } from "lucide-react";
 
 /**
  *  component
@@ -437,40 +438,76 @@ export default function ProjectOrderForm() {
   const handlePrint = () => window.print();
 
   return (
-    <div className="space-y-6">
-      <div className="card">
-        <div className="card-header bg-brand text-white rounded-t-lg">
-          <div className="flex justify-between items-center text-white">
-            <div>
-              <h1 className="text-2xl font-bold dark:text-brand-300">
-                {isNew ? "New Project Order" : `Project Order ${formData.orderNo}`}
-              </h1>
-              <p className="text-sm mt-1">Create items for a project</p>
-            </div>
-            <div className="flex gap-2">
-              {!isViewMode && formData.status === "DRAFT" && (
-                <>
-                  {!isNew && (
-                    <button type="button" onClick={handleDelete}
-                      className="btn btn-danger text-xs px-3 py-1">Delete</button>
-                  )}
-                </>
-              )}
-              {!isNew && formData.status !== "DRAFT" && (
-                <button type="button" onClick={handleCancelOrder}
-                  className="btn btn-warning text-xs px-3 py-1">Cancel</button>
-              )}
-              {!isNew && (
-                <>
-                  <button type="button" onClick={handlePrint}
-                    className="btn btn-secondary text-xs px-3 py-1">Print</button>
-                </>
-              )}
-              <button onClick={() => window.history.back()} className="btn-success">Back</button>
-            </div>
+    <div className="space-y-6" data-no-overview="true">
+      {/* Canonical ERP Flex Header */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <button
+            type="button"
+            onClick={() => window.history.back()}
+            className="btn btn-secondary inline-flex items-center gap-1.5 text-sm"
+          >
+            <ArrowLeft size={16} /> Back
+          </button>
+          <div>
+            <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2.5">
+              <ShoppingCart size={26} className="text-brand-900 dark:text-brand-400" />
+              {isNew ? "New Project Order" : `Project Order ${formData.orderNo}`}
+            </h1>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+              Create and manage items for a project
+            </p>
           </div>
         </div>
-        <div className="card-body">
+        <div className="flex items-center gap-2.5">
+          {!isViewMode && formData.status === "DRAFT" && !isNew && (
+            <button
+              type="button"
+              onClick={handleDelete}
+              className="btn btn-outline text-xs text-rose-600 border-rose-300 hover:bg-rose-50"
+            >
+              Delete
+            </button>
+          )}
+          {!isNew && formData.status !== "DRAFT" && (
+            <button
+              type="button"
+              onClick={handleCancelOrder}
+              className="btn btn-outline text-xs text-amber-600 border-amber-300 hover:bg-amber-50"
+            >
+              Cancel Order
+            </button>
+          )}
+          {!isNew && (
+            <button
+              type="button"
+              onClick={handlePrint}
+              className="btn btn-secondary text-xs"
+            >
+              Print
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => window.history.back()}
+            className="btn btn-secondary text-sm"
+          >
+            Close
+          </button>
+          {!readOnly && formData.status === "DRAFT" && (
+            <button
+              type="button"
+              onClick={handleSave}
+              disabled={saving}
+              className="btn btn-primary inline-flex items-center gap-2 text-sm font-semibold shadow-sm"
+            >
+              <Save size={16} /> {saving ? "Saving..." : "Save Order"}
+            </button>
+          )}
+        </div>
+      </div>
+
+      <div className="card bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm p-6">
           <form onSubmit={handleSave} className="space-y-6">
             {loading ? <div className="text-sm">Loading...</div> : null}
             {error ? <div className="text-sm text-red-600">{error}</div> : null}
@@ -494,13 +531,23 @@ export default function ProjectOrderForm() {
                 <input type="date" className="input" value={formData.orderDate}
                   onChange={e => setFormData({ ...formData, orderDate: e.target.value })} required disabled={readOnly} />
               </div>
-              <div className="md:col-span-2">
+              <div>
                 <label className="label">Project *</label>
                 <select className="input" value={formData.projectId}
                   onChange={e => setFormData({ ...formData, projectId: e.target.value })} required disabled={readOnly}>
                   <option value="">Select Project</option>
                   {projects.map(p => <option key={p.id} value={p.id}>{p.project_name}</option>)}
                 </select>
+              </div>
+              <div>
+                <label className="label">Client</label>
+                <input
+                  type="text"
+                  className="input bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200"
+                  value={projects.find(p => String(p.id) === String(formData.projectId))?.client_name || ""}
+                  placeholder="Client"
+                  readOnly
+                />
               </div>
               <div>
                 <label className="label">Status</label>
@@ -541,13 +588,13 @@ export default function ProjectOrderForm() {
               <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-4">Order Items</h3>
 
               {!readOnly && (
-                <div className="bg-gray-50 p-4 rounded-lg mb-6 border border-gray-200">
+                <div className="bg-white dark:bg-slate-900 p-4 rounded-xl mb-6 border border-slate-200 dark:border-slate-800">
                   <div className="grid grid-cols-1 md:grid-cols-7 gap-3 mb-3">
                     <div className="md:col-span-2">
                       <label className="block text-xs font-medium text-gray-700 mb-1">Item *</label>
                       <div className="relative">
                         <input id="pm-order-item-search" autoComplete="off"
-                          className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0E3646]"
+                          className="input text-sm w-full"
                           placeholder="Scan barcode or type item name"
                           value={itemQuery}
                           onChange={e => {
@@ -597,7 +644,7 @@ export default function ProjectOrderForm() {
                       <label className="block text-xs font-medium text-gray-700 mb-1">UOM *</label>
                       <select name="uom" value={newItem.uom || ""}
                         onChange={handleNewItemChange}
-                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0E3646]">
+                        className="input text-sm w-full">
                         <option value="">UOM</option>
                         {(Array.isArray(uoms) && uoms.length ? uoms.map(u => ({ code: u.uom_code || u.code || "", name: u.uom_name || u.name || "" }))
                           : [{ code: "EA", name: "EA" }, { code: "PCS", name: "PCS" }, { code: "KG", name: "KG" }, { code: "LTR", name: "LTR" }, { code: "MTR", name: "MTR" }]
@@ -610,7 +657,7 @@ export default function ProjectOrderForm() {
                       <label className="block text-xs font-medium text-gray-700 mb-1">Qty *</label>
                       <input type="number" name="qty" value={newItem.qty}
                         onChange={handleNewItemChange}
-                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0E3646]"
+                        className="input text-sm w-full"
                         min="1" />
                     </div>
                     <div>
@@ -623,20 +670,20 @@ export default function ProjectOrderForm() {
                       <label className="block text-xs font-medium text-gray-700 mb-1">Price *</label>
                       <input type="number" name="unit_price" value={newItem.unit_price}
                         onChange={handleNewItemChange}
-                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0E3646]" />
+                        className="input text-sm w-full" />
                     </div>
                     <div className={!canEditDiscount() ? "disabled-light-blue" : ""}>
                       <label className="block text-xs font-medium text-gray-700 mb-1">Disc %</label>
                       <input type="number" name="discount_percent" value={newItem.discount_percent}
                         onChange={handleNewItemChange}
-                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0E3646]"
+                        className="input text-sm w-full"
                         min="0" max="100" disabled={!canEditDiscount()} />
                     </div>
                     <div>
                       <label className="block text-xs font-medium text-gray-700 mb-1">Tax</label>
                       <select name="tax_type" value={newItem.tax_type || ""}
                         onChange={handleNewItemChange}
-                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0E3646]">
+                        className="input text-sm w-full">
                         <option value="">Exempted</option>
                         {taxes.map(t => (
                           <option key={t.value} value={t.value}>{t.label}</option>
@@ -646,15 +693,15 @@ export default function ProjectOrderForm() {
                   </div>
                   <div className="flex justify-end">
                     <button type="button" onClick={addItem}
-                      className="bg-[#0E3646] text-white px-4 py-2 rounded-lg hover:bg-[#092530] flex items-center gap-2 transition-colors text-sm">
+                      className="btn btn-primary inline-flex items-center gap-2 text-sm font-semibold">
                       + Add Item
                     </button>
                   </div>
                 </div>
               )}
 
-              <div className="overflow-x-auto rounded-lg border border-gray-200">
-                <table className="w-full text-sm">
+              <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800">
+                <table className="table w-full text-sm">
                   <thead className="bg-gray-100">
                     <tr>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Item</th>
@@ -737,7 +784,7 @@ export default function ProjectOrderForm() {
 
               {items.length > 0 && (
                 <div className="flex justify-end pt-4">
-                  <div className="bg-slate-50 rounded-lg px-6 py-3">
+                  <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg px-6 py-3 shadow-sm">
                     <div className="flex items-center gap-6">
                       <span className="text-sm text-slate-500">Items: <strong>{items.length}</strong></span>
                       <span className="text-sm text-slate-500">Sub Total: <strong>{subTotal.toFixed(2)}</strong></span>
@@ -749,17 +796,24 @@ export default function ProjectOrderForm() {
               )}
             </div>
 
-            <div className="flex justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-700">
-              <Link to="/project-management/project-orders"
-                className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 transition-colors">Close</Link>
+            <div className="flex justify-end gap-3 pt-6 border-t border-slate-200 dark:border-slate-800">
+              <Link
+                to="/project-management/project-orders"
+                className="btn btn-secondary text-sm"
+              >
+                Close
+              </Link>
               {!readOnly && formData.status === "DRAFT" && (
-                  <button type="submit" className="btn-success" disabled={saving}>
-                    {saving ? "Saving..." : "Save"}
-                  </button>
+                <button
+                  type="submit"
+                  className="btn btn-primary inline-flex items-center gap-2 text-sm font-semibold shadow-sm"
+                  disabled={saving}
+                >
+                  <Save size={16} /> {saving ? "Saving..." : "Save Order"}
+                </button>
               )}
             </div>
           </form>
-        </div>
       </div>
     </div>
   );

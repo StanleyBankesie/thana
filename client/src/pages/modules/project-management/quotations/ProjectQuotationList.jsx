@@ -18,7 +18,8 @@ import {
   ListPdfIconButton,
   ListAttachmentIconButton,
 } from "@/components/list/ListDocActionIconButtons.jsx";
-import { X } from "lucide-react";
+import { X, FileText, DollarSign, CheckCircle2, Clock, Send, ArrowLeft, FileSpreadsheet, RefreshCw, Plus } from "lucide-react";
+import ProjectModal from "../components/ProjectModal.jsx";
 import { useViewMode } from "@/hooks/useViewMode";
 import ViewToggle from "@/components/ViewToggle";
 
@@ -354,7 +355,7 @@ export default function ProjectQuotationList() {
         </div>
         <div class="grid-2" style="margin-top: 6px;">
           <div>
-            <div style="font-weight:700;margin-bottom:4px;">Customer</div>
+            <div style="font-weight:700;margin-bottom:4px;">Client</div>
             <div>${escapeHtml(u.name || "")}</div>
             <div>${escapeHtml(u.address || "")}</div>
             <div>${escapeHtml(u.city || "")}${u.city ? "," : ""} ${escapeHtml(u.state || "")} ${escapeHtml(u.country || "")}</div>
@@ -408,8 +409,8 @@ export default function ProjectQuotationList() {
   async function printQuotation(id) {
     try {
       const resp = await api.post(
-        `/documents/quotation/${id}/render`,
-        { format: "html", feature_name: "quotation" },
+        `/documents/project-quotation/${id}/render`,
+        { format: "html", feature_name: "project-quotation" },
         { headers: { "Content-Type": "application/json" } },
       );
       const html =
@@ -460,12 +461,12 @@ export default function ProjectQuotationList() {
   async function downloadQuotationPdf(id) {
     try {
       const resp = await api.post(
-        `/documents/quotation/${id}/render`,
-        { format: "html", feature_name: "quotation" },
+        `/documents/project-quotation/${id}/render`,
+        { format: "html", feature_name: "project-quotation" },
         { headers: { "Content-Type": "application/json" } },
       );
       const html = typeof resp.data === "string" ? resp.data : String(resp.data || "");
-      await renderHtmlToPdf(html, `quotation-${id}.pdf`);
+      await renderHtmlToPdf(html, `project-quotation-${id}.pdf`);
     } catch (err) {
       console.error("PDF Download Error:", err);
       toast.error(err?.response?.data?.message || "Failed to download Quotation PDF");
@@ -485,6 +486,37 @@ export default function ProjectQuotationList() {
   })();
 
   const { sorted: sortedQuotations, sortKey, sortDir, toggle } = useSort(filteredQuotations, "created_at", "desc");
+
+  const quotationMetrics = React.useMemo(() => {
+    const totalCount = quotations.length;
+    const totalPipelineValue = quotations.reduce(
+      (sum, q) => sum + (Number(q.total_amount) || Number(q.net_amount) || 0),
+      0
+    );
+    const approvedCount = quotations.filter(
+      (q) => q.status === "APPROVED" || q.status === "ACCEPTED"
+    ).length;
+    const approvedValue = quotations
+      .filter((q) => q.status === "APPROVED" || q.status === "ACCEPTED")
+      .reduce((sum, q) => sum + (Number(q.total_amount) || Number(q.net_amount) || 0), 0);
+    const pendingCount = quotations.filter(
+      (q) => q.status === "PENDING_APPROVAL"
+    ).length;
+    const draftCount = quotations.filter(
+      (q) => !q.status || q.status === "DRAFT"
+    ).length;
+    const avgValue = totalCount > 0 ? totalPipelineValue / totalCount : 0;
+
+    return {
+      totalCount,
+      totalPipelineValue,
+      approvedCount,
+      approvedValue,
+      pendingCount,
+      draftCount,
+      avgValue,
+    };
+  }, [quotations]);
 
   const workflowDisabled = hasInactiveWorkflow && !candidateWorkflow;
 
@@ -667,7 +699,8 @@ export default function ProjectQuotationList() {
     }
   };
 
-  const submitForward = async () => {
+  const submitForward = async (e) => {
+    e?.preventDefault?.();
     if (!selectedQuot || !candidateWorkflow) return;
     setSubmittingForward(true);
     let optimisticApprover = null;
@@ -770,25 +803,102 @@ export default function ProjectQuotationList() {
 
   return (
     <div className="space-y-4">
-      <div className="card">
-        <div className="card-header bg-brand text-white rounded-t-lg">
-          <div className="flex justify-between items-center text-white">
-            <div>
-              <h1 className="text-2xl font-bold dark:text-brand-300">
-                Sales Quotations
-              </h1>
-              <p className="text-sm mt-1">
-                Manage customer quotations and proposals
-              </p>
-            </div>
-            <div className="flex gap-2">
-              <Link to="/project-management?section=Reports%20%26%20Analytics" className="btn btn-secondary">
-                Return to Menu
-              </Link>
-              <Link to="/project-management/quotations/new" className="btn-success">
-                + New Quotation
-              </Link>
-            </div>
+      {/* Canonical ERP Header */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <Link to="/project-management" className="btn btn-secondary inline-flex items-center gap-1.5 text-sm">
+            <ArrowLeft size={16} /> Back
+          </Link>
+          <div>
+            <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2.5">
+              <FileSpreadsheet size={26} className="text-brand-900 dark:text-brand-400" />
+              Project Quotations
+            </h1>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+              Manage project proposals, client quotes, and commercial terms
+            </p>
+          </div>
+        </div>
+        <div className="flex flex-wrap items-center gap-2.5">
+          <button onClick={() => fetchQuotations(pagination.page || 1)} className="btn btn-secondary p-2.5" title="Refresh">
+            <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
+          </button>
+          <Link
+            to="/project-management/quotations/new"
+            className="btn btn-primary inline-flex items-center gap-2 text-sm font-semibold shadow-sm"
+          >
+            <Plus size={16} /> New Quotation
+          </Link>
+        </div>
+      </div>
+
+      {/* Meaningful Metrics Overview */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="card p-4 flex items-center gap-3">
+          <div className="p-2.5 rounded-xl text-blue-600 bg-blue-50 dark:bg-blue-900/30">
+            <FileText size={20} />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider truncate">
+              Total Quotations
+            </p>
+            <p className="text-xl font-bold text-slate-900 dark:text-white">
+              {quotationMetrics.totalCount}
+            </p>
+            <p className="text-[11px] text-slate-500 truncate">
+              {filteredQuotations.length} in current view
+            </p>
+          </div>
+        </div>
+
+        <div className="card p-4 flex items-center gap-3">
+          <div className="p-2.5 rounded-xl text-emerald-600 bg-emerald-50 dark:bg-emerald-900/30">
+            <DollarSign size={20} />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider truncate">
+              Pipeline Value
+            </p>
+            <p className="text-xl font-bold text-slate-900 dark:text-white truncate">
+              GHS {quotationMetrics.totalPipelineValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </p>
+            <p className="text-[11px] text-slate-500 truncate">
+              Total quoted amount
+            </p>
+          </div>
+        </div>
+
+        <div className="card p-4 flex items-center gap-3">
+          <div className="p-2.5 rounded-xl text-teal-600 bg-teal-50 dark:bg-teal-900/30">
+            <CheckCircle2 size={20} />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider truncate">
+              Approved / Accepted
+            </p>
+            <p className="text-xl font-bold text-teal-600 dark:text-teal-400">
+              {quotationMetrics.approvedCount}
+            </p>
+            <p className="text-[11px] text-slate-500 truncate">
+              GHS {quotationMetrics.approvedValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} approved
+            </p>
+          </div>
+        </div>
+
+        <div className="card p-4 flex items-center gap-3">
+          <div className="p-2.5 rounded-xl text-amber-600 bg-amber-50 dark:bg-amber-900/30">
+            <Clock size={20} />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider truncate">
+              Draft / Pending
+            </p>
+            <p className="text-xl font-bold text-amber-600 dark:text-amber-400">
+              {quotationMetrics.draftCount} <span className="text-xs font-normal text-slate-400">Draft</span> / {quotationMetrics.pendingCount} <span className="text-xs font-normal text-slate-400">Pending</span>
+            </p>
+            <p className="text-[11px] text-slate-500 truncate">
+              Avg: GHS {quotationMetrics.avgValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </p>
           </div>
         </div>
       </div>
@@ -805,7 +915,7 @@ export default function ProjectQuotationList() {
             <div className="flex-1">
               <input
                 type="text"
-                placeholder="Search by quotation number or customer..."
+                placeholder="Search by quotation number or client..."
                 className="input"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -845,13 +955,13 @@ export default function ProjectQuotationList() {
                   <ViewToggle viewMode={viewMode} setViewMode={setViewMode} />
                 </div>
                 <div className="overflow-x-auto">
-              <table className={"table " + (viewMode === 'grid' ? 'table-grid-mode' : '')}>
+              <table data-no-overview="true" className={"table " + (viewMode === 'grid' ? 'table-grid-mode' : '')}>
                 <thead>
                   <tr>
                     <SortableHeader label="Quotation No" sortKey="quotation_no" currentKey={sortKey} direction={sortDir} onToggle={toggle} />
                     <SortableHeader label="Date" sortKey="quotation_date" currentKey={sortKey} direction={sortDir} onToggle={toggle} />
-                    <SortableHeader label="Customer" sortKey="customer_name" currentKey={sortKey} direction={sortDir} onToggle={toggle} />
-                    <SortableHeader label="Vilidity Date" sortKey="valid_until" currentKey={sortKey} direction={sortDir} onToggle={toggle} />
+                    <SortableHeader label="Client" sortKey="customer_name" currentKey={sortKey} direction={sortDir} onToggle={toggle} />
+                    <SortableHeader label="Validity Date" sortKey="valid_until" currentKey={sortKey} direction={sortDir} onToggle={toggle} />
                     <SortableHeader label="Amount" sortKey="total_amount" currentKey={sortKey} direction={sortDir} onToggle={toggle} className="text-right" />
                     <th className="text-right">Actions</th>
                     <SortableHeader label="Created By" sortKey="created_by_username" currentKey={sortKey} direction={sortDir} onToggle={toggle} />
@@ -986,116 +1096,97 @@ export default function ProjectQuotationList() {
           setShowAttach(false);
           setActiveDocId(null);
         }}
-        docType="quotation"
+        docType="project-quotation"
         docId={activeDocId}
       />
 
       {/* Forward for Approval Modal */}
-      {showForwardModal && (
-        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-erp w-full max-w-md overflow-hidden">
-            <div className="p-4 bg-brand text-white flex justify-between items-center">
-              <h2 className="text-lg font-bold">Forward for Approval</h2>
-              <button
-                onClick={() => {
-                  setShowForwardModal(false);
-                  setSelectedQuot(null);
-                  setWfError("");
-                    setForwardComments("");
-                }}
-                className="text-white/80 hover:text-white"
-              >
-                <X className="w-5 h-5" />
-              </button>
+      <ProjectModal
+        open={showForwardModal}
+        onClose={() => {
+          setShowForwardModal(false);
+          setSelectedQuot(null);
+          setWfError("");
+          setForwardComments("");
+        }}
+        title="Forward for Approval"
+        subtitle={`Quotation No: ${selectedQuot?.quotation_no || (selectedQuot?.id ? `#${selectedQuot.id}` : "")}`}
+        icon={Send}
+        onSubmit={submitForward}
+        submitLabel={submittingForward ? "Forwarding..." : "Forward"}
+        submitting={submittingForward || wfLoading}
+      >
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700/60">
+              <span className="text-slate-400 block text-[11px] font-semibold mb-1 uppercase tracking-wider">Document No</span>
+              <span className="font-bold text-sm text-slate-900 dark:text-slate-100">
+                {selectedQuot?.quotation_no || `#${selectedQuot?.id}`}
+              </span>
             </div>
-            <div className="p-4 space-y-4">
-              {wfLoading ? (
-                <div className="text-center py-4 text-gray-500">Loading workflows...</div>
-              ) : wfError ? (
-                <div className="text-red-600 text-sm">{wfError}</div>
-              ) : (
-                <>
-                  {hasInactiveWorkflow && !candidateWorkflow && (
-                    <div className="text-amber-600 text-sm">
-                      No active workflow found for quotations. Please configure a workflow.
-                    </div>
-                  )}
-                  {candidateWorkflow && (
-                    <div className="space-y-3">
-                      <div className="text-sm text-gray-600">
-                        Workflow: <span className="font-medium">{candidateWorkflow.name}</span>
-                      </div>
-                      {firstApprover && (
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Approver
-                          </label>
-                          {firstApprover.approvers && firstApprover.approvers.length > 1 ? (
-                            <select
-                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0E3646]"
-                              value={targetApproverId}
-                              onChange={(e) => setTargetApproverId(e.target.value)}
-                            >
-                              <option value="">Select Approver</option>
-                              {firstApprover.approvers.map((a) => (
-                                <option key={a.user_id} value={a.user_id}>
-                                  {a.username || a.name || `User ${a.user_id}`}
-                                </option>
-                              ))}
-                            </select>
-                          ) : firstApprover.approvers && firstApprover.approvers.length === 1 ? (
-                            <div className="text-sm text-gray-900 py-2">
-                              {firstApprover.approvers[0].username || firstApprover.approvers[0].name}
-                            </div>
-                          ) : (
-                            <div className="text-sm text-gray-500 py-2">
-                              No specific approver assigned
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </>
-              )}
-            </div>
-            
-                <div className="mt-4 p-4 border-t border-slate-200">
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Comments (Optional)</label>
-                  <textarea
-                    value={forwardComments}
-                    onChange={(e) => setForwardComments(e.target.value)}
-                    className="w-full border-slate-300 rounded-md focus:ring-brand focus:border-brand sm:text-sm"
-                    rows={3}
-                    placeholder="Add any comments for the approver..."
-                  />
-                </div>
-              <div className="p-4 border-t flex justify-end gap-2">
-              <button
-                type="button"
-                className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
-                onClick={() => {
-                  setShowForwardModal(false);
-                  setSelectedQuot(null);
-                  setWfError("");
-                    setForwardComments("");
-                }}
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                className="px-4 py-2 text-white rounded-lg hover:opacity-90"
-                style={{ backgroundColor: "#0E3646" }}
-                onClick={submitForward}
-                disabled={!candidateWorkflow || submittingForward}
-              >
-                {submittingForward ? "Forwarding..." : "Forward"}
-              </button>
+            <div className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700/60">
+              <span className="text-slate-400 block text-[11px] font-semibold mb-1 uppercase tracking-wider">Workflow</span>
+              <span className="font-bold text-sm text-slate-900 dark:text-slate-100">
+                {candidateWorkflow?.name || "None (inactive)"}
+              </span>
             </div>
           </div>
+
+          {wfLoading ? (
+            <div className="text-xs text-slate-500 py-1">Loading workflows...</div>
+          ) : wfError ? (
+            <div className="text-xs text-red-600 bg-red-50 dark:bg-red-950/30 p-2.5 rounded-lg border border-red-200 dark:border-red-800">{wfError}</div>
+          ) : (
+            <>
+              {hasInactiveWorkflow && !candidateWorkflow && (
+                <div className="text-xs text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/30 p-2.5 rounded-lg border border-amber-200 dark:border-amber-800">
+                  No active workflow found for quotations. Please configure a workflow.
+                </div>
+              )}
+              {candidateWorkflow && firstApprover && (
+                <div>
+                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                    Approver
+                  </label>
+                  {firstApprover.approvers && firstApprover.approvers.length > 1 ? (
+                    <select
+                      className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500"
+                      value={targetApproverId}
+                      onChange={(e) => setTargetApproverId(e.target.value)}
+                    >
+                      <option value="">Select Approver</option>
+                      {firstApprover.approvers.map((a) => (
+                        <option key={a.user_id} value={a.user_id}>
+                          {a.username || a.name || `User ${a.user_id}`}
+                        </option>
+                      ))}
+                    </select>
+                  ) : firstApprover.approvers && firstApprover.approvers.length === 1 ? (
+                    <div className="text-xs text-slate-700 dark:text-slate-300 font-semibold py-1">
+                      {firstApprover.approvers[0].username || firstApprover.approvers[0].name}
+                    </div>
+                  ) : (
+                    <div className="text-xs text-slate-500 py-1">
+                      No specific approver assigned
+                    </div>
+                  )}
+                </div>
+              )}
+            </>
+          )}
+
+          <div>
+            <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">Comments (Optional)</label>
+            <textarea
+              value={forwardComments}
+              onChange={(e) => setForwardComments(e.target.value)}
+              className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500"
+              rows={3}
+              placeholder="Add any comments for the approver..."
+            />
+          </div>
         </div>
-      )}
+      </ProjectModal>
     </div>
   );
 }

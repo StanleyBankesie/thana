@@ -1,40 +1,84 @@
 /**
  * @file ClientValuationList.jsx
- * @description Client Interim Payment Applications (IPAs), cumulative measured work done, retention withholding, and advance recovery.
+ * @description Client Valuations workspace for measuring, verifying, and calculating
+ * the value of physical work completed against approved BOQ, variations, and site materials.
  */
 
 import React, { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   FileCheck2,
   Plus,
-  DollarSign,
   ArrowLeft,
   Calendar,
   CheckCircle,
   X,
-  FileSpreadsheet,
   Search,
-  RefreshCw
+  RefreshCw,
+  Building,
+  FileSpreadsheet,
+  Layers,
+  ChevronRight,
+  TrendingUp,
+  Percent,
+  Calculator,
+  ShieldCheck,
+  Send,
+  Eye,
+  FileText,
+  Paperclip,
+  Check,
+  DollarSign
 } from "lucide-react";
 import { api } from "../../../../api/client.js";
 import { toast } from "react-toastify";
+import ProjectModal from "../components/ProjectModal.jsx";
 
 export default function ClientValuationList() {
+  const navigate = useNavigate();
   const [projects, setProjects] = useState([]);
   const [selectedProjectId, setSelectedProjectId] = useState("");
   const [activeProject, setActiveProject] = useState(null);
   const [valuations, setValuations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("ALL");
 
+  // Modal State
   const [showModal, setShowModal] = useState(false);
-  const [form, setForm] = useState({
-    application_number: "",
+  const [modalMode, setModalMode] = useState("CREATE"); // CREATE | EDIT | VIEW
+  const [activeTab, setActiveTab] = useState("boq_items"); // boq_items | variations | materials | deductions | attachments
+  const [submitting, setSubmitting] = useState(false);
+
+  // Form State
+  const [formData, setFormData] = useState({
+    id: null,
+    project_id: "",
+    valuation_no: "",
+    contract_ref: "",
+    client_name: "",
+    contractor_name: "Stanness Technologies Ltd",
     valuation_date: new Date().toISOString().split("T")[0],
-    cumulative_work_done: 0,
-    previously_certified: 0,
+    period_from: "",
+    period_to: "",
+    valuation_type: "INTERIM",
+    boq_id: null,
+    boq_title: "",
+    previous_valuation_id: null,
+    previous_valuation_no: "",
+    prepared_by_name: "",
+    status: "DRAFT",
     remarks: "",
+    retention_percent: 5,
+    advance_recovery_percent: 10,
+    other_deductions: 0,
+    materials_on_site_value: 0,
+    dayworks_value: 0,
+    other_additions_value: 0,
+    approved_variations_total: 0,
+    items: [],
+    materials: [],
+    attachments: [],
   });
 
   useEffect(() => {
@@ -46,16 +90,18 @@ export default function ClientValuationList() {
         if (prjs.length > 0) {
           setSelectedProjectId(String(prjs[0].id));
           setActiveProject(prjs[0]);
+        } else {
+          setLoading(false);
         }
       } catch (e) {
         toast.error("Failed to load projects");
+        setLoading(false);
       }
     })();
   }, []);
 
   useEffect(() => {
-    if (!selectedProjectId) return;
-    const prj = projects.find(p => String(p.id) === String(selectedProjectId));
+    const prj = projects.find((p) => String(p.id) === String(selectedProjectId));
     setActiveProject(prj || null);
     fetchValuations();
   }, [selectedProjectId]);
@@ -63,63 +109,317 @@ export default function ClientValuationList() {
   const fetchValuations = async () => {
     setLoading(true);
     try {
-      const res = await api.get("/construction/client-valuations", { params: { project_id: selectedProjectId } });
-      const items = res.data?.items || [];
-      setValuations(items);
+      const res = await api.get("/construction/client-valuations", {
+        params: selectedProjectId ? { project_id: selectedProjectId } : {},
+      });
+      setValuations(res.data?.items || []);
     } catch (e) {
-      toast.error("Failed to load client valuations");
+      toast.error(e?.response?.data?.error || "Failed to load client valuations");
     } finally {
       setLoading(false);
     }
   };
 
-  const openNewValuationModal = () => {
-    const lastCertified = valuations.reduce((acc, curr) => Math.max(acc, Number(curr.cumulative_work_done || 0)), 0);
-    setForm({
-      application_number: `IPA-${activeProject?.project_code || "PRJ"}-${valuations.length + 1}`,
-      valuation_date: new Date().toISOString().split("T")[0],
-      cumulative_work_done: lastCertified,
-      previously_certified: lastCertified,
-      remarks: "",
-    });
-    setShowModal(true);
-  };
+  const openNewValuationModal = async () => {
+    const targetProjId = selectedProjectId || (projects[0]?.id ? String(projects[0].id) : "");
+    if (!targetProjId) {
+      toast.warning("Please select a project first");
+      return;
+    }
+    const curProj = projects.find((p) => String(p.id) === String(targetProjId)) || activeProject;
 
-  const handleCreateValuation = async (e) => {
-    e.preventDefault();
     try {
-      await api.post("/construction/client-valuations", {
-        ...form,
-        project_id: selectedProjectId,
+      // Fetch baseline from server
+      const bRes = await api.get(`/construction/client-valuations/baseline/${targetProjId}`);
+      const base = bRes.data || {};
+
+      const baselineItems = (base.items || []).map((it) => ({
+        ...it,
+        current_period_qty: 0,
+        cumulative_qty: Number(it.prev_cumulative_qty || 0),
+        percentage_complete:
+          Number(it.contract_qty) > 0
+            ? Number(((Number(it.prev_cumulative_qty || 0) / Number(it.contract_qty)) * 100).toFixed(2))
+            : 0,
+        cumulative_value: Number((Number(it.prev_cumulative_qty || 0) * Number(it.contract_rate || 0)).toFixed(2)),
+        current_period_value: 0,
+        assessed_value: 0,
+        remarks: "",
+      }));
+
+      setFormData({
+        id: null,
+        project_id: targetProjId,
+        valuation_no: base.next_valuation_no || `VAL-${curProj?.project_code || "PRJ"}-01`,
+        contract_ref: base.contract_ref || curProj?.contract_ref_no || "CTR-001",
+        client_name: base.client_name || curProj?.client_name || "Client",
+        contractor_name: base.contractor_name || "Stanness Technologies Ltd",
+        valuation_date: new Date().toISOString().split("T")[0],
+        period_from: new Date(Date.now() - 30 * 86400000).toISOString().split("T")[0],
+        period_to: new Date().toISOString().split("T")[0],
+        valuation_type: "INTERIM",
+        boq_id: base.boq?.id || null,
+        boq_title: base.boq?.title || "Project BOQ",
+        previous_valuation_id: base.previousValuation?.id || null,
+        previous_valuation_no: base.previousValuation?.valuation_no || "None (Initial Valuation)",
+        prepared_by_name: "Project QS",
+        status: "DRAFT",
+        remarks: "",
+        retention_percent: Number(base.retention_percent ?? curProj?.retention_percent ?? 5),
+        advance_recovery_percent: Number(base.advance_recovery_percent ?? curProj?.advance_recovery_percent ?? 10),
+        other_deductions: 0,
+        materials_on_site_value: 0,
+        dayworks_value: 0,
+        other_additions_value: 0,
+        approved_variations_total: (base.approvedVariations || []).reduce(
+          (acc, v) => acc + Number(v.net_amount || 0),
+          0
+        ),
+        items: baselineItems,
+        materials: [],
+        attachments: [],
       });
-      toast.success("Client Interim Payment Application submitted");
-      setShowModal(false);
-      fetchValuations();
+
+      setModalMode("CREATE");
+      setActiveTab("boq_items");
+      setShowModal(true);
     } catch (e) {
-      toast.error("Failed to create client valuation");
+      toast.error(e?.response?.data?.error || "Failed to initialize valuation baseline");
     }
   };
 
-  const currentClaim = Math.max(0, Number(form.cumulative_work_done || 0) - Number(form.previously_certified || 0));
-  const retPct = Number(activeProject?.retention_percent || 5);
-  const retentionDeducted = (currentClaim * retPct) / 100;
-  const advRecPct = Number(activeProject?.advance_recovery_percent || 10);
-  const advanceRecovered = (currentClaim * advRecPct) / 100;
-  const netCertified = Math.max(0, currentClaim - retentionDeducted - advanceRecovered);
+  const openViewOrEditModal = async (valId, mode = "VIEW") => {
+    try {
+      const res = await api.get(`/construction/client-valuations/${valId}`);
+      const v = res.data?.item || {};
+      const lines = res.data?.lines || [];
 
-  const filteredValuations = valuations.filter(v => {
+      setFormData({
+        id: v.id,
+        project_id: String(v.project_id),
+        valuation_no: v.valuation_no || v.application_no,
+        contract_ref: v.contract_ref || "",
+        client_name: v.client_name || "",
+        contractor_name: v.contractor_name || "Stanness Technologies Ltd",
+        valuation_date: v.valuation_date ? String(v.valuation_date).split("T")[0] : "",
+        period_from: v.period_from ? String(v.period_from).split("T")[0] : "",
+        period_to: v.period_to ? String(v.period_to).split("T")[0] : "",
+        valuation_type: v.valuation_type || "INTERIM",
+        boq_id: v.boq_id || null,
+        boq_title: v.boq_title || "Project BOQ",
+        previous_valuation_id: v.previous_valuation_id || null,
+        previous_valuation_no: v.previous_valuation_no || "None",
+        prepared_by_name: v.prepared_by_name || "",
+        status: v.status || "DRAFT",
+        remarks: v.remarks || "",
+        retention_percent: Number(v.retention_percent ?? 5),
+        advance_recovery_percent: Number(v.advance_recovery_percent ?? 10),
+        other_deductions: Number(v.other_deductions || 0),
+        materials_on_site_value: Number(v.materials_on_site_value || 0),
+        dayworks_value: Number(v.dayworks_value || 0),
+        other_additions_value: Number(v.other_additions_value || 0),
+        approved_variations_total: Number(v.approved_variations_total || 0),
+        items: lines.map((l) => ({
+          ...l,
+          contract_qty: Number(l.contract_qty || l.boq_qty || 0),
+          contract_rate: Number(l.contract_rate || l.unit_rate || 0),
+          prev_cumulative_qty: Number(l.prev_cumulative_qty || 0),
+          current_period_qty: Number(l.current_period_qty || 0),
+          cumulative_qty: Number(l.cumulative_qty || 0),
+          percentage_complete: Number(l.percentage_complete || 0),
+          cumulative_value: Number(l.cumulative_value || 0),
+          prev_certified_value: Number(l.prev_certified_value || 0),
+          current_period_value: Number(l.current_period_value || 0),
+          assessed_value: Number(l.assessed_value || 0),
+        })),
+        materials: [],
+        attachments: [],
+      });
+
+      setModalMode(mode);
+      setActiveTab("boq_items");
+      setShowModal(true);
+    } catch (e) {
+      toast.error(e?.response?.data?.error || "Failed to load valuation details");
+    }
+  };
+
+  // Calculations for line items
+  const handleItemQtyChange = (index, newQty) => {
+    const qty = Math.max(0, Number(newQty) || 0);
+    const updated = [...formData.items];
+    const it = { ...updated[index] };
+
+    it.current_period_qty = qty;
+    it.cumulative_qty = Number((Number(it.prev_cumulative_qty || 0) + qty).toFixed(4));
+    it.percentage_complete =
+      Number(it.contract_qty) > 0
+        ? Number(((it.cumulative_qty / Number(it.contract_qty)) * 100).toFixed(2))
+        : 100;
+    it.cumulative_value = Number((it.cumulative_qty * Number(it.contract_rate || 0)).toFixed(2));
+    it.current_period_value = Number((qty * Number(it.contract_rate || 0)).toFixed(2));
+    // Default assessed value to current period value unless manually entered
+    it.assessed_value = it.current_period_value;
+
+    updated[index] = it;
+    setFormData({ ...formData, items: updated });
+  };
+
+  const handleItemAssessedValueChange = (index, val) => {
+    const assessed = Math.max(0, Number(val) || 0);
+    const updated = [...formData.items];
+    updated[index] = { ...updated[index], assessed_value: assessed };
+    setFormData({ ...formData, items: updated });
+  };
+
+  const handleItemRemarksChange = (index, val) => {
+    const updated = [...formData.items];
+    updated[index] = { ...updated[index], remarks: val };
+    setFormData({ ...formData, items: updated });
+  };
+
+  const handleAddNonBoqItem = () => {
+    const newItem = {
+      boq_item_id: null,
+      item_code: `VAR-${formData.items.length + 1}`,
+      description: "Non-BOQ / Variation Extra Work",
+      uom: "ITEM",
+      contract_qty: 1,
+      contract_rate: 0,
+      contract_amount: 0,
+      prev_cumulative_qty: 0,
+      current_period_qty: 1,
+      cumulative_qty: 1,
+      percentage_complete: 100,
+      cumulative_value: 0,
+      prev_certified_value: 0,
+      current_period_value: 0,
+      assessed_value: 0,
+      remarks: "Extra work approved by client instruction",
+      is_variation: 1,
+    };
+    setFormData({ ...formData, items: [...formData.items, newItem] });
+  };
+
+  // Summary Totals Calculation
+  const totalBoqWorkCompleted = formData.items.reduce((acc, it) => acc + Number(it.assessed_value || 0), 0);
+  const totalVariations = Number(formData.approved_variations_total || 0);
+  const totalMaterialsOnSite = Number(formData.materials_on_site_value || 0);
+  const totalDayworks = Number(formData.dayworks_value || 0) + Number(formData.other_additions_value || 0);
+
+  const grossValuationAmount = totalBoqWorkCompleted + totalVariations + totalMaterialsOnSite + totalDayworks;
+
+  const retentionPercent = Number(formData.retention_percent || 0);
+  const retentionDeducted = Number(((grossValuationAmount * retentionPercent) / 100).toFixed(2));
+
+  const advanceRecoveryPercent = Number(formData.advance_recovery_percent || 0);
+  const advanceRecovered = Number(((grossValuationAmount * advanceRecoveryPercent) / 100).toFixed(2));
+
+  const otherDeductions = Number(formData.other_deductions || 0);
+
+  const previousCertifiedTotal = formData.items.reduce(
+    (acc, it) => acc + Number(it.prev_certified_value || 0),
+    0
+  );
+
+  const netAssessedValue = Math.max(
+    0,
+    grossValuationAmount - retentionDeducted - advanceRecovered - otherDeductions
+  );
+
+  // Submit Valuation Handler
+  const handleSaveValuation = async (targetStatus = formData.status) => {
+    setSubmitting(true);
+    try {
+      const payload = {
+        ...formData,
+        status: targetStatus,
+        gross_claimed: grossValuationAmount,
+        gross_certified: grossValuationAmount,
+        gross_assessed_value: grossValuationAmount,
+        current_certified: totalBoqWorkCompleted,
+        current_assessed_amount: netAssessedValue,
+        net_amount_due: netAssessedValue,
+        retention_deducted: retentionDeducted,
+        advance_recovered: advanceRecovered,
+        other_deductions: otherDeductions,
+      };
+
+      if (formData.id) {
+        await api.put(`/construction/client-valuations/${formData.id}`, payload);
+        toast.success("Client Valuation updated successfully");
+      } else {
+        await api.post("/construction/client-valuations", payload);
+        toast.success("Client Valuation saved successfully");
+      }
+      setShowModal(false);
+      fetchValuations();
+    } catch (e) {
+      toast.error(e?.response?.data?.error || "Failed to save valuation");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleUpdateStatus = async (valId, newStatus) => {
+    try {
+      await api.post(`/construction/client-valuations/${valId}/status`, {
+        status: newStatus,
+        remarks: `Status changed to ${newStatus}`,
+      });
+      toast.success(`Valuation status changed to ${newStatus}`);
+      fetchValuations();
+    } catch (e) {
+      toast.error(e?.response?.data?.error || "Failed to update valuation status");
+    }
+  };
+
+  // Convert to Interim Payment Application
+  const handleCreatePaymentApplication = async (valId) => {
+    try {
+      const res = await api.post(`/construction/client-valuations/${valId}/create-payment-application`);
+      toast.success(res.data?.message || "Payment application created successfully!");
+      setShowModal(false);
+      navigate("/project-management/payment-applications");
+    } catch (e) {
+      toast.error(e?.response?.data?.error || "Failed to create payment application from valuation");
+    }
+  };
+
+  // Filters
+  const filteredValuations = valuations.filter((v) => {
+    if (statusFilter !== "ALL" && v.status !== statusFilter) return false;
     if (!searchTerm.trim()) return true;
     const q = searchTerm.toLowerCase();
     return (
-      v.application_number?.toLowerCase().includes(q) ||
+      v.valuation_no?.toLowerCase().includes(q) ||
+      v.application_no?.toLowerCase().includes(q) ||
+      v.project_name?.toLowerCase().includes(q) ||
+      v.project_code?.toLowerCase().includes(q) ||
       v.client_name?.toLowerCase().includes(q) ||
-      v.status?.toLowerCase().includes(q)
+      v.contract_ref?.toLowerCase().includes(q)
     );
   });
 
+  const getStatusBadge = (status) => {
+    const s = (status || "DRAFT").toUpperCase();
+    switch (s) {
+      case "APPROVED":
+      case "CERTIFIED":
+        return "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800";
+      case "SUBMITTED":
+      case "UNDER_REVIEW":
+        return "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-400 dark:border-blue-800";
+      case "REJECTED":
+        return "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-400 dark:border-rose-800";
+      default:
+        return "bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700";
+    }
+  };
+
   return (
     <div className="space-y-6">
-      {/* Canonical List Page Header */}
+      {/* Page Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-4">
           <Link to="/project-management" className="btn btn-secondary inline-flex items-center gap-1.5">
@@ -127,21 +427,22 @@ export default function ClientValuationList() {
           </Link>
           <div>
             <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-              <FileCheck2 size={24} className="text-brand-900 dark:text-brand-400" /> Client Interim Payment Applications (IPAs)
+              <Calculator size={24} className="text-brand-900 dark:text-brand-400" /> Client Valuations
             </h1>
             <p className="text-slate-500 text-sm mt-0.5">
-              Certify measured contract work, deduct statutory retention, and recover advance mobilisations
+              Physical work measurement, contract BOQ items, site materials, variations, and assessed value
             </p>
           </div>
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
           <select
-            className="input text-sm py-1.5 h-auto min-w-[180px]"
+            className="input text-sm py-1.5 h-auto min-w-[200px]"
             value={selectedProjectId}
-            onChange={e => setSelectedProjectId(e.target.value)}
+            onChange={(e) => setSelectedProjectId(e.target.value)}
           >
-            {projects.map(p => (
+            <option value="">All Projects</option>
+            {projects.map((p) => (
               <option key={p.id} value={p.id}>
                 {p.project_code} - {p.project_name}
               </option>
@@ -151,108 +452,194 @@ export default function ClientValuationList() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
             <input
               type="text"
-              placeholder="Search applications..."
+              placeholder="Search valuations..."
               className="input pl-9 pr-3 py-1.5 text-sm h-auto w-48"
               value={searchTerm}
-              onChange={e => setSearchTerm(e.target.value)}
+              onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
-          <button
-            onClick={fetchValuations}
-            className="btn btn-secondary p-2"
-            title="Refresh"
+          <select
+            className="input text-sm py-1.5 h-auto w-32"
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
           >
+            <option value="ALL">All Status</option>
+            <option value="DRAFT">Draft</option>
+            <option value="SUBMITTED">Submitted</option>
+            <option value="UNDER_REVIEW">Under Review</option>
+            <option value="APPROVED">Approved</option>
+            <option value="REJECTED">Rejected</option>
+          </select>
+          <button onClick={fetchValuations} className="btn btn-secondary p-2" title="Refresh">
             <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
           </button>
-          <button
-            onClick={openNewValuationModal}
-            className="btn btn-primary inline-flex items-center gap-2"
-          >
-            <Plus size={16} /> New Application
+          <button onClick={openNewValuationModal} className="btn btn-primary inline-flex items-center gap-2">
+            <Plus size={16} /> New Valuation
           </button>
         </div>
       </div>
 
-      {/* Contract Financial Health Cards */}
-      {activeProject && (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="card p-4 space-y-1">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Revised Contract Sum</span>
-            <p className="text-xl font-bold font-mono text-slate-900 dark:text-white">
-              GHS {Number(activeProject.revised_contract_sum || activeProject.contract_sum || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
-            </p>
-          </div>
-          <div className="card p-4 space-y-1">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Total Certified to Date</span>
-            <p className="text-xl font-bold font-mono text-emerald-600">
-              GHS {valuations.reduce((a, c) => a + Number(c.net_certified_amount || 0), 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
-            </p>
-          </div>
-          <div className="card p-4 space-y-1">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Total Retention Held</span>
-            <p className="text-xl font-bold font-mono text-rose-600">
-              GHS {valuations.reduce((a, c) => a + Number(c.retention_deducted || 0), 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
-            </p>
-          </div>
-          <div className="card p-4 space-y-1">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Advance Recovered</span>
-            <p className="text-xl font-bold font-mono text-blue-600">
-              GHS {valuations.reduce((a, c) => a + Number(c.advance_recovery || 0), 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
-            </p>
-          </div>
+      {/* KPI Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="card p-4 space-y-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm">
+          <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+            {activeProject ? "Contract Sum" : "Active Projects"}
+          </span>
+          <p className="text-xl font-bold font-mono text-slate-900 dark:text-white">
+            {activeProject
+              ? `GH₵ ${Number(activeProject.revised_contract_sum || activeProject.contract_sum || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}`
+              : `${projects.length} Projects`}
+          </p>
         </div>
-      )}
+        <div className="card p-4 space-y-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm">
+          <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">Gross Assessed to Date</span>
+          <p className="text-xl font-bold font-mono text-brand-700 dark:text-brand-400">
+            GH₵{" "}
+            {valuations
+              .reduce((a, c) => a + Number(c.gross_assessed_value ?? c.gross_claimed ?? 0), 0)
+              .toLocaleString(undefined, { minimumFractionDigits: 2 })}
+          </p>
+        </div>
+        <div className="card p-4 space-y-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm">
+          <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">Retention Withheld</span>
+          <p className="text-xl font-bold font-mono text-rose-600">
+            GH₵{" "}
+            {valuations
+              .reduce((a, c) => a + Number(c.retention_deducted || 0), 0)
+              .toLocaleString(undefined, { minimumFractionDigits: 2 })}
+          </p>
+        </div>
+        <div className="card p-4 space-y-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm">
+          <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">Net Assessed (Due)</span>
+          <p className="text-xl font-bold font-mono text-emerald-600">
+            GH₵{" "}
+            {valuations
+              .reduce((a, c) => a + Number(c.current_assessed_amount ?? c.net_amount_due ?? 0), 0)
+              .toLocaleString(undefined, { minimumFractionDigits: 2 })}
+          </p>
+        </div>
+      </div>
 
-      {/* Valuations Table */}
-      <div className="card overflow-hidden">
-        <div className="p-4 bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center">
-          <h2 className="font-bold text-sm uppercase tracking-wider text-slate-900 dark:text-white">
-            Interim Payment Applications Register ({filteredValuations.length})
+      {/* Valuations Register Table */}
+      <div className="card overflow-hidden bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm">
+        <div className="p-4 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center">
+          <h2 className="font-bold text-sm uppercase tracking-wider text-slate-900 dark:text-white flex items-center gap-2">
+            <FileSpreadsheet size={16} className="text-brand-700 dark:text-brand-400" />
+            Client Valuations Register ({filteredValuations.length})
           </h2>
         </div>
         <div className="overflow-x-auto">
-          <table className="table">
+          <table className="table w-full text-sm">
             <thead>
-              <tr>
-                <th>Application #</th>
-                <th>Date</th>
-                <th>Client</th>
-                <th className="text-right">Cumulative Work</th>
-                <th className="text-right">Previous Certified</th>
-                <th className="text-right">Gross Claim</th>
-                <th className="text-right">Retention</th>
-                <th className="text-right">Advance Rec</th>
-                <th className="text-right">Net Certified (GHS)</th>
-                <th className="text-center">Status</th>
+              <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40 text-slate-600 dark:text-slate-400 text-xs font-semibold uppercase tracking-wider">
+                <th className="py-3 px-4 text-left">Valuation #</th>
+                <th className="py-3 px-4 text-left">Project</th>
+                <th className="py-3 px-4 text-left">Period</th>
+                <th className="py-3 px-4 text-left">Valuation Date</th>
+                <th className="py-3 px-4 text-right">Gross Assessed (GH₵)</th>
+                <th className="py-3 px-4 text-right">Retention</th>
+                <th className="py-3 px-4 text-right">Advance Rec</th>
+                <th className="py-3 px-4 text-right">Net Assessed (GH₵)</th>
+                <th className="py-3 px-4 text-center">Status</th>
+                <th className="py-3 px-4 text-right">Actions</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
               {filteredValuations.length === 0 ? (
                 <tr>
                   <td colSpan={10} className="p-8 text-center text-slate-400 italic">
                     {valuations.length === 0
-                      ? 'No client payment applications submitted for this project yet. Click "New Application" to create one.'
-                      : 'No payment applications match your search criteria.'}
+                      ? 'No client valuations created yet. Click "+ New Valuation" to measure project work.'
+                      : "No valuations match your search or filter."}
                   </td>
                 </tr>
               ) : (
-                filteredValuations.map(v => (
-                  <tr key={v.id}>
-                    <td className="font-mono font-bold text-brand-600 dark:text-brand-400">{v.application_number}</td>
-                    <td className="font-mono">{v.valuation_date ? v.valuation_date.split("T")[0] : "-"}</td>
-                    <td>{v.client_name || activeProject?.client_name || "Client"}</td>
-                    <td className="text-right font-mono">{Number(v.cumulative_work_done || 0).toLocaleString()}</td>
-                    <td className="text-right font-mono">{Number(v.previously_certified || 0).toLocaleString()}</td>
-                    <td className="text-right font-mono font-bold">{Number(v.current_claim || 0).toLocaleString()}</td>
-                    <td className="text-right font-mono text-rose-500">-{Number(v.retention_deducted || 0).toLocaleString()}</td>
-                    <td className="text-right font-mono text-amber-500">-{Number(v.advance_recovery || 0).toLocaleString()}</td>
-                    <td className="text-right font-mono font-bold text-emerald-600 dark:text-emerald-400">
-                      GHS {Number(v.net_certified_amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                filteredValuations.map((v) => (
+                  <tr key={v.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition-colors">
+                    <td className="py-3 px-4 font-mono font-bold text-brand-900 dark:text-brand-300">
+                      {v.valuation_no || v.application_no}
                     </td>
-                    <td className="text-center">
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800">
-                        {v.status}
+                    <td className="py-3 px-4">
+                      <div className="font-semibold text-slate-900 dark:text-slate-100">{v.project_code || "-"}</div>
+                      <div className="text-xs text-slate-400 truncate max-w-[160px]">{v.project_name}</div>
+                    </td>
+                    <td className="py-3 px-4 text-xs font-mono text-slate-600 dark:text-slate-400">
+                      {v.period_from ? String(v.period_from).split("T")[0] : "-"} to{" "}
+                      {v.period_to ? String(v.period_to).split("T")[0] : "-"}
+                    </td>
+                    <td className="py-3 px-4 font-mono text-slate-700 dark:text-slate-300">
+                      {v.valuation_date ? String(v.valuation_date).split("T")[0] : "-"}
+                    </td>
+                    <td className="py-3 px-4 text-right font-mono font-medium">
+                      {Number(v.gross_assessed_value ?? v.gross_claimed ?? 0).toLocaleString(undefined, {
+                        minimumFractionDigits: 2,
+                      })}
+                    </td>
+                    <td className="py-3 px-4 text-right font-mono text-rose-500">
+                      -{Number(v.retention_deducted || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                    </td>
+                    <td className="py-3 px-4 text-right font-mono text-amber-500">
+                      -{Number(v.advance_recovered || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                    </td>
+                    <td className="py-3 px-4 text-right font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                      GH₵{" "}
+                      {Number(v.current_assessed_amount ?? v.net_amount_due ?? 0).toLocaleString(undefined, {
+                        minimumFractionDigits: 2,
+                      })}
+                    </td>
+                    <td className="py-3 px-4 text-center">
+                      <span
+                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border ${getStatusBadge(
+                          v.status
+                        )}`}
+                      >
+                        {v.status || "DRAFT"}
                       </span>
+                    </td>
+                    <td className="py-3 px-4 text-right">
+                      <div className="inline-flex items-center gap-1.5">
+                        <button
+                          onClick={() => openViewOrEditModal(v.id, "VIEW")}
+                          className="p-1.5 rounded-lg text-slate-500 hover:text-slate-800 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800"
+                          title="View Measurement Sheet"
+                        >
+                          <Eye size={16} />
+                        </button>
+                        <button
+                          onClick={() => openViewOrEditModal(v.id, "EDIT")}
+                          className="btn btn-secondary text-xs py-1 px-2.5"
+                          title="Edit Valuation"
+                        >
+                          Edit
+                        </button>
+                        {v.status === "APPROVED" && (
+                          <button
+                            onClick={() => handleCreatePaymentApplication(v.id)}
+                            className="btn btn-primary text-xs py-1 px-2.5 inline-flex items-center gap-1"
+                            title="Generate Interim Payment Application"
+                          >
+                            <Send size={12} /> Create IPA
+                          </button>
+                        )}
+                        {v.status === "DRAFT" && (
+                          <button
+                            onClick={() => handleUpdateStatus(v.id, "SUBMITTED")}
+                            className="btn btn-secondary text-xs py-1 px-2 text-blue-600"
+                            title="Submit for Review"
+                          >
+                            Submit
+                          </button>
+                        )}
+                        {v.status === "SUBMITTED" && (
+                          <button
+                            onClick={() => handleUpdateStatus(v.id, "APPROVED")}
+                            className="btn btn-secondary text-xs py-1 px-2 text-emerald-600 inline-flex items-center gap-0.5"
+                            title="Approve Valuation"
+                          >
+                            <Check size={12} /> Approve
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -262,102 +649,673 @@ export default function ClientValuationList() {
         </div>
       </div>
 
-      {/* Modal: New Valuation */}
-      {showModal && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="card max-w-lg w-full p-6 space-y-4 animate-in fade-in zoom-in-95 duration-200">
-            <div className="flex justify-between items-center border-b border-slate-100 dark:border-slate-800 pb-2">
-              <h3 className="font-bold text-lg text-slate-900 dark:text-white flex items-center gap-2">
-                <FileCheck2 size={18} className="text-brand-900 dark:text-brand-400" /> Interim Payment Application (IPA)
-              </h3>
-              <button onClick={() => setShowModal(false)} className="text-slate-400 hover:text-slate-600">
-                <X size={20} />
+      {/* Valuation Workspace Modal */}
+      <ProjectModal
+        open={showModal}
+        onClose={() => setShowModal(false)}
+        title={
+          modalMode === "CREATE"
+            ? "New Client Valuation Measurement"
+            : modalMode === "EDIT"
+            ? `Edit Valuation ${formData.valuation_no}`
+            : `Valuation Assessment: ${formData.valuation_no}`
+        }
+        subtitle="Measure physical work completed, calculate earned values against BOQ, and assess net period valuation"
+        icon={Calculator}
+        maxWidth="max-w-6xl"
+        showFooter={false}
+      >
+        <div className="space-y-6">
+          {/* Section A: Valuation Header Form */}
+          <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 space-y-4">
+            <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+              Section 1. Valuation Identification & Contract References
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div>
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                  Valuation Number <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  readOnly={modalMode === "VIEW"}
+                  className="input text-sm font-mono w-full"
+                  value={formData.valuation_no}
+                  onChange={(e) => setFormData({ ...formData, valuation_no: e.target.value })}
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                  Project <span className="text-rose-500">*</span>
+                </label>
+                <select
+                  disabled={modalMode !== "CREATE"}
+                  className="input text-sm w-full"
+                  value={formData.project_id}
+                  onChange={async (e) => {
+                    const pId = e.target.value;
+                    setSelectedProjectId(pId);
+                    try {
+                      const bRes = await api.get(`/construction/client-valuations/baseline/${pId}`);
+                      const base = bRes.data || {};
+                      const baselineItems = (base.items || []).map((it) => ({
+                        ...it,
+                        current_period_qty: 0,
+                        cumulative_qty: Number(it.prev_cumulative_qty || 0),
+                        percentage_complete:
+                          Number(it.contract_qty) > 0
+                            ? Number(((Number(it.prev_cumulative_qty || 0) / Number(it.contract_qty)) * 100).toFixed(2))
+                            : 0,
+                        cumulative_value: Number(
+                          (Number(it.prev_cumulative_qty || 0) * Number(it.contract_rate || 0)).toFixed(2)
+                        ),
+                        current_period_value: 0,
+                        assessed_value: 0,
+                        remarks: "",
+                      }));
+                      setFormData((prev) => ({
+                        ...prev,
+                        project_id: pId,
+                        valuation_no: base.next_valuation_no || prev.valuation_no,
+                        contract_ref: base.contract_ref || prev.contract_ref,
+                        client_name: base.client_name || prev.client_name,
+                        boq_id: base.boq?.id || null,
+                        boq_title: base.boq?.title || "Project BOQ",
+                        previous_valuation_id: base.previousValuation?.id || null,
+                        previous_valuation_no: base.previousValuation?.valuation_no || "None",
+                        items: baselineItems,
+                      }));
+                    } catch (_) {}
+                  }}
+                >
+                  <option value="">Select Project</option>
+                  {projects.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.project_code} - {p.project_name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">Contract Ref</label>
+                <input
+                  type="text"
+                  readOnly={modalMode === "VIEW"}
+                  className="input text-sm font-mono w-full"
+                  value={formData.contract_ref}
+                  onChange={(e) => setFormData({ ...formData, contract_ref: e.target.value })}
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">Client Name</label>
+                <input
+                  type="text"
+                  readOnly
+                  className="input text-sm bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-500 w-full"
+                  value={formData.client_name}
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div>
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">Valuation Date</label>
+                <input
+                  type="date"
+                  readOnly={modalMode === "VIEW"}
+                  className="input text-sm font-mono w-full"
+                  value={formData.valuation_date}
+                  onChange={(e) => setFormData({ ...formData, valuation_date: e.target.value })}
+                />
+              </div>
+              <div>
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">Period From</label>
+                <input
+                  type="date"
+                  readOnly={modalMode === "VIEW"}
+                  className="input text-sm font-mono w-full"
+                  value={formData.period_from}
+                  onChange={(e) => setFormData({ ...formData, period_from: e.target.value })}
+                />
+              </div>
+              <div>
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">Period To</label>
+                <input
+                  type="date"
+                  readOnly={modalMode === "VIEW"}
+                  className="input text-sm font-mono w-full"
+                  value={formData.period_to}
+                  onChange={(e) => setFormData({ ...formData, period_to: e.target.value })}
+                />
+              </div>
+              <div>
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">Valuation Type</label>
+                <select
+                  disabled={modalMode === "VIEW"}
+                  className="input text-sm w-full"
+                  value={formData.valuation_type}
+                  onChange={(e) => setFormData({ ...formData, valuation_type: e.target.value })}
+                >
+                  <option value="INTERIM">Interim Valuation</option>
+                  <option value="FINAL">Final Valuation</option>
+                  <option value="REVALUATION">Revaluation / Audit</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div>
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">Related BOQ</label>
+                <input
+                  type="text"
+                  readOnly
+                  className="input text-sm bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 w-full"
+                  value={formData.boq_title || "Approved BOQ"}
+                />
+              </div>
+              <div>
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                  Previous Valuation Ref
+                </label>
+                <input
+                  type="text"
+                  readOnly
+                  className="input text-sm bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 w-full"
+                  value={formData.previous_valuation_no || "Initial"}
+                />
+              </div>
+              <div>
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">Prepared By</label>
+                <input
+                  type="text"
+                  readOnly={modalMode === "VIEW"}
+                  className="input text-sm w-full"
+                  value={formData.prepared_by_name}
+                  onChange={(e) => setFormData({ ...formData, prepared_by_name: e.target.value })}
+                />
+              </div>
+              <div>
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">Status</label>
+                <select
+                  disabled={modalMode === "VIEW"}
+                  className="input text-sm font-semibold w-full"
+                  value={formData.status}
+                  onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                >
+                  <option value="DRAFT">Draft</option>
+                  <option value="SUBMITTED">Submitted for Review</option>
+                  <option value="UNDER_REVIEW">Under Review</option>
+                  <option value="APPROVED">Approved</option>
+                  <option value="REJECTED">Rejected</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          {/* Section B & C: Tabs Navigation */}
+          <div className="border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setActiveTab("boq_items")}
+                className={`py-2 px-3 text-sm font-semibold border-b-2 transition-colors ${
+                  activeTab === "boq_items"
+                    ? "border-brand-900 text-brand-900 dark:border-brand-400 dark:text-brand-400"
+                    : "border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
+                }`}
+              >
+                BOQ Work Items ({formData.items.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab("variations")}
+                className={`py-2 px-3 text-sm font-semibold border-b-2 transition-colors ${
+                  activeTab === "variations"
+                    ? "border-brand-900 text-brand-900 dark:border-brand-400 dark:text-brand-400"
+                    : "border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
+                }`}
+              >
+                Approved Variations
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab("materials")}
+                className={`py-2 px-3 text-sm font-semibold border-b-2 transition-colors ${
+                  activeTab === "materials"
+                    ? "border-brand-900 text-brand-900 dark:border-brand-400 dark:text-brand-400"
+                    : "border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
+                }`}
+              >
+                Materials On-Site (MOS)
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab("deductions")}
+                className={`py-2 px-3 text-sm font-semibold border-b-2 transition-colors ${
+                  activeTab === "deductions"
+                    ? "border-brand-900 text-brand-900 dark:border-brand-400 dark:text-brand-400"
+                    : "border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
+                }`}
+              >
+                Deductions & Retention
               </button>
             </div>
-            <form onSubmit={handleCreateValuation} className="space-y-4">
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <label className="label text-xs uppercase font-bold text-slate-500">Application Ref</label>
-                  <input
-                    type="text"
-                    required
-                    className="input w-full font-mono"
-                    value={form.application_number}
-                    onChange={e => setForm({ ...form, application_number: e.target.value })}
-                  />
+
+            {modalMode !== "VIEW" && activeTab === "boq_items" && (
+              <button
+                type="button"
+                onClick={handleAddNonBoqItem}
+                className="btn btn-secondary text-xs py-1 px-3 inline-flex items-center gap-1.5 mb-1"
+              >
+                <Plus size={14} /> Add Extra Work Line
+              </button>
+            )}
+          </div>
+
+          {/* TAB 1: BOQ Work Items Table */}
+          {activeTab === "boq_items" && (
+            <div className="space-y-3">
+              <div className="max-h-[380px] overflow-y-auto border border-slate-200 dark:border-slate-800 rounded-xl">
+                <table className="table w-full text-xs">
+                  <thead className="sticky top-0 bg-slate-100 dark:bg-slate-800 z-10">
+                    <tr className="border-b border-slate-200 dark:border-slate-700 uppercase tracking-wider text-slate-600 dark:text-slate-300 font-semibold">
+                      <th className="p-2 text-left w-16">Code</th>
+                      <th className="p-2 text-left">Description of Work</th>
+                      <th className="p-2 text-center w-12">UoM</th>
+                      <th className="p-2 text-right w-16">Contract Qty</th>
+                      <th className="p-2 text-right w-20">Rate (GH₵)</th>
+                      <th className="p-2 text-right w-20">Prev Qty</th>
+                      <th className="p-2 text-right w-24 bg-brand-50/50 dark:bg-brand-950/20">Period Qty</th>
+                      <th className="p-2 text-right w-20">Cumul Qty</th>
+                      <th className="p-2 text-right w-14">% Done</th>
+                      <th className="p-2 text-right w-24">Cumul Val</th>
+                      <th className="p-2 text-right w-24 bg-emerald-50/40 dark:bg-emerald-950/20">Assessed Val</th>
+                      <th className="p-2 text-left w-32">Remarks</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                    {formData.items.length === 0 ? (
+                      <tr>
+                        <td colSpan={12} className="p-6 text-center text-slate-400 italic">
+                          No BOQ items loaded for this project. Ensure an approved BOQ exists.
+                        </td>
+                      </tr>
+                    ) : (
+                      formData.items.map((it, idx) => (
+                        <tr key={idx} className="hover:bg-slate-50/60 dark:hover:bg-slate-800/40">
+                          <td className="p-2 font-mono font-bold text-brand-800 dark:text-brand-300">{it.item_code}</td>
+                          <td className="p-2 font-medium max-w-[200px] truncate" title={it.description}>
+                            {it.description}
+                          </td>
+                          <td className="p-2 text-center font-mono">{it.uom}</td>
+                          <td className="p-2 text-right font-mono">{Number(it.contract_qty).toFixed(2)}</td>
+                          <td className="p-2 text-right font-mono">{Number(it.contract_rate).toFixed(2)}</td>
+                          <td className="p-2 text-right font-mono text-slate-500">
+                            {Number(it.prev_cumulative_qty).toFixed(2)}
+                          </td>
+                          <td className="p-2 text-right bg-brand-50/30 dark:bg-brand-950/10">
+                            {modalMode === "VIEW" ? (
+                              <span className="font-mono font-bold">{Number(it.current_period_qty).toFixed(2)}</span>
+                            ) : (
+                              <input
+                                type="number"
+                                step="any"
+                                min="0"
+                                className="input py-1 px-1.5 text-right font-mono text-xs w-20"
+                                value={it.current_period_qty}
+                                onChange={(e) => handleItemQtyChange(idx, e.target.value)}
+                              />
+                            )}
+                          </td>
+                          <td className="p-2 text-right font-mono font-semibold">
+                            {Number(it.cumulative_qty).toFixed(2)}
+                          </td>
+                          <td className="p-2 text-right font-mono font-semibold text-brand-700 dark:text-brand-400">
+                            {Number(it.percentage_complete).toFixed(1)}%
+                          </td>
+                          <td className="p-2 text-right font-mono font-medium">
+                            {Number(it.cumulative_value).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                          </td>
+                          <td className="p-2 text-right bg-emerald-50/30 dark:bg-emerald-950/10">
+                            {modalMode === "VIEW" ? (
+                              <span className="font-mono font-bold text-emerald-600">
+                                {Number(it.assessed_value).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                              </span>
+                            ) : (
+                              <input
+                                type="number"
+                                step="any"
+                                min="0"
+                                className="input py-1 px-1.5 text-right font-mono text-xs w-24 font-bold text-emerald-600"
+                                value={it.assessed_value}
+                                onChange={(e) => handleItemAssessedValueChange(idx, e.target.value)}
+                              />
+                            )}
+                          </td>
+                          <td className="p-2">
+                            {modalMode === "VIEW" ? (
+                              <span className="text-slate-500 truncate block max-w-[120px]">{it.remarks || "-"}</span>
+                            ) : (
+                              <input
+                                type="text"
+                                placeholder="Notes..."
+                                className="input py-1 px-1.5 text-xs w-full"
+                                value={it.remarks || ""}
+                                onChange={(e) => handleItemRemarksChange(idx, e.target.value)}
+                              />
+                            )}
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="flex justify-between items-center px-2 text-xs font-semibold text-slate-500">
+                <span>Total Items: {formData.items.length}</span>
+                <span className="font-mono text-sm text-slate-900 dark:text-white">
+                  Total BOQ Work Measured: GH₵{" "}
+                  {totalBoqWorkCompleted.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                </span>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 2: Approved Variations */}
+          {activeTab === "variations" && (
+            <div className="space-y-4">
+              <div className="p-4 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 space-y-3">
+                <div className="flex justify-between items-center">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
+                    Approved Variations Claimed in Period
+                  </h4>
+                  <span className="text-xs font-mono text-brand-700 dark:text-brand-400 font-bold">
+                    GH₵ {totalVariations.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                  </span>
                 </div>
+                <p className="text-xs text-slate-500">
+                  Approved scope changes and variations automatically linked from the Variations & Change Orders register.
+                </p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+                  <div>
+                    <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                      Approved Variations Claim Amount (GH₵)
+                    </label>
+                    <input
+                      type="number"
+                      step="any"
+                      readOnly={modalMode === "VIEW"}
+                      className="input text-sm font-mono w-full"
+                      value={formData.approved_variations_total}
+                      onChange={(e) =>
+                        setFormData({ ...formData, approved_variations_total: Number(e.target.value) || 0 })
+                      }
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 3: Materials On-Site (MOS) */}
+          {activeTab === "materials" && (
+            <div className="space-y-4">
+              <div className="p-4 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 space-y-3">
+                <div className="flex justify-between items-center">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
+                    Materials Stored On-Site (MOS)
+                  </h4>
+                  <span className="text-xs font-mono text-brand-700 dark:text-brand-400 font-bold">
+                    GH₵ {totalMaterialsOnSite.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                  </span>
+                </div>
+                <p className="text-xs text-slate-500">
+                  Eligible materials delivered and stored safely on site before permanent incorporation into works.
+                </p>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
+                  <div>
+                    <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                      Assessed Materials on Site Value (GH₵)
+                    </label>
+                    <input
+                      type="number"
+                      step="any"
+                      readOnly={modalMode === "VIEW"}
+                      className="input text-sm font-mono w-full"
+                      value={formData.materials_on_site_value}
+                      onChange={(e) =>
+                        setFormData({ ...formData, materials_on_site_value: Number(e.target.value) || 0 })
+                      }
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                      Approved Dayworks Total (GH₵)
+                    </label>
+                    <input
+                      type="number"
+                      step="any"
+                      readOnly={modalMode === "VIEW"}
+                      className="input text-sm font-mono w-full"
+                      value={formData.dayworks_value}
+                      onChange={(e) => setFormData({ ...formData, dayworks_value: Number(e.target.value) || 0 })}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                      Other Contractual Adjustments (GH₵)
+                    </label>
+                    <input
+                      type="number"
+                      step="any"
+                      readOnly={modalMode === "VIEW"}
+                      className="input text-sm font-mono w-full"
+                      value={formData.other_additions_value}
+                      onChange={(e) => setFormData({ ...formData, other_additions_value: Number(e.target.value) || 0 })}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 4: Deductions & Retention */}
+          {activeTab === "deductions" && (
+            <div className="space-y-4">
+              <div className="p-4 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 space-y-4">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
+                  Contractual Deductions & Advance Mobilisation Recoveries
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="p-3 bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 space-y-2">
+                    <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block">
+                      Retention Rate (%)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      min="0"
+                      max="100"
+                      readOnly={modalMode === "VIEW"}
+                      className="input text-sm font-mono w-full"
+                      value={formData.retention_percent}
+                      onChange={(e) => setFormData({ ...formData, retention_percent: Number(e.target.value) || 0 })}
+                    />
+                    <div className="text-xs text-rose-500 font-mono font-bold">
+                      Withholding: -GH₵ {retentionDeducted.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                    </div>
+                  </div>
+
+                  <div className="p-3 bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 space-y-2">
+                    <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block">
+                      Advance Mobilisation Recovery Rate (%)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      min="0"
+                      max="100"
+                      readOnly={modalMode === "VIEW"}
+                      className="input text-sm font-mono w-full"
+                      value={formData.advance_recovery_percent}
+                      onChange={(e) =>
+                        setFormData({ ...formData, advance_recovery_percent: Number(e.target.value) || 0 })
+                      }
+                    />
+                    <div className="text-xs text-amber-500 font-mono font-bold">
+                      Recovery: -GH₵ {advanceRecovered.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                    </div>
+                  </div>
+
+                  <div className="p-3 bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 space-y-2">
+                    <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block">
+                      Other Statutory / Penalty Deductions (GH₵)
+                    </label>
+                    <input
+                      type="number"
+                      step="any"
+                      min="0"
+                      readOnly={modalMode === "VIEW"}
+                      className="input text-sm font-mono w-full"
+                      value={formData.other_deductions}
+                      onChange={(e) => setFormData({ ...formData, other_deductions: Number(e.target.value) || 0 })}
+                    />
+                    <div className="text-xs text-slate-500 font-mono">
+                      Total Other Deductions: GH₵ {otherDeductions.toFixed(2)}
+                    </div>
+                  </div>
+                </div>
+
                 <div className="space-y-1">
-                  <label className="label text-xs uppercase font-bold text-slate-500">Valuation Date</label>
-                  <input
-                    type="date"
-                    required
-                    className="input w-full font-mono"
-                    value={form.valuation_date}
-                    onChange={e => setForm({ ...form, valuation_date: e.target.value })}
+                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block">
+                    Valuation Remarks / Site Notes
+                  </label>
+                  <textarea
+                    rows={2}
+                    readOnly={modalMode === "VIEW"}
+                    placeholder="General observations, engineering measurement notes..."
+                    className="input text-sm w-full py-2"
+                    value={formData.remarks}
+                    onChange={(e) => setFormData({ ...formData, remarks: e.target.value })}
                   />
                 </div>
               </div>
+            </div>
+          )}
 
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <label className="label text-xs uppercase font-bold text-slate-500">Cumulative Work Done (GHS)</label>
-                  <input
-                    type="number"
-                    required
-                    className="input w-full font-mono font-bold"
-                    value={form.cumulative_work_done}
-                    onChange={e => setForm({ ...form, cumulative_work_done: Number(e.target.value) })}
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="label text-xs uppercase font-bold text-slate-500">Previously Certified (GHS)</label>
-                  <input
-                    type="number"
-                    className="input w-full font-mono"
-                    value={form.previously_certified}
-                    onChange={e => setForm({ ...form, previously_certified: Number(e.target.value) })}
-                  />
-                </div>
+          {/* Section D: Valuation Summary Panel */}
+          <div className="bg-slate-900 dark:bg-slate-950 text-white p-5 rounded-2xl border border-slate-800 shadow-apple-md space-y-3">
+            <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+              Section 3. Comprehensive Period Valuation Summary
+            </h4>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs font-mono">
+              <div>
+                <span className="text-slate-400 block text-[11px]">BOQ Work Done:</span>
+                <span className="font-bold text-sm">
+                  GH₵ {totalBoqWorkCompleted.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                </span>
               </div>
-
-              {/* Deductions Breakdown */}
-              <div className="p-3 bg-slate-50 dark:bg-slate-900/50 rounded-xl space-y-2 text-xs border border-slate-200 dark:border-slate-800">
-                <div className="flex justify-between items-center text-slate-600 dark:text-slate-300">
-                  <span>Current Period Measured Claim:</span>
-                  <span className="font-mono font-bold">GHS {currentClaim.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
-                </div>
-                <div className="flex justify-between items-center text-rose-600">
-                  <span>Less Retention ({retPct}%):</span>
-                  <span className="font-mono">-GHS {retentionDeducted.toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between items-center text-amber-600">
-                  <span>Less Advance Recovery ({advRecPct}%):</span>
-                  <span className="font-mono">-GHS {advanceRecovered.toFixed(2)}</span>
-                </div>
+              <div>
+                <span className="text-slate-400 block text-[11px]">Approved Variations:</span>
+                <span className="font-bold text-sm text-brand-300">
+                  +GH₵ {totalVariations.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                </span>
               </div>
-
-              <div className="p-4 bg-brand-50 dark:bg-brand-900/30 border border-brand-200 dark:border-brand-800 rounded-xl flex justify-between items-center">
-                <div>
-                  <p className="text-xs font-bold uppercase text-brand-800 dark:text-brand-300">Net Claim Amount</p>
-                  <p className="text-[10px] text-slate-500">Gross claim minus retention and advance recovery</p>
-                </div>
-                <div className="text-xl font-bold font-mono text-emerald-600 dark:text-emerald-400">
-                  GHS {netCertified.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                </div>
+              <div>
+                <span className="text-slate-400 block text-[11px]">Materials On-Site & Dayworks:</span>
+                <span className="font-bold text-sm text-brand-300">
+                  +GH₵ {(totalMaterialsOnSite + totalDayworks).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                </span>
               </div>
+              <div>
+                <span className="text-slate-400 block text-[11px]">Gross Valuation:</span>
+                <span className="font-bold text-sm text-cyan-400">
+                  GH₵ {grossValuationAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                </span>
+              </div>
+            </div>
 
-              <div className="flex justify-end gap-3 pt-3 border-t border-slate-100 dark:border-slate-800">
-                <button type="button" onClick={() => setShowModal(false)} className="btn btn-secondary">
-                  Cancel
+            <div className="border-t border-slate-800 pt-3 grid grid-cols-2 md:grid-cols-4 gap-4 text-xs font-mono">
+              <div>
+                <span className="text-slate-400 block text-[11px]">Less Retention ({retentionPercent}%):</span>
+                <span className="text-rose-400 font-bold">
+                  -GH₵ {retentionDeducted.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                </span>
+              </div>
+              <div>
+                <span className="text-slate-400 block text-[11px]">Less Advance Recovery ({advanceRecoveryPercent}%):</span>
+                <span className="text-amber-400 font-bold">
+                  -GH₵ {advanceRecovered.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                </span>
+              </div>
+              <div>
+                <span className="text-slate-400 block text-[11px]">Less Other Deductions:</span>
+                <span className="text-slate-300 font-bold">
+                  -GH₵ {otherDeductions.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                </span>
+              </div>
+              <div className="bg-emerald-950/50 border border-emerald-500/40 p-2.5 rounded-xl">
+                <span className="text-emerald-300 block text-[11px] font-semibold uppercase">
+                  Net Period Assessed Value:
+                </span>
+                <span className="text-base font-extrabold text-emerald-400">
+                  GH₵ {netAssessedValue.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Section E: Modal Actions */}
+          <div className="flex flex-col sm:flex-row justify-between items-center gap-3 pt-2">
+            <div>
+              {formData.id && formData.status === "APPROVED" && (
+                <button
+                  type="button"
+                  onClick={() => handleCreatePaymentApplication(formData.id)}
+                  className="btn btn-primary inline-flex items-center gap-2"
+                >
+                  <Send size={16} /> Create Interim Payment Application
                 </button>
-                <button type="submit" className="btn btn-primary inline-flex items-center gap-1.5">
-                  Submit Payment Application
-                </button>
-              </div>
-            </form>
+              )}
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setShowModal(false)}
+                className="btn btn-secondary text-sm"
+              >
+                Close
+              </button>
+              {modalMode !== "VIEW" && (
+                <>
+                  <button
+                    type="button"
+                    disabled={submitting}
+                    onClick={() => handleSaveValuation("DRAFT")}
+                    className="btn btn-secondary text-sm"
+                  >
+                    Save Draft
+                  </button>
+                  <button
+                    type="button"
+                    disabled={submitting}
+                    onClick={() => handleSaveValuation("SUBMITTED")}
+                    className="btn btn-primary text-sm inline-flex items-center gap-1.5"
+                  >
+                    <CheckCircle size={16} /> Submit Valuation
+                  </button>
+                </>
+              )}
+            </div>
           </div>
         </div>
-      )}
+      </ProjectModal>
     </div>
   );
 }

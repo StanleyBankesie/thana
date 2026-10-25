@@ -198,12 +198,12 @@ export const serviceManagementSections = [
         ]
       },
       {
-        title: "Service Parameters",
-        description: "Configure SLAs, categories, and service settings",
-        path: "/service-management/setup/parameters",
+        title: "Service Setup",
+        description: "Configure SLAs, categories, clients, and service parameters",
+        path: "/service-management/setup",
         icon: "⚙️",
         actions: [
-          { label: "Manage", path: "/service-management/setup/parameters", type: "primary", featureKey: "SERVICE.MANAGE", action: "view" }
+          { label: "Manage", path: "/service-management/setup", type: "primary", featureKey: "SERVICE.MANAGE", action: "view" }
         ]
       }
     ],
@@ -390,7 +390,9 @@ export default function ServiceManagementHome() {
         <Route path="service-bills" element={<ServiceBillsList />} />
         <Route path="service-bills/new" element={<ServiceBillForm />} />
         <Route path="service-bills/:id" element={<ServiceBillForm />} />
+        <Route path="setup" element={<ServiceParametersPage />} />
         <Route path="setup/parameters" element={<ServiceParametersPage />} />
+        <Route path="setup/*" element={<ServiceParametersPage />} />
         <Route
           path="visitors-log"
           element={

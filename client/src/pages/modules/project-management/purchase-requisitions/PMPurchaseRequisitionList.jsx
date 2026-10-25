@@ -7,7 +7,7 @@ import React, { useEffect, useState, useCallback } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { api } from "../../../../api/client";
 import { usePermission } from "../../../../auth/PermissionContext";
-import { Plus } from "lucide-react";
+import { Plus, ArrowLeft, ClipboardCheck, RefreshCw } from "lucide-react";
 import { filterAndSort } from "../../../../utils/searchUtils.js";
 import { toast } from "react-toastify";
 import { useViewMode } from "@/hooks/useViewMode";
@@ -30,7 +30,7 @@ const statuses = [
 export default function PMPurchaseRequisitionList() {
   const [viewMode, setViewMode] = useViewMode();
   const navigate = useNavigate();
-  const { canPerformAction } = usePermission();
+  const { canPerformAction, hasExceptional = () => false } = usePermission();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -71,19 +71,33 @@ export default function PMPurchaseRequisitionList() {
   const badge = (s) => { const st = statuses.find((x) => x.value === s); return st ? <span className={`px-2 py-0.5 rounded text-xs font-semibold ${st.color}`}>{st.label}</span> : s; };
 
   return (
-    <div className="space-y-4">
-      <div className="card">
-        <div className="card-header bg-brand text-white rounded-t-lg">
-          <div className="flex justify-between items-center">
-            <div>
-              <h1 className="text-2xl font-bold">Purchase Requisitions</h1>
-              <p className="text-sm mt-1">Request materials for project procurement</p>
-            </div>
-            <div className="flex gap-2">
-              <button onClick={() => window.history.back()} className="btn btn-secondary">Back</button>
-              <Link to="/project-management/purchase-requisitions/new" className="btn-success flex items-center gap-2"><Plus size={16} />New Requisition</Link>
-            </div>
+    <div className="space-y-6">
+      {/* Canonical ERP Header */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <Link to="/project-management" className="btn btn-secondary inline-flex items-center gap-1.5 text-sm">
+            <ArrowLeft size={16} /> Back
+          </Link>
+          <div>
+            <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2.5">
+              <ClipboardCheck size={26} className="text-brand-900 dark:text-brand-400" />
+              Purchase Requisitions
+            </h1>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+              Request materials and services for project procurement
+            </p>
           </div>
+        </div>
+        <div className="flex flex-wrap items-center gap-2.5">
+          <button onClick={loadRequisitions} className="btn btn-secondary p-2.5" title="Refresh">
+            <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
+          </button>
+          <Link
+            to="/project-management/purchase-requisitions/new"
+            className="btn btn-primary inline-flex items-center gap-2 text-sm font-semibold shadow-sm"
+          >
+            <Plus size={16} /> New Requisition
+          </Link>
         </div>
       </div>
 

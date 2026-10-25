@@ -341,6 +341,11 @@ export default function Sidebar() {
           path: "/maintenance/job-executions",
         },
         {
+          key: "field-service",
+          label: "Field Technician Workspace",
+          path: "/maintenance/field-service",
+        },
+        {
           key: "pm-schedules",
           label: "Preventive Maintenance",
           path: "/maintenance/pm-schedules",
@@ -379,14 +384,19 @@ export default function Sidebar() {
           path: "/facilities/properties",
         },
         {
+          key: "facilities-setup",
+          label: "Operations Setup",
+          path: "/facilities/setup",
+        },
+        {
           key: "fm-contracts",
           label: "FM Service Contracts",
           path: "/facilities/contracts",
         },
         {
-          key: "field-service",
-          label: "Field Technician Card",
-          path: "/facilities/field-service",
+          key: "facilities-servicebilling",
+          label: "Service Billing",
+          path: "/facilities/servicebilling",
         },
         {
           key: "checklists",
@@ -395,8 +405,33 @@ export default function Sidebar() {
         },
         {
           key: "soft-services",
-          label: "Soft Services",
+          label: "Soft Services & Site Ops",
           path: "/facilities/soft-services",
+        },
+        {
+          key: "hsa-compliance",
+          label: "Health, Safety & Compliance",
+          path: "/facilities/hsa-compliance",
+        },
+        {
+          key: "utilities-energy",
+          label: "Utilities & Energy",
+          path: "/facilities/utilities-energy",
+        },
+        {
+          key: "budgeting-finance",
+          label: "Budgeting & Financials",
+          path: "/facilities/budgeting-finance",
+        },
+        {
+          key: "space-occupancy",
+          label: "Space & Occupancy",
+          path: "/facilities/space-occupancy",
+        },
+        {
+          key: "sustainability",
+          label: "Sustainability & Environment",
+          path: "/facilities/sustainability",
         },
         {
           key: "facilities-reports",

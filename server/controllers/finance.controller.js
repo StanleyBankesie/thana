@@ -36,6 +36,19 @@ const PAGE_ID_MAP = {
   SALES_RETURN: 19,
   PURCHASE_RETURN: 20,
   DELIVERY_NOTE: 21,
+  TRANSPORT_EXPENSES: 22,
+  TRANSPORT_INCOME: 23,
+  ASSET_INVOICE: 24,
+  ASSET_INVOICES: 24,
+  ASSET_DISPOSAL_INVOICE: 24,
+  FACILITIES_SERVICE_BILLING: 25,
+  FACILITIES_INVOICE: 25,
+  FACILITIES_INVOICES: 25,
+  PROJECT_INVOICE: 26,
+  PROJECT_INVOICES: 26,
+  SERVICE_INVOICE: 27,
+  SERVICE_INVOICES: 27,
+  TRANSPORT_BILLING: 28,
 };
 
 // Function to convert page codes to page IDs
@@ -2177,6 +2190,54 @@ export const listTaxCodeComponents = async (req, res, next) => {
     res.json({ items });
   } catch (e) {
     next(e);
+  }
+};
+
+
+export const listAllTaxComponents = async (req, res, next) => {
+  try {
+    await ensureTaxTables();
+    const companyId = Number(
+      req.scope?.companyId ||
+      req.user?.company_id ||
+      req.headers['x-company-id'] ||
+      1
+    );
+
+    const components = await query(
+      `SELECT 
+        d.id as detail_id,
+        COALESCE(c.id, d.id) as component_id,
+        d.tax_code_id,
+        tc.code as tax_code,
+        tc.name as tax_code_name,
+        d.component_name,
+        COALESCE(c.rate_percent, d.rate_percent, 0) as rate_percent,
+        d.account_id,
+        d.is_active
+      FROM fin_tax_details d
+      LEFT JOIN fin_tax_components c ON c.tax_detail_id = d.id AND c.company_id = d.company_id
+      LEFT JOIN fin_tax_codes tc ON tc.id = d.tax_code_id
+      WHERE d.company_id = :companyId AND d.is_active = 1
+      ORDER BY tc.code ASC, d.id ASC`,
+      { companyId }
+    );
+
+    const taxCodes = await query(
+      `SELECT id, code, name, rate_percent, is_sales_tax, is_purchase_tax, is_service_tax
+       FROM fin_tax_codes
+       WHERE company_id = :companyId AND is_active = 1
+       ORDER BY id ASC, name ASC`,
+      { companyId }
+    );
+
+    res.json({
+      success: true,
+      items: Array.isArray(components) ? components : [],
+      taxCodes: Array.isArray(taxCodes) ? taxCodes : []
+    });
+  } catch (err) {
+    next(err);
   }
 };
 

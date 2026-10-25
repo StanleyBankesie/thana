@@ -21,6 +21,8 @@ import {
   ListPdfIconButton,
   ListAttachmentIconButton,
 } from "@/components/list/ListDocActionIconButtons.jsx";
+import { Send, ArrowLeft, FileText, Plus, RefreshCw, Search } from "lucide-react";
+import ProjectModal from "../components/ProjectModal.jsx";
 
 /**
  *  component
@@ -302,7 +304,7 @@ export default function ProjectInvoiceList() {
 
         <div class="grid-2" style="margin-top: 6px;">
           <div>
-            <div class="section-title">Customer</div>
+            <div class="section-title">Client</div>
             <div>${escapeHtml(cust.name || "")}</div>
             <div>${escapeHtml(cust.address || "")}</div>
             <div>${escapeHtml(cust.city || "")}${cust.city ? "," : ""} ${escapeHtml(cust.state || "")} ${escapeHtml(cust.country || "")}</div>
@@ -488,7 +490,8 @@ export default function ProjectInvoiceList() {
     }
   };
 
-  async function handleForwardSubmit() {
+  async function handleForwardSubmit(e) {
+    e?.preventDefault?.();
     if (!selectedDoc) return;
     setSubmittingForward(true);
     setWfError("");
@@ -550,27 +553,33 @@ export default function ProjectInvoiceList() {
   const { sorted: filteredInvoices, sortKey, sortDir, toggle } = useSort(filteredBase, "created_at", "desc");
 
   return (
-    <div className="space-y-4">
-      <div className="card">
-        <div className="card-header bg-brand text-white rounded-t-lg">
-          <div className="flex justify-between items-center text-white">
-            <div>
-              <h1 className="text-2xl font-bold dark:text-brand">
-                Project Invoices
-              </h1>
-              <p className="text-sm mt-1">
-                Generate and manage customer invoices
-              </p>
-            </div>
-            <div className="flex gap-2">
-              <Link to="/project-management?section=Reports%20%26%20Analytics" className="btn btn-secondary">
-                Return to Menu
-              </Link>
-              <Link to="/project-management/project-invoices/new" className="btn-success">
-                + New Invoice
-              </Link>
-            </div>
+    <div className="space-y-6">
+      {/* Canonical ERP Header */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <Link to="/project-management" className="btn btn-secondary inline-flex items-center gap-1.5 text-sm">
+            <ArrowLeft size={16} /> Back
+          </Link>
+          <div>
+            <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2.5">
+              <FileText size={26} className="text-brand-900 dark:text-brand-400" />
+              Project Invoices
+            </h1>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+              Generate and manage client invoices
+            </p>
           </div>
+        </div>
+        <div className="flex flex-wrap items-center gap-2.5">
+          <button onClick={() => fetchAll(pagination.page || 1)} className="btn btn-secondary p-2.5" title="Refresh">
+            <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
+          </button>
+          <Link
+            to="/project-management/project-invoices/new"
+            className="btn btn-primary inline-flex items-center gap-2 text-sm font-semibold shadow-sm"
+          >
+            <Plus size={16} /> New Invoice
+          </Link>
         </div>
       </div>
 
@@ -580,7 +589,7 @@ export default function ProjectInvoiceList() {
             <div className="flex-1">
               <input
                 type="text"
-                placeholder="Search by invoice number or customer..."
+                placeholder="Search by invoice number or client..."
                 className="input"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -623,7 +632,7 @@ export default function ProjectInvoiceList() {
                   <tr>
                     <SortableHeader label="Invoice No" sortKey="invoice_no" currentKey={sortKey} direction={sortDir} onToggle={toggle} />
                     <SortableHeader label="Date" sortKey="invoice_date" currentKey={sortKey} direction={sortDir} onToggle={toggle} />
-                    <SortableHeader label="Customer" sortKey="customer_name" currentKey={sortKey} direction={sortDir} onToggle={toggle} />
+                    <SortableHeader label="Client" sortKey="customer_name" currentKey={sortKey} direction={sortDir} onToggle={toggle} />
                     <th className="grid-payment-status-cell">Payment</th>
                     <SortableHeader label="Status" sortKey="status" currentKey={sortKey} direction={sortDir} onToggle={toggle} />
                     <SortableHeader label="Net Amount" sortKey="net_amount" currentKey={sortKey} direction={sortDir} onToggle={toggle} />
@@ -815,125 +824,98 @@ export default function ProjectInvoiceList() {
         docType="invoice"
         docId={activeDocId}
       />
-      {showForwardModal && (
-        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-erp w-full max-w-md overflow-hidden">
-            <div className="p-4 bg-brand text-white flex justify-between items-center">
-              <h2 className="text-lg font-bold">Forward for Approval</h2>
-              <button
-                onClick={() => {
-                  setShowForwardModal(false);
-                  setSelectedDoc(null);
-                  setCandidateWorkflow(null);
-                  setWfError("");
-                    setForwardComments("");
-                }}
-                className="text-white hover:text-slate-200 text-xl font-bold"
-              >
-                &times;
-              </button>
+      {/* Forward for Approval Modal */}
+      <ProjectModal
+        open={showForwardModal}
+        onClose={() => {
+          setShowForwardModal(false);
+          setSelectedDoc(null);
+          setCandidateWorkflow(null);
+          setWorkflowSteps([]);
+          setWfError("");
+          setForwardComments("");
+        }}
+        title="Forward for Approval"
+        subtitle={`Invoice No: ${selectedDoc?.invoice_no || (selectedDoc?.id ? `#${selectedDoc.id}` : "")}`}
+        icon={Send}
+        onSubmit={handleForwardSubmit}
+        submitLabel={submittingForward ? "Submitting..." : "Submit"}
+        submitting={submittingForward || wfLoading}
+      >
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700/60">
+              <span className="text-slate-400 block text-[11px] font-semibold mb-1 uppercase tracking-wider">Document No</span>
+              <span className="font-bold text-sm text-slate-900 dark:text-slate-100">
+                {selectedDoc?.invoice_no || `#${selectedDoc?.id}`}
+              </span>
             </div>
-            <div className="p-4 space-y-3">
-              <div className="text-sm text-slate-700">
-                Document No:{" "}
-                <span className="font-semibold">
-                  {selectedDoc?.invoice_no || `#${selectedDoc?.id}`}
-                </span>
-              </div>
-              <div className="text-sm text-slate-700">
-                Workflow:{" "}
-                <span className="font-semibold">
-                  {candidateWorkflow
-                    ? `${candidateWorkflow.workflow_name || candidateWorkflow.name} (${candidateWorkflow.workflow_code || ""})`
-                    : "None (inactive)"}
-                </span>
-              </div>
-              <div>
-                {wfLoading ? (
-                  <div className="text-sm text-slate-500">Loading workflow...</div>
-                ) : null}
-              </div>
-              <div>
-                {wfError ? (
-                  <div className="text-sm text-red-600">{wfError}</div>
-                ) : null}
-              </div>
-              <div className="text-sm">
-                <div className="font-medium">Target Approver</div>
-                {(() => {
-                  const hasSteps = Array.isArray(workflowSteps) && workflowSteps.length > 0;
-                  const first = hasSteps ? workflowSteps[0] : null;
-                  const opts = first
-                    ? Array.isArray(first.approvers) && first.approvers.length
-                      ? first.approvers.map((u) => ({ id: u.id, name: u.username }))
-                      : first.approver_user_id
-                        ? [{ id: first.approver_user_id, name: first.approver_name || String(first.approver_user_id) }]
-                        : []
-                    : [];
-
-                  if (!hasSteps) {
-                    return <div className="text-slate-500">None required</div>;
-                  }
-                  if (opts.length === 0) {
-                    return <div className="text-slate-500">No approvers</div>;
-                  }
-                  if (opts.length === 1) {
-                    return <div className="text-slate-700 font-semibold">{opts[0].name}</div>;
-                  }
-                  return (
-                    <select
-                      className="input mt-1"
-                      value={targetApproverId || ""}
-                      onChange={(e) => setTargetApproverId(e.target.value ? Number(e.target.value) : null)}
-                    >
-                      <option value="">-- Select Approver --</option>
-                      {opts.map((o) => (
-                        <option key={o.id} value={o.id}>{o.name}</option>
-                      ))}
-                    </select>
-                  );
-                })()}
-              </div>
-              
-                <div className="mt-4 p-4 border-t border-slate-200">
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Comments (Optional)</label>
-                  <textarea
-                    value={forwardComments}
-                    onChange={(e) => setForwardComments(e.target.value)}
-                    className="w-full border-slate-300 rounded-md focus:ring-brand focus:border-brand sm:text-sm"
-                    rows={3}
-                    placeholder="Add any comments for the approver..."
-                  />
-                </div>
-              <div className="mt-5 flex justify-end gap-2 border-t border-slate-100 pt-4">
-                <button
-                  type="button"
-                  className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded hover:bg-slate-50"
-                  onClick={() => {
-                    setShowForwardModal(false);
-                    setSelectedDoc(null);
-                    setCandidateWorkflow(null);
-                    setWorkflowSteps([]);
-                    setWfError("");
-                    setForwardComments("");
-                  }}
-                  disabled={submittingForward}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  className="px-4 py-2 text-sm font-medium text-white bg-brand rounded hover:bg-brand/90 flex items-center justify-center disabled:opacity-50"
-                  onClick={handleForwardSubmit}
-                  disabled={submittingForward || wfLoading}
-                >
-                  {submittingForward ? "Submitting..." : "Submit"}
-                </button>
-              </div>
+            <div className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700/60">
+              <span className="text-slate-400 block text-[11px] font-semibold mb-1 uppercase tracking-wider">Workflow</span>
+              <span className="font-bold text-sm text-slate-900 dark:text-slate-100">
+                {candidateWorkflow
+                  ? `${candidateWorkflow.workflow_name || candidateWorkflow.name} (${candidateWorkflow.workflow_code || ""})`
+                  : "None (inactive)"}
+              </span>
             </div>
           </div>
+
+          {wfLoading && (
+            <div className="text-xs text-slate-500 py-1">Loading workflow...</div>
+          )}
+          {wfError && (
+            <div className="text-xs text-red-600 bg-red-50 dark:bg-red-950/30 p-2.5 rounded-lg border border-red-200 dark:border-red-800">{wfError}</div>
+          )}
+
+          <div>
+            <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">Target Approver</label>
+            {(() => {
+              const hasSteps = Array.isArray(workflowSteps) && workflowSteps.length > 0;
+              const first = hasSteps ? workflowSteps[0] : null;
+              const opts = first
+                ? Array.isArray(first.approvers) && first.approvers.length
+                  ? first.approvers.map((u) => ({ id: u.id, name: u.username }))
+                  : first.approver_user_id
+                    ? [{ id: first.approver_user_id, name: first.approver_name || String(first.approver_user_id) }]
+                    : []
+                : [];
+
+              if (!hasSteps) {
+                return <div className="text-xs text-slate-500 py-1">None required</div>;
+              }
+              if (opts.length === 0) {
+                return <div className="text-xs text-slate-500 py-1">No approvers</div>;
+              }
+              if (opts.length === 1) {
+                return <div className="text-xs text-slate-700 dark:text-slate-300 font-semibold py-1">{opts[0].name}</div>;
+              }
+              return (
+                <select
+                  className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500"
+                  value={targetApproverId || ""}
+                  onChange={(e) => setTargetApproverId(e.target.value ? Number(e.target.value) : null)}
+                >
+                  <option value="">-- Select Approver --</option>
+                  {opts.map((o) => (
+                    <option key={o.id} value={o.id}>{o.name}</option>
+                  ))}
+                </select>
+              );
+            })()}
+          </div>
+
+          <div>
+            <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">Comments (Optional)</label>
+            <textarea
+              value={forwardComments}
+              onChange={(e) => setForwardComments(e.target.value)}
+              className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500"
+              rows={3}
+              placeholder="Add any comments for the approver..."
+            />
+          </div>
         </div>
-      )}
+      </ProjectModal>
     </div>
   );
 }

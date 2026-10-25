@@ -1,519 +1,758 @@
 /**
- * @fileoverview PMPurchaseRequisitionForm component.
- * Provides functionality for PMPurchaseRequisitionForm.
+ * @fileoverview PMPurchaseRequisitionForm component for Project Management.
+ * Replicates the procurement module purchase requisition form design, code, and logic.
  */
 
-import React, { useEffect, useState, useMemo } from "react";
-import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
-import { api } from "../../../../api/client";
-import { usePermission } from "../../../../auth/PermissionContext";
-import { useUoms } from "@/hooks/useUoms";
+import React, { useEffect, useMemo, useState } from "react";
+import { ArrowLeft, Save, ClipboardCheck, Plus, Trash2 } from "lucide-react";
+import { api } from "../../../../api/client.js";
+import { useNavigate, useParams, useLocation, useSearchParams } from "react-router-dom";
+import { toast } from "react-toastify";
 import { filterByPrefix } from "@/utils/searchUtils.js";
+import { usePermission } from "@/auth/PermissionContext.jsx";
 
-const priorities = [
-  { value: "LOW", label: "Low" }, { value: "MEDIUM", label: "Medium" },
-  { value: "HIGH", label: "High" }, { value: "URGENT", label: "Urgent" },
-];
-
-/**
- *  component
- * 
- * @returns {JSX.Element} The rendered component
- */
 export default function PMPurchaseRequisitionForm() {
-  const { uoms } = useUoms();
+  const { hasExceptional = () => false } = usePermission();
   const navigate = useNavigate();
-  const { id } = useParams();
+  const params = useParams();
+  const location = useLocation();
   const [searchParams] = useSearchParams();
-  const isNew = !id || id === "new";
-  const isViewMode = !isNew && !searchParams.has("edit");
-  const { canEditDiscount, hasExceptional } = usePermission();
 
-  const [loading, setLoading] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState("");
+  const reqId = params?.id && params.id !== "new" ? Number(params.id) : null;
+  const isNew = !reqId;
+  const isEditMode = location?.pathname?.endsWith("/edit") || searchParams.has("edit");
+  const isViewMode = !isNew && !isEditMode;
+  const canEdit = !isViewMode;
+  const disabled = isViewMode;
+
+  const [inventoryItems, setInventoryItems] = useState([]);
   const [projects, setProjects] = useState([]);
   const [departments, setDepartments] = useState([]);
+  const [uoms, setUoms] = useState([]);
   const [users, setUsers] = useState([]);
-  const [availableItems, setAvailableItems] = useState([]);
-  const [itemQueries, setItemQueries] = useState({});
+  const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [headerData, setHeaderData] = useState(null);
 
-  const [formData, setFormData] = useState({
-    requisitionDate: new Date().toISOString().split("T")[0],
-    projectId: "",
+  const [form, setForm] = useState({
+    requisition_date: new Date().toISOString().slice(0, 10),
+    requisition_type: "ITEM",
+    project_id: "",
     department: "",
-    requestedBy: "",
+    requested_by: "",
     purpose: "",
     priority: "MEDIUM",
-    requiredDate: "",
-    status: "DRAFT",
+    required_date: "",
     remarks: "",
     timeline: "",
   });
 
-  const [items, setItems] = useState([]);
+  const [lines, setLines] = useState([
+    {
+      item_id: "",
+      description: "",
+      qty: 1,
+      uom: "PCS",
+      estimated_unit_cost: "",
+      remarks: "",
+    },
+  ]);
+  const [itemQueries, setItemQueries] = useState({});
 
-  const statusColors = {
-    DRAFT: "bg-gray-500 text-white",
-    PENDING_APPROVAL: "bg-yellow-400 text-black",
-    APPROVED: "bg-green-500 text-white",
-    REJECTED: "bg-red-500 text-white",
-    CANCELLED: "bg-red-500 text-white",
-    FULFILLED: "bg-blue-500 text-white",
+  const serviceFlag = (it) => {
+    const v = it?.service_item;
+    if (v == null) return false;
+    if (typeof v === "string") return v.toUpperCase() === "Y";
+    return Number(v) === 1;
   };
 
-  const readOnly = isViewMode || !["DRAFT", "REJECTED"].includes(formData.status);
+  const itemOptions = useMemo(
+    () => inventoryItems.filter((it) => !serviceFlag(it)),
+    [inventoryItems],
+  );
+  const serviceOptions = useMemo(
+    () => inventoryItems.filter((it) => serviceFlag(it)),
+    [inventoryItems],
+  );
 
+  // Filter projects to only active projects from pm_projects table
+  const activeProjects = useMemo(() => {
+    const list = Array.isArray(projects) ? projects : projects?.items || [];
+    return list.filter((p) => {
+      if (form.project_id && String(form.project_id) === String(p.id)) return true;
+      const st = String(p.project_status || p.status || "").toUpperCase();
+      if (st === "COMPLETED" || st === "CANCELLED" || st === "ARCHIVED" || st === "INACTIVE") return false;
+      const isActive =
+        p.is_active === "Y" ||
+        p.is_active === 1 ||
+        p.is_active === "1" ||
+        p.is_active === true ||
+        p.is_active === null ||
+        p.is_active === undefined ||
+        st === "ACTIVE" ||
+        st === "IN_PROGRESS" ||
+        st === "PLANNING";
+      return isActive;
+    });
+  }, [projects, form.project_id]);
+
+  // Load reference data
   useEffect(() => {
     let mounted = true;
-    const getItems = (r) => (Array.isArray(r.data?.data?.items) ? r.data.data.items : (Array.isArray(r.data?.items) ? r.data.items : []));
-    api.get("/projects/projects").then(res => {
-      if (!mounted) return;
-      setProjects(getItems(res));
-    }).catch(() => {});
-    api.get("/admin/departments").then(res => {
-      if (!mounted) return;
-      setDepartments(getItems(res));
-    }).catch(() => {});
-    api.get("/admin/users", { params: { active: 1 } }).then(res => {
-      if (!mounted) return;
-      setUsers(getItems(res));
-    }).catch(() => {});
-    api.get("/inventory/items").then(res => {
-      if (!mounted) return;
-      setAvailableItems(getItems(res));
-    }).catch(() => {});
-    return () => { mounted = false; };
+    async function loadReferenceData() {
+      try {
+        const [itemsRes, projRes, deptRes, uomRes, usersRes] = await Promise.all([
+          api.get("/inventory/items").catch(() => ({ data: { items: [] } })),
+          api.get("/projects/projects").catch(() => ({ data: { items: [] } })),
+          api.get("/admin/departments").catch(() => ({ data: { items: [] } })),
+          api.get("/inventory/uoms").catch(() => ({ data: { items: [] } })),
+          api.get("/admin/users", { params: { active: 1 } }).catch(() => ({ data: { items: [] } })),
+        ]);
+        if (mounted) {
+          setInventoryItems(itemsRes?.data?.items || (Array.isArray(itemsRes?.data) ? itemsRes.data : []));
+          setProjects(projRes?.data?.items || projRes?.data?.projects || (Array.isArray(projRes?.data) ? projRes.data : []));
+          setDepartments(deptRes?.data?.items || (Array.isArray(deptRes?.data) ? deptRes.data : []));
+          setUoms(uomRes?.data?.items || (Array.isArray(uomRes?.data) ? uomRes.data : []));
+          const usersList =
+            (usersRes?.data && usersRes.data.data && Array.isArray(usersRes.data.data.items) && usersRes.data.data.items) ||
+            (Array.isArray(usersRes?.data?.items) && usersRes.data.items) ||
+            (Array.isArray(usersRes?.data) && usersRes.data) ||
+            [];
+          setUsers(usersList);
+        }
+      } catch (err) {
+        console.error("Failed to load reference data", err);
+      }
+    }
+    loadReferenceData();
+    return () => {
+      mounted = false;
+    };
   }, []);
 
+  // Load existing requisition if editing/viewing
   useEffect(() => {
-    if (isNew) return;
+    if (!reqId) return;
     let mounted = true;
-    setLoading(true);
-    setError("");
-
-    api.get(`/projects/purchase-requisitions/${id}`).then(res => {
-      if (!mounted) return;
-      const d = res.data;
-      if (!d) return;
-      setFormData({
-        requisitionDate: d.requisition_date ? d.requisition_date.split("T")[0] : "",
-        projectId: String(d.project_id || ""),
-        department: d.department || "",
-        requestedBy: d.requested_by || "",
-        purpose: d.purpose || "",
-        priority: d.priority || "MEDIUM",
-        requiredDate: d.required_date ? d.required_date.split("T")[0] : "",
-        status: d.status || "DRAFT",
-        remarks: d.remarks || "",
-        timeline: d.timeline || "",
-      });
-      const its = Array.isArray(d.items) ? d.items : [];
-      if (its.length) {
-        setItems(its.map(x => ({
-          id: x.id || Date.now() + Math.random(),
-          item_id: x.item_id ? String(x.item_id) : "",
-          itemCode: x.item_code || "",
-          itemName: x.item_name || x.description || "",
-          description: x.description || "",
-          qty: Number(x.qty || 0),
-          uom: x.uom || "PCS",
-          estimatedUnitCost: Number(x.estimated_unit_cost || 0),
-          estimatedTotal: Number(x.qty || 0) * Number(x.estimated_unit_cost || 0),
-        })));
-        const initQueries = {};
-        its.forEach(x => { initQueries[x.id || Date.now()] = x.item_name || x.description || ""; });
-        setItemQueries(initQueries);
+    async function loadExisting() {
+      try {
+        setLoading(true);
+        const res = await api.get(`/projects/purchase-requisitions/${reqId}`);
+        const data = res?.data;
+        if (!data || !mounted) return;
+        setHeaderData(data);
+        setForm({
+          requisition_date: String(data.requisition_date || "").slice(0, 10),
+          requisition_type: data.requisition_type || "ITEM",
+          project_id: data.project_id ? String(data.project_id) : "",
+          department: data.department || "",
+          requested_by: data.requested_by || "",
+          purpose: data.purpose || "",
+          priority: data.priority || "MEDIUM",
+          required_date: data.required_date ? String(data.required_date).slice(0, 10) : "",
+          remarks: data.remarks || "",
+          timeline: data.timeline || "",
+        });
+        const existingItems = Array.isArray(data.items) ? data.items : [];
+        if (existingItems.length) {
+          setLines(
+            existingItems.map((i) => ({
+              item_id: i.item_id ? String(i.item_id) : "",
+              description: i.description || i.item_name || "",
+              qty: i.qty !== undefined ? Number(i.qty) : 1,
+              uom: i.uom || "PCS",
+              estimated_unit_cost: i.estimated_unit_cost !== undefined ? Number(i.estimated_unit_cost) : "",
+              remarks: i.remarks || "",
+            }))
+          );
+          const initQueries = {};
+          existingItems.forEach((x, idx) => {
+            initQueries[`item-${idx}`] = x.description || x.item_name || "";
+            initQueries[`svc-${idx}`] = x.description || x.item_name || "";
+          });
+          setItemQueries(initQueries);
+        }
+      } catch (e) {
+        toast.error("Failed to load purchase requisition");
+      } finally {
+        if (mounted) setLoading(false);
       }
-    }).catch(e => {
-      if (!mounted) return;
-      setError(e?.response?.data?.message || "Failed to load purchase requisition");
-    }).finally(() => {
-      if (!mounted) return;
-      setLoading(false);
-    });
-
-    return () => { mounted = false; };
-  }, [id, isNew]);
-
-
-
-  const handleSelectItem = (rowId, item) => {
-    setItems(items.map(i =>
-      i.id === rowId ? {
-        ...i, item_id: String(item.id), itemCode: item.item_code || "",
-        itemName: item.item_name || "", uom: item.uom || "PCS",
-      } : i,
-    ));
-    setItemQueries(prev => ({ ...prev, [rowId]: item.item_name || "" }));
-  };
-
-  const addItem = () => {
-    const newId = Date.now();
-    setItems([...items, {
-      id: newId, item_id: "", itemCode: "", itemName: "", description: "",
-      qty: 1, uom: "PCS", estimatedUnitCost: "", estimatedTotal: 0,
-    }]);
-    setItemQueries(prev => ({ ...prev, [newId]: "" }));
-  };
-
-  const removeItem = (id) => {
-    setItems(items.filter(i => i.id !== id));
-  };
-
-  const updateItemField = (id, field, val) => {
-    setItems(items.map(i => {
-      if (i.id !== id) return i;
-      const u = { ...i, [field]: val };
-      if (field === "qty" || field === "estimatedUnitCost") {
-        u.estimatedTotal = Number(u.qty || 0) * Number(u.estimatedUnitCost || 0);
-      }
-      return u;
-    }));
-  };
-
-  const normalizedDetails = useMemo(() => {
-    return items.filter(i => i.item_id || i.description).map(i => ({
-      item_id: i.item_id ? Number(i.item_id) : null,
-      description: i.description || i.itemName || "",
-      qty: Number(i.qty || 0),
-      uom: i.uom || "PCS",
-      estimated_unit_cost: Number(i.estimatedUnitCost || 0),
-    }));
-  }, [items]);
-
-  const effectiveTotal = useMemo(() => {
-    return items.reduce((s, i) => s + Number(i.estimatedTotal || 0), 0);
-  }, [items]);
-
-  const buildPayload = () => {
-    return {
-      requisition_date: formData.requisitionDate || null,
-      project_id: formData.projectId ? Number(formData.projectId) : null,
-      department: formData.department || null,
-      requested_by: formData.requestedBy || null,
-      purpose: formData.purpose || null,
-      priority: formData.priority,
-      required_date: formData.requiredDate || null,
-      status: formData.status || "DRAFT",
-      remarks: formData.remarks || null,
-      timeline: formData.timeline || null,
-      items: normalizedDetails,
+    }
+    loadExisting();
+    return () => {
+      mounted = false;
     };
-  };
+  }, [reqId]);
 
-  const handleSave = async (e) => {
-    if (e) e.preventDefault();
+  function updateForm(key, val) {
+    setForm((prev) => ({ ...prev, [key]: val }));
+  }
+
+  function updateLine(idx, key, val) {
+    setLines((prev) => {
+      const next = [...prev];
+      next[idx] = { ...next[idx], [key]: val };
+      return next;
+    });
+  }
+
+  function onItemChange(idx, itemId) {
+    const item = inventoryItems.find((x) => String(x.id) === String(itemId));
+    setLines((prev) => {
+      const next = [...prev];
+      next[idx] = {
+        ...next[idx],
+        item_id: itemId,
+        description: item ? item.item_name : next[idx].description,
+        uom: item?.uom || next[idx].uom || "PCS",
+        estimated_unit_cost: item?.cost_price ? Number(item.cost_price) : next[idx].estimated_unit_cost,
+      };
+      return next;
+    });
+    const key = form.requisition_type === "SERVICE" ? `svc-${idx}` : `item-${idx}`;
+    setItemQueries((prev) => ({
+      ...prev,
+      [key]: item ? item.item_name : "",
+    }));
+  }
+
+  function addLine() {
+    setLines((prev) => [
+      ...prev,
+      {
+        item_id: "",
+        description: "",
+        qty: 1,
+        uom: "PCS",
+        estimated_unit_cost: "",
+        remarks: "",
+      },
+    ]);
+  }
+
+  function removeLine(idx) {
+    setLines((prev) => prev.filter((_, i) => i !== idx));
+    setItemQueries((prev) => {
+      const next = {};
+      Object.keys(prev).forEach((k) => {
+        const parts = k.split("-");
+        const i = Number(parts[1]);
+        if (i < idx) next[k] = prev[k];
+        else if (i > idx) next[`${parts[0]}-${i - 1}`] = prev[k];
+      });
+      return next;
+    });
+  }
+
+  const totals = useMemo(() => {
+    let total = 0;
+    for (const l of lines) {
+      total += Number(l.qty || 0) * Number(l.estimated_unit_cost || 0);
+    }
+    return { total };
+  }, [lines]);
+
+  async function submit() {
     setSaving(true);
     setError("");
     try {
-      const payload = buildPayload();
-      if (isNew) {
-        await api.post("/projects/purchase-requisitions", payload);
-      } else {
-        await api.put(`/projects/purchase-requisitions/${id}`, payload);
+      if (!form.project_id) {
+        setError("Project is required");
+        toast.warn("Project is required");
+        setSaving(false);
+        return;
       }
-      navigate("/project-management/purchase-requisitions", { state: { refresh: true } });
-    } catch (e2) {
-      setError(e2?.response?.data?.message || "Failed to save");
-    } finally { setSaving(false); }
-  };
-
-  const handleSubmitApproval = async () => {
-    if (!formData.requisitionDate || items.length === 0) { setError("Complete the form first"); return; }
-    setSubmitting(true);
-    setError("");
-    try {
-      const payload = buildPayload();
-      if (isNew) {
-        const res = await api.post("/projects/purchase-requisitions", payload);
-        if (res.data?.id) await api.post(`/projects/purchase-requisitions/${res.data.id}/submit`);
-      } else {
-        await api.put(`/projects/purchase-requisitions/${id}`, payload);
-        await api.post(`/projects/purchase-requisitions/${id}/submit`);
+      if (!form.requisition_date) {
+        setError("Requisition date is required");
+        toast.warn("Requisition date is required");
+        setSaving(false);
+        return;
       }
-      navigate("/project-management/purchase-requisitions", { state: { refresh: true } });
-    } catch (e2) {
-      setError(e2?.response?.data?.message || "Failed to submit");
-    } finally { setSubmitting(false); }
-  };
 
-  const handleCancel = async () => {
-    if (!window.confirm("Cancel this purchase requisition?")) return;
-    try {
-      await api.delete(`/projects/purchase-requisitions/${id}`);
-      navigate("/project-management/purchase-requisitions", { state: { refresh: true } });
-    } catch (e2) {
-      setError(e2?.response?.data?.message || "Failed to cancel");
+      const validLines = lines
+        .filter((l) => (l.description && String(l.description).trim()) || l.item_id)
+        .map((l) => ({
+          item_id: l.item_id ? Number(l.item_id) : null,
+          description: (l.description || "").trim(),
+          qty: Number(l.qty || 0),
+          uom: l.uom || "PCS",
+          estimated_unit_cost: Number(l.estimated_unit_cost || 0),
+          remarks: l.remarks || null,
+        }));
+
+      if (!validLines.length) {
+        setError("Add at least one line item with a description");
+        toast.warn("Add at least one line item with a description");
+        setSaving(false);
+        return;
+      }
+
+      const payload = {
+        ...form,
+        project_id: Number(form.project_id),
+        status: headerData?.status || "DRAFT",
+        items: validLines,
+      };
+
+      const resp = reqId
+        ? await api.put(`/projects/purchase-requisitions/${reqId}`, payload)
+        : await api.post("/projects/purchase-requisitions", payload);
+      const data = resp?.data || {};
+      toast.success(data.message || "Purchase requisition saved successfully");
+      navigate("/project-management/purchase-requisitions", {
+        state: { refresh: true, success: data.message },
+      });
+    } catch (e) {
+      const msg = e?.response?.data?.message || e?.message || "Failed to save";
+      setError(msg);
+      toast.error(msg);
+    } finally {
+      setSaving(false);
     }
-  };
-
-  const handlePdf = () => { if (id) window.print(); };
+  }
 
   return (
-    <div className="space-y-6">
-      <div className="card">
-        <div className="card-header bg-brand text-white rounded-t-lg">
-          <div className="flex justify-between items-center text-white">
-            <div>
-              <h1 className="text-2xl font-bold dark:text-brand-300">
-                {isNew ? "New Purchase Requisition" : "Edit Purchase Requisition"}
-              </h1>
-              <p className="text-sm mt-1">Request materials for project procurement</p>
+    <div className="p-6">
+      <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm overflow-hidden">
+        {/* Header */}
+        <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-brand-50 dark:bg-brand-900/30 text-brand-900 dark:text-brand-400 flex items-center justify-center font-bold">
+              <ClipboardCheck size={22} />
             </div>
-            <div className="flex gap-2">
-              {!isNew && (
-                <button type="button" onClick={handlePdf}
-                  className="btn btn-secondary text-xs px-3 py-1">PDF</button>
-              )}
-              <button onClick={() => window.history.back()} className="btn-success">Back</button>
+            <div>
+              <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100">
+                {reqId
+                  ? isEditMode
+                    ? "Edit Purchase Requisition"
+                    : "View Purchase Requisition"
+                  : "New Purchase Requisition"}
+              </h1>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                {headerData?.requisition_no
+                  ? `Requisition: ${headerData.requisition_no}`
+                  : "Request items or services for project procurement"}
+              </p>
             </div>
           </div>
+          <button
+            type="button"
+            onClick={() => navigate("/project-management/purchase-requisitions")}
+            className="btn btn-secondary inline-flex items-center gap-1.5 text-sm"
+          >
+            <ArrowLeft size={16} /> Back to List
+          </button>
         </div>
-        <div className="card-body">
-          <form onSubmit={handleSave} className="space-y-6">
-            {loading ? <div className="text-sm">Loading...</div> : null}
-            {error ? <div className="text-sm text-red-600">{error}</div> : null}
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div>
-                <label className="label">Requisition Date *</label>
-                <input type="date" className="input" value={formData.requisitionDate}
-                  onChange={e => setFormData({ ...formData, requisitionDate: e.target.value })} required disabled={readOnly} />
-              </div>
-              <div className="md:col-span-2">
-                <label className="label">Project</label>
-                <select className="input" value={formData.projectId}
-                  onChange={e => setFormData({ ...formData, projectId: e.target.value })} disabled={readOnly}>
-                  <option value="">Select Project</option>
-                  {projects.map(p => <option key={p.id} value={p.id}>{p.project_name}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="label">Priority</label>
-                <select className="input" value={formData.priority}
-                  onChange={e => setFormData({ ...formData, priority: e.target.value })} disabled={readOnly}>
-                  {priorities.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="label">Status</label>
-                <div className="pt-2">
-                  <span className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${statusColors[formData.status] || "bg-gray-500 text-white"}`}>
-                    {formData.status === "PENDING_APPROVAL" ? "Pending Approval" : formData.status}
-                  </span>
-                </div>
-              </div>
+        <div className="px-6 py-5 space-y-5">
+          {error && <div className="alert alert-error">{error}</div>}
+          
+          {headerData?.status && (
+            <div className="flex gap-2 items-center text-sm">
+              <span className="font-semibold text-slate-500">Status:</span>
+              <span
+                className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold uppercase ${
+                  headerData.status === "APPROVED"
+                    ? "bg-emerald-100 text-emerald-700"
+                    : headerData.status === "REJECTED"
+                    ? "bg-red-100 text-red-700"
+                    : headerData.status === "PENDING_APPROVAL"
+                    ? "bg-yellow-100 text-yellow-800"
+                    : headerData.status === "SUBMITTED"
+                    ? "bg-blue-100 text-blue-700"
+                    : headerData.status === "CANCELLED"
+                    ? "bg-orange-100 text-orange-700"
+                    : "bg-slate-100 text-slate-700"
+                }`}
+              >
+                {headerData.status}
+              </span>
+            </div>
+          )}
+
+          {/* Form Fields Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="flex flex-col gap-1">
+              <label className="label">Requisition Type</label>
+              <select
+                className="input"
+                value={form.requisition_type}
+                onChange={(e) => updateForm("requisition_type", e.target.value)}
+                disabled={disabled}
+              >
+                <option value="ITEM">Item / Material</option>
+                <option value="SERVICE">Service</option>
+              </select>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div>
-                <label className="label">Department</label>
-                <select className="input" value={formData.department}
-                  onChange={e => setFormData({ ...formData, department: e.target.value })} disabled={readOnly}>
-                  <option value="">Select Department</option>
-                  {departments.map(d => <option key={d.id} value={d.name}>{d.name}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="label">Requested By</label>
-                <select className="input" value={formData.requestedBy}
-                  onChange={e => setFormData({ ...formData, requestedBy: e.target.value })} disabled={readOnly}>
-                  <option value="">Select User</option>
-                  {users.map(u => <option key={u.id} value={u.username}>{u.username}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="label">Required Date</label>
-                <input type="date" className="input" value={formData.requiredDate}
-                  onChange={e => setFormData({ ...formData, requiredDate: e.target.value })} disabled={readOnly} />
-              </div>
-              <div>
-                <label className="label">Timeline</label>
-                <input type="text" className="input" value={formData.timeline}
-                  onChange={e => setFormData({ ...formData, timeline: e.target.value })} disabled={readOnly} placeholder="e.g. 2 Weeks, Next Quarter..." />
-              </div>
+            <div className="flex flex-col gap-1">
+              <label className="label">Requisition Date <span className="text-red-500">*</span></label>
+              <input
+                type="date"
+                className="input"
+                value={form.requisition_date}
+                onChange={(e) => updateForm("requisition_date", e.target.value)}
+                disabled={disabled}
+                required
+              />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="label">Purpose / Justification</label>
-                <textarea className="input w-full" rows="2" value={formData.purpose}
-                  onChange={e => setFormData({ ...formData, purpose: e.target.value })}
-                  disabled={readOnly} placeholder="Describe the purpose..."></textarea>
-              </div>
-              <div>
-                <label className="label">Remarks</label>
-                <textarea className="input w-full" rows="2" value={formData.remarks}
-                  onChange={e => setFormData({ ...formData, remarks: e.target.value })}
-                  disabled={readOnly} placeholder="Enter any additional notes..."></textarea>
-              </div>
+            <div className="flex flex-col gap-1">
+              <label className="label">Required By Date</label>
+              <input
+                type="date"
+                className="input"
+                value={form.required_date}
+                onChange={(e) => updateForm("required_date", e.target.value)}
+                disabled={disabled}
+              />
             </div>
 
-            <div className="border-t border-slate-200 dark:border-slate-700 pt-4">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Items</h3>
-                {!readOnly && <button type="button" onClick={addItem} className="btn-success text-sm">+ Add Item</button>}
-              </div>
-
-              <div className="overflow-x-auto">
-                <table className="table w-full">
-                  <thead>
-                    <tr>
-                      <th className="w-1/3 min-w-[250px]">Item Name</th>
-                      <th className="w-48 min-w-[180px]">Description</th>
-                      <th className="w-32 min-w-[120px] text-right">Qty</th>
-                      <th className="w-32 min-w-[120px]">UOM</th>
-                      <th className="w-24 text-right">Unit Cost</th>
-                      <th className="w-24 text-right">Total</th>
-                      {!readOnly && <th className="w-20">Action</th>}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {items.length === 0 ? (
-                      <tr><td colSpan={readOnly ? 6 : 7} className="text-center py-8 text-slate-400">No items added</td></tr>
-                    ) : items.map((item) => {
-                      const itemQuery = itemQueries[item.id] || "";
-                      const showQuery = item.item_id ? item.itemName : itemQuery;
-                      const searchResults = itemQuery.trim() && !item.item_id && !readOnly
-                        ? filterByPrefix(availableItems, { query: itemQuery, searchFields: ["item_code", "item_name", "barcode"] })
-                        : [];
-                      return (
-                        <tr key={item.id}>
-                          <td>
-                            {readOnly ? (
-                              <span className="text-sm">{item.itemName || item.description}</span>
-                            ) : (
-                              <div className="relative">
-                                <input id={`pm-pr-item-search-${item.id}`} autoComplete="off"
-                                  className="input w-full" placeholder="Type to search items"
-                                  value={showQuery}
-                                  onChange={e => {
-                                    const val = e.target.value;
-                                    setItemQueries(prev => ({ ...prev, [item.id]: val }));
-                                    if (item.item_id) {
-                                      setItems(items.map(i =>
-                                        i.id === item.id ? { ...i, item_id: "", itemCode: "", itemName: "" } : i,
-                                      ));
-                                    }
-                                  }}
-                                  onKeyDown={e => {
-                                    if (e.key === "Enter") {
-                                      const query = (itemQueries[item.id] || "").trim();
-                                      if (!query || !searchResults.length) return;
-                                      handleSelectItem(item.id, searchResults[0]);
-                                    }
-                                  }}
-                                />
-                                {searchResults.length ? (() => {
-                                  const el = document.getElementById(`pm-pr-item-search-${item.id}`);
-                                  const r = el ? el.getBoundingClientRect() : { bottom: 0, left: 0, width: 0 };
-                                  return (
-                                    <div className="bg-white border border-slate-200 rounded-lg shadow-lg max-h-48 overflow-auto"
-                                      style={{ position: 'fixed', top: `${r.bottom + 4}px`, left: `${r.left}px`, width: `${r.width}px`, zIndex: 9999 }}>
-                                      {searchResults.map(o => (
-                                        <button type="button" key={o.id}
-                                          className="block w-full text-left px-3 py-2 hover:bg-slate-50 text-xs"
-                                          onClick={() => handleSelectItem(item.id, o)}>
-                                          {o.item_code} - {o.item_name}
-                                        </button>
-                                      ))}
-                                    </div>
-                                  );
-                                })() : null}
-                              </div>
-                            )}
-                          </td>
-                          <td>
-                            {readOnly ? (
-                              <span className="text-xs text-slate-500">{item.description || "-"}</span>
-                            ) : (
-                              <input type="text" className="input w-full" placeholder="Description"
-                                value={item.description || ""}
-                                onChange={e => updateItemField(item.id, "description", e.target.value)} />
-                            )}
-                          </td>
-                          <td>
-                            {readOnly ? (
-                              <span className="text-sm block text-right">{item.qty}</span>
-                            ) : (
-                              <input type="number" className="input w-full text-right" value={item.qty}
-                                onChange={e => updateItemField(item.id, "qty", Math.max(0, parseInt(e.target.value, 10) || 0))}
-                                min="1" />
-                            )}
-                          </td>
-                          <td>
-                            {readOnly ? (
-                              <span className="text-sm">{item.uom}</span>
-                            ) : (
-                              <select className="input w-full" value={item.uom || "PCS"}
-                                onChange={e => updateItemField(item.id, "uom", e.target.value)}>
-                                {(Array.isArray(uoms) && uoms.length ? uoms.map(u => ({ code: u.uom_code || u.code || "", name: u.uom_name || u.name || "" }))
-                                  : [{ code: "EA", name: "EA" }, { code: "PCS", name: "PCS" }, { code: "KG", name: "KG" }, { code: "LTR", name: "LTR" }, { code: "MTR", name: "MTR" }]
-                                ).map(u => (
-                                  <option key={u.code} value={u.code}>{u.name ? `${u.name} (${u.code})` : u.code}</option>
-                                ))}
-                              </select>
-                            )}
-                          </td>
-                          <td>
-                            {readOnly ? (
-                              <span className="text-sm block text-right">{Number(item.estimatedUnitCost).toFixed(2)}</span>
-                            ) : (
-                              <input type="number" step="0.01" className="input w-full text-right" value={item.estimatedUnitCost}
-                                onChange={e => updateItemField(item.id, "estimatedUnitCost", e.target.value === "" ? "" : Number(e.target.value))} />
-                            )}
-                          </td>
-                          <td className="text-right font-semibold text-sm">
-                            {Number(item.estimatedTotal || 0).toFixed(2)}
-                          </td>
-                          {!readOnly && (
-                            <td>
-                              <button type="button" onClick={() => removeItem(item.id)}
-                                className="text-red-600 hover:text-red-800 text-sm font-medium">Remove</button>
-                            </td>
-                          )}
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-
-              {items.length > 0 && (
-                <div className="flex justify-end pt-4">
-                  <div className="bg-slate-50 rounded-lg px-6 py-3">
-                    <div className="flex items-center gap-4">
-                      <span className="text-sm text-slate-500">Items: <strong>{items.length}</strong></span>
-                      <span className="text-sm text-slate-500">Total Qty: <strong>{items.reduce((s, i) => s + Number(i.qty || 0), 0)}</strong></span>
-                      <span className="text-base font-bold text-slate-900">Estimated Total: <span className="text-brand-900">{effectiveTotal.toFixed(2)}</span></span>
-                    </div>
-                  </div>
-                </div>
-              )}
+            {/* Project Field: Active projects from pm_projects */}
+            <div className="flex flex-col gap-1">
+              <label className="label">Project <span className="text-red-500">*</span></label>
+              <select
+                className="input"
+                value={form.project_id}
+                onChange={(e) => updateForm("project_id", e.target.value)}
+                disabled={disabled}
+                required
+              >
+                <option value="">-- Select Active Project --</option>
+                {activeProjects.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.project_code ? `${p.project_code} - ` : ""}{p.project_name}
+                  </option>
+                ))}
+              </select>
             </div>
 
-            <div className="flex justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-700">
-              <Link to="/project-management/purchase-requisitions"
-                className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 transition-colors">Close</Link>
-              {!readOnly && (formData.status === "DRAFT" || formData.status === "REJECTED") && (
-                <>
-                  <button type="submit" className="btn-success" disabled={saving}>
-                    {saving ? "Saving..." : "Save Draft"}
-                  </button>
-                  <button type="button" onClick={handleSubmitApproval}
-                    className="px-4 py-2 bg-amber-600 text-white rounded hover:bg-amber-700 transition-colors" disabled={submitting}>
-                    {submitting ? "Submitting..." : "Submit for Approval"}
-                  </button>
-                </>
-              )}
-              {!isNew && formData.status === "PENDING_APPROVAL" && hasExceptional("PM.PR.CANCEL") && (
-                <button type="button" onClick={handleCancel}
-                  className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors">Cancel Requisition</button>
-              )}
+            <div className="flex flex-col gap-1">
+              <label className="label">Department</label>
+              <select
+                className="input"
+                value={form.department}
+                onChange={(e) => updateForm("department", e.target.value)}
+                disabled={disabled}
+              >
+                <option value="">-- Select Department --</option>
+                {departments.map((d) => {
+                  const name = d.name || d.dept_name || "";
+                  return (
+                    <option key={d.id} value={name}>
+                      {name}
+                    </option>
+                  );
+                })}
+              </select>
             </div>
-          </form>
+
+            <div className="flex flex-col gap-1">
+              <label className="label">Requested By</label>
+              <select
+                className="input"
+                value={form.requested_by}
+                onChange={(e) => updateForm("requested_by", e.target.value)}
+                disabled={disabled}
+              >
+                <option value="">-- Select User --</option>
+                {users.map((u) => {
+                  const uname = u.username || u.name || "";
+                  return (
+                    <option key={u.id} value={uname}>
+                      {uname}
+                    </option>
+                  );
+                })}
+              </select>
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <label className="label">Priority</label>
+              <select
+                className="input"
+                value={form.priority}
+                onChange={(e) => updateForm("priority", e.target.value)}
+                disabled={disabled}
+              >
+                <option value="LOW">Low</option>
+                <option value="MEDIUM">Medium</option>
+                <option value="HIGH">High</option>
+                <option value="URGENT">Urgent</option>
+              </select>
+            </div>
+
+            <div className="flex flex-col gap-1 md:col-span-2">
+              <label className="label">Timeline</label>
+              <input
+                type="text"
+                className="input"
+                placeholder="e.g. 2 Weeks, Next Quarter..."
+                value={form.timeline || ""}
+                onChange={(e) => updateForm("timeline", e.target.value)}
+                disabled={disabled}
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="flex flex-col gap-1">
+              <label className="label">Purpose / Justification</label>
+              <textarea
+                className="input w-full"
+                rows="3"
+                placeholder="Why is this purchase requisition needed for the project?"
+                value={form.purpose}
+                onChange={(e) => updateForm("purpose", e.target.value)}
+                disabled={disabled}
+              />
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="label">Remarks</label>
+              <textarea
+                className="input w-full"
+                rows="3"
+                placeholder="Additional notes, specifications, or supplier references..."
+                value={form.remarks}
+                onChange={(e) => updateForm("remarks", e.target.value)}
+                disabled={disabled}
+              />
+            </div>
+          </div>
+
+          {/* Line Items Section */}
+          <div className="mt-6">
+            <h3 className="text-sm font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">
+              {form.requisition_type === "SERVICE" ? "Services" : "Items"} Requested
+            </h3>
+            <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800">
+              <table className="table w-full" style={{ tableLayout: "auto" }}>
+                <thead>
+                  <tr>
+                    <th className="w-full min-w-[300px]">Description</th>
+                    <th className="w-24">Qty</th>
+                    <th className="w-28">UOM</th>
+                    <th className="w-36">Est. Unit Cost</th>
+                    <th className="w-36 text-right">Est. Total</th>
+                    {canEdit && <th className="w-20 text-center">Action</th>}
+                  </tr>
+                </thead>
+                <tbody>
+                  {lines.map((l, i) => {
+                    const lineTotal = Number(l.qty || 0) * Number(l.estimated_unit_cost || 0);
+                    return (
+                      <tr key={i}>
+                        {/* Autocomplete Description Input */}
+                        <td>
+                          <div className="relative">
+                            <input
+                              id={`pm-pr-item-search-${i}`}
+                              autoComplete="off"
+                              className="input text-sm w-full"
+                              placeholder={
+                                form.requisition_type === "SERVICE"
+                                  ? "Type to search services or enter description"
+                                  : "Type to search items or enter description"
+                              }
+                              value={
+                                itemQueries[form.requisition_type === "SERVICE" ? `svc-${i}` : `item-${i}`] !== undefined
+                                  ? itemQueries[form.requisition_type === "SERVICE" ? `svc-${i}` : `item-${i}`]
+                                  : l.description || ""
+                              }
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                const queryKey = form.requisition_type === "SERVICE" ? `svc-${i}` : `item-${i}`;
+                                setItemQueries((prev) => ({
+                                  ...prev,
+                                  [queryKey]: val,
+                                }));
+                                updateLine(i, "description", val);
+                                if (!val && lines[i].item_id) {
+                                  updateLine(i, "item_id", "");
+                                }
+                              }}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                  const queryKey = form.requisition_type === "SERVICE" ? `svc-${i}` : `item-${i}`;
+                                  const query = (itemQueries[queryKey] || "").trim();
+                                  const optionsList = form.requisition_type === "SERVICE" ? serviceOptions : itemOptions;
+                                  const results = query
+                                    ? filterByPrefix(optionsList, {
+                                        query,
+                                        searchFields: ["item_code", "item_name", "barcode"],
+                                      })
+                                    : [];
+                                  if (!query || !results.length) return;
+                                  onItemChange(i, String(results[0].id));
+                                  setItemQueries((prev) => {
+                                    const next = { ...prev };
+                                    delete next[queryKey];
+                                    return next;
+                                  });
+                                }
+                              }}
+                              disabled={disabled}
+                            />
+                            {(() => {
+                              const queryKey = form.requisition_type === "SERVICE" ? `svc-${i}` : `item-${i}`;
+                              const query = (itemQueries[queryKey] || "").trim();
+                              const optionsList = form.requisition_type === "SERVICE" ? serviceOptions : itemOptions;
+                              const results = query
+                                ? filterByPrefix(optionsList, {
+                                    query,
+                                    searchFields: ["item_code", "item_name", "barcode"],
+                                  })
+                                : [];
+                              return results.length ? (
+                                <div className="absolute z-50 mt-1 w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg max-h-48 overflow-auto">
+                                  {results.map((o) => (
+                                    <button
+                                      type="button"
+                                      key={o.id}
+                                      className="block w-full text-left px-3 py-2 hover:bg-slate-50 dark:hover:bg-slate-700 text-xs border-b border-slate-100 dark:border-slate-700 last:border-0"
+                                      onClick={() => {
+                                        onItemChange(i, String(o.id));
+                                        setItemQueries((prev) => {
+                                          const next = { ...prev };
+                                          delete next[queryKey];
+                                          return next;
+                                        });
+                                      }}
+                                    >
+                                      <span className="font-semibold text-brand-700 dark:text-brand-400">{o.item_code}</span> - {o.item_name}
+                                    </button>
+                                  ))}
+                                </div>
+                              ) : null;
+                            })()}
+                          </div>
+                        </td>
+
+                        {/* Quantity */}
+                        <td>
+                          <input
+                            type="number"
+                            min="0.01"
+                            step="any"
+                            className="input text-sm w-full"
+                            value={l.qty}
+                            onChange={(e) => updateLine(i, "qty", e.target.value)}
+                            disabled={disabled}
+                          />
+                        </td>
+
+                        {/* UOM */}
+                        <td>
+                          <select
+                            className="input text-sm w-full"
+                            value={l.uom}
+                            onChange={(e) => updateLine(i, "uom", e.target.value)}
+                            disabled={disabled}
+                          >
+                            <option value="">UOM</option>
+                            {uoms.map((u) => (
+                              <option key={u.id} value={u.uom_code}>
+                                {u.uom_name ? `${u.uom_name} (${u.uom_code})` : u.uom_code}
+                              </option>
+                            ))}
+                          </select>
+                        </td>
+
+                        {/* Estimated Unit Cost */}
+                        <td>
+                          <input
+                            type="number"
+                            min="0"
+                            step="any"
+                            className="input text-sm w-full"
+                            value={l.estimated_unit_cost}
+                            onChange={(e) => updateLine(i, "estimated_unit_cost", e.target.value)}
+                            disabled={disabled}
+                          />
+                        </td>
+
+                        {/* Est. Total */}
+                        <td className="text-right font-mono text-sm font-medium">
+                          {lineTotal.toLocaleString(undefined, {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                          })}
+                        </td>
+
+                        {/* Remove Action */}
+                        {canEdit && (
+                          <td className="text-center">
+                            <button
+                              type="button"
+                              className="btn btn-danger text-xs px-2 py-1"
+                              onClick={() => removeLine(i)}
+                            >
+                              Remove
+                            </button>
+                          </td>
+                        )}
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            {canEdit && (
+              <div className="mt-3">
+                <button type="button" className="btn btn-secondary text-xs inline-flex items-center gap-1.5" onClick={addLine}>
+                  + Add Line
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Totals Summary */}
+          <div className="bg-white dark:bg-slate-900 p-5 rounded-xl mt-5 border border-slate-200 dark:border-slate-800">
+            <div className="flex justify-between py-2 text-lg font-bold text-brand-900 dark:text-brand-300">
+              <span>TOTAL ESTIMATED COST:</span>
+              <span className="font-mono">
+                {totals.total.toLocaleString(undefined, {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                })}
+              </span>
+            </div>
+          </div>
+
+          {/* Actions: Save & Back */}
+          {canEdit && (
+            <div className="mt-6 flex justify-end gap-3 items-center">
+              <button
+                type="button"
+                className="btn btn-primary inline-flex items-center gap-2 text-sm font-semibold shadow-sm"
+                disabled={saving}
+                onClick={submit}
+              >
+                {saving ? "Saving..." : "Save"}
+              </button>
+              <button
+                type="button"
+                className="btn btn-secondary text-sm"
+                onClick={() => navigate("/project-management/purchase-requisitions")}
+              >
+                Back
+              </button>
+            </div>
+          )}
+
+          {isViewMode && (
+            <div className="mt-6 flex justify-end">
+              <button
+                type="button"
+                className="btn btn-secondary px-6 py-2"
+                onClick={() => navigate("/project-management/purchase-requisitions")}
+              >
+                Back to List
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>

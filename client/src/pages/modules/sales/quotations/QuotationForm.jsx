@@ -23,6 +23,7 @@ import defaultLogo from "../../../../assets/resources/OMNISUITE_LOGO_FILL.png";
 import { useExchangeRate } from "@/hooks/useExchangeRate";
 import { filterByPrefix } from "@/utils/searchUtils.js";
 import { usePermission } from "../../../../auth/PermissionContext.jsx";
+import TaxPricingModal, { TaxModeRadioSelector } from "@/components/common/TaxPricingModal.jsx";
 
 // Ghana Regions and Countries data
 const GHANA_REGIONS = [
@@ -114,6 +115,10 @@ export default function QuotationForm() {
     payment_type: "CASH",
     currency_id: 4,
     exchange_rate: 1,
+    tax_mode: "EXCLUSIVE",
+    tax_code_id: "",
+    tax_rate: 0,
+    tax_component_name: "",
   });
 
   const [items, setItems] = useState([]); // Replaces 'lines'
@@ -129,6 +134,9 @@ export default function QuotationForm() {
     remarks: "",
   });
   const [itemQuery, setItemQuery] = useState("");
+  const [taxModalOpen, setTaxModalOpen] = useState(false);
+  const [showTaxModeAlert, setShowTaxModeAlert] = useState(false);
+  const [hasPromptedTaxMode, setHasPromptedTaxMode] = useState(false);
 
   const [customers, setCustomers] = useState([]);
   const [prospects, setProspects] = useState([]);
@@ -211,13 +219,34 @@ export default function QuotationForm() {
 
     const sub = qty * price;
     const discAmt = (sub * disc) / 100;
-    const net = sub - discAmt;
+    const gross = sub - discAmt;
 
-    const taxRate =
-      taxes.find((t) => String(t.value) === String(itm.tax_type))?.rate || 0;
-    const taxAmt = (net * taxRate) / 100;
+    const isInclusive = String(itm.tax_mode || formData.tax_mode || "").toUpperCase() === "INCLUSIVE";
+    const taxRate = Number(
+      itm.tax_rate !== undefined && itm.tax_rate !== null && Number(itm.tax_rate) > 0
+        ? itm.tax_rate
+        : (formData.tax_rate || 0)
+    );
 
-    return { sub, discAmt, net, taxAmt, total: net + taxAmt };
+    let net = gross;
+    let taxAmt = 0;
+    let total = gross;
+
+    if (isInclusive && taxRate > 0) {
+      total = gross;
+      net = Math.round((gross / (1 + taxRate / 100)) * 100) / 100;
+      taxAmt = Math.round((gross - net) * 100) / 100;
+    } else if (!isInclusive && taxRate > 0) {
+      net = gross;
+      taxAmt = Math.round((gross * (taxRate / 100)) * 100) / 100;
+      total = Math.round((gross + taxAmt) * 100) / 100;
+    } else {
+      net = gross;
+      taxAmt = 0;
+      total = gross;
+    }
+
+    return { sub, discAmt, net, taxAmt, total, isInclusive };
   };
 
   const calcNewItemTaxBreakdown = () => {
@@ -280,19 +309,54 @@ export default function QuotationForm() {
     return { sub, components, taxTotal, total };
   };
 
+  const handleTaxModeChange = (newMode) => {
+    setFormData((prev) => ({
+      ...prev,
+      tax_mode: newMode,
+    }));
+    setNewItem((prev) => ({
+      ...prev,
+      tax_mode: newMode,
+    }));
+    setItems((prev) =>
+      prev.map((ln) => {
+        const updated = {
+          ...ln,
+          tax_mode: newMode,
+        };
+        return { ...updated, ...calcItemTotals(updated) };
+      }),
+    );
+  };
+
   const calcAggregates = () => {
+    const isInclusive = String(formData.tax_mode || "").toUpperCase() === "INCLUSIVE";
     const grossSub = items.reduce((s, i) => s + (i.sub || 0), 0);
     const discountTotal = items.reduce((s, i) => s + (i.discAmt || 0), 0);
     const netSub = items.reduce((s, i) => s + (i.net || 0), 0);
-    const tc = calcTaxComponentsTotals();
-    const taxTotal = tc.taxTotal;
-    const grand = netSub + taxTotal;
+    const lineTax = items.reduce((s, i) => s + Number(i.taxAmt || 0), 0);
+    const grand = isInclusive
+      ? items.reduce((s, i) => s + (i.total || 0), 0)
+      : Math.round((grossSub - discountTotal + lineTax) * 100) / 100;
+
+    const subtotal = isInclusive ? netSub : grossSub;
+
+    const components = [];
+    if (lineTax > 0) {
+      components.push({
+        name: formData.tax_component_name || (formData.tax_rate ? `Tax (${formData.tax_rate}%)` : "Tax"),
+        amount: lineTax,
+        rate: formData.tax_rate || 0,
+      });
+    }
+
     return {
       grossSub,
+      subtotal,
       discountTotal,
       netSub,
-      components: tc.components,
-      taxTotal,
+      components,
+      taxTotal: lineTax,
       grand,
     };
   };
@@ -809,71 +873,25 @@ export default function QuotationForm() {
 
   const handleNewItemChange = (e) => {
     const { name, value } = e.target;
+    const isInclusive = String(formData.tax_mode || "EXCLUSIVE").toUpperCase() === "INCLUSIVE";
     if (name === "item_id") {
       const prod = inventoryItems.find((p) => p.id === parseInt(value));
-      // Default to product master selling price, then try standard price by price type
       const fallbackPrice = prod?.selling_price || 0;
       setNewItem((prev) => ({
         ...prev,
         item_id: value,
         item_name: prod?.item_name || "",
         unit_price: fallbackPrice,
-        qty: 1, // Default qty
+        qty: 1,
+        tax_mode: formData.tax_mode || "EXCLUSIVE",
+        tax_type: formData.tax_code_id || prev.tax_type || "",
+        tax_rate: formData.tax_rate !== undefined ? formData.tax_rate : (prev.tax_rate || 0),
+        tax_component_name: formData.tax_component_name || prev.tax_component_name || "",
       }));
       fetchStandardPriceForItem(value, fallbackPrice).then((sp) =>
         setNewItem((prev) => ({ ...prev, unit_price: sp })),
       );
-      if (value) {
-        api
-          .get(`/finance/item-tax/${value}`)
-          .then((resp) => {
-            const tax = resp.data?.tax;
-            if (tax) {
-              const resolvedTaxType =
-                tax.id ||
-                taxes.find((t) => t.code === tax.tax_code)?.value ||
-                null;
-              const resolvedTaxRate = resolvedTaxType
-                ? taxes.find((t) => String(t.value) === String(resolvedTaxType))
-                    ?.rate
-                : null;
-              setNewItem((prev) => ({
-                ...prev,
-                tax_type: resolvedTaxType ?? prev.tax_type,
-                tax_rate:
-                  resolvedTaxRate !== null && resolvedTaxRate !== undefined
-                    ? resolvedTaxRate
-                    : tax.tax_rate,
-              }));
-              if (resolvedTaxType) {
-                fetchTaxComponentsForCode(resolvedTaxType);
-              }
-            } else {
-              setNewItem((prev) => ({
-                ...prev,
-                tax_rate: undefined,
-              }));
-            }
-          })
-          .catch(() => {
-            setNewItem((prev) => ({
-              ...prev,
-              tax_rate: undefined,
-            }));
-          });
-      }
     } else {
-      if (name === "tax_type") {
-        const selectedTaxRate =
-          taxes.find((t) => String(t.value) === String(value))?.rate || 0;
-        if (value) fetchTaxComponentsForCode(value);
-        setNewItem((prev) => ({
-          ...prev,
-          [name]: value,
-          tax_rate: selectedTaxRate,
-        }));
-        return;
-      }
       setNewItem((prev) => ({ ...prev, [name]: value }));
     }
   };
@@ -884,37 +902,34 @@ export default function QuotationForm() {
       return;
     }
 
-    const calculations = calcItemTotals(newItem);
+    const isInclusive = String(formData.tax_mode || "EXCLUSIVE").toUpperCase() === "INCLUSIVE";
+    const lineItemData = {
+      ...newItem,
+      tax_mode: formData.tax_mode || "EXCLUSIVE",
+      tax_type: formData.tax_code_id || newItem.tax_type || "",
+      tax_rate: newItem.tax_rate !== undefined && newItem.tax_rate !== null ? newItem.tax_rate : (formData.tax_rate || 0),
+      tax_component_name: formData.tax_component_name || newItem.tax_component_name || "",
+    };
+    const calculations = calcItemTotals(lineItemData);
     setItems([
       ...items,
       {
-        ...newItem,
-        line_id: Date.now(), // temporary ID
+        ...lineItemData,
+        line_id: Date.now(),
         ...calculations,
       },
     ]);
 
-    // Reset new item input
     setNewItem({
       item_id: "",
       item_name: "",
       qty: "",
       unit_price: "",
       discount_percent: 0,
-      tax_type:
-        (
-          taxes.find((t) => Number(t.rate) === 20 && /vat/i.test(t.label)) ||
-          taxes.find((t) => Number(t.rate) === 20) ||
-          taxes.find((t) => /vat/i.test(t.label)) ||
-          taxes[0]
-        )?.value || "",
-      tax_rate:
-        (
-          taxes.find((t) => Number(t.rate) === 20 && /vat/i.test(t.label)) ||
-          taxes.find((t) => Number(t.rate) === 20) ||
-          taxes.find((t) => /vat/i.test(t.label)) ||
-          taxes[0]
-        )?.rate || undefined,
+      tax_mode: formData.tax_mode || "EXCLUSIVE",
+      tax_type: formData.tax_code_id || "",
+      tax_rate: formData.tax_rate || 0,
+      tax_component_name: formData.tax_component_name || "",
       remarks: "",
     });
     setItemQuery("");
@@ -1584,9 +1599,20 @@ export default function QuotationForm() {
             </div>
           </div>
           <div className="border-t pt-6 mb-6">
-            <h3 className="text-lg font-semibold mb-4 text-gray-800">
-              Quotation Items
-            </h3>
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold text-gray-800">
+                Quotation Items
+              </h3>
+              <TaxModeRadioSelector
+                taxMode={formData.tax_mode || "EXCLUSIVE"}
+                onModeChange={handleTaxModeChange}
+                onOpenTaxModal={() => setTaxModalOpen(true)}
+                selectedTaxLabel={formData.tax_component_name}
+                openAlert={showTaxModeAlert}
+                onCloseAlert={() => setShowTaxModeAlert(false)}
+                anchorSelector="#quotation-item-search"
+              />
+            </div>
             <div className="bg-gray-50 p-4 rounded-lg mb-6 border border-gray-200 print:hidden">
               <div className="grid grid-cols-1 md:grid-cols-6 gap-3 mb-3">
                 <div className="md:col-span-2">
@@ -1597,6 +1623,18 @@ export default function QuotationForm() {
                     <input
                       id="quotation-item-search"
                       name="item_id"
+                      onFocus={() => {
+                        if (!hasPromptedTaxMode) {
+                          setShowTaxModeAlert(true);
+                          setHasPromptedTaxMode(true);
+                        }
+                      }}
+                      onClick={() => {
+                        if (!hasPromptedTaxMode) {
+                          setShowTaxModeAlert(true);
+                          setHasPromptedTaxMode(true);
+                        }
+                      }}
                       autoComplete="off"
                       className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0E3646]"
                       placeholder="Scan barcode or type item name"
@@ -1709,18 +1747,16 @@ export default function QuotationForm() {
                   <label className="block text-xs font-medium text-gray-700 mb-1">
                     Tax
                   </label>
-                  <select
-                    name="tax_type"
-                    value={newItem.tax_type}
-                    onChange={handleNewItemChange}
-                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0E3646]"
+                  <button
+                    type="button"
+                    onClick={() => setTaxModalOpen(true)}
+                    className="w-full px-3 py-2 text-left text-xs border border-gray-300 rounded-lg bg-white hover:bg-gray-50 flex items-center justify-between"
                   >
-                    {taxes.map((t) => (
-                      <option key={t.value} value={t.value}>
-                        {t.label}
-                      </option>
-                    ))}
-                  </select>
+                    <span className="truncate">
+                      {formData.tax_component_name || (formData.tax_rate ? `Tax (${formData.tax_rate}%)` : "Select Tax")}
+                    </span>
+                    <span className="text-blue-600 font-semibold ml-1">Edit</span>
+                  </button>
                 </div>
               </div>
               <div className="flex justify-end">
@@ -1784,7 +1820,12 @@ export default function QuotationForm() {
                             {i.net.toFixed(2)}
                           </td>
                           <td className="px-4 py-3 text-gray-900">
-                            {i.taxAmt.toFixed(2)}
+                            <div>{i.taxAmt.toFixed(2)}</div>
+                            {Number(i.tax_rate || 0) > 0 && (
+                              <span className="inline-block px-1.5 py-0.5 text-[10px] bg-blue-50 text-blue-700 rounded font-medium mt-0.5">
+                                {i.tax_rate}%
+                              </span>
+                            )}
                           </td>
                           <td className="px-4 py-3 font-medium text-gray-900">
                             {i.total.toFixed(2)}
@@ -1806,7 +1847,7 @@ export default function QuotationForm() {
                 <div className="mt-4 ml-auto w-full max-w-md rounded-md bg-gray-100 px-4 py-3 space-y-2">
                   <div className="flex items-center justify-between text-sm font-semibold text-slate-700">
                     <span>Subtotal:</span>
-                    <span>{calcAggregates().netSub.toFixed(2)}</span>
+                    <span>{calcAggregates().subtotal.toFixed(2)}</span>
                   </div>
                   <div className="flex items-center justify-between text-sm font-semibold text-slate-700">
                     <span>Total Discount:</span>
@@ -1975,7 +2016,7 @@ export default function QuotationForm() {
             <div className="rounded-md bg-gray-100 px-4 py-3 space-y-2">
               <div className="flex items-center justify-between text-[30px] font-semibold text-slate-700">
                 <span>Subtotal:</span>
-                <span>{calcAggregates().netSub.toFixed(2)}</span>
+                <span>{calcAggregates().subtotal.toFixed(2)}</span>
               </div>
               <div className="flex items-center justify-between text-[30px] font-semibold text-slate-700">
                 <span>Total Discount:</span>
@@ -2127,7 +2168,7 @@ export default function QuotationForm() {
             <div className="rounded-md bg-gray-100 px-4 py-3 space-y-2">
               <div className="flex items-center justify-between text-[30px] font-semibold text-slate-700">
                 <span>Subtotal:</span>
-                <span>{calcAggregates().netSub.toFixed(2)}</span>
+                <span>{calcAggregates().subtotal.toFixed(2)}</span>
               </div>
               <div className="flex items-center justify-between text-[30px] font-semibold text-slate-700">
                 <span>Total Discount:</span>
@@ -2158,6 +2199,55 @@ export default function QuotationForm() {
           THANK YOU FOR YOUR BUSINESS!
         </div>
       </div>
+      <TaxPricingModal
+        open={taxModalOpen}
+        form="QUOTATION"
+        pageId={10}
+        onClose={() => setTaxModalOpen(false)}
+        taxMode={formData.tax_mode || "EXCLUSIVE"}
+        price={Number(newItem.unit_price || 0)}
+        selectedComponent={{
+          name: formData.tax_component_name,
+          rate: formData.tax_rate,
+          id: formData.tax_code_id,
+        }}
+        onSelectComponent={(comp) => {
+          const compLabel = `${comp.name}${comp.rate !== undefined ? ` (${comp.rate}%)` : ""}`;
+          const taxCodeId = comp.taxCodeId || comp.originalId || comp.id;
+          const taxRate = comp.rate;
+          const currentMode = formData.tax_mode || "EXCLUSIVE";
+
+          setFormData((prev) => ({
+            ...prev,
+            tax_mode: currentMode,
+            tax_code_id: taxCodeId || prev.tax_code_id,
+            tax_rate: taxRate,
+            tax_component_name: compLabel,
+          }));
+
+          setNewItem((prev) => ({
+            ...prev,
+            tax_mode: currentMode,
+            tax_type: taxCodeId || prev.tax_type,
+            tax_rate: taxRate,
+            tax_component_name: compLabel,
+          }));
+
+          setItems((prev) =>
+            prev.map((ln) => {
+              const updated = {
+                ...ln,
+                tax_mode: currentMode,
+                tax_type: taxCodeId || ln.tax_type,
+                tax_rate: taxRate,
+                tax_component_name: compLabel,
+              };
+              return { ...updated, ...calcItemTotals(updated) };
+            })
+          );
+          setTaxModalOpen(false);
+        }}
+      />
     </div>
   );
 }

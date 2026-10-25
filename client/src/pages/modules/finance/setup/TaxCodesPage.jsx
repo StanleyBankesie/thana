@@ -32,6 +32,12 @@ const PAGE_IDS = {
   DELIVERY_NOTE: 21,
   TRANSPORT_EXPENSES: 22,
   TRANSPORT_INCOME: 23,
+  ASSET_INVOICE: 24,
+  FACILITIES_SERVICE_BILLING: 25,
+  PROJECT_INVOICE: 26,
+  SERVICE_INVOICE: 27,
+  TRANSPORT_BILLING: 28,
+  BOQ: 29,
 };
 
 const ALL_PAGES = [
@@ -91,7 +97,11 @@ const ALL_PAGES = [
   },
   { value: PAGE_IDS.DEBIT_NOTE, code: "DEBIT_NOTE", label: "Debit Note" },
   { value: PAGE_IDS.CREDIT_NOTE, code: "CREDIT_NOTE", label: "Credit Note" },
-  { value: PAGE_IDS.SALES_VOUCHER, code: "SALES_VOUCHER", label: "Sales Voucher" },
+  {
+    value: PAGE_IDS.SALES_VOUCHER,
+    code: "SALES_VOUCHER",
+    label: "Sales Voucher",
+  },
   { value: PAGE_IDS.SALES_RETURN, code: "SALES_RETURN", label: "Sales Return" },
   {
     value: PAGE_IDS.PURCHASE_RETURN,
@@ -108,6 +118,36 @@ const ALL_PAGES = [
     code: "TRANSPORT_INCOME",
     label: "Transportation Income",
   },
+  {
+    value: PAGE_IDS.ASSET_INVOICE,
+    code: "ASSET_INVOICE",
+    label: "Asset Invoices (Asset Management)",
+  },
+  {
+    value: PAGE_IDS.FACILITIES_SERVICE_BILLING,
+    code: "FACILITIES_SERVICE_BILLING",
+    label: "Facilities Invoices / Service Billing",
+  },
+  {
+    value: PAGE_IDS.PROJECT_INVOICE,
+    code: "PROJECT_INVOICE",
+    label: "Project Invoices (Project Management)",
+  },
+  {
+    value: PAGE_IDS.SERVICE_INVOICE,
+    code: "SERVICE_INVOICE",
+    label: "Service Invoices (Service Management)",
+  },
+  {
+    value: PAGE_IDS.TRANSPORT_BILLING,
+    code: "TRANSPORT_BILLING",
+    label: "Transport Invoices and Billing",
+  },
+  {
+    value: PAGE_IDS.BOQ,
+    code: "BOQ",
+    label: "Bill of Quantities (BOQ)",
+  },
 ];
 
 const SALES_PAGES = [
@@ -119,6 +159,12 @@ const SALES_PAGES = [
   PAGE_IDS.SALES_RETURN,
   PAGE_IDS.DELIVERY_NOTE,
   PAGE_IDS.CREDIT_NOTE,
+  PAGE_IDS.ASSET_INVOICE,
+  PAGE_IDS.FACILITIES_SERVICE_BILLING,
+  PAGE_IDS.PROJECT_INVOICE,
+  PAGE_IDS.SERVICE_INVOICE,
+  PAGE_IDS.TRANSPORT_BILLING,
+  PAGE_IDS.BOQ,
 ];
 const PURCHASE_PAGES = [
   PAGE_IDS.DIRECT_PURCHASE,
@@ -138,7 +184,7 @@ const VOUCHER_PAGES = [
 
 /**
  *  component
- * 
+ *
  * @returns {JSX.Element} The rendered component
  */
 export default function TaxCodesPage() {
@@ -394,15 +440,24 @@ export default function TaxCodesPage() {
       setIsSalesTax(checked);
       setValidPages((prev) =>
         checked
-          ? Array.from(new Set([...prev, ...SALES_PAGES, PAGE_IDS.RECEIPT_VOUCHER]))
-          : prev.filter((p) => !SALES_PAGES.includes(p) && p !== PAGE_IDS.RECEIPT_VOUCHER),
+          ? Array.from(
+              new Set([...prev, ...SALES_PAGES, PAGE_IDS.RECEIPT_VOUCHER]),
+            )
+          : prev.filter(
+              (p) => !SALES_PAGES.includes(p) && p !== PAGE_IDS.RECEIPT_VOUCHER,
+            ),
       );
     } else if (scope === "PURCHASE") {
       setIsPurchaseTax(checked);
       setValidPages((prev) =>
         checked
-          ? Array.from(new Set([...prev, ...PURCHASE_PAGES, PAGE_IDS.PAYMENT_VOUCHER]))
-          : prev.filter((p) => !PURCHASE_PAGES.includes(p) && p !== PAGE_IDS.PAYMENT_VOUCHER),
+          ? Array.from(
+              new Set([...prev, ...PURCHASE_PAGES, PAGE_IDS.PAYMENT_VOUCHER]),
+            )
+          : prev.filter(
+              (p) =>
+                !PURCHASE_PAGES.includes(p) && p !== PAGE_IDS.PAYMENT_VOUCHER,
+            ),
       );
     } else if (scope === "SERVICE") {
       setIsServiceTax(checked);
@@ -430,17 +485,25 @@ export default function TaxCodesPage() {
         updatedPages = Array.from(new Set([...updatedPages, ...scopePages]));
         // Add corresponding voucher pages
         if (scopeField === "is_sales_tax") {
-          updatedPages = Array.from(new Set([...updatedPages, PAGE_IDS.RECEIPT_VOUCHER]));
+          updatedPages = Array.from(
+            new Set([...updatedPages, PAGE_IDS.RECEIPT_VOUCHER]),
+          );
         } else if (scopeField === "is_purchase_tax") {
-          updatedPages = Array.from(new Set([...updatedPages, PAGE_IDS.PAYMENT_VOUCHER]));
+          updatedPages = Array.from(
+            new Set([...updatedPages, PAGE_IDS.PAYMENT_VOUCHER]),
+          );
         }
       } else {
         updatedPages = updatedPages.filter((pg) => !scopePages.includes(pg));
         // Remove corresponding voucher pages
         if (scopeField === "is_sales_tax") {
-          updatedPages = updatedPages.filter((pg) => pg !== PAGE_IDS.RECEIPT_VOUCHER);
+          updatedPages = updatedPages.filter(
+            (pg) => pg !== PAGE_IDS.RECEIPT_VOUCHER,
+          );
         } else if (scopeField === "is_purchase_tax") {
-          updatedPages = updatedPages.filter((pg) => pg !== PAGE_IDS.PAYMENT_VOUCHER);
+          updatedPages = updatedPages.filter(
+            (pg) => pg !== PAGE_IDS.PAYMENT_VOUCHER,
+          );
         }
       }
 
@@ -601,7 +664,9 @@ export default function TaxCodesPage() {
         <div className="card-header bg-brand text-white rounded-t-lg p-5">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
-              <button onClick={() => window.history.back()} className="inline-flex items-center gap-1.5 text-xs text-white/80 hover:text-white transition-colors mb-2"
+              <button
+                onClick={() => window.history.back()}
+                className="inline-flex items-center gap-1.5 text-xs text-white/80 hover:text-white transition-colors mb-2"
               >
                 ← Back to Accounting Setup
               </button>
@@ -609,7 +674,8 @@ export default function TaxCodesPage() {
                 Tax Codes & Deductions Setup
               </h1>
               <p className="text-sm mt-0.5 opacity-90">
-                Configure tax codes, compound rates, component splits & module applicability
+                Configure tax codes, compound rates, component splits & module
+                applicability
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
@@ -703,7 +769,9 @@ export default function TaxCodesPage() {
                         checked={isActive}
                         onChange={(e) => setIsActive(e.target.checked)}
                       />
-                      <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Active Status</span>
+                      <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                        Active Status
+                      </span>
                     </label>
                   </div>
                 </div>
@@ -781,7 +849,10 @@ export default function TaxCodesPage() {
                   >
                     Cancel
                   </button>
-                  <button type="submit" className="btn-success text-xs px-4 py-2 font-semibold cursor-pointer shadow-sm">
+                  <button
+                    type="submit"
+                    className="btn-success text-xs px-4 py-2 font-semibold cursor-pointer shadow-sm"
+                  >
                     Create Tax Code
                   </button>
                 </div>
@@ -795,21 +866,19 @@ export default function TaxCodesPage() {
       <div className="card shadow-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 overflow-hidden">
         <div className="card-body p-0">
           <div className="overflow-x-auto">
-            <table className="table w-full min-w-[960px]">
+            <table className="table w-full min-w-[840px]">
               <colgroup>
+                <col style={{ width: "14%" }} />
+                <col style={{ width: "29%" }} />
                 <col style={{ width: "12%" }} />
-                <col style={{ width: "25%" }} />
-                <col style={{ width: "11%" }} />
-                <col style={{ width: "11%" }} />
-                <col style={{ width: "15%" }} />
-                <col style={{ width: "10%" }} />
+                <col style={{ width: "17%" }} />
+                <col style={{ width: "12%" }} />
                 <col style={{ width: "16%" }} />
               </colgroup>
               <thead>
                 <tr className="bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-xs uppercase tracking-wider font-semibold">
                   <th className="py-3 px-4 text-left">Code</th>
                   <th className="py-3 px-4 text-left">Name</th>
-                  <th className="py-3 px-4 text-left">Type</th>
                   <th className="py-3 px-4 text-left">Rate (%)</th>
                   <th className="py-3 px-4 text-left">Scope</th>
                   <th className="py-3 px-4 text-left">Status</th>
@@ -819,45 +888,46 @@ export default function TaxCodesPage() {
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-sm">
                 {loading ? (
                   <tr>
-                    <td colSpan={7} className="text-center py-10 text-slate-500">
+                    <td
+                      colSpan={6}
+                      className="text-center py-10 text-slate-500"
+                    >
                       <div className="flex items-center justify-center gap-2">
                         <div className="w-5 h-5 border-2 border-brand border-t-transparent rounded-full animate-spin"></div>
-                        <span className="text-sm font-medium">Loading tax codes...</span>
+                        <span className="text-sm font-medium">
+                          Loading tax codes...
+                        </span>
                       </div>
                     </td>
                   </tr>
                 ) : items.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="text-center py-12 text-slate-400">
+                    <td
+                      colSpan={6}
+                      className="text-center py-12 text-slate-400"
+                    >
                       <div className="flex flex-col items-center justify-center gap-2">
                         <span className="text-base font-semibold text-slate-600 dark:text-slate-300">
                           No tax codes or deductions found
                         </span>
                         <span className="text-xs text-slate-400">
-                          Click &quot;+ Create Tax Code&quot; above to add your first tax or deduction.
+                          Click &quot;+ Create Tax Code&quot; above to add your
+                          first tax or deduction.
                         </span>
                       </div>
                     </td>
                   </tr>
                 ) : (
                   items.map((r) => (
-                    <tr key={r.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition-colors">
+                    <tr
+                      key={r.id}
+                      className="hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition-colors"
+                    >
                       <td className="py-3 px-4 font-mono font-bold text-brand dark:text-brand-300">
                         {r.code}
                       </td>
                       <td className="py-3 px-4 font-medium text-slate-800 dark:text-slate-100">
                         {r.name}
-                      </td>
-                      <td className="py-3 px-4">
-                        <span
-                          className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold ${
-                            r.type === "TAX"
-                              ? "bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 border border-blue-200 dark:border-blue-800"
-                              : "bg-purple-50 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300 border border-purple-200 dark:border-purple-800"
-                          }`}
-                        >
-                          {r.type}
-                        </span>
                       </td>
                       <td className="py-3 px-4 font-mono font-medium">
                         {Number(r.rate_percent || 0).toFixed(2)}%
@@ -882,9 +952,7 @@ export default function TaxCodesPage() {
                           {!r.is_sales_tax &&
                             !r.is_purchase_tax &&
                             !r.is_service_tax && (
-                              <span className="text-xs text-slate-400">
-                                —
-                              </span>
+                              <span className="text-xs text-slate-400">—</span>
                             )}
                         </div>
                       </td>
@@ -1062,7 +1130,9 @@ export default function TaxCodesPage() {
                         checked={compActive}
                         onChange={(e) => setCompActive(e.target.checked)}
                       />
-                      <span className="text-xs font-medium text-slate-700 dark:text-slate-300">Active</span>
+                      <span className="text-xs font-medium text-slate-700 dark:text-slate-300">
+                        Active
+                      </span>
                     </label>
                   </div>
 
@@ -1107,7 +1177,10 @@ export default function TaxCodesPage() {
                         (a) => String(a.id) === String(c.account_id),
                       );
                       return (
-                        <tr key={c.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition-colors">
+                        <tr
+                          key={c.id}
+                          className="hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition-colors"
+                        >
                           <td className="py-2.5 px-3 font-medium text-slate-800 dark:text-slate-100">
                             {isEdit ? (
                               <input
@@ -1264,10 +1337,10 @@ export default function TaxCodesPage() {
                                   )
                                 }
                               />
+                            ) : c.sort_order && Number(c.sort_order) < 100 ? (
+                              c.sort_order
                             ) : (
-                              c.sort_order && Number(c.sort_order) < 100
-                                ? c.sort_order
-                                : index + 1
+                              index + 1
                             )}
                           </td>
                           <td className="py-2.5 px-3">
@@ -1353,7 +1426,8 @@ export default function TaxCodesPage() {
                               No components defined for this tax code yet.
                             </span>
                             <span className="text-xs text-slate-400">
-                              Use the form above to add composite breakdown components (e.g. NHIL, GETFund, COVID Levy).
+                              Use the form above to add composite breakdown
+                              components (e.g. NHIL, GETFund, COVID Levy).
                             </span>
                           </div>
                         </td>

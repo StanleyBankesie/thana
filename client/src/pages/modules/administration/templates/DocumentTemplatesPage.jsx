@@ -14,8 +14,11 @@ import PrintPreviewModal from "../../../../components/PrintPreviewModal.jsx";
 const DOC_TYPES = [
   { value: "general-template", label: "Report Header" },
   { value: "sales-order", label: "Sales Order" },
+  { value: "project", label: "Project" },
+  { value: "boq", label: "Bill of Quantities (BOQ)" },
   { value: "invoice", label: "Invoice" },
   { value: "quotation", label: "Quotation" },
+  { value: "project-quotation", label: "Project Quotation" },
   { value: "delivery-note", label: "Delivery Note" },
   { value: "salary-slip", label: "Salary Slip" },
   { value: "payment-voucher", label: "Payment Voucher" },
@@ -34,535 +37,551 @@ const DOC_TYPES = [
 // Grouped by module so users can easily identify which feature a template maps to
 const FEATURE_PAGES = [
   {
-    "label": "ADMINISTRATION",
-    "options": [
+    label: "ADMINISTRATION",
+    options: [
       {
-        "label": "ExceptionalPermissionsList",
-        "value": "exceptional-permissions-list"
+        label: "ExceptionalPermissionsList",
+        value: "exceptional-permissions-list",
       },
       {
-        "label": "BranchList",
-        "value": "branch-list"
+        label: "BranchList",
+        value: "branch-list",
       },
       {
-        "label": "CompanyList",
-        "value": "company-list"
+        label: "CompanyList",
+        value: "company-list",
       },
       {
-        "label": "UserList",
-        "value": "user-list"
+        label: "UserList",
+        value: "user-list",
       },
       {
-        "label": "WorkflowList",
-        "value": "workflow-list"
-      }
-    ]
+        label: "WorkflowList",
+        value: "workflow-list",
+      },
+    ],
   },
   {
-    "label": "BUSINESS-INTELLIGENCE",
-    "options": [
+    label: "BUSINESS-INTELLIGENCE",
+    options: [
       {
-        "label": "DashboardList",
-        "value": "dashboard-list"
-      }
-    ]
+        label: "DashboardList",
+        value: "dashboard-list",
+      },
+    ],
   },
   {
-    "label": "FINANCE",
-    "options": [
+    label: "FINANCE",
+    options: [
       {
-        "label": "BankReconciliationList",
-        "value": "bank-reconciliation-list"
+        label: "BankReconciliationList",
+        value: "bank-reconciliation-list",
       },
       {
-        "label": "PdcPostingsList",
-        "value": "pdc-postings-list"
+        label: "PdcPostingsList",
+        value: "pdc-postings-list",
       },
       {
-        "label": "JournalVoucherList",
-        "value": "journal-voucher-list"
+        label: "JournalVoucherList",
+        value: "journal-voucher-list",
       },
       {
-        "label": "ContraVoucherList",
-        "value": "contra-voucher-list"
+        label: "ContraVoucherList",
+        value: "contra-voucher-list",
       },
       {
-        "label": "CreditNoteList",
-        "value": "credit-note-list"
+        label: "CreditNoteList",
+        value: "credit-note-list",
       },
       {
-        "label": "DebitNoteList",
-        "value": "debit-note-list"
+        label: "DebitNoteList",
+        value: "debit-note-list",
       },
       {
-        "label": "JournalVoucherList",
-        "value": "journal-voucher-list"
+        label: "JournalVoucherList",
+        value: "journal-voucher-list",
       },
       {
-        "label": "PaymentVoucherList",
-        "value": "payment-voucher-list"
+        label: "PaymentVoucherList",
+        value: "payment-voucher-list",
       },
       {
-        "label": "PurchaseVoucherList",
-        "value": "purchase-voucher-list"
+        label: "PurchaseVoucherList",
+        value: "purchase-voucher-list",
       },
       {
-        "label": "ReceiptVoucherList",
-        "value": "receipt-voucher-list"
+        label: "ReceiptVoucherList",
+        value: "receipt-voucher-list",
       },
       {
-        "label": "SalesVoucherList",
-        "value": "sales-voucher-list"
+        label: "SalesVoucherList",
+        value: "sales-voucher-list",
       },
       {
-        "label": "VoucherListPage",
-        "value": "voucher-list"
-      }
-    ]
+        label: "VoucherListPage",
+        value: "voucher-list",
+      },
+    ],
   },
   {
-    "label": "HUMAN-RESOURCES",
-    "options": [
+    label: "HUMAN-RESOURCES",
+    options: [
       {
-        "label": "AllowanceList",
-        "value": "allowance-list"
+        label: "AllowanceList",
+        value: "allowance-list",
       },
       {
-        "label": "AttendanceList",
-        "value": "attendance-list"
+        label: "AttendanceList",
+        value: "attendance-list",
       },
       {
-        "label": "PolicyList",
-        "value": "policy-list"
+        label: "PolicyList",
+        value: "policy-list",
       },
       {
-        "label": "EmployeeList",
-        "value": "employee-list"
+        label: "EmployeeList",
+        value: "employee-list",
       },
       {
-        "label": "LeaveApplicationsList",
-        "value": "leave-applications-list"
+        label: "LeaveApplicationsList",
+        value: "leave-applications-list",
       },
       {
-        "label": "LeaveSetupList",
-        "value": "leave-setup-list"
+        label: "LeaveSetupList",
+        value: "leave-setup-list",
       },
       {
-        "label": "LoanList",
-        "value": "loan-list"
+        label: "LoanList",
+        value: "loan-list",
       },
       {
-        "label": "MedicalPolicyList",
-        "value": "medical-policy-list"
+        label: "MedicalPolicyList",
+        value: "medical-policy-list",
       },
       {
-        "label": "PayslipList",
-        "value": "payslip-list"
+        label: "PayslipList",
+        value: "payslip-list",
       },
       {
-        "label": "PromotionList",
-        "value": "promotion-list"
+        label: "PromotionList",
+        value: "promotion-list",
       },
       {
-        "label": "CandidatesList",
-        "value": "candidates-list"
+        label: "CandidatesList",
+        value: "candidates-list",
       },
       {
-        "label": "InterviewsList",
-        "value": "interviews-list"
+        label: "InterviewsList",
+        value: "interviews-list",
       },
       {
-        "label": "OffersList",
-        "value": "offers-list"
+        label: "OffersList",
+        value: "offers-list",
       },
       {
-        "label": "RequisitionList",
-        "value": "requisition-list"
+        label: "RequisitionList",
+        value: "requisition-list",
       },
       {
-        "label": "SalaryConfigList",
-        "value": "salary-config-list"
+        label: "SalaryConfigList",
+        value: "salary-config-list",
       },
       {
-        "label": "ShiftList",
-        "value": "shift-list"
+        label: "ShiftList",
+        value: "shift-list",
       },
       {
-        "label": "TaxConfigList",
-        "value": "tax-config-list"
+        label: "TaxConfigList",
+        value: "tax-config-list",
       },
       {
-        "label": "TrainingList",
-        "value": "training-list"
-      }
-    ]
+        label: "TrainingList",
+        value: "training-list",
+      },
+    ],
   },
   {
-    "label": "INVENTORY",
-    "options": [
+    label: "INVENTORY",
+    options: [
       {
-        "label": "GRNImportList",
-        "value": "grnimport-list"
+        label: "GRNImportList",
+        value: "grnimport-list",
       },
       {
-        "label": "GRNLocalList",
-        "value": "grnlocal-list"
+        label: "GRNLocalList",
+        value: "grnlocal-list",
       },
       {
-        "label": "IssueToRequirementList",
-        "value": "issue-to-requirement-list"
+        label: "IssueToRequirementList",
+        value: "issue-to-requirement-list",
       },
       {
-        "label": "ItemBatchesList",
-        "value": "item-batches-list"
+        label: "ItemBatchesList",
+        value: "item-batches-list",
       },
       {
-        "label": "ItemGroupsList",
-        "value": "item-groups-list"
+        label: "ItemGroupsList",
+        value: "item-groups-list",
       },
       {
-        "label": "ItemsList",
-        "value": "items-list"
+        label: "ItemsList",
+        value: "items-list",
       },
       {
-        "label": "MaterialRequisitionList",
-        "value": "material-requisition-list"
+        label: "MaterialRequisitionList",
+        value: "material-requisition-list",
       },
       {
-        "label": "PurchaseReturnList",
-        "value": "purchase-return-list"
+        label: "PurchaseReturnList",
+        value: "purchase-return-list",
       },
       {
-        "label": "ReturnToStoresList",
-        "value": "return-to-stores-list"
+        label: "ReturnToStoresList",
+        value: "return-to-stores-list",
       },
       {
-        "label": "ServiceConfirmationsList",
-        "value": "service-confirmations-list"
+        label: "ServiceConfirmationsList",
+        value: "service-confirmations-list",
       },
       {
-        "label": "StockAdjustmentList",
-        "value": "stock-adjustment-list"
+        label: "StockAdjustmentList",
+        value: "stock-adjustment-list",
       },
       {
-        "label": "StockTakeList",
-        "value": "stock-take-list"
+        label: "StockTakeList",
+        value: "stock-take-list",
       },
       {
-        "label": "StockTransferList",
-        "value": "stock-transfer-list"
+        label: "StockTransferList",
+        value: "stock-transfer-list",
       },
       {
-        "label": "StockUpdationList",
-        "value": "stock-updation-list"
+        label: "StockUpdationList",
+        value: "stock-updation-list",
       },
       {
-        "label": "StockVerificationList",
-        "value": "stock-verification-list"
+        label: "StockVerificationList",
+        value: "stock-verification-list",
       },
       {
-        "label": "TransferAcceptanceList",
-        "value": "transfer-acceptance-list"
+        label: "TransferAcceptanceList",
+        value: "transfer-acceptance-list",
       },
       {
-        "label": "UnitConversionsList",
-        "value": "unit-conversions-list"
+        label: "UnitConversionsList",
+        value: "unit-conversions-list",
       },
       {
-        "label": "WarehousesList",
-        "value": "warehouses-list"
-      }
-    ]
+        label: "WarehousesList",
+        value: "warehouses-list",
+      },
+    ],
   },
   {
-    "label": "MAINTENANCE",
-    "options": [
+    label: "MAINTENANCE",
+    options: [
       {
-        "label": "AssetList",
-        "value": "asset-list"
+        label: "AssetList",
+        value: "asset-list",
       },
 
       {
-        "label": "MaintenanceContractList",
-        "value": "maintenance-contract-list"
+        label: "MaintenanceContractList",
+        value: "maintenance-contract-list",
       },
       {
-        "label": "EquipmentList",
-        "value": "equipment-list"
+        label: "EquipmentList",
+        value: "equipment-list",
       },
       {
-        "label": "JobExecutionList",
-        "value": "job-execution-list"
+        label: "JobExecutionList",
+        value: "job-execution-list",
       },
       {
-        "label": "MaintenanceJobOrdersList",
-        "value": "maintenance-job-orders-list"
+        label: "MaintenanceJobOrdersList",
+        value: "maintenance-job-orders-list",
       },
       {
-        "label": "MaintenanceBillList",
-        "value": "maintenance-bill-list"
+        label: "MaintenanceBillList",
+        value: "maintenance-bill-list",
       },
       {
-        "label": "MaintenanceRequestsList",
-        "value": "maintenance-requests-list"
+        label: "MaintenanceRequestsList",
+        value: "maintenance-requests-list",
       },
       {
-        "label": "PmScheduleList",
-        "value": "pm-schedule-list"
+        label: "PmScheduleList",
+        value: "pm-schedule-list",
       },
       {
-        "label": "MaintenanceRFQList",
-        "value": "maintenance-rfqlist"
+        label: "MaintenanceRFQList",
+        value: "maintenance-rfqlist",
       },
       {
-        "label": "MaintenanceRosterList",
-        "value": "maintenance-roster-list"
+        label: "MaintenanceRosterList",
+        value: "maintenance-roster-list",
       },
       {
-        "label": "MaintenanceScheduleList",
-        "value": "maintenance-schedule-list"
+        label: "MaintenanceScheduleList",
+        value: "maintenance-schedule-list",
       },
       {
-        "label": "SupplierQuotationsList",
-        "value": "supplier-quotations-list"
+        label: "SupplierQuotationsList",
+        value: "supplier-quotations-list",
       },
       {
-        "label": "MaintenanceWorkOrderList",
-        "value": "maintenance-work-order-list"
-      }
-    ]
+        label: "MaintenanceWorkOrderList",
+        value: "maintenance-work-order-list",
+      },
+    ],
   },
   {
-    "label": "POS",
-    "options": [
+    label: "POS",
+    options: [
       {
-        "label": "PosInvoiceList",
-        "value": "pos-invoice-list"
+        label: "PosInvoiceList",
+        value: "pos-invoice-list",
       },
       {
-        "label": "CustomerAccounts",
-        "value": "pos-customer-history"
+        label: "CustomerAccounts",
+        value: "pos-customer-history",
       },
       {
-        "label": "PosReturns",
-        "value": "pos-returns"
+        label: "PosReturns",
+        value: "pos-returns",
       },
       {
-        "label": "PosReports",
-        "value": "pos-reports"
+        label: "PosReports",
+        value: "pos-reports",
       },
       {
-        "label": "OnHoldSales",
-        "value": "pos-on-hold"
-      }
-    ]
+        label: "OnHoldSales",
+        value: "pos-on-hold",
+      },
+    ],
   },
   {
-    "label": "PRODUCTION",
-    "options": [
+    label: "PRODUCTION",
+    options: [
       {
-        "label": "BomList",
-        "value": "bom-list"
+        label: "BomList",
+        value: "bom-list",
       },
       {
-        "label": "JobCardList",
-        "value": "job-card-list"
+        label: "JobCardList",
+        value: "job-card-list",
       },
       {
-        "label": "MaterialReceiptList",
-        "value": "material-receipt-list"
+        label: "MaterialReceiptList",
+        value: "material-receipt-list",
       },
       {
-        "label": "MaterialRequisitionList",
-        "value": "material-requisition-list"
+        label: "MaterialRequisitionList",
+        value: "material-requisition-list",
       },
       {
-        "label": "ProductionTransferList",
-        "value": "production-transfer-list"
+        label: "ProductionTransferList",
+        value: "production-transfer-list",
       },
       {
-        "label": "StockJournalList",
-        "value": "stock-journal-list"
+        label: "StockJournalList",
+        value: "stock-journal-list",
       },
       {
-        "label": "DailyPlanList",
-        "value": "daily-plan-list"
+        label: "DailyPlanList",
+        value: "daily-plan-list",
       },
       {
-        "label": "RoutingList",
-        "value": "routing-list"
+        label: "RoutingList",
+        value: "routing-list",
       },
       {
-        "label": "MachineList",
-        "value": "machine-list"
+        label: "MachineList",
+        value: "machine-list",
       },
       {
-        "label": "ProcessList",
-        "value": "process-list"
+        label: "ProcessList",
+        value: "process-list",
       },
       {
-        "label": "ShiftList",
-        "value": "shift-list"
+        label: "ShiftList",
+        value: "shift-list",
       },
       {
-        "label": "WorkOrderList",
-        "value": "work-order-list"
-      }
-    ]
+        label: "WorkOrderList",
+        value: "work-order-list",
+      },
+    ],
   },
   {
-    "label": "PROJECT-MANAGEMENT",
-    "options": [
+    label: "PROJECT-MANAGEMENT",
+    options: [
       {
-        "label": "ExpenseList",
-        "value": "expense-list"
+        label: "Bill of Quantities (BOQ)",
+        value: "boq",
       },
       {
-        "label": "MaterialReceiptList",
-        "value": "material-receipt-list"
+        label: "BOQ Manager",
+        value: "boq-manager",
       },
       {
-        "label": "MaterialRequisitionList",
-        "value": "material-requisition-list"
+        label: "ProjectQuotationList",
+        value: "project-quotation-list",
       },
       {
-        "label": "MaterialUtilizationList",
-        "value": "material-utilization-list"
+        label: "Project Quotation",
+        value: "project-quotation",
       },
       {
-        "label": "ProjectList",
-        "value": "project-list"
+        label: "ExpenseList",
+        value: "expense-list",
       },
       {
-        "label": "TaskList",
-        "value": "task-list"
+        label: "MaterialReceiptList",
+        value: "material-receipt-list",
       },
       {
-        "label": "TimesheetList",
-        "value": "timesheet-list"
-      }
-    ]
+        label: "MaterialRequisitionList",
+        value: "material-requisition-list",
+      },
+      {
+        label: "MaterialUtilizationList",
+        value: "material-utilization-list",
+      },
+      {
+        label: "ProjectList",
+        value: "project-list",
+      },
+      {
+        label: "TaskList",
+        value: "task-list",
+      },
+      {
+        label: "TimesheetList",
+        value: "timesheet-list",
+      },
+    ],
   },
   {
-    "label": "PURCHASE",
-    "options": [
+    label: "PURCHASE",
+    options: [
       {
-        "label": "DirectPurchaseList",
-        "value": "direct-purchase-list"
+        label: "DirectPurchaseList",
+        value: "direct-purchase-list",
       },
       {
-        "label": "GeneralRequisitionList",
-        "value": "general-requisition-list"
+        label: "GeneralRequisitionList",
+        value: "general-requisition-list",
       },
       {
-        "label": "PortClearancesList",
-        "value": "port-clearances-list"
+        label: "PortClearancesList",
+        value: "port-clearances-list",
       },
       {
-        "label": "PurchaseBillsList",
-        "value": "purchase-bills-list"
+        label: "PurchaseBillsList",
+        value: "purchase-bills-list",
       },
       {
-        "label": "PurchaseOrdersImportList",
-        "value": "purchase-orders-import-list"
+        label: "PurchaseOrdersImportList",
+        value: "purchase-orders-import-list",
       },
       {
-        "label": "PurchaseOrdersLocalList",
-        "value": "purchase-orders-local-list"
+        label: "PurchaseOrdersLocalList",
+        value: "purchase-orders-local-list",
       },
       {
-        "label": "RequestForQuotationList",
-        "value": "request-for-quotation-list"
+        label: "RequestForQuotationList",
+        value: "request-for-quotation-list",
       },
       {
-        "label": "ShippingAdviceList",
-        "value": "shipping-advice-list"
+        label: "ShippingAdviceList",
+        value: "shipping-advice-list",
       },
       {
-        "label": "SupplierQuotationsList",
-        "value": "supplier-quotations-list"
+        label: "SupplierQuotationsList",
+        value: "supplier-quotations-list",
       },
       {
-        "label": "SuppliersList",
-        "value": "suppliers-list"
-      }
-    ]
+        label: "SuppliersList",
+        value: "suppliers-list",
+      },
+    ],
   },
   {
-    "label": "SALES",
-    "options": [
+    label: "SALES",
+    options: [
       {
-        "label": "CustomerCreditList",
-        "value": "customer-credit-list"
+        label: "CustomerCreditList",
+        value: "customer-credit-list",
       },
       {
-        "label": "CustomerList",
-        "value": "customer-list"
+        label: "CustomerList",
+        value: "customer-list",
       },
       {
-        "label": "DeliveryList",
-        "value": "delivery-list"
+        label: "DeliveryList",
+        value: "delivery-list",
       },
       {
-        "label": "DiscountSchemeList",
-        "value": "discount-scheme-list"
+        label: "DiscountSchemeList",
+        value: "discount-scheme-list",
       },
       {
-        "label": "InvoiceList",
-        "value": "invoice-list"
+        label: "InvoiceList",
+        value: "invoice-list",
       },
       {
-        "label": "PotentialCustomerList",
-        "value": "potential-customer-list"
+        label: "PotentialCustomerList",
+        value: "potential-customer-list",
       },
       {
-        "label": "QuotationList",
-        "value": "quotation-list"
+        label: "QuotationList",
+        value: "quotation-list",
       },
       {
-        "label": "SalesReturnList",
-        "value": "sales-return-list"
+        label: "SalesReturnList",
+        value: "sales-return-list",
       },
       {
-        "label": "SalesOrderList",
-        "value": "sales-order-list"
-      }
-    ]
+        label: "SalesOrderList",
+        value: "sales-order-list",
+      },
+    ],
   },
   {
-    "label": "SERVICE-MANAGEMENT",
-    "options": [
+    label: "SERVICE-MANAGEMENT",
+    options: [
       {
-        "label": "ServiceBillsList",
-        "value": "service-bills-list"
+        label: "ServiceBillsList",
+        value: "service-bills-list",
       },
       {
-        "label": "ServiceConfirmationsList",
-        "value": "service-confirmations-list"
+        label: "ServiceConfirmationsList",
+        value: "service-confirmations-list",
       },
       {
-        "label": "ServiceExecutionsList",
-        "value": "service-executions-list"
+        label: "ServiceExecutionsList",
+        value: "service-executions-list",
       },
       {
-        "label": "ServiceOrdersList",
-        "value": "service-orders-list"
+        label: "ServiceOrdersList",
+        value: "service-orders-list",
       },
       {
-        "label": "ServiceRequestsList",
-        "value": "service-requests-list"
+        label: "ServiceRequestsList",
+        value: "service-requests-list",
       },
       {
-        "label": "VisitorsLogList",
-        "value": "visitors-log-list"
-      }
-    ]
-  }
+        label: "VisitorsLogList",
+        value: "visitors-log-list",
+      },
+    ],
+  },
 ];
 
 /**
  *  component
- * 
+ *
  * @returns {JSX.Element} The rendered component
  */
 export default function DocumentTemplatesPage() {
@@ -617,9 +636,9 @@ export default function DocumentTemplatesPage() {
   function startNew() {
     setEditing(null);
     setForm({
-      name: "",
-      feature_names: [],
-      html_content: "",
+      name: docType === "project" ? "Project Profile Template" : "",
+      feature_names: docType === "project" ? ["project-list"] : [],
+      html_content: docType === "project" ? getSampleTemplate("project") : "",
       is_default: false,
       header_logo_url: "",
       header_name: "",
@@ -635,7 +654,15 @@ export default function DocumentTemplatesPage() {
     setEditing(t);
     setForm({
       name: String(t.name || ""),
-      feature_names: Array.isArray(t.feature_names) ? t.feature_names : (t.feature_names ? (typeof t.feature_names === "string" ? JSON.parse(t.feature_names) : t.feature_names) : ((t.feature_names && t.feature_names.length > 0) || t.feature_name ? [t.feature_name] : [])),
+      feature_names: Array.isArray(t.feature_names)
+        ? t.feature_names
+        : t.feature_names
+          ? typeof t.feature_names === "string"
+            ? JSON.parse(t.feature_names)
+            : t.feature_names
+          : (t.feature_names && t.feature_names.length > 0) || t.feature_name
+            ? [t.feature_name]
+            : [],
       html_content: "",
       is_default: Number(t.is_default) === 1,
       header_logo_url: "",
@@ -654,7 +681,15 @@ export default function DocumentTemplatesPage() {
         setForm((p) => ({
           ...p,
           html_content: String(item.html_content || ""),
-          feature_names: Array.isArray(item.feature_names) ? item.feature_names : (item.feature_names ? (typeof item.feature_names === "string" ? JSON.parse(item.feature_names) : item.feature_names) : (item.feature_name ? [item.feature_name] : [])),
+          feature_names: Array.isArray(item.feature_names)
+            ? item.feature_names
+            : item.feature_names
+              ? typeof item.feature_names === "string"
+                ? JSON.parse(item.feature_names)
+                : item.feature_names
+              : item.feature_name
+                ? [item.feature_name]
+                : [],
           header_logo_url: String(item.header_logo_url || ""),
           header_name: String(item.header_name || ""),
           header_address: String(item.header_address || ""),
@@ -789,7 +824,9 @@ export default function DocumentTemplatesPage() {
   return (
     <div className="space-y-6">
       <div>
-        <button onClick={() => window.history.back()} className="text-sm text-brand hover:text-brand-600 dark:text-brand-400 dark:hover:text-brand-300 mb-2 inline-block"
+        <button
+          onClick={() => window.history.back()}
+          className="text-sm text-brand hover:text-brand-600 dark:text-brand-400 dark:hover:text-brand-300 mb-2 inline-block"
         >
           ← Back to Settings
         </button>
@@ -865,9 +902,30 @@ export default function DocumentTemplatesPage() {
                       <tr key={t.id} className="border-t">
                         <td className="px-3 py-2 text-sm">{t.name}</td>
                         <td className="px-3 py-2 text-sm">
-                          {(t.feature_names && t.feature_names.length > 0) || t.feature_name ? (
+                          {(t.feature_names && t.feature_names.length > 0) ||
+                          t.feature_name ? (
                             <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-brand/10 text-brand border border-brand/20">
-                              {(() => { const names = Array.isArray(t.feature_names) ? t.feature_names : (t.feature_names ? (typeof t.feature_names === "string" ? JSON.parse(t.feature_names) : t.feature_names) : (t.feature_name ? [t.feature_name] : [])); const allOpts = FEATURE_PAGES.flatMap(g => g.options); return names.map(n => allOpts.find(o => o.value === n)?.label || n).join(", "); })()}
+                              {(() => {
+                                const names = Array.isArray(t.feature_names)
+                                  ? t.feature_names
+                                  : t.feature_names
+                                    ? typeof t.feature_names === "string"
+                                      ? JSON.parse(t.feature_names)
+                                      : t.feature_names
+                                    : t.feature_name
+                                      ? [t.feature_name]
+                                      : [];
+                                const allOpts = FEATURE_PAGES.flatMap(
+                                  (g) => g.options,
+                                );
+                                return names
+                                  .map(
+                                    (n) =>
+                                      allOpts.find((o) => o.value === n)
+                                        ?.label || n,
+                                  )
+                                  .join(", ");
+                              })()}
                             </span>
                           ) : (
                             <span className="text-slate-400 text-xs">—</span>
@@ -960,15 +1018,18 @@ export default function DocumentTemplatesPage() {
                   <div>
                     <label className="label">Feature / Page Name</label>
                     <Select
-  mode="multiple"
-  style={{ width: '100%' }}
-  placeholder="-- Not linked to any page --"
-  value={form.feature_names}
-  onChange={(val) => setForm((p) => ({ ...p, feature_names: val }))}
-  options={FEATURE_PAGES}
-/>
+                      mode="multiple"
+                      style={{ width: "100%" }}
+                      placeholder="-- Not linked to any page --"
+                      value={form.feature_names}
+                      onChange={(val) =>
+                        setForm((p) => ({ ...p, feature_names: val }))
+                      }
+                      options={FEATURE_PAGES}
+                    />
                     <div className="text-xs text-slate-500 mt-1">
-                      When a page's Print/PDF button is clicked, this template will be used if linked here.
+                      When a page's Print/PDF button is clicked, this template
+                      will be used if linked here.
                     </div>
                   </div>
                 </div>
@@ -1266,6 +1327,143 @@ ${commonHead}
 </div>
 `;
   }
+  if (type === "boq") {
+    return `
+${commonHead}
+<div class="doc">
+  <div class="header">
+    <div><img class="logo" src="{{company.logo}}" alt="Logo"/></div>
+    <div class="company">
+      <div class="name">{{company.name}}</div>
+      <div>{{company.address}}</div>
+      <div>{{company.city}} {{company.state}} {{company.postal_code}}</div>
+      <div>Contact No: {{company.telephone}}</div>
+      <div>{{company.email}}</div>
+    </div>
+  </div>
+  <div class="titlebar"><div class="line"></div><div class="title">* Bill of Quantities (BOQ) *</div><div class="line"></div></div>
+  <div class="info">
+    <div class="card"><div class="kv">
+      <div class="kv-row"><div class="kv-label">BOQ Reference</div><div class="kv-sep">:</div><div class="kv-val"><strong>{{boq.boq_reference}}</strong></div></div>
+      <div class="kv-row"><div class="kv-label">Project Name</div><div class="kv-sep">:</div><div class="kv-val">{{boq.project_name}} ({{boq.project_code}})</div></div>
+      <div class="kv-row"><div class="kv-label">Client / Employer</div><div class="kv-sep">:</div><div class="kv-val">{{boq.client_name}}</div></div>
+      <div class="kv-row"><div class="kv-label">Site Location</div><div class="kv-sep">:</div><div class="kv-val">{{boq.site_location}}</div></div>
+    </div></div>
+    <div class="card"><div class="kv">
+      <div class="kv-row"><div class="kv-label">Date of Issue</div><div class="kv-sep">:</div><div class="kv-val">{{formatDate boq.boq_date}}</div></div>
+      <div class="kv-row"><div class="kv-label">Version</div><div class="kv-sep">:</div><div class="kv-val">v{{boq.version}}</div></div>
+      <div class="kv-row"><div class="kv-label">Status</div><div class="kv-sep">:</div><div class="kv-val"><strong>{{boq.status}}</strong></div></div>
+      <div class="kv-row"><div class="kv-label">Currency</div><div class="kv-sep">:</div><div class="kv-val">{{boq.currency}}</div></div>
+    </div></div>
+  </div>
+  <table>
+    <thead>
+      <tr>
+        <th style="width:25px;">#</th>
+        <th style="width:75px;">Item Code</th>
+        <th>Description of Work</th>
+        <th style="width:70px;">Category</th>
+        <th style="width:40px;">Unit</th>
+        <th style="width:50px;" class="num">Qty</th>
+        <th style="width:70px;" class="num">Rate</th>
+        <th style="width:80px;" class="num">Amount</th>
+        <th style="width:70px;">Remarks</th>
+      </tr>
+    </thead>
+    <tbody>
+      {{#each boq.items}}
+      <tr>
+        <td class="center">{{@index}}</td>
+        <td class="bold">{{item_code}}</td>
+        <td>{{item_description}}</td>
+        <td>{{cost_category}}</td>
+        <td class="center">{{uom}}</td>
+        <td class="num">{{quantity}}</td>
+        <td class="num">{{unit_rate}}</td>
+        <td class="num bold">{{amount}}</td>
+        <td>{{remarks}}</td>
+      </tr>
+      {{/each}}
+    </tbody>
+  </table>
+  <div class="totals">
+    <div></div>
+    <div class="box">
+      <div>Subtotal: {{boq.subtotal}}</div>
+      <div>Contingency ({{boq.contingency_percent}}%): {{boq.contingency_amount}}</div>
+      <div>Tax ({{boq.tax_percent}}%): {{boq.tax_amount}}</div>
+      <div>Other Charges: {{boq.other_charges}}</div>
+      <div style="font-weight:bold;font-size:12px;border-top:1px solid #111;padding-top:3px;margin-top:3px;">Final Estimated Cost: {{boq.total_amount}}</div>
+    </div>
+  </div>
+  <div class="footer">
+    <div>
+      <div>Prepared By: {{boq.prepared_by_name}}</div>
+      <div class="sign"></div>
+    </div>
+    <div>
+      <div>Reviewed By: {{boq.reviewed_by_name}}</div>
+      <div class="sign"></div>
+    </div>
+    <div>
+      <div>Approved By: {{boq.approved_by_name}}</div>
+      <div class="sign"></div>
+    </div>
+  </div>
+</div>
+`;
+  }
+  if (type === "project") {
+    return `
+${commonHead}
+<div class="doc">
+  <div class="header">
+    <div><img class="logo" src="{{company.logo}}" alt="Logo"/></div>
+    <div class="company">
+      <div class="name">{{company.name}}</div>
+      <div>{{company.address}}</div>
+      <div>{{company.city}} {{company.state}} {{company.postal_code}}</div>
+      <div>Contact No: {{company.telephone}}</div>
+      <div>{{company.email}}</div>
+    </div>
+  </div>
+  <div class="titlebar"><div class="line"></div><div class="title">* Project Profile *</div><div class="line"></div></div>
+  <div class="info">
+    <div class="info-left"><div class="kv">
+      <div class="kv-row"><div class="kv-label">Project</div><div class="kv-sep">:</div><div class="kv-val">{{project.project_name}}</div></div>
+      <div class="kv-row"><div class="kv-label">Project Code</div><div class="kv-sep">:</div><div class="kv-val">{{project.project_code}}</div></div>
+      <div class="kv-row"><div class="kv-label">Client</div><div class="kv-sep">:</div><div class="kv-val">{{project.client_name}}</div></div>
+      <div class="kv-row"><div class="kv-label">Project Type</div><div class="kv-sep">:</div><div class="kv-val">{{project.project_type}}</div></div>
+      <div class="kv-row"><div class="kv-label">Manager</div><div class="kv-sep">:</div><div class="kv-val">{{project.manager_name}}</div></div>
+    </div></div>
+    <div class="info-mid"><div class="kv">
+      <div class="kv-row"><div class="kv-label">Status</div><div class="kv-sep">:</div><div class="kv-val">{{project.project_status}}</div></div>
+      <div class="kv-row"><div class="kv-label">Priority</div><div class="kv-sep">:</div><div class="kv-val">{{project.project_priority}}</div></div>
+      <div class="kv-row"><div class="kv-label">Start Date</div><div class="kv-sep">:</div><div class="kv-val">{{formatDate project.start_date}}</div></div>
+      <div class="kv-row"><div class="kv-label">Target End Date</div><div class="kv-sep">:</div><div class="kv-val">{{formatDate project.end_date}}</div></div>
+      <div class="kv-row"><div class="kv-label">Progress</div><div class="kv-sep">:</div><div class="kv-val">{{project.completion_percent}}%</div></div>
+    </div></div>
+  </div>
+  <div class="bottom-section">
+    <div class="bottom-left">
+      <div style="font-weight:bold;margin-bottom:6px;">Project Scope & Remarks</div>
+      <div>{{project.remarks}}</div>
+      <div style="font-weight:bold;margin:18px 0 6px;">Site / Project Location</div>
+      <div>{{project.site_address}} {{project.site_city}}</div>
+      <div style="font-weight:bold;margin:18px 0 6px;">Contract Reference</div>
+      <div>{{project.contract_ref_no}}</div>
+    </div>
+    <div class="bottom-right">
+      <div class="summary-row"><div class="s-label">Budget</div><div class="s-val">{{project.budget}}</div></div>
+      <div class="summary-row"><div class="s-label">Contract Sum</div><div class="s-val">{{project.contract_sum}}</div></div>
+      <div class="summary-row"><div class="s-label">Revised Contract Sum</div><div class="s-val">{{project.revised_contract_sum}}</div></div>
+      <div class="summary-row"><div class="s-label">Active</div><div class="s-val">{{project.is_active}}</div></div>
+    </div>
+  </div>
+  <div class="footer-prepared"><span class="lbl">Prepared By :</span> {{prepared_by}}</div>
+</div>
+`;
+  }
   if (type === "invoice") {
     return `
 ${commonHead}
@@ -1475,6 +1673,84 @@ ${commonHead}
     <div>
       <div>Receiver Signature</div>
       <div class="sign"></div>
+    </div>
+  </div>
+</div>
+`;
+  }
+  if (type === "project-quotation") {
+    return `
+${commonHead}
+<div class="doc">
+  <div class="header">
+    <img class="logo" src="{{company.logo}}" alt="Logo"/>
+    <div class="company">
+      <div class="name">{{company.name}}</div>
+      <div>{{company.address}}</div>
+      <div>{{company.address2}}</div>
+      <div class="meta">{{company.phone}} • {{company.email}} • {{company.website}}</div>
+    </div>
+  </div>
+  <div class="titlebar">
+    <div class="line"></div>
+    <div class="title">* Project Quotation *</div>
+    <div class="line"></div>
+  </div>
+  <div class="info">
+    <div class="card">
+      <div class="kv">
+        <div class="row"><div class="label">Customer Name:</div><div class="value">{{customer.name}}</div></div>
+        <div class="row"><div class="label">Address:</div><div class="value">{{customer.address}}</div></div>
+        <div class="row"><div class="label">City/State:</div><div class="value">{{customer.city}} {{customer.state}}</div></div>
+        <div class="row"><div class="label">Project:</div><div class="value"><strong>{{quotation.project_name}}</strong></div></div>
+        <div class="row"><div class="label">Project Manager:</div><div class="value">{{quotation.project_manager}}</div></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="kv">
+        <div class="row"><div class="label">Quotation No.:</div><div class="value">{{quotation.number}}</div></div>
+        <div class="row"><div class="label">Date:</div><div class="value">{{formatDate quotation.date}}</div></div>
+        <div class="row"><div class="label">Valid Until:</div><div class="value">{{formatDate quotation.valid_until}}</div></div>
+        <div class="row"><div class="label">Payment Type:</div><div class="value">{{quotation.payment_type}}</div></div>
+        <div class="row"><div class="label">Status:</div><div class="value">{{quotation.status}}</div></div>
+      </div>
+    </div>
+  </div>
+  {{#if quotation.scope_of_work}}
+  <div style="margin: 8px 0; padding: 8px; background: #f8fafc; border-radius: 4px; font-size: 11px;">
+    <strong>Scope of Work:</strong> {{quotation.scope_of_work}}
+  </div>
+  {{/if}}
+  <table>
+    <thead>
+      <tr><th>#</th><th>Phase / Milestone</th><th>Description</th><th>Hours</th><th>Rate</th><th>Disc%</th><th>Tax</th><th>Amount</th></tr>
+    </thead>
+    <tbody>
+      {{#each quotation.items}}
+      <tr>
+        <td>{{@index}}</td><td><strong>{{phase_name}}</strong></td><td>{{description}}</td><td class="num">{{quantity}}</td><td class="num">{{price}}</td><td class="num">{{discount}}</td><td class="num">{{tax}}</td><td class="num">{{amount}}</td>
+      </tr>
+      {{/each}}
+    </tbody>
+  </table>
+  <div class="totals">
+    <div></div>
+    <div class="box">
+      <div>Sub Total: {{quotation.sub_total}}</div>
+      <div>Tax: {{quotation.tax_total}}</div>
+      <div><strong>Total: {{quotation.total}}</strong></div>
+    </div>
+  </div>
+  <div class="footer">
+    <div>
+      <div>Prepared By</div>
+      <div class="sign"></div>
+      <div class="meta">{{prepared_by}}</div>
+    </div>
+    <div>
+      <div>Remarks / Terms</div>
+      <div class="meta">{{quotation.remarks}}</div>
+      <div class="meta">{{quotation.terms_and_conditions}}</div>
     </div>
   </div>
 </div>

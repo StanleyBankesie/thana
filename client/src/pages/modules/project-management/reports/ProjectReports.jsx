@@ -76,7 +76,7 @@ export default function ProjectReports() {
       ) : null}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Link to="/project-management/reports/task-management-and-execution" className="group bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm hover:shadow-md hover:border-brand-200 dark:hover:border-brand-900 transition-all duration-300 flex items-start gap-4">
+        <Link to="/project-management/reports/task-management" className="group bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm hover:shadow-md hover:border-brand-200 dark:hover:border-brand-900 transition-all duration-300 flex items-start gap-4">
           <div className="p-3 rounded-xl bg-purple-50 dark:bg-purple-900/30 text-purple-600 shadow-sm group-hover:scale-105 transition-transform">
             <Activity size={20} />
           </div>

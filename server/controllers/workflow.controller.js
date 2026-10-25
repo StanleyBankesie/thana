@@ -851,7 +851,9 @@ export const reverseByDocument = async (req, res, next) => {
         STOCK_VERIFICATION: "inv_stock_verifications",
         GENERAL_REQUISITION: "pur_general_requisitions",
         SERVICE_REQUEST: "srv_service_requests",
-        CUSTOMER_PROSPECT: "sal_prospect_customers"
+        CUSTOMER_PROSPECT: "sal_prospect_customers",
+        PROJECT_BOQ: "pm_boqs",
+        BOQ: "pm_boqs"
       };
       const tableName = tableMap[docTypeRaw.toUpperCase()];
       if (tableName) {

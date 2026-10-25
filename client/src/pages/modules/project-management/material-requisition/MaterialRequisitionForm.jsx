@@ -5,6 +5,7 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
+import { ArrowLeft, Save, PackagePlus, Plus, Trash2 } from "lucide-react";
 
 import { api } from "api/client";
 import { useUoms } from "@/hooks/useUoms";
@@ -163,13 +164,13 @@ export default function MaterialRequisitionForm() {
   }, [items]);
 
   const statusColors = {
-    DRAFT: "bg-gray-500 text-white",
-    PENDING: "bg-yellow-400 text-black",
-    PENDING_APPROVAL: "bg-yellow-400 text-black",
-    SUBMITTED: "bg-yellow-300 text-black",
-    APPROVED: "bg-green-500 text-white",
-    REJECTED: "bg-red-500 text-white",
-    CANCELLED: "bg-red-500 text-white",
+    DRAFT: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border border-slate-200 dark:border-slate-700",
+    PENDING: "bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300 border border-amber-200 dark:border-amber-800",
+    PENDING_APPROVAL: "bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300 border border-amber-200 dark:border-amber-800",
+    SUBMITTED: "bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300 border border-blue-200 dark:border-blue-800",
+    APPROVED: "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800",
+    REJECTED: "bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300 border border-rose-200 dark:border-rose-800",
+    CANCELLED: "bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300 border border-rose-200 dark:border-rose-800",
   };
 
   const handleSubmit = async (e) => {
@@ -229,19 +230,46 @@ export default function MaterialRequisitionForm() {
 
   return (
     <div className="space-y-6">
-      <div className="card">
-        <div className="card-header bg-brand text-white rounded-t-lg">
-          <div className="flex justify-between items-center text-white">
-            <div>
-              <h1 className="text-2xl font-bold dark:text-brand-300">
-                {isNew ? "New Material Requisition" : "Edit Material Requisition"}
-              </h1>
-              <p className="text-sm mt-1">Request materials for your project</p>
-            </div>
-            <button onClick={() => window.history.back()} className="btn-success">Back</button>
+      {/* Canonical ERP Flex Header */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <button
+            type="button"
+            onClick={() => window.history.back()}
+            className="btn btn-secondary inline-flex items-center gap-1.5 text-sm"
+          >
+            <ArrowLeft size={16} /> Back
+          </button>
+          <div>
+            <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2.5">
+              <PackagePlus size={26} className="text-brand-900 dark:text-brand-400" />
+              {isNew ? "New Material Requisition" : "Edit Material Requisition"}
+            </h1>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+              Request materials for your project
+            </p>
           </div>
         </div>
-        <div className="card-body">
+        <div className="flex items-center gap-2.5">
+          <button
+            type="button"
+            onClick={() => window.history.back()}
+            className="btn btn-secondary text-sm"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={handleSubmit}
+            disabled={saving}
+            className="btn btn-primary inline-flex items-center gap-2 text-sm font-semibold shadow-sm"
+          >
+            <Save size={16} /> {saving ? "Saving..." : "Save Requisition"}
+          </button>
+        </div>
+      </div>
+
+      <div className="card bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm p-6">
           <form onSubmit={handleSubmit} className="space-y-6">
             {loading ? <div className="text-sm">Loading...</div> : null}
             {error ? <div className="text-sm text-red-600">{error}</div> : null}
@@ -275,7 +303,7 @@ export default function MaterialRequisitionForm() {
               <div>
                 <label className="label">Status</label>
                 <div className="pt-2">
-                  <span className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${statusColors[formData.status] || "bg-gray-500 text-white"}`}>
+                  <span className={`inline-block px-3 py-1 rounded-full text-xs font-semibold ${statusColors[formData.status] || "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border border-slate-200 dark:border-slate-700"}`}>
                     {formData.status}
                   </span>
                 </div>
@@ -319,7 +347,7 @@ export default function MaterialRequisitionForm() {
             <div className="border-t border-slate-200 dark:border-slate-700 pt-4">
               <div className="flex justify-between items-center mb-4">
                 <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Items</h3>
-                <button type="button" onClick={addItem} className="btn-success text-sm">+ Add Item</button>
+                <button type="button" onClick={addItem} className="btn btn-secondary text-xs inline-flex items-center gap-1.5"><Plus size={14} /> Add Item</button>
               </div>
 
               <div className="overflow-x-auto">
@@ -368,7 +396,7 @@ export default function MaterialRequisitionForm() {
                                 const el = document.getElementById(`pm-mr-item-search-${item.id}`);
                                 const r = el ? el.getBoundingClientRect() : { bottom: 0, left: 0, width: 0 };
                                 return (
-                                  <div className="bg-white border border-slate-200 rounded-lg shadow-lg max-h-48 overflow-auto"
+                                  <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-md max-h-48 overflow-auto"
                                     style={{ position: 'fixed', top: `${r.bottom + 4}px`, left: `${r.left}px`, width: `${r.width}px`, zIndex: 9999 }}>
                                     {searchResults.map(o => (
                                       <button type="button" key={o.id}
@@ -421,14 +449,23 @@ export default function MaterialRequisitionForm() {
               </div>
             </div>
 
-            <div className="flex justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-700">
-              <button onClick={() => window.history.back()} className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 transition-colors">Cancel</button>
-              <button type="submit" className="btn-success" disabled={saving}>
-                {saving ? "Saving..." : "Save"}
+            <div className="flex justify-end gap-3 pt-6 border-t border-slate-200 dark:border-slate-800">
+              <button
+                type="button"
+                onClick={() => window.history.back()}
+                className="btn btn-secondary text-sm"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="btn btn-primary inline-flex items-center gap-2 text-sm font-semibold shadow-sm"
+                disabled={saving}
+              >
+                <Save size={16} /> {saving ? "Saving..." : "Save Requisition"}
               </button>
             </div>
           </form>
-        </div>
       </div>
     </div>
   );

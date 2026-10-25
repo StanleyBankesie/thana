@@ -10,6 +10,7 @@ import { api } from "api/client";
 import { Trash2, Plus } from "lucide-react";
 import { useExchangeRate } from "../../../../hooks/useExchangeRate";
 import { usePermission } from "../../../../auth/PermissionContext.jsx";
+import TaxPricingModal, { TaxModeRadioSelector } from "@/components/common/TaxPricingModal.jsx";
 
 const CURRENCIES = [
   { id: 4, code: "GHS", name: "Ghanaian Cedi" },
@@ -74,13 +75,19 @@ export default function PurchaseBillsForm() {
     project_id: "",
     cost_center_id: "",
     status: "DRAFT",
+    tax_mode: "EXCLUSIVE",
 
     discount_amount: 0,
     freight_charges: 0,
     other_charges: 0,
+    notes: "",
   });
 
   const [lines, setLines] = useState([]);
+  const [taxModalOpen, setTaxModalOpen] = useState(false);
+  const [editingLineId, setEditingLineId] = useState(null);
+  const [showTaxModeAlert, setShowTaxModeAlert] = useState(false);
+  const [hasPromptedTaxMode, setHasPromptedTaxMode] = useState(false);
   const [newItem, setNewItem] = useState({
     item_id: "",
     uom_id: "",
@@ -395,6 +402,7 @@ export default function PurchaseBillsForm() {
           discount_amount: Number(h.discount_amount) || 0,
           freight_charges: Number(h.freight_charges) || 0,
           other_charges: Number(h.other_charges) || 0,
+          notes: h.notes || "",
           project_id: h.project_id || "",
           cost_center_id: h.cost_center_id ? String(h.cost_center_id) : "",
         });
@@ -437,21 +445,39 @@ export default function PurchaseBillsForm() {
     const discount = gross * (discountPercent / 100);
     const taxable = gross - discount;
 
-    const comps = taxComponentsByCode[String(line.tax_code_id)] || [];
-    if (comps.length > 0) {
-      comps.forEach((c) => {
-        taxAmount += (taxable * (Number(c.rate_percent) || 0)) / 100;
-      });
-    } else if (line.tax_code_id) {
-      const tc = taxCodes.find(
-        (t) => String(t.id) === String(line.tax_code_id),
-      );
-      const rate = tc ? Number(tc.rate_percent) || 0 : 0;
-      taxAmount = taxable * (rate / 100);
-    }
-    const lineTotal = taxable + taxAmount;
+    const effectiveMode = String(line.tax_mode || formData.tax_mode || '').toUpperCase();
+    const isInclusive = effectiveMode === 'INCLUSIVE';
 
-    return { ...line, tax_amount: taxAmount, line_total: lineTotal };
+    const fallbackRate = formData.tax_rate !== undefined && formData.tax_rate !== null ? Number(formData.tax_rate) : 0;
+    const tc = taxCodes.find(
+      (t) => String(t.id) === String(line.tax_code_id || formData.tax_code_id),
+    );
+    const tcRate = line.tax_rate !== undefined && line.tax_rate !== null
+      ? Number(line.tax_rate)
+      : (tc ? Number(tc.rate_percent) || 0 : fallbackRate);
+
+    let lineTotal = taxable;
+    if (isInclusive && tcRate > 0) {
+      const net = taxable / (1 + tcRate / 100);
+      taxAmount = Math.round((taxable - net) * 100) / 100;
+      lineTotal = taxable;
+    } else if (!isInclusive && tcRate > 0) {
+      taxAmount = Math.round((taxable * (tcRate / 100)) * 100) / 100;
+      lineTotal = Math.round((taxable + taxAmount) * 100) / 100;
+    } else {
+      taxAmount = 0;
+      lineTotal = taxable;
+    }
+
+    return {
+      ...line,
+      tax_amount: taxAmount,
+      line_total: lineTotal,
+      tax_rate: tcRate,
+      tax_mode: isInclusive ? 'INCLUSIVE' : 'EXCLUSIVE',
+      tax_code_id: line.tax_code_id || formData.tax_code_id || '',
+      tax_component_name: line.tax_component_name || formData.tax_component_name || (tc?.name || ''),
+    };
   };
 
   const applyItemDefaultTax = async (lineId, itemId) => {
@@ -900,55 +926,45 @@ export default function PurchaseBillsForm() {
   };
 
   const totals = useMemo(() => {
-    const subTotal = lines.reduce(
+    const isInclusive = String(formData.tax_mode || "").toUpperCase() === "INCLUSIVE";
+    const grossSub = lines.reduce(
       (sum, l) => sum + (Number(l.qty) || 0) * (Number(l.unit_price) || 0),
       0,
     );
     const compTotals = {};
 
     lines.forEach((l) => {
-      const gross = (Number(l.qty) || 0) * (Number(l.unit_price) || 0);
-      const disc = (gross * (Number(l.discount_percent) || 0)) / 100;
-      const base = gross - disc;
-
-      const taxCodeId = l.tax_code_id;
-      const comps = taxComponentsByCode[String(taxCodeId)] || [];
-      if (comps.length > 0) {
-        comps.forEach((c) => {
-          const rate = Number(c.rate_percent) || 0;
-          const amt = (base * rate) / 100;
-          const name = c.component_name;
-          if (!compTotals[name]) {
-            compTotals[name] = {
-              amount: 0,
-              rate,
-              sort_order: c.sort_order || 0,
-            };
-          }
-          compTotals[name].amount += amt;
-        });
-      } else {
-        const amt = Number(l.tax_amount || 0);
-        if (amt > 0) {
-          const name = "Tax";
-          if (!compTotals[name]) {
-            compTotals[name] = { amount: 0, rate: 0, sort_order: 99 };
-          }
-          compTotals[name].amount += amt;
+      const amt = Number(l.tax_amount || 0);
+      if (amt > 0) {
+        const tc = taxCodes.find((t) => String(t.id) === String(l.tax_code_id || formData.tax_code_id));
+        const name = l.tax_component_name || formData.tax_component_name || tc?.name || (l.tax_rate ? `Tax (${l.tax_rate}%)` : "Tax");
+        if (!compTotals[name]) {
+          compTotals[name] = { amount: 0, rate: Number(l.tax_rate !== undefined ? l.tax_rate : (formData.tax_rate || tc?.rate_percent || 0)), sort_order: 99 };
         }
+        compTotals[name].amount += amt;
       }
     });
 
     const components = Object.keys(compTotals)
       .map((name) => ({
         name,
-        amount: compTotals[name].amount,
+        amount: Math.round(compTotals[name].amount * 100) / 100,
         rate: compTotals[name].rate,
         sort_order: compTotals[name].sort_order,
       }))
       .sort((a, b) => a.sort_order - b.sort_order);
 
-    const lineTaxTotal = components.reduce((s, c) => s + c.amount, 0);
+    const lineTaxTotal = lines.reduce((s, l) => s + Number(l.tax_amount || 0), 0);
+    if (components.length === 0 && lineTaxTotal > 0) {
+      const tc = taxCodes.find((t) => String(t.id) === String(formData.tax_code_id));
+      const rate = formData.tax_rate !== undefined ? formData.tax_rate : (tc?.rate_percent || 0);
+      components.push({
+        name: formData.tax_component_name || tc?.name || (rate ? `Tax (${rate}%)` : "Tax"),
+        amount: Math.round(lineTaxTotal * 100) / 100,
+        rate,
+        sort_order: 1,
+      });
+    }
 
     const itemDiscounts = lines.reduce((sum, l) => {
       const gross = (Number(l.qty) || 0) * (Number(l.unit_price) || 0);
@@ -960,32 +976,28 @@ export default function PurchaseBillsForm() {
     const freight = Number(formData.freight_charges) || 0;
     const other = Number(formData.other_charges) || 0;
 
-    const grandTotal =
-      subTotal - totalDiscount + lineTaxTotal + freight + other;
+    // Subtotal: when inclusive, Subtotal must be LESS TAX:
+    const subTotal = isInclusive ? Math.max(0, grossSub - lineTaxTotal) : grossSub;
+    const grandTotal = isInclusive
+      ? grossSub - totalDiscount + freight + other
+      : subTotal - totalDiscount + lineTaxTotal + freight + other;
 
-    return { subTotal, itemDiscounts, lineTaxTotal, grandTotal, components };
+    return { grossSub, subTotal, itemDiscounts, lineTaxTotal, grandTotal, components };
   }, [
     lines,
+    formData.tax_mode,
+    formData.tax_code_id,
+    formData.tax_rate,
+    formData.tax_component_name,
     formData.discount_amount,
     formData.freight_charges,
     formData.other_charges,
     taxComponentsByCode,
+    taxCodes,
   ]);
   const totalInCurrentCurrency = useMemo(() => {
-    return (
-      Number(totals.subTotal || 0) +
-      (0 - Number(formData.discount_amount || 0)) +
-      Number(totals.lineTaxTotal || 0) +
-      Number(formData.freight_charges || 0) +
-      Number(formData.other_charges || 0)
-    );
-  }, [
-    totals.subTotal,
-    totals.lineTaxTotal,
-    formData.discount_amount,
-    formData.freight_charges,
-    formData.other_charges,
-  ]);
+    return Number(totals.grandTotal || 0);
+  }, [totals.grandTotal]);
   const totalInBaseCurrency = useMemo(
     () =>
       Number(totals.grandTotal || 0) *
@@ -1033,6 +1045,7 @@ export default function PurchaseBillsForm() {
         discount_amount: Number(formData.discount_amount),
         freight_charges: Number(formData.freight_charges),
         other_charges: Number(formData.other_charges),
+        notes: formData.notes || null,
         status,
         details: lines
           .filter((l) => l.item_id)
@@ -1103,6 +1116,7 @@ export default function PurchaseBillsForm() {
         discount_amount: Number(formData.discount_amount),
         freight_charges: Number(formData.freight_charges),
         other_charges: Number(formData.other_charges),
+        notes: formData.notes || null,
         status: "DRAFT",
         details: lines
           .filter((l) => l.item_id)
@@ -1373,9 +1387,35 @@ export default function PurchaseBillsForm() {
       </div>
 
       <div className="card">
+        <div className="card-header flex justify-between items-center py-2.5 px-4 bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-700">
+          <div className="font-semibold text-slate-800 dark:text-slate-100">Bill Items</div>
+          <TaxModeRadioSelector
+            taxMode={formData.tax_mode || "EXCLUSIVE"}
+            onModeChange={(newMode) => {
+              setFormData((prev) => ({ ...prev, tax_mode: newMode }));
+              setLines((prev) =>
+                prev.map((ln) => {
+                  const updated = {
+                    ...ln,
+                    tax_mode: newMode,
+                  };
+                  return recalcLine(updated);
+                })
+              );
+            }}
+            onOpenTaxModal={() => {
+              setEditingLineId(null);
+              setTaxModalOpen(true);
+            }}
+            selectedTaxLabel={lines.find((l) => l.tax_component_name)?.tax_component_name || ""}
+            openAlert={showTaxModeAlert}
+            onCloseAlert={() => setShowTaxModeAlert(false)}
+            anchorSelector="#purchase-bill-items-table"
+          />
+        </div>
         {/* Manual item addition hidden as per request */}
         <div className="card-body overflow-x-auto">
-          <table className="table w-full">
+          <table id="purchase-bill-items-table" className="table w-full">
             <thead>
               <tr>
                 <th className="w-1/4">Item</th>
@@ -1443,42 +1483,71 @@ export default function PurchaseBillsForm() {
                       </td>
                       <td className="text-right">
                         {isNew ? (
-                          <input
-                            type="number"
-                            className="input text-right text-xs w-24 ml-auto"
-                            value={l.unit_price}
-                            onChange={(e) =>
-                              handleLineChange(
-                                l.id,
-                                "unit_price",
-                                e.target.value,
-                              )
-                            }
-                          />
+                          <div className="flex flex-col items-end">
+                            <input
+                              type="number"
+                              className="input text-right text-xs w-24 ml-auto"
+                              value={l.unit_price}
+                              onFocus={() => {
+                                if (!hasPromptedTaxMode) {
+                                  setShowTaxModeAlert(true);
+                                  setHasPromptedTaxMode(true);
+                                }
+                              }}
+                              onClick={() => {
+                                if (!hasPromptedTaxMode) {
+                                  setShowTaxModeAlert(true);
+                                  setHasPromptedTaxMode(true);
+                                }
+                              }}
+                              onChange={(e) =>
+                                handleLineChange(
+                                  l.id,
+                                  "unit_price",
+                                  e.target.value,
+                                )
+                              }
+                            />
+                          </div>
                         ) : (
-                          Number(l.unit_price).toFixed(2)
+                          <div>
+                            <div>{Number(l.unit_price).toFixed(2)}</div>
+                            {l.tax_mode ? (
+                              <span className={`text-[9px] font-bold px-1 rounded ${l.tax_mode === 'INCLUSIVE' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}`}>
+                                {l.tax_mode === 'INCLUSIVE' ? 'Incl' : 'Excl'}
+                              </span>
+                            ) : null}
+                          </div>
                         )}
                       </td>
                       <td className="text-right">{l.discount_percent}%</td>
                       <td>
                         {isNew ? (
-                          <select
-                            className="input text-xs w-full min-w-[7rem]"
-                            value={l.tax_code_id || ""}
-                            onChange={(e) =>
-                              handleLineChange(l.id, "tax_code_id", e.target.value)
-                            }
+                          <div
+                            data-tax-anchor="true"
+                            onClick={() => {
+                              setEditingLineId(l.id);
+                              setTaxModalOpen(true);
+                            }}
+                            className="cursor-pointer border border-dashed border-slate-300 dark:border-slate-700 rounded-lg px-2 py-1.5 text-xs hover:border-brand-500 bg-slate-50 dark:bg-slate-800/50 transition-colors"
+                            title="Click to select tax component or mode"
                           >
-                            <option value="">No Tax</option>
-                            {taxCodes.map((t) => (
-                              <option key={t.id} value={t.id}>
-                                {t.name} ({Number(t.rate_percent || 0)}%)
-                              </option>
-                            ))}
-                          </select>
+                            <div className="font-semibold text-slate-800 dark:text-slate-200 truncate max-w-[12rem]">
+                              {l.tax_component_name || formData.tax_component_name || (taxCodes.find((t) => String(t.id) === String(l.tax_code_id || formData.tax_code_id))?.name) || (l.tax_rate ? `Tax (${l.tax_rate}%)` : '-')}
+                            </div>
+                            <div className="text-[10px] text-slate-500 flex items-center justify-between gap-1 mt-0.5">
+                              <span className={`px-1 rounded text-[9px] font-bold ${(l.tax_mode || formData.tax_mode) === 'INCLUSIVE' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}`}>
+                                {(l.tax_mode || formData.tax_mode) === 'INCLUSIVE' ? 'Incl' : 'Excl'}
+                              </span>
+                              <span className="font-bold text-brand-600">
+                                {Number(l.tax_rate !== undefined && l.tax_rate !== null ? l.tax_rate : (formData.tax_rate !== undefined && formData.tax_rate !== null ? formData.tax_rate : (taxCodes.find((t) => String(t.id) === String(l.tax_code_id || formData.tax_code_id))?.rate_percent || 0)))}%
+                              </span>
+                            </div>
+                          </div>
                         ) : (
                           <span className="text-xs text-slate-600">
-                            {taxCodes.find((t) => String(t.id) === String(l.tax_code_id))?.name || ""}
+                            {l.tax_component_name || (taxCodes.find((t) => String(t.id) === String(l.tax_code_id))?.name) || ""}
+                            {l.tax_mode ? ` [${l.tax_mode === 'INCLUSIVE' ? 'Incl' : 'Excl'}]` : ''}
                           </span>
                         )}
                       </td>
@@ -1598,6 +1667,17 @@ export default function PurchaseBillsForm() {
         </div>
       </div>
 
+      <div className="w-full mt-6">
+        <label className="label">Remarks / Notes</label>
+        <textarea
+          className="input w-full"
+          rows={3}
+          value={formData.notes || ""}
+          onChange={(e) => setFormData((p) => ({ ...p, notes: e.target.value }))}
+          placeholder="Additional notes or terms..."
+        />
+      </div>
+
       <div className="flex justify-end gap-3 mt-8">
         <button
           type="button"
@@ -1615,6 +1695,64 @@ export default function PurchaseBillsForm() {
           {saving ? "Posting..." : "Post Bill"}
         </button>
       </div>
+
+      {/* Universal Tax Pricing & Components Modal */}
+      <TaxPricingModal
+        open={taxModalOpen}
+        form={billType === "IMPORT" ? "PURCHASE_BILL_IMPORT" : "PURCHASE_BILL_LOCAL"}
+        pageId={billType === "IMPORT" ? 4 : 3}
+        onClose={() => {
+          setTaxModalOpen(false);
+          setEditingLineId(null);
+        }}
+        taxMode={lines.find((l) => l.id === editingLineId)?.tax_mode || formData.tax_mode || 'EXCLUSIVE'}
+        price={lines.find((l) => l.id === editingLineId)?.unit_price || 0}
+        selectedComponent={{
+          name: lines.find((l) => l.id === editingLineId)?.tax_component_name,
+          rate: lines.find((l) => l.id === editingLineId)?.tax_rate,
+          id: lines.find((l) => l.id === editingLineId)?.tax_code_id,
+        }}
+        onSelectComponent={(comp) => {
+          const compLabel = `${comp.name}${comp.rate !== undefined ? ` (${comp.rate}%)` : ''}`;
+          const taxCodeId = String(comp.taxCodeId || comp.originalId || comp.id || '');
+          const taxRate = comp.rate;
+
+          setFormData((prev) => ({
+            ...prev,
+            tax_mode: formData.tax_mode || 'EXCLUSIVE',
+            tax_code_id: taxCodeId,
+            tax_rate: taxRate,
+            tax_component_name: compLabel,
+          }));
+
+          setNewItem((prev) => ({
+            ...prev,
+            tax_code_id: taxCodeId,
+            tax_rate: taxRate,
+            tax_component_name: compLabel,
+            tax_mode: formData.tax_mode || 'EXCLUSIVE',
+          }));
+
+          setLines((prev) =>
+            prev.map((l) => {
+              const next = {
+                ...l,
+                tax_code_id: taxCodeId || l.tax_code_id,
+                tax_rate: taxRate,
+                tax_component_name: compLabel,
+                tax_mode: formData.tax_mode || 'EXCLUSIVE',
+              };
+              return recalcLine(next);
+            })
+          );
+
+          if (taxCodeId) {
+            fetchTaxComponentsForCode(taxCodeId);
+          }
+          setTaxModalOpen(false);
+          setEditingLineId(null);
+        }}
+      />
     </div>
   );
 }

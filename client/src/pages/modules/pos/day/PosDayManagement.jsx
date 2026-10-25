@@ -36,7 +36,7 @@ function parseDenominationCounts(input) {
 
 /**
  *  component
- * 
+ *
  * @returns {JSX.Element} The rendered component
  */
 export default function PosDayManagement() {
@@ -141,7 +141,9 @@ export default function PosDayManagement() {
     [momoClosingMain, momoClosingPay],
   );
   const expectedMoMo = useMemo(() => {
-    return momoOpeningMain + momoOpeningPay + Number(salesData.mobile.amount || 0);
+    return (
+      momoOpeningMain + momoOpeningPay + Number(salesData.mobile.amount || 0)
+    );
   }, [momoOpeningMain, momoOpeningPay, salesData.mobile.amount]);
   const momoVariance = useMemo(() => {
     return actualMoMo - expectedMoMo;
@@ -362,7 +364,9 @@ export default function PosDayManagement() {
           const initialFloat =
             Number.isFinite(suggestedNext) && suggestedNext > 0
               ? String(suggestedNext)
-              : item?.next_opening_float !== null && item?.next_opening_float !== undefined && Number(item.next_opening_float) > 0
+              : item?.next_opening_float !== null &&
+                  item?.next_opening_float !== undefined &&
+                  Number(item.next_opening_float) > 0
                 ? String(item.next_opening_float)
                 : item?.actual_cash !== null && item?.actual_cash !== undefined
                   ? String(item.actual_cash)
@@ -579,7 +583,11 @@ export default function PosDayManagement() {
         err?.response?.data?.message ||
         err?.response?.data?.error ||
         "Failed to open day";
-      if ((code === "ALREADY_OPEN" || message.includes("already have an open shift")) && !force) {
+      if (
+        (code === "ALREADY_OPEN" ||
+          message.includes("already have an open shift")) &&
+        !force
+      ) {
         if (
           window.confirm(
             "A previous shift is currently still open on this terminal.\n\nWould you like to close the previous shift and open your new shift now?",
@@ -614,7 +622,8 @@ export default function PosDayManagement() {
       const momoOpenTotal =
         Number(momoOpeningMain || 0) + Number(momoOpeningPay || 0);
       const momoCloseTotal =
-        Number(momoClosingRef.current.main || 0) + Number(momoClosingRef.current.pay || 0);
+        Number(momoClosingRef.current.main || 0) +
+        Number(momoClosingRef.current.pay || 0);
       const effectiveActualMoMo = momoCloseTotal;
       const payload = {
         terminal: terminalId,
@@ -670,12 +679,21 @@ export default function PosDayManagement() {
           const actualCash = Number(
             item.actual_cash ?? closing.actualCash ?? 0,
           );
-          const momoOpenMain = Number(item.momo_opening_main ?? base.momoOpeningMain ?? momoOpeningMain ?? 0);
-          const momoOpenPay = Number(item.momo_opening_pay ?? base.momoOpeningPay ?? momoOpeningPay ?? 0);
+          const momoOpenMain = Number(
+            item.momo_opening_main ??
+              base.momoOpeningMain ??
+              momoOpeningMain ??
+              0,
+          );
+          const momoOpenPay = Number(
+            item.momo_opening_pay ?? base.momoOpeningPay ?? momoOpeningPay ?? 0,
+          );
           const momoOpening = momoOpenMain + momoOpenPay;
           const totalMomoSales = Number(endSummary.mobileAmount || 0);
           const momoExpected = momoOpening + totalMomoSales;
-          const momoActual = Number(item.actual_momo ?? effectiveActualMoMo ?? 0);
+          const momoActual = Number(
+            item.actual_momo ?? effectiveActualMoMo ?? 0,
+          );
           const updated = {
             ...base,
             dayStatusId: Number(item.id || base.dayStatusId || 0) || null,
@@ -966,9 +984,17 @@ export default function PosDayManagement() {
       {!dayControlEnabled && (
         <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-xs text-amber-800 dark:text-amber-300 flex items-center justify-between gap-3">
           <div>
-            <span className="font-bold">⚡ Day Open & Day Close is Inactive:</span> Cashiers can make sales directly without opening or closing the day. All sales will be automatically aggregated and posted to Finance at 11:59 PM.
+            <span className="font-bold">
+              ⚡ Day Open & Day Close is Inactive:
+            </span>{" "}
+            Cashiers can make sales directly without opening or closing the day.
+            All sales will be automatically aggregated and posted to Finance at
+            11:59 PM.
           </div>
-          <Link to="/system-configuration/general-settings" className="btn btn-xs btn-outline border-amber-500 text-amber-800 dark:text-amber-200">
+          <Link
+            to="/system-configuration/general-settings"
+            className="btn btn-xs btn-outline border-amber-500 text-amber-800 dark:text-amber-200"
+          >
             Settings
           </Link>
         </div>
@@ -977,7 +1003,9 @@ export default function PosDayManagement() {
       <div className="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-4">
         <div className="flex flex-wrap gap-4 items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="text-slate-500 text-sm">Terminal</div>
+            <div className="text-slate-500 dark:text-slate-400 text-sm">
+              Terminal
+            </div>
             <div className="space-y-1">
               <select
                 className="input py-1 px-2 text-sm"
@@ -999,19 +1027,25 @@ export default function PosDayManagement() {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <div className="text-slate-500 text-sm">Cashier</div>
+            <div className="text-slate-500 dark:text-slate-400 text-sm">
+              Cashier
+            </div>
             <div className="font-semibold text-slate-900 dark:text-slate-100 text-sm">
               {cashierName}
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <div className="text-slate-500 text-sm">Shift</div>
+            <div className="text-slate-500 dark:text-slate-400 text-sm">
+              Shift
+            </div>
             <div className="font-semibold text-slate-900 dark:text-slate-100 text-sm">
               {openData.shift || "Morning Shift"}
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <div className="text-slate-500 text-sm">Date</div>
+            <div className="text-slate-500 dark:text-slate-400 text-sm">
+              Date
+            </div>
             <div className="font-semibold text-slate-900 dark:text-slate-100 text-sm">
               {now.toLocaleDateString()}
             </div>
@@ -1046,7 +1080,10 @@ export default function PosDayManagement() {
               <div className="alert-success rounded-lg p-3 mb-4 flex items-center justify-between gap-2 text-sm">
                 <div className="flex items-center gap-2">
                   <span>✓</span>
-                  <span>Day is currently open ({openData.shift || "Morning Shift"}, Opened at {fmtTime(openData.dateTime)} by {cashierName}).</span>
+                  <span>
+                    Day is currently open ({openData.shift || "Morning Shift"},
+                    Opened at {fmtTime(openData.dateTime)} by {cashierName}).
+                  </span>
                 </div>
               </div>
             )}
@@ -1113,9 +1150,7 @@ export default function PosDayManagement() {
                   />
                 </div>
                 <div className="md:ml-4">
-                  <label className="label">
-                    Opening MoMo Pay Account (₵)
-                  </label>
+                  <label className="label">Opening MoMo Pay Account (₵)</label>
                   <input
                     type="number"
                     className="input"
@@ -1155,7 +1190,7 @@ export default function PosDayManagement() {
           <div className="card-header flex justify-between items-center">
             <div className="card-title flex items-center gap-2">
               <span>Close Day</span>
-              <span className="text-sm font-normal text-slate-500">
+              <span className="text-sm font-normal text-slate-500 dark:text-slate-400">
                 {closing.dateTime
                   ? new Date(closing.dateTime).toLocaleString()
                   : ""}
@@ -1167,14 +1202,17 @@ export default function PosDayManagement() {
             {!dayOpen && (
               <div className="alert-danger rounded-lg p-3 mb-4 flex items-center gap-2 text-sm">
                 <span>ℹ️</span>
-                <span>Day is currently closed. Submit below to close or record reconciliation.</span>
+                <span>
+                  Day is currently closed. Submit below to close or record
+                  reconciliation.
+                </span>
               </div>
             )}
             <form onSubmit={handleCloseSubmit} className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {hasExceptional("POS.EXPECTED_CASH.VIEW") ? (
-                  <div className="p-3 rounded-lg border border-slate-200 bg-slate-50">
-                    <div className="text-xs text-slate-600">
+                  <div className="p-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900">
+                    <div className="text-xs text-slate-600 dark:text-slate-300">
                       Total Cash Sales
                     </div>
                     <div className="font-bold">
@@ -1183,8 +1221,10 @@ export default function PosDayManagement() {
                   </div>
                 ) : null}
                 {hasExceptional("POS.CASH_VARIANCE.VIEW") ? (
-                  <div className="p-3 rounded-lg border border-slate-200 bg-slate-50">
-                    <div className="text-xs text-slate-600">Total MoMo</div>
+                  <div className="p-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900">
+                    <div className="text-xs text-slate-600 dark:text-slate-300">
+                      Total MoMo
+                    </div>
                     <div className="font-bold">
                       {fmtCurrency(salesData.mobile.amount)}
                     </div>
@@ -1297,9 +1337,7 @@ export default function PosDayManagement() {
                   />
                 </div>
                 <div className="md:ml-4">
-                  <label className="label">
-                    Closing MoMo Pay Account (₵)
-                  </label>
+                  <label className="label">Closing MoMo Pay Account (₵)</label>
                   <input
                     type="number"
                     className="input"
@@ -1416,16 +1454,18 @@ export default function PosDayManagement() {
             {timeline.map((t, idx) => (
               <div
                 key={idx}
-                className="p-3 rounded-lg border border-slate-200 bg-slate-50"
+                className="p-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900"
               >
-                <div className="text-sm font-semibold text-brand-700">
+                <div className="text-sm font-semibold text-brand-700 dark:text-brand-300">
                   {new Date(t.time).toLocaleTimeString()} - {t.title}
                 </div>
                 <div className="text-sm">{t.description}</div>
               </div>
             ))}
             {!timeline.length && (
-              <div className="text-sm text-slate-500">No activity yet</div>
+              <div className="text-sm text-slate-500 dark:text-slate-400">
+                No activity yet
+              </div>
             )}
           </div>
         </div>

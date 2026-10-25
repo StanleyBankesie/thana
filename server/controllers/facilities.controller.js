@@ -433,19 +433,44 @@ export async function deleteZone(req, res, next) {
 /**
  * Spaces CRUD
  */
+export async function listSpaces(req, res, next) {
+  try {
+    const { companyId } = req.scope || {};
+    const { property_id } = req.query;
+    let sql = `
+      SELECT s.*, p.property_name, b.building_name, z.zone_name 
+      FROM fm_spaces s
+      LEFT JOIN fm_properties p ON p.id = s.property_id
+      LEFT JOIN fm_buildings b ON b.id = s.building_id
+      LEFT JOIN fm_zones z ON z.id = s.zone_id
+      WHERE s.company_id = ?
+    `;
+    const params = [companyId];
+    if (property_id) {
+      sql += " AND s.property_id = ?";
+      params.push(property_id);
+    }
+    sql += " ORDER BY s.space_name ASC, s.id DESC";
+    const [rows] = await pool.query(sql, params);
+    res.json({ success: true, data: rows });
+  } catch (err) {
+    next(err);
+  }
+}
+
 export async function createSpace(req, res, next) {
   try {
     const { companyId } = req.scope || {};
     const { property_id, building_id, zone_id, space_code, space_name, space_type = 'OFFICE_SUITE', occupant_tenant_name, area_sqm, status = 'ACTIVE' } = req.body;
-    if (!property_id || !building_id || !zone_id || !space_name) {
-      return res.status(400).json({ success: false, message: "property_id, building_id, zone_id, and space_name are required" });
+    if (!property_id || !space_name) {
+      return res.status(400).json({ success: false, message: "property_id and space_name are required" });
     }
 
     const code = space_code || `SPC-${Date.now().toString().slice(-4)}`;
     const [result] = await pool.query(
       `INSERT INTO fm_spaces (company_id, property_id, building_id, zone_id, space_code, space_name, space_type, occupant_tenant_name, area_sqm, status)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [companyId, property_id, building_id, zone_id, code, space_name, space_type, occupant_tenant_name || null, toNum(area_sqm) || null, status]
+      [companyId, property_id, building_id || null, zone_id || null, code, space_name, space_type, occupant_tenant_name || null, toNum(area_sqm) || null, status]
     );
 
     res.status(201).json({ success: true, spaceId: result.insertId });
@@ -508,7 +533,11 @@ export async function listContracts(req, res, next) {
         c.customer_name AS client_name,
         c.customer_code AS client_code,
         (SELECT COUNT(*) FROM fm_contract_properties cp WHERE cp.contract_id = ctr.id) AS property_count,
-        (SELECT COUNT(*) FROM fm_contract_service_lines csl WHERE csl.contract_id = ctr.id AND csl.is_covered = 1) AS covered_service_lines_count
+        (SELECT COUNT(*) FROM fm_contract_service_lines csl WHERE csl.contract_id = ctr.id AND csl.is_covered = 1) AS covered_service_lines_count,
+        (SELECT GROUP_CONCAT(COALESCE(cat.category_name, csl.service_line) SEPARATOR ', ') 
+         FROM fm_contract_service_lines csl 
+         LEFT JOIN fm_service_categories cat ON (cat.category_code = csl.service_line COLLATE utf8mb4_unicode_ci OR cat.category_name = csl.service_line COLLATE utf8mb4_unicode_ci)
+         WHERE csl.contract_id = ctr.id AND csl.is_covered = 1) AS services_names
        FROM fm_service_contracts ctr
        LEFT JOIN sal_customers c ON c.id = ctr.client_id
        WHERE ${conditions.join(" AND ")}
@@ -606,6 +635,7 @@ export async function createContract(req, res, next) {
       contract_status = 'ACTIVE',
       renewal_reminder_days = 30,
       terms_and_conditions,
+      contract_file_url = null,
       property_ids = [],
       service_lines = []
     } = req.body;
@@ -622,8 +652,8 @@ export async function createContract(req, res, next) {
 
     const [resHeader] = await conn.query(
       `INSERT INTO fm_service_contracts 
-       (company_id, branch_id, contract_no, contract_title, client_id, start_date, end_date, billing_frequency, billing_amount, contract_value, payment_terms, emergency_callout_included, emergency_callout_limit, sla_standard_response_hours, sla_standard_resolution_hours, sla_critical_response_hours, sla_critical_resolution_hours, contract_status, renewal_reminder_days, terms_and_conditions, created_by)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       (company_id, branch_id, contract_no, contract_title, client_id, start_date, end_date, billing_frequency, billing_amount, contract_value, payment_terms, emergency_callout_included, emergency_callout_limit, sla_standard_response_hours, sla_standard_resolution_hours, sla_critical_response_hours, sla_critical_resolution_hours, contract_status, renewal_reminder_days, terms_and_conditions, contract_file_url, created_by)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         companyId,
         branchId || null,
@@ -645,6 +675,7 @@ export async function createContract(req, res, next) {
         contract_status,
         toNum(renewal_reminder_days, 30),
         terms_and_conditions || null,
+        contract_file_url || null,
         req.user?.id || null
       ]
     );
@@ -832,12 +863,74 @@ export async function generateContractInvoice(req, res, next) {
       ]
     );
 
+    // Also automatically create that invoice into the Facilities Service Billing page (fm_service_bills)
+    const [clients] = await conn.query(
+      "SELECT id, customer_name, name, company FROM sales_customers WHERE id = ?",
+      [ctr.client_id]
+    );
+    const clientName = clients[0]?.customer_name || clients[0]?.name || clients[0]?.company || `Client #${ctr.client_id}`;
+
+    // Generate sequential Facilities Service Bill number starting with FB-
+    const year = new Date().getFullYear();
+    const prefix = `FB-${year}-`;
+    const [lastBills] = await conn.query(
+      `SELECT bill_no FROM fm_service_bills WHERE company_id = ? AND bill_no LIKE ? ORDER BY id DESC LIMIT 1`,
+      [companyId, `${prefix}%`]
+    );
+    let nextNum = 1;
+    if (lastBills.length > 0 && lastBills[0].bill_no) {
+      const parsed = parseInt(lastBills[0].bill_no.replace(prefix, ""), 10);
+      if (!isNaN(parsed)) nextNum = parsed + 1;
+    }
+    const billNo = `${prefix}${String(nextNum).padStart(4, "0")}`;
+
+    const [billRes] = await conn.query(
+      `INSERT INTO fm_service_bills
+       (company_id, branch_id, bill_no, bill_date, due_date, status, payment_status,
+        property_id, client_id, client_name, contract_id, contract_no, notes, subtotal, total_amount, paid_amount, balance_due, created_by)
+       VALUES (?, ?, ?, ?, ?, 'POSTED', 'UNPAID', ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?)`,
+      [
+        companyId,
+        branchId || null,
+        billNo,
+        today,
+        dueDate,
+        ctr.property_id || null,
+        ctr.client_id,
+        clientName,
+        ctr.id,
+        ctr.contract_no,
+        `Facilities Management Contract Fee (${billing_period}) - Contract #${ctr.contract_no}: ${ctr.contract_title}`,
+        ctr.billing_amount,
+        ctr.billing_amount,
+        ctr.billing_amount,
+        req.user?.username || "Admin"
+      ]
+    );
+
+    const billId = billRes.insertId;
+
+    await conn.query(
+      `INSERT INTO fm_service_bill_details
+       (bill_id, item_seq, description, quantity, uom, unit_price, total_amount, notes)
+       VALUES (?, 1, ?, 1, 'Period', ?, ?, ?)`,
+      [
+        billId,
+        `FM Contract Fee (${billing_period}) - ${ctr.contract_title}`,
+        ctr.billing_amount,
+        ctr.billing_amount,
+        `Contract #${ctr.contract_no}`
+      ]
+    );
+
     await conn.commit();
     res.json({
       success: true,
-      message: "Contract billing invoice generated in Finance successfully",
+      message: "Contract billing invoice generated and posted to Service Billing successfully",
       invoiceId,
-      invoice_no: invNo
+      invoice_no: invNo,
+      billId,
+      bill_no: billNo
     });
   } catch (err) {
     await conn.rollback();
@@ -1537,6 +1630,77 @@ export async function createChecklistTemplate(req, res, next) {
   }
 }
 
+export async function updateChecklistTemplate(req, res, next) {
+  const conn = await pool.getConnection();
+  try {
+    await conn.beginTransaction();
+    const { id } = req.params;
+    const { companyId } = req.scope || {};
+    const { template_name, service_line, description, items = [] } = req.body;
+
+    if (!template_name || !service_line) {
+      await conn.rollback();
+      return res.status(400).json({ success: false, message: "template_name and service_line are required" });
+    }
+
+    await conn.query(
+      `UPDATE fm_checklist_templates 
+       SET template_name = ?, service_line = ?, description = ? 
+       WHERE id = ? AND company_id = ?`,
+      [template_name, service_line, description || null, id, companyId]
+    );
+
+    if (Array.isArray(items) && items.length > 0) {
+      await conn.query(`DELETE FROM fm_checklist_template_items WHERE template_id = ?`, [id]);
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i];
+        await conn.query(
+          `INSERT INTO fm_checklist_template_items 
+           (template_id, item_seq, item_text, field_type, min_reading, max_reading, unit_of_measure, is_critical, failure_action)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [
+            id,
+            i + 1,
+            item.item_text,
+            item.field_type || 'PASS_FAIL',
+            toNum(item.min_reading) || null,
+            toNum(item.max_reading) || null,
+            item.unit_of_measure || null,
+            item.is_critical ? 1 : 0,
+            item.failure_action || 'CREATE_WORK_ORDER'
+          ]
+        );
+      }
+    }
+
+    await conn.commit();
+    res.json({ success: true, message: "Checklist template updated successfully" });
+  } catch (err) {
+    await conn.rollback();
+    next(err);
+  } finally {
+    conn.release();
+  }
+}
+
+export async function deleteChecklistTemplate(req, res, next) {
+  try {
+    const { id } = req.params;
+    const { companyId } = req.scope || {};
+    await pool.query(`DELETE FROM fm_checklist_template_items WHERE template_id = ?`, [id]);
+    const [result] = await pool.query(
+      `DELETE FROM fm_checklist_templates WHERE id = ? AND company_id = ?`,
+      [id, companyId]
+    );
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ success: false, message: "Checklist template not found" });
+    }
+    res.json({ success: true, message: "Checklist template deleted" });
+  } catch (err) {
+    next(err);
+  }
+}
+
 /**
  * Execute/Submit Inspection Checklist on a Work Order
  * (Evaluates Pass/Fail & Numeric Ranges; triggers corrective Work Order on critical failures!)
@@ -2042,8 +2206,8 @@ export async function getFMSLAComplianceReport(req, res, next) {
     const { companyId } = req.scope || {};
     const { startDate, endDate, propertyId, clientId, serviceLine, priority } = req.query;
 
-    const conditions = ["r.company_id = ?"];
-    const params = [companyId];
+    const conditions = ["(r.company_id = ? OR r.company_id IS NULL)"];
+    const params = [companyId || 1];
 
     if (startDate) {
       conditions.push("DATE(r.created_at) >= ?");
@@ -2141,7 +2305,7 @@ export async function getFMSLAComplianceReport(req, res, next) {
       SELECT 
         r.id,
         r.request_no,
-        r.subject,
+        COALESCE(r.description, 'Maintenance Request') AS subject,
         COALESCE(r.sla_priority, r.priority, 'MEDIUM') AS priority,
         r.status,
         r.service_line,
@@ -2213,8 +2377,8 @@ export async function getFMPropertyCostReport(req, res, next) {
     const { companyId } = req.scope || {};
     const { startDate, endDate, propertyId, clientId, serviceLine } = req.query;
 
-    const conditions = ["j.company_id = ?"];
-    const params = [companyId];
+    const conditions = ["(j.company_id = ? OR j.company_id IS NULL)"];
+    const params = [companyId || 1];
 
     if (startDate) {
       conditions.push("DATE(j.created_at) >= ?");
@@ -2298,8 +2462,8 @@ export async function getFMPropertyCostReport(req, res, next) {
     const costRecords = await query(`
       SELECT 
         j.id,
-        j.job_order_no,
-        j.subject,
+        j.order_no AS job_order_no,
+        COALESCE(j.instructions, 'Maintenance Job') AS subject,
         j.service_line,
         j.status,
         j.actual_hours,
@@ -2671,9 +2835,9 @@ export async function getFMChecklistInspectionsReport(req, res, next) {
         woc.overall_result,
         woc.overall_notes,
         woc.completed_at,
-        j.job_order_no,
+        j.order_no AS job_order_no,
         p.property_name,
-        u.name AS completed_by_name
+        COALESCE(u.full_name, u.username, 'Technician') AS completed_by_name
       FROM fm_work_order_checklists woc
       LEFT JOIN maint_job_orders j ON j.id = woc.work_order_id
       LEFT JOIN fm_properties p ON p.id = j.property_id
@@ -2681,7 +2845,7 @@ export async function getFMChecklistInspectionsReport(req, res, next) {
       WHERE (j.company_id = ? OR j.company_id IS NULL) AND ${whereClause}
       ORDER BY woc.completed_at DESC
       LIMIT 100
-    `, [companyId, ...params]);
+    `, [companyId || 1, ...params]);
 
     res.json({
       success: true,

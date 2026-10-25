@@ -2,7 +2,8 @@ import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { 
   ClipboardList, Plus, Search, CheckSquare, 
-  Settings, ChevronRight, X, AlertCircle, ArrowLeft
+  Settings, ChevronRight, X, AlertCircle, ArrowLeft,
+  Calendar, User, Check, Award, Clock, Star
 } from "lucide-react";
 import { api } from "../../../../api/client.js";
 import { toast } from "react-toastify";
@@ -10,13 +11,19 @@ import ViewToggle from "../../../../components/ViewToggle.jsx";
 
 export default function ChecklistTemplatesList() {
   const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState("templates"); // "templates" | "assigned-runs"
   const [templates, setTemplates] = useState([]);
+  const [assignedTasks, setAssignedTasks] = useState([]);
+  const [properties, setProperties] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedTemplate, setSelectedTemplate] = useState(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showDispatchModal, setShowDispatchModal] = useState(false);
+  const [dispatchTemplate, setDispatchTemplate] = useState(null);
   const [viewMode, setViewMode] = useState("table");
   const [searchTerm, setSearchTerm] = useState("");
 
+  // Create Template form
   const [formData, setFormData] = useState({
     template_name: "",
     service_line: "HVAC_AIR_CONDITIONING",
@@ -27,6 +34,18 @@ export default function ChecklistTemplatesList() {
     ]
   });
   const [saving, setSaving] = useState(false);
+
+  // Dispatch Daily Task form
+  const [dispatchForm, setDispatchForm] = useState({
+    property_id: "",
+    title: "",
+    scheduled_date: new Date().toISOString().slice(0, 10),
+    shift: "MORNING",
+    assigned_to_name: "",
+    supervisor_name: "",
+    priority: "MEDIUM",
+  });
+  const [dispatching, setDispatching] = useState(false);
 
   const filteredTemplates = templates.filter((tpl) => {
     if (!searchTerm) return true;
@@ -41,6 +60,8 @@ export default function ChecklistTemplatesList() {
 
   useEffect(() => {
     fetchTemplates();
+    fetchProperties();
+    fetchAssignedRuns();
   }, []);
 
   const fetchTemplates = async () => {
@@ -55,12 +76,76 @@ export default function ChecklistTemplatesList() {
     }
   };
 
+  const fetchProperties = async () => {
+    try {
+      const res = await api.get("/facilities/properties");
+      setProperties(res.data?.data || []);
+      if (res.data?.data?.length > 0 && !dispatchForm.property_id) {
+        setDispatchForm((prev) => ({ ...prev, property_id: res.data.data[0].id }));
+      }
+    } catch {}
+  };
+
+  const fetchAssignedRuns = async () => {
+    try {
+      const res = await api.get("/facilities/soft-tasks");
+      setAssignedTasks(res.data?.data || []);
+    } catch {}
+  };
+
   const handleViewTemplate = async (tpl) => {
     try {
       const res = await api.get(`/facilities/checklists/templates/${tpl.id}`);
       setSelectedTemplate(res.data?.data);
     } catch {
       toast.error("Failed to fetch template details");
+    }
+  };
+
+  const handleOpenDispatch = (tpl) => {
+    setDispatchTemplate(tpl);
+    setDispatchForm({
+      property_id: properties[0]?.id || "",
+      title: `Daily Inspection: ${tpl.template_name}`,
+      scheduled_date: new Date().toISOString().slice(0, 10),
+      shift: "MORNING",
+      assigned_to_name: "",
+      supervisor_name: "",
+      priority: "MEDIUM",
+    });
+    setShowDispatchModal(true);
+  };
+
+  const handleDispatchTask = async (e) => {
+    e.preventDefault();
+    if (!dispatchForm.assigned_to_name.trim()) {
+      toast.warn("Please enter assigned personnel name");
+      return;
+    }
+
+    setDispatching(true);
+    try {
+      const checklist_data = (dispatchTemplate?.items || []).map((it) => ({
+        item_text: it.item_text,
+        checked: false,
+      }));
+
+      await api.post("/facilities/soft-tasks", {
+        ...dispatchForm,
+        task_category: "GENERAL_FACILITIES",
+        checklist_template_id: dispatchTemplate?.id,
+        checklist_data,
+        description: `Routine inspection run using template [${dispatchTemplate?.template_name}].`,
+      });
+
+      toast.success("Inspection task dispatched to personnel successfully!");
+      setShowDispatchModal(false);
+      fetchAssignedRuns();
+      setActiveTab("assigned-runs");
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Failed to dispatch task");
+    } finally {
+      setDispatching(false);
     }
   };
 
@@ -100,137 +185,206 @@ export default function ChecklistTemplatesList() {
     }
   };
 
-  const serviceLines = [
-    { value: "HVAC_AIR_CONDITIONING", label: "HVAC & Air Conditioning" },
-    { value: "GENERATOR_POWER", label: "Diesel Generators & Power" },
-    { value: "ELECTRICAL_SERVICES", label: "Electrical Distribution & Panels" },
-    { value: "PLUMBING_WATER_SYSTEMS", label: "Plumbing, Pumps & Water" },
-    { value: "FIRE_SAFETY_SYSTEMS", label: "Fire Alarms & Safety Systems" },
-    { value: "LIFT_ELEVATOR_MAINTENANCE", label: "Elevators & Escalators" },
-    { value: "CLEANING_JANITORIAL", label: "Janitorial & Hygiene Audits" },
-    { value: "SECURITY_PATROL", label: "Security Patrol Rounds" },
-    { value: "PEST_CONTROL", label: "Pest Control & Bait Stations" },
-    { value: "GENERAL_BUILDING_FABRIC", label: "Building Fabric & Civil" }
-  ];
-
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      {/* Top Header */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
         <div className="flex items-center gap-3">
           <button
             type="button"
             onClick={() => navigate(-1)}
-            className="btn btn-secondary inline-flex items-center gap-2 px-3.5 py-2 text-sm"
+            className="btn btn-secondary inline-flex items-center gap-2 px-3.5 py-1.5 text-xs"
             title="Go Back"
           >
-            <ArrowLeft size={16} /> Back
+            <ArrowLeft size={14} /> Back
           </button>
           <div>
-            <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-              <ClipboardList className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
-              Inspection Checklists & Audit Templates
+            <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+              <ClipboardList className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+              Inspection Checklists & Daily Audit Runs
             </h1>
-            <p className="text-slate-500 text-sm mt-0.5">
-              Standard operating procedure checklists for PMs, condition surveys, and supervisor hygiene audits.
+            <p className="text-slate-500 dark:text-slate-400 text-xs mt-0.5">
+              Configurable audit standards, routine SOP checklists, and supervisor daily task dispatch to personnel.
             </p>
           </div>
         </div>
+
         <button
           onClick={() => setShowCreateModal(true)}
-          className="btn btn-primary inline-flex items-center gap-2"
+          className="btn btn-primary inline-flex items-center gap-2 text-xs py-2 px-3.5 shadow-sm active:scale-95"
         >
-          <Plus size={16} /> Create Template
+          <Plus size={15} /> Create Checklist Template
         </button>
       </div>
 
-      {/* Filter and Search Bar */}
-      <div className="bg-white dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col md:flex-row gap-3 items-center justify-between">
-        <div className="relative flex-1 w-full">
-          <Search className="w-4 h-4 absolute left-3 top-3 text-slate-400" />
-          <input
-            type="text"
-            className="input w-full pl-9 text-sm"
-            placeholder="Search by template name, code, service line..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-        </div>
+      {/* Tabs */}
+      <div className="flex border-b border-slate-200 dark:border-slate-800 space-x-2">
+        <button
+          onClick={() => setActiveTab("templates")}
+          className={`flex items-center gap-2 pb-3 px-4 text-xs font-semibold border-b-2 transition-all ${
+            activeTab === "templates"
+              ? "border-emerald-500 text-emerald-600 dark:text-emerald-400"
+              : "border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
+          }`}
+        >
+          <ClipboardList size={14} />
+          Checklist Templates Register ({templates.length})
+        </button>
 
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-slate-400 hidden sm:inline">
-            {filteredTemplates.length} {filteredTemplates.length === 1 ? "template" : "templates"}
-          </span>
-          <ViewToggle viewMode={viewMode} setViewMode={setViewMode} />
-        </div>
+        <button
+          onClick={() => setActiveTab("assigned-runs")}
+          className={`flex items-center gap-2 pb-3 px-4 text-xs font-semibold border-b-2 transition-all ${
+            activeTab === "assigned-runs"
+              ? "border-emerald-500 text-emerald-600 dark:text-emerald-400"
+              : "border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
+          }`}
+        >
+          <Calendar size={14} />
+          Daily Assigned Runs & Field Inspections ({assignedTasks.length})
+        </button>
       </div>
 
-      {loading ? (
-        <div className="p-12 flex justify-center bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">
-          <div className="w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
-        </div>
-      ) : filteredTemplates.length === 0 ? (
-        <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-12 text-center">
-          <ClipboardList className="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
-          <h3 className="text-base font-semibold text-slate-800 dark:text-slate-200">
-            {searchTerm ? "No matching templates found" : "No checklist templates found"}
-          </h3>
-          <p className="text-slate-500 text-sm max-w-sm mx-auto mt-1 mb-4">
-            {searchTerm ? "Try searching with a different keyword." : "Create SOP checklist forms to standardize technician workflows."}
-          </p>
-          {!searchTerm && (
-            <button
-              onClick={() => setShowCreateModal(true)}
-              className="btn btn-primary inline-flex items-center gap-2"
-            >
-              <Plus size={16} /> Create Template
-            </button>
+      {/* TAB 1: TEMPLATES REGISTER */}
+      {activeTab === "templates" && (
+        <div className="space-y-4">
+          {/* Filter and Search Bar */}
+          <div className="bg-white dark:bg-slate-900 p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col md:flex-row gap-3 items-center justify-between">
+            <div className="relative flex-1 w-full">
+              <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
+              <input
+                type="text"
+                className="w-full bg-slate-50 dark:bg-slate-800 border rounded-xl pl-9 pr-4 py-2 text-xs text-slate-800 dark:text-slate-200 focus:outline-none"
+                placeholder="Search templates by name, service line, or code..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-slate-400 hidden sm:inline">
+                {filteredTemplates.length} {filteredTemplates.length === 1 ? "template" : "templates"}
+              </span>
+            </div>
+          </div>
+
+          {loading ? (
+            <div className="p-12 flex justify-center bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800">
+              <div className="w-6 h-6 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+            </div>
+          ) : (
+            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-700 font-semibold text-slate-600 dark:text-slate-300">
+                    <tr>
+                      <th className="px-4 py-3">Code</th>
+                      <th className="px-4 py-3">Template Name</th>
+                      <th className="px-4 py-3">Service Line</th>
+                      <th className="px-4 py-3">Checkpoints</th>
+                      <th className="px-4 py-3">Description</th>
+                      <th className="px-4 py-3 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                    {filteredTemplates.map((tpl) => (
+                      <tr key={tpl.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors">
+                        <td className="px-4 py-3 font-mono font-medium text-slate-500">{tpl.template_code}</td>
+                        <td className="px-4 py-3 font-bold text-slate-900 dark:text-white">{tpl.template_name}</td>
+                        <td className="px-4 py-3">
+                          <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+                            {tpl.service_line?.replace(/_/g, " ")}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className="font-semibold text-emerald-600 dark:text-emerald-400">
+                            {tpl.item_count} items
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-slate-500 dark:text-slate-400 truncate max-w-xs">
+                          {tpl.description || "—"}
+                        </td>
+                        <td className="px-4 py-3 text-right">
+                          <div className="flex items-center justify-end gap-1.5">
+                            <button
+                              onClick={() => handleOpenDispatch(tpl)}
+                              className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-semibold shadow-sm transition-all"
+                              title="Assign this checklist to personnel as a daily task"
+                            >
+                              Dispatch Task
+                            </button>
+                            <button
+                              onClick={() => handleViewTemplate(tpl)}
+                              className="px-2.5 py-1 border rounded-lg text-xs text-slate-600 dark:text-slate-300 hover:bg-slate-100"
+                            >
+                              View Items
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
           )}
         </div>
-      ) : viewMode === "table" ? (
-        <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden shadow-sm">
+      )}
+
+      {/* TAB 2: ASSIGNED DAILY RUNS */}
+      {activeTab === "assigned-runs" && (
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+          <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
+              Active Daily Inspection & Task Runs
+            </h3>
+            <Link to="/facilities/soft-services" className="text-xs text-emerald-600 hover:underline">
+              Open Soft Services Workspace →
+            </Link>
+          </div>
           <div className="overflow-x-auto">
-            <table className="table w-full">
-              <thead className="bg-slate-50 dark:bg-slate-900/50 text-slate-500 text-xs border-b border-slate-200 dark:border-slate-700 uppercase tracking-wider">
+            <table className="w-full text-left text-xs">
+              <thead className="bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-700 font-semibold text-slate-600 dark:text-slate-300">
                 <tr>
-                  <th className="py-3 px-4">Template Code</th>
-                  <th className="py-3 px-4">Template Name</th>
-                  <th className="py-3 px-4">Service Line / Trade</th>
-                  <th className="py-3 px-4 text-center">Checkpoints</th>
-                  <th className="py-3 px-4">Description</th>
-                  <th className="py-3 px-4 text-right">Actions</th>
+                  <th className="px-4 py-3">Task No / Title</th>
+                  <th className="px-3 py-3">Property</th>
+                  <th className="px-3 py-3">Assigned Personnel</th>
+                  <th className="px-3 py-3">Scheduled Date</th>
+                  <th className="px-3 py-3">Shift</th>
+                  <th className="px-3 py-3">Status</th>
+                  <th className="px-3 py-3">Supervisor Sign-off</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-slate-700 dark:text-slate-300 text-sm">
-                {filteredTemplates.map((tpl) => (
-                  <tr key={tpl.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-750 transition-colors">
-                    <td className="py-3 px-4 font-mono font-bold text-xs text-brand-600 dark:text-brand-400">
-                      <span className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600">
-                        {tpl.template_code}
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                {assignedTasks.map((t) => (
+                  <tr key={t.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
+                    <td className="px-4 py-3">
+                      <span className="font-mono text-[10px] text-slate-400 block">{t.task_no}</span>
+                      <span className="font-bold text-slate-800 dark:text-white block">{t.title}</span>
+                    </td>
+                    <td className="px-3 py-3">{t.property_name || "Estate Site"}</td>
+                    <td className="px-3 py-3 font-medium text-slate-800 dark:text-slate-200">{t.assigned_to_name}</td>
+                    <td className="px-3 py-3 font-mono">{t.scheduled_date ? String(t.scheduled_date).slice(0, 10) : "Today"}</td>
+                    <td className="px-3 py-3">
+                      <span className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 font-bold text-[10px]">
+                        {t.shift}
                       </span>
                     </td>
-                    <td className="py-3 px-4 font-semibold text-slate-900 dark:text-white">
-                      {tpl.template_name}
-                    </td>
-                    <td className="py-3 px-4 text-xs">
-                      <span className="px-2.5 py-0.5 rounded-full font-medium bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300 border border-blue-200/80 dark:border-blue-800/80">
-                        {tpl.service_line?.replace(/_/g, " ")}
+                    <td className="px-3 py-3">
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                        t.status === "VERIFIED" ? "bg-emerald-100 text-emerald-800" :
+                        t.status === "COMPLETED" ? "bg-blue-100 text-blue-800" : "bg-amber-100 text-amber-800"
+                      }`}>
+                        {t.status}
                       </span>
                     </td>
-                    <td className="py-3 px-4 text-center font-mono font-bold text-xs text-emerald-600 dark:text-emerald-400">
-                      {tpl.item_count} items
-                    </td>
-                    <td className="py-3 px-4 text-xs text-slate-500 max-w-xs truncate">
-                      {tpl.description || "—"}
-                    </td>
-                    <td className="py-3 px-4 text-right">
-                      <button
-                        onClick={() => handleViewTemplate(tpl)}
-                        className="btn-secondary text-xs px-2.5 py-1 inline-flex items-center gap-1.5"
-                      >
-                        <span>Checkpoints</span>
-                        <ChevronRight size={13} />
-                      </button>
+                    <td className="px-3 py-3">
+                      {t.verified_by_supervisor ? (
+                        <span className="text-emerald-600 font-bold flex items-center gap-1 text-[11px]">
+                          <Award size={13} /> Verified (⭐ {t.supervisor_rating}/5)
+                        </span>
+                      ) : (
+                        <span className="text-slate-400 italic text-[11px]">Pending verification</span>
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -238,94 +392,156 @@ export default function ChecklistTemplatesList() {
             </table>
           </div>
         </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredTemplates.map((tpl) => (
-            <div
-              key={tpl.id}
-              className="bg-white dark:bg-slate-800 p-5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col justify-between hover:border-emerald-500/50 transition-all"
-            >
-              <div>
-                <div className="flex items-center justify-between gap-2 mb-2">
-                  <span className="font-mono text-xs px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300">
-                    {tpl.template_code}
-                  </span>
-                  <span className="text-xs font-medium text-emerald-600 font-mono">
-                    {tpl.item_count} Checkpoints
-                  </span>
-                </div>
-
-                <h3 className="font-semibold text-slate-900 dark:text-white text-base mb-1">
-                  {tpl.template_name}
-                </h3>
-                <span className="text-xs text-slate-400 block mb-2 font-mono">
-                  {tpl.service_line?.replace(/_/g, " ")}
-                </span>
-                <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2">
-                  {tpl.description || "Pre-defined checklist form for field service technicians."}
-                </p>
-              </div>
-
-              <div className="pt-4 mt-4 border-t border-slate-100 dark:border-slate-800 flex justify-end">
-                <button
-                  onClick={() => handleViewTemplate(tpl)}
-                  className="btn btn-secondary text-xs px-3 py-1.5 flex items-center gap-1.5"
-                >
-                  View Checkpoints <ChevronRight size={13} />
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
       )}
 
-      {/* Template View Modal */}
-      {selectedTemplate && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 overflow-y-auto">
-          <div className="bg-white dark:bg-slate-800 rounded-xl max-w-2xl w-full shadow-2xl border border-slate-200 dark:border-slate-700 overflow-hidden my-8">
-            <div className="flex items-center justify-between p-4 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-850">
-              <div>
-                <h3 className="font-semibold text-slate-900 dark:text-white text-base flex items-center gap-2">
-                  <ClipboardList size={18} className="text-emerald-600" />
-                  {selectedTemplate.template_name}
-                </h3>
-                <span className="text-xs font-mono text-slate-400">{selectedTemplate.template_code} • {selectedTemplate.service_line}</span>
-              </div>
-              <button onClick={() => setSelectedTemplate(null)} className="text-slate-400 hover:text-slate-600 p-1">
-                <X size={18} />
+      {/* MODAL: DISPATCH INSPECTION TASK */}
+      {showDispatchModal && dispatchTemplate && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl w-full max-w-md shadow-2xl overflow-hidden animate-fadeIn">
+            <div className="px-5 py-4 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-slate-800/50">
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <CheckSquare size={16} className="text-emerald-500" />
+                Dispatch Checklist Task to Personnel
+              </h3>
+              <button onClick={() => setShowDispatchModal(false)} className="text-slate-400 hover:text-slate-600 font-bold">
+                ✕
               </button>
             </div>
 
-            <div className="p-5 max-h-[60vh] overflow-y-auto space-y-2">
-              {(selectedTemplate.items || []).map((item, idx) => (
-                <div key={item.id} className="p-3 bg-slate-50 dark:bg-slate-900/50 rounded-lg border border-slate-200/80 dark:border-slate-700/80 text-xs flex justify-between items-center gap-2">
-                  <div>
-                    {item.section_header && (
-                      <span className="text-[10px] uppercase font-bold text-slate-400 block">{item.section_header}</span>
-                    )}
-                    <span className="font-medium text-slate-800 dark:text-slate-200">{idx + 1}. {item.item_text}</span>
-                    {item.min_reading && item.max_reading && (
-                      <span className="text-[11px] text-slate-500 font-mono ml-2">
-                        (Expected: {item.min_reading} to {item.max_reading} {item.unit_of_measure})
-                      </span>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-1.5 shrink-0">
-                    <span className="px-2 py-0.5 rounded bg-slate-200 dark:bg-slate-700 font-mono text-[11px]">
-                      {item.field_type}
-                    </span>
-                    {item.is_critical === 1 && (
-                      <span className="px-1.5 py-0.5 rounded bg-red-100 text-red-700 font-bold text-[10px]">
-                        CRITICAL
-                      </span>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
+            <form onSubmit={handleDispatchTask} className="p-5 space-y-4 text-xs">
+              <div className="bg-emerald-50 dark:bg-emerald-950/50 p-3 rounded-xl border border-emerald-200 dark:border-emerald-900/50">
+                <span className="text-[10px] text-emerald-700 dark:text-emerald-300 uppercase font-bold block">Selected Checklist Template</span>
+                <span className="font-bold text-slate-900 dark:text-white text-sm block mt-0.5">{dispatchTemplate.template_name}</span>
+                <span className="text-slate-500 text-[11px] block">{dispatchTemplate.item_count || dispatchTemplate.items?.length || 4} verification checkpoints</span>
+              </div>
 
-            <div className="p-4 border-t border-slate-200 dark:border-slate-700 flex justify-end bg-slate-50 dark:bg-slate-850">
-              <button onClick={() => setSelectedTemplate(null)} className="btn-secondary text-xs px-4 py-2">
+              <div>
+                <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-1">Target Property</label>
+                <select
+                  value={dispatchForm.property_id}
+                  onChange={(e) => setDispatchForm({ ...dispatchForm, property_id: e.target.value })}
+                  className="w-full bg-slate-50 dark:bg-slate-800 border rounded-xl p-2.5 text-xs text-slate-800 dark:text-slate-200"
+                  required
+                >
+                  {properties.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.property_name} ({p.property_code})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-1">Task Title</label>
+                <input
+                  type="text"
+                  value={dispatchForm.title}
+                  onChange={(e) => setDispatchForm({ ...dispatchForm, title: e.target.value })}
+                  className="w-full bg-slate-50 dark:bg-slate-800 border rounded-xl p-2.5 text-xs text-slate-800 dark:text-slate-200"
+                  required
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-1">Assigned Personnel</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. John Doe (Tech / Cleaner)"
+                    value={dispatchForm.assigned_to_name}
+                    onChange={(e) => setDispatchForm({ ...dispatchForm, assigned_to_name: e.target.value })}
+                    className="w-full bg-slate-50 dark:bg-slate-800 border rounded-xl p-2.5 text-xs text-slate-800 dark:text-slate-200"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-1">Supervisor Name</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. David Osei"
+                    value={dispatchForm.supervisor_name}
+                    onChange={(e) => setDispatchForm({ ...dispatchForm, supervisor_name: e.target.value })}
+                    className="w-full bg-slate-50 dark:bg-slate-800 border rounded-xl p-2.5 text-xs text-slate-800 dark:text-slate-200"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-1">Scheduled Date</label>
+                  <input
+                    type="date"
+                    value={dispatchForm.scheduled_date}
+                    onChange={(e) => setDispatchForm({ ...dispatchForm, scheduled_date: e.target.value })}
+                    className="w-full bg-slate-50 dark:bg-slate-800 border rounded-xl p-2.5 text-xs text-slate-800 dark:text-slate-200"
+                  />
+                </div>
+                <div>
+                  <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-1">Shift</label>
+                  <select
+                    value={dispatchForm.shift}
+                    onChange={(e) => setDispatchForm({ ...dispatchForm, shift: e.target.value })}
+                    className="w-full bg-slate-50 dark:bg-slate-800 border rounded-xl p-2.5 text-xs text-slate-800 dark:text-slate-200"
+                  >
+                    <option value="MORNING">Morning Shift</option>
+                    <option value="AFTERNOON">Afternoon Shift</option>
+                    <option value="NIGHT">Night Shift</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="pt-2 flex justify-end gap-2 border-t border-slate-200 dark:border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setShowDispatchModal(false)}
+                  className="px-4 py-2 border rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={dispatching}
+                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-semibold shadow-sm transition-all"
+                >
+                  {dispatching ? "Dispatching..." : "Dispatch Task"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: VIEW TEMPLATE CHECKPOINTS */}
+      {selectedTemplate && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden animate-fadeIn">
+            <div className="px-5 py-4 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-slate-800/50">
+              <div>
+                <span className="font-mono text-[10px] text-slate-400 block">{selectedTemplate.template_code}</span>
+                <h3 className="text-sm font-bold text-slate-900 dark:text-white">{selectedTemplate.template_name}</h3>
+              </div>
+              <button onClick={() => setSelectedTemplate(null)} className="text-slate-400 hover:text-slate-600 font-bold">
+                ✕
+              </button>
+            </div>
+            <div className="p-5 space-y-3 text-xs max-h-96 overflow-y-auto">
+              <p className="text-slate-500 dark:text-slate-400">{selectedTemplate.description || "Standard inspection procedure items."}</p>
+              <div className="space-y-2">
+                {(selectedTemplate.items || []).map((it, idx) => (
+                  <div key={idx} className="p-2.5 bg-slate-50 dark:bg-slate-800 rounded-xl flex items-center justify-between">
+                    <span className="font-medium text-slate-800 dark:text-slate-200">{it.item_text}</span>
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-300">
+                      {it.field_type}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="p-4 border-t border-slate-200 dark:border-slate-800 flex justify-end">
+              <button
+                onClick={() => setSelectedTemplate(null)}
+                className="px-4 py-2 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-xl text-xs font-semibold"
+              >
                 Close
               </button>
             </div>
@@ -333,178 +549,130 @@ export default function ChecklistTemplatesList() {
         </div>
       )}
 
-      {/* Create Modal */}
+      {/* MODAL: CREATE TEMPLATE */}
       {showCreateModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 overflow-y-auto">
-          <div className="bg-white dark:bg-slate-800 rounded-xl max-w-3xl w-full shadow-2xl border border-slate-200 dark:border-slate-700 overflow-hidden my-8">
-            <div className="flex items-center justify-between p-4 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-850">
-              <h3 className="font-semibold text-slate-900 dark:text-white text-base flex items-center gap-2">
-                <Plus size={18} className="text-emerald-600" />
-                Configure New Inspection Template
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl w-full max-w-xl shadow-2xl overflow-hidden animate-fadeIn">
+            <div className="px-5 py-4 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-slate-800/50">
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <Plus size={16} className="text-emerald-500" />
+                Create Inspection Checklist Template
               </h3>
-              <button onClick={() => setShowCreateModal(false)} className="text-slate-400 hover:text-slate-600 p-1">
-                <X size={18} />
+              <button onClick={() => setShowCreateModal(false)} className="text-slate-400 hover:text-slate-600 font-bold">
+                ✕
               </button>
             </div>
 
-            <form onSubmit={handleCreateTemplate} className="p-6 space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="label mb-1">Template Name <span className="text-red-500">*</span></label>
-                  <input
-                    type="text"
-                    className="input w-full"
-                    placeholder="e.g. Elevators Monthly Safety Inspection"
-                    value={formData.template_name}
-                    onChange={(e) => setFormData({ ...formData, template_name: e.target.value })}
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="label mb-1">Service Line</label>
-                  <select
-                    className="input w-full"
-                    value={formData.service_line}
-                    onChange={(e) => setFormData({ ...formData, service_line: e.target.value })}
-                  >
-                    {serviceLines.map((sl) => (
-                      <option key={sl.value} value={sl.value}>{sl.label}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="md:col-span-2">
-                  <label className="label mb-1">Description / Purpose</label>
-                  <input
-                    type="text"
-                    className="input w-full"
-                    placeholder="Scope of work and instructions..."
-                    value={formData.description}
-                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  />
-                </div>
+            <form onSubmit={handleCreateTemplate} className="p-5 space-y-4 text-xs">
+              <div>
+                <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-1">Template Name</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Daily Chiller Plant Operational Log"
+                  value={formData.template_name}
+                  onChange={(e) => setFormData({ ...formData, template_name: e.target.value })}
+                  className="w-full bg-slate-50 dark:bg-slate-800 border rounded-xl p-2.5 text-xs text-slate-800 dark:text-slate-200"
+                  required
+                />
               </div>
 
-              {/* Dynamic Checkpoints */}
-              <div className="space-y-3 pt-2">
-                <div className="flex justify-between items-center">
-                  <h4 className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
-                    Checklist Inspection Items ({formData.items.length})
-                  </h4>
+              <div>
+                <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-1">Service Line Category</label>
+                <select
+                  value={formData.service_line}
+                  onChange={(e) => setFormData({ ...formData, service_line: e.target.value })}
+                  className="w-full bg-slate-50 dark:bg-slate-800 border rounded-xl p-2.5 text-xs text-slate-800 dark:text-slate-200"
+                >
+                  <option value="HVAC_AIR_CONDITIONING">HVAC & Air Conditioning</option>
+                  <option value="ELECTRICAL_POWER">Electrical & Generator Power</option>
+                  <option value="PLUMBING_WATER">Plumbing & Water Systems</option>
+                  <option value="ELEVATORS_LIFTS">Elevators & Escalators</option>
+                  <option value="FIRE_LIFE_SAFETY">Fire & Life Safety</option>
+                  <option value="CLEANING_JANITORIAL">Cleaning & Janitorial</option>
+                  <option value="SECURITY_ACCESS">Security & Access Control</option>
+                  <option value="CIVIL_STRUCTURAL">Civil & Structural</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-1">Description</label>
+                <textarea
+                  rows={2}
+                  placeholder="Explain scope of checklist..."
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  className="w-full bg-slate-50 dark:bg-slate-800 border rounded-xl p-2.5 text-xs text-slate-800 dark:text-slate-200"
+                />
+              </div>
+
+              <div>
+                <div className="flex justify-between items-center mb-2">
+                  <label className="font-semibold text-slate-700 dark:text-slate-300">Checkpoints / Verification Items</label>
                   <button
                     type="button"
                     onClick={handleAddItemRow}
-                    className="btn-outline text-xs px-2.5 py-1 inline-flex items-center gap-1 text-emerald-600"
+                    className="text-emerald-600 font-bold hover:underline flex items-center gap-1"
                   >
                     <Plus size={13} /> Add Checkpoint
                   </button>
                 </div>
-
-                <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1">
-                  {formData.items.map((item, idx) => (
-                    <div key={idx} className="p-3 bg-slate-50 dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 space-y-2">
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="text"
-                          className="input flex-1 text-xs"
-                          placeholder="Inspection task or question..."
-                          value={item.item_text}
-                          onChange={(e) => {
-                            const updated = [...formData.items];
-                            updated[idx].item_text = e.target.value;
-                            setFormData({ ...formData, items: updated });
-                          }}
-                          required
-                        />
-                        <select
-                          className="input text-xs py-1.5 w-36"
-                          value={item.field_type}
-                          onChange={(e) => {
-                            const updated = [...formData.items];
-                            updated[idx].field_type = e.target.value;
-                            setFormData({ ...formData, items: updated });
-                          }}
-                        >
-                          <option value="PASS_FAIL">Pass / Fail</option>
-                          <option value="NUMERIC_READING">Numeric Reading</option>
-                          <option value="YES_NO_NA">Yes / No / NA</option>
-                          <option value="RATING_1_5">1-5 Rating</option>
-                        </select>
+                <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                  {formData.items.map((it, idx) => (
+                    <div key={idx} className="flex items-center gap-2">
+                      <input
+                        type="text"
+                        placeholder={`Checkpoint #${idx + 1}`}
+                        value={it.item_text}
+                        onChange={(e) => {
+                          const updated = [...formData.items];
+                          updated[idx].item_text = e.target.value;
+                          setFormData({ ...formData, items: updated });
+                        }}
+                        className="flex-1 bg-slate-50 dark:bg-slate-800 border rounded-xl p-2 text-xs"
+                        required
+                      />
+                      <select
+                        value={it.field_type}
+                        onChange={(e) => {
+                          const updated = [...formData.items];
+                          updated[idx].field_type = e.target.value;
+                          setFormData({ ...formData, items: updated });
+                        }}
+                        className="w-32 bg-slate-50 dark:bg-slate-800 border rounded-xl p-2 text-xs"
+                      >
+                        <option value="PASS_FAIL">Pass / Fail</option>
+                        <option value="YES_NO">Yes / No</option>
+                        <option value="NUMERIC_READING">Reading</option>
+                        <option value="TEXT_NOTE">Notes</option>
+                      </select>
+                      {formData.items.length > 1 && (
                         <button
                           type="button"
                           onClick={() => handleRemoveItemRow(idx)}
-                          className="text-red-500 hover:text-red-700 p-1"
+                          className="text-rose-500 hover:text-rose-700 font-bold px-2"
                         >
-                          <X size={15} />
+                          ✕
                         </button>
-                      </div>
-
-                      <div className="flex items-center gap-4 text-xs">
-                        <label className="flex items-center gap-1.5 cursor-pointer text-slate-700 dark:text-slate-300">
-                          <input
-                            type="checkbox"
-                            checked={item.is_critical || false}
-                            onChange={(e) => {
-                              const updated = [...formData.items];
-                              updated[idx].is_critical = e.target.checked;
-                              setFormData({ ...formData, items: updated });
-                            }}
-                            className="rounded text-red-600"
-                          />
-                          Critical Checkpoint (Failing auto-triggers corrective work order)
-                        </label>
-
-                        {item.field_type === "NUMERIC_READING" && (
-                          <div className="flex items-center gap-2">
-                            <input
-                              type="number"
-                              className="input text-xs py-0.5 px-1.5 w-16"
-                              placeholder="Min"
-                              value={item.min_reading || ""}
-                              onChange={(e) => {
-                                const updated = [...formData.items];
-                                updated[idx].min_reading = e.target.value;
-                                setFormData({ ...formData, items: updated });
-                              }}
-                            />
-                            <span>to</span>
-                            <input
-                              type="number"
-                              className="input text-xs py-0.5 px-1.5 w-16"
-                              placeholder="Max"
-                              value={item.max_reading || ""}
-                              onChange={(e) => {
-                                const updated = [...formData.items];
-                                updated[idx].max_reading = e.target.value;
-                                setFormData({ ...formData, items: updated });
-                              }}
-                            />
-                            <input
-                              type="text"
-                              className="input text-xs py-0.5 px-1.5 w-16"
-                              placeholder="Unit (V, bar)"
-                              value={item.unit_of_measure || ""}
-                              onChange={(e) => {
-                                const updated = [...formData.items];
-                                updated[idx].unit_of_measure = e.target.value;
-                                setFormData({ ...formData, items: updated });
-                              }}
-                            />
-                          </div>
-                        )}
-                      </div>
+                      )}
                     </div>
                   ))}
                 </div>
               </div>
 
-              <div className="flex justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-700">
-                <button type="button" onClick={() => setShowCreateModal(false)} className="btn btn-secondary text-sm px-4 py-2">
+              <div className="pt-2 flex justify-end gap-2 border-t border-slate-200 dark:border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setShowCreateModal(false)}
+                  className="px-4 py-2 border rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100"
+                >
                   Cancel
                 </button>
-                <button type="submit" disabled={saving} className="btn btn-primary text-sm px-5 py-2 font-medium">
-                  {saving ? "Saving..." : "Save Template"}
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-semibold shadow-sm transition-all"
+                >
+                  {saving ? "Saving..." : "Create Template"}
                 </button>
               </div>
             </form>

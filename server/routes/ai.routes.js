@@ -4,6 +4,7 @@
  */
 
 import express from "express";
+import multer from "multer";
 import { query } from "../db/pool.js";
 import { verifyAccessToken } from "../services/token.service.js";
 import { checkPromptModulePermission } from "../services/ai/banks.guardrails.js";
@@ -23,9 +24,15 @@ import {
   getApiKey,
   setRuntimeOpenRouterApiKey,
   getOpenRouterApiKey,
+  transcribeAudio,
 } from "../services/ai/banks.service.js";
 
 const router = express.Router();
+
+const audioUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 25 * 1024 * 1024 }, // 25MB max audio
+});
 
 // Attach user authentication & tenant/branch scope
 router.use((req, res, next) => {
@@ -549,6 +556,31 @@ router.get("/quick-prompts", (req, res) => {
   ];
 
   res.json({ success: true, data: prompts });
+});
+
+
+/**
+ * POST /api/ai/transcribe
+ * Voice audio transcription using Groq Whisper.
+ */
+router.post("/transcribe", audioUpload.single("audio"), async (req, res) => {
+  try {
+    if (!req.file || !req.file.buffer) {
+      return res.status(400).json({ success: false, message: "Audio file is required." });
+    }
+    const text = await transcribeAudio(
+      req.file.buffer,
+      req.file.originalname || "audio.webm",
+      req.body.customApiKey
+    );
+    return res.json({ success: true, text });
+  } catch (err) {
+    console.error("Audio transcription error:", err);
+    return res.status(500).json({
+      success: false,
+      message: err.message || "Failed to transcribe audio recording.",
+    });
+  }
 });
 
 export default router;

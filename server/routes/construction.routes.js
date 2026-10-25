@@ -38,7 +38,16 @@ router.post("/tenders/:id/award", cc.awardTenderToProject);
 router.get("/boqs", cc.listBOQs);
 router.get("/boqs/:id", cc.getBOQById);
 router.post("/boqs", cc.createBOQ);
+router.put("/boqs/:id", cc.updateBOQ);
+router.delete("/boqs/:id", cc.deleteBOQ);
 router.post("/boqs/:id/items", cc.saveBOQItems);
+router.post("/boqs/:id/status", cc.updateBOQStatus);
+router.post("/boqs/:id/submit", cc.submitBOQ);
+router.post("/boqs/:id/approve", cc.approveBOQ);
+router.post("/boqs/:id/reject", cc.rejectBOQ);
+router.post("/boqs/:id/reverse", cc.reverseBOQ);
+router.post("/boqs/:id/revision", cc.createBOQRevision);
+router.get("/boqs/:id/revisions", cc.getBOQRevisions);
 router.get("/boq-items/:boqItemId/rate-analysis", cc.getRateAnalysis);
 router.post("/boq-items/:boqItemId/rate-analysis", cc.saveRateAnalysis);
 
@@ -62,14 +71,31 @@ router.post("/subcontracts", cc.createSubcontract);
 router.get("/subcontract-valuations", cc.listSubcontractValuations);
 router.post("/subcontract-valuations", cc.createSubcontractValuation);
 
-// 7. Client Valuations (IPAs)
+// 7. Client Valuations
 router.get("/client-valuations", cc.listClientValuations);
+router.get("/client-valuations/baseline/:projectId", cc.getClientValuationBaseline);
+router.get("/client-valuations/:id", cc.getClientValuationById);
 router.post("/client-valuations", cc.createClientValuation);
+router.put("/client-valuations/:id", cc.updateClientValuation);
+router.post("/client-valuations/:id/status", cc.updateClientValuationStatus);
+router.post("/client-valuations/:id/create-payment-application", cc.createPaymentApplicationFromValuation);
+
+// 7b. Interim Payment Applications (IPAs)
+router.get("/payment-applications", cc.listPaymentApplications);
+router.get("/payment-applications/:id", cc.getPaymentApplicationById);
+router.post("/payment-applications", cc.createPaymentApplication);
+router.put("/payment-applications/:id", cc.updatePaymentApplication);
+router.post("/payment-applications/:id/certify", cc.certifyPaymentApplication);
+router.post("/payment-applications/:id/record-payment", cc.recordPaymentApplicationPayment);
 
 // 8. Variations & Change Orders
 router.get("/variations", cc.listVariations);
+router.get("/variations/:id", cc.getVariationDetails);
 router.post("/variations", cc.createVariation);
+router.put("/variations/:id", cc.updateVariation);
+router.post("/variations/:id/workflow", cc.advanceVariationWorkflow);
 router.post("/variations/:id/approve", cc.approveVariation);
+router.delete("/variations/:id", cc.deleteVariation);
 
 // 9. Quality Control (QA/QC)
 router.get("/inspections", cc.listInspections);

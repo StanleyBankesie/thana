@@ -20,7 +20,7 @@ const statusStyles = {
 const progressColor = (pct) => {
   if (pct >= 100) return "from-emerald-500 to-emerald-400";
   if (pct >= 75) return "from-blue-500 to-blue-400";
-  if (pct >= 50) return "from-indigo-500 to-indigo-400";
+  if (pct >= 50) return "from-brand-600 to-brand-500";
   if (pct >= 25) return "from-amber-500 to-amber-400";
   return "from-slate-400 to-slate-300";
 };
@@ -110,19 +110,19 @@ export default function ProjectStatusReport() {
         <div className="flex items-center gap-2">
           <button onClick={fetchReport} className="btn btn-secondary p-2" title="Refresh"><RefreshCw size={18} /></button>
           <div className="flex items-center gap-2">
-              <button onClick={exportExcel} className="btn-success px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 flex items-center gap-2">Excel</button>
-              <button onClick={exportPdf} className="btn-error px-4 py-2 text-sm font-medium text-white bg-rose-600 rounded-lg hover:bg-rose-700 flex items-center gap-2">PDF</button>
+              <button onClick={exportExcel} className="btn btn-secondary inline-flex items-center gap-1.5 text-sm font-medium">Excel</button>
+              <button onClick={exportPdf} className="btn btn-outline inline-flex items-center gap-1.5 text-sm font-medium text-rose-600 border-rose-300 hover:bg-rose-50 dark:hover:bg-rose-950/30">PDF</button>
             </div>
         </div>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-5">
-        <div className="bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-2xl p-5 shadow-lg text-white">
+        <div className="bg-gradient-to-br from-brand-900 to-brand-800 rounded-2xl p-5 shadow-sm text-white">
           <div className="flex items-center justify-between mb-3">
             <div className="p-2 bg-white/20 rounded-xl"><Layers size={20} /></div>
           </div>
           <div className="text-3xl font-bold">{items.length}</div>
-          <div className="text-indigo-100 text-xs uppercase tracking-wider font-semibold mt-1">Total Projects</div>
+          <div className="text-brand-100 text-xs uppercase tracking-wider font-semibold mt-1">Total Projects</div>
         </div>
         <div className="bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-2xl p-5 shadow-lg text-white">
           <div className="flex items-center justify-between mb-3">
@@ -151,7 +151,7 @@ export default function ProjectStatusReport() {
         <div className="overflow-x-auto">
           <table className="w-full text-left">
             <thead>
-              <tr className="bg-gradient-to-r from-indigo-50 to-violet-50 dark:from-indigo-950/30 dark:to-violet-950/30">
+              <tr className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700">
                 <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Project</th>
                 <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Status</th>
                 <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 text-center">Progress</th>
@@ -172,7 +172,7 @@ export default function ProjectStatusReport() {
               ) : items.length > 0 ? items.map(p => {
                 const pct = Number(p.completion_percent || 0);
                 return (
-                  <tr key={p.id} className="hover:bg-indigo-50/30 dark:hover:bg-indigo-900/10 transition-all duration-200">
+                  <tr key={p.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/50 transition-colors">
                     <td className="px-6 py-4">
                       <div className="font-bold text-sm text-slate-900 dark:text-white">{p.project_name}</div>
                       <div className="text-[10px] text-slate-400 dark:text-slate-500 font-semibold uppercase">{p.project_code} {p.manager_name ? <span className="text-slate-300">· {p.manager_name}</span> : ""}</div>

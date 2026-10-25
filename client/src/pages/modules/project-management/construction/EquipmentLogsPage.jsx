@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { api } from "../../../../api/client.js";
 import { toast } from "react-toastify";
+import ProjectModal from "../components/ProjectModal.jsx";
 
 export default function EquipmentLogsPage() {
   const [projects, setProjects] = useState([]);
@@ -191,7 +192,7 @@ export default function EquipmentLogsPage() {
 
       {/* Logs Table */}
       <div className="card overflow-hidden">
-        <div className="p-4 bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center">
+        <div className="p-4 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center">
           <h2 className="font-bold text-sm uppercase tracking-wider text-slate-900 dark:text-white">
             Daily Equipment Deployment Sheets ({filteredLogs.length})
           </h2>
@@ -243,147 +244,152 @@ export default function EquipmentLogsPage() {
       </div>
 
       {/* Modal: New Equipment Log */}
-      {showModal && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="card max-w-lg w-full p-6 space-y-4 animate-in fade-in zoom-in-95 duration-200">
-            <div className="flex justify-between items-center border-b pb-2">
-              <h3 className="font-bold text-lg text-slate-900 dark:text-white flex items-center gap-2">
-                <Truck size={18} className="text-brand-600" /> Log Machine Operating Hours
-              </h3>
-              <button onClick={() => setShowModal(false)} className="text-slate-400 hover:text-slate-600">
-                <X size={20} />
-              </button>
+      <ProjectModal
+        open={showModal}
+        onClose={() => setShowModal(false)}
+        title="Log Machine Operating Hours"
+        subtitle="Record heavy machinery run hours, fuel usage, and plant costing"
+        icon={Truck}
+        onSubmit={handleCreateLog}
+        submitLabel="Save Machine Log"
+      >
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                Equipment / Machine <span className="text-red-500">*</span>
+              </label>
+              <select
+                required
+                className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500"
+                value={form.equipment_id}
+                onChange={e => setForm({ ...form, equipment_id: e.target.value })}
+              >
+                <option value="">Select Equipment...</option>
+                {equipments.map(eq => (
+                  <option key={eq.id} value={eq.id}>{eq.name}</option>
+                ))}
+                {equipments.length === 0 && (
+                  <>
+                    <option value="1">CAT 320D Excavator</option>
+                    <option value="2">JCB 3DX Backhoe Loader</option>
+                    <option value="3">Bomag Single Drum Roller</option>
+                    <option value="4">Iveco Trakker 20m3 Tipper</option>
+                  </>
+                )}
+              </select>
             </div>
-            <form onSubmit={handleCreateLog} className="space-y-3">
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-500 uppercase">Equipment / Machine</label>
-                  <select
-                    required
-                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-white dark:bg-slate-900"
-                    value={form.equipment_id}
-                    onChange={e => setForm({ ...form, equipment_id: e.target.value })}
-                  >
-                    <option value="">Select Equipment...</option>
-                    {equipments.map(eq => (
-                      <option key={eq.id} value={eq.id}>{eq.name}</option>
-                    ))}
-                    {equipments.length === 0 && (
-                      <>
-                        <option value="1">CAT 320D Excavator</option>
-                        <option value="2">JCB 3DX Backhoe Loader</option>
-                        <option value="3">Bomag Single Drum Roller</option>
-                        <option value="4">Iveco Trakker 20m3 Tipper</option>
-                      </>
-                    )}
-                  </select>
-                </div>
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-500 uppercase">Log Date</label>
-                  <input
-                    type="date"
-                    required
-                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-white dark:bg-slate-900 font-mono"
-                    value={form.log_date}
-                    onChange={e => setForm({ ...form, log_date: e.target.value })}
-                  />
-                </div>
-              </div>
+            <div>
+              <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                Log Date <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="date"
+                required
+                className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500 font-mono"
+                value={form.log_date}
+                onChange={e => setForm({ ...form, log_date: e.target.value })}
+              />
+            </div>
+          </div>
 
-              <div className="grid grid-cols-3 gap-3">
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-500 uppercase">Worked (Hrs)</label>
-                  <input
-                    type="number"
-                    step="0.5"
-                    required
-                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-white dark:bg-slate-900 font-mono font-bold"
-                    value={form.hours_worked}
-                    onChange={e => setForm({ ...form, hours_worked: Number(e.target.value) })}
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-500 uppercase">Idle (Hrs)</label>
-                  <input
-                    type="number"
-                    step="0.5"
-                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-white dark:bg-slate-900 font-mono"
-                    value={form.hours_idle}
-                    onChange={e => setForm({ ...form, hours_idle: Number(e.target.value) })}
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-500 uppercase">Breakdown (Hrs)</label>
-                  <input
-                    type="number"
-                    step="0.5"
-                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-white dark:bg-slate-900 font-mono"
-                    value={form.hours_breakdown}
-                    onChange={e => setForm({ ...form, hours_breakdown: Number(e.target.value) })}
-                  />
-                </div>
-              </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                Worked (Hrs) <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="number"
+                step="0.5"
+                required
+                className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500 font-mono font-bold"
+                value={form.hours_worked}
+                onChange={e => setForm({ ...form, hours_worked: Number(e.target.value) })}
+              />
+            </div>
+            <div>
+              <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                Idle (Hrs)
+              </label>
+              <input
+                type="number"
+                step="0.5"
+                className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500 font-mono"
+                value={form.hours_idle}
+                onChange={e => setForm({ ...form, hours_idle: Number(e.target.value) })}
+              />
+            </div>
+            <div>
+              <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                Breakdown (Hrs)
+              </label>
+              <input
+                type="number"
+                step="0.5"
+                className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500 font-mono"
+                value={form.hours_breakdown}
+                onChange={e => setForm({ ...form, hours_breakdown: Number(e.target.value) })}
+              />
+            </div>
+          </div>
 
-              <div className="grid grid-cols-3 gap-3">
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-500 uppercase">Fuel Used (Ltrs)</label>
-                  <input
-                    type="number"
-                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-white dark:bg-slate-900 font-mono"
-                    value={form.fuel_consumed_litres}
-                    onChange={e => setForm({ ...form, fuel_consumed_litres: Number(e.target.value) })}
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-500 uppercase">Rate (GHS/hr)</label>
-                  <input
-                    type="number"
-                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-white dark:bg-slate-900 font-mono"
-                    value={form.hourly_rate}
-                    onChange={e => setForm({ ...form, hourly_rate: Number(e.target.value) })}
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-500 uppercase">Operator Name</label>
-                  <input
-                    type="text"
-                    placeholder="Operator"
-                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-white dark:bg-slate-900"
-                    value={form.operator_name}
-                    onChange={e => setForm({ ...form, operator_name: e.target.value })}
-                  />
-                </div>
-              </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                Fuel Used (Ltrs)
+              </label>
+              <input
+                type="number"
+                className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500 font-mono"
+                value={form.fuel_consumed_litres}
+                onChange={e => setForm({ ...form, fuel_consumed_litres: Number(e.target.value) })}
+              />
+            </div>
+            <div>
+              <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                Rate (GHS/hr)
+              </label>
+              <input
+                type="number"
+                className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500 font-mono"
+                value={form.hourly_rate}
+                onChange={e => setForm({ ...form, hourly_rate: Number(e.target.value) })}
+              />
+            </div>
+            <div>
+              <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                Operator Name
+              </label>
+              <input
+                type="text"
+                placeholder="Operator name"
+                className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500"
+                value={form.operator_name}
+                onChange={e => setForm({ ...form, operator_name: e.target.value })}
+              />
+            </div>
+          </div>
 
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-500 uppercase">Notes / Maintenance Remarks</label>
-                <textarea
-                  placeholder="Service interval, tire pressure, grease..."
-                  className="w-full px-3 py-2 border rounded-lg text-sm bg-white dark:bg-slate-900 min-h-[60px]"
-                  value={form.remarks}
-                  onChange={e => setForm({ ...form, remarks: e.target.value })}
-                />
-              </div>
+          <div>
+            <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">
+              Notes / Maintenance Remarks
+            </label>
+            <textarea
+              placeholder="Service interval, tire pressure, grease..."
+              className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500 min-h-[70px]"
+              value={form.remarks}
+              onChange={e => setForm({ ...form, remarks: e.target.value })}
+            />
+          </div>
 
-              <div className="p-3 bg-brand-50 dark:bg-brand-900/30 rounded-xl flex justify-between items-center text-xs">
-                <span className="font-bold text-brand-800 dark:text-brand-300">Total Calculated Cost:</span>
-                <span className="font-mono font-bold text-base text-emerald-600">
-                  GHS {(form.hours_worked * form.hourly_rate).toFixed(2)}
-                </span>
-              </div>
-
-              <div className="flex justify-end gap-2 pt-2 border-t">
-                <button type="button" onClick={() => setShowModal(false)} className="btn btn-secondary text-xs">
-                  Cancel
-                </button>
-                <button type="submit" className="btn-success text-xs font-bold">
-                  Save Machine Log
-                </button>
-              </div>
-            </form>
+          <div className="p-3.5 bg-brand-50 dark:bg-brand-900/30 rounded-xl flex justify-between items-center text-xs border border-brand-100 dark:border-brand-800/40">
+            <span className="font-bold text-brand-900 dark:text-brand-300">Total Calculated Cost:</span>
+            <span className="font-mono font-bold text-base text-emerald-600 dark:text-emerald-400">
+              GHS {(form.hours_worked * form.hourly_rate).toFixed(2)}
+            </span>
           </div>
         </div>
-      )}
+      </ProjectModal>
     </div>
   );
 }

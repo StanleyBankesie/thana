@@ -5,7 +5,8 @@
  */
 
 import React, { useState, useEffect, useCallback, useRef } from "react";
-import { CheckCircle2, Loader2, Check, X } from "lucide-react";
+import { CheckCircle2, Loader2, Check, X, ListTodo, ArrowLeft, Plus } from "lucide-react";
+import ProjectModal from "../components/ProjectModal.jsx";
 import { Link } from "react-router-dom";
 import { api } from "../../../../api/client.js";
 import { toast } from "react-toastify";
@@ -218,18 +219,29 @@ export default function TaskList() {
   return (
     <div className="space-y-4">
       {/* Header */}
-      <div className="card shadow-md">
-        <div className="card-header bg-brand text-white rounded-t-lg p-5">
-          <div className="flex justify-between items-center">
-            <div>
-              <h1 className="text-2xl font-bold">Task Management</h1>
-              <p className="text-sm opacity-90">WBS task allocation, scope management & assignment tracking</p>
-            </div>
-            <div className="flex gap-2">
-              <button onClick={() => window.history.back()} className="btn btn-secondary text-xs">Back</button>
-              <Link to="/project-management/tasks/new" className="btn-success text-xs">+ Add Task</Link>
-            </div>
+      {/* Canonical Header */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <Link to="/project-management" className="btn btn-secondary inline-flex items-center gap-1.5">
+            <ArrowLeft size={16} /> Back
+          </Link>
+          <div>
+            <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+              <ListTodo size={24} className="text-brand-900 dark:text-brand-400" /> Task Management
+            </h1>
+            <p className="text-slate-500 text-sm mt-0.5">
+              WBS task allocation, scope management & assignment tracking
+            </p>
           </div>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-3">
+          <Link
+            to="/project-management/tasks/new"
+            className="btn btn-primary inline-flex items-center gap-2"
+          >
+            <Plus size={16} /> New Task
+          </Link>
         </div>
       </div>
 
@@ -283,7 +295,7 @@ export default function TaskList() {
                       {/* Task */}
                       <td className="py-3">
                         <div className="flex items-center gap-2.5">
-                          <div className={`shrink-0 w-8 h-8 rounded-lg flex items-center justify-center border ${isComplete ? "bg-emerald-50 border-emerald-200 text-emerald-500" : "bg-slate-50 border-slate-200 text-indigo-500"}`}>
+                          <div className={`shrink-0 w-8 h-8 rounded-lg flex items-center justify-center border ${isComplete ? "bg-emerald-50 border-emerald-200 text-emerald-500" : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-brand-700 dark:text-brand-400"}`}>
                             <CheckCircle2 size={15} />
                           </div>
                           <div className="min-w-0">
@@ -345,7 +357,7 @@ export default function TaskList() {
                           </button>
                           <Link
                             to={`/project-management/tasks/${item.id}`}
-                            className="px-2.5 py-1 text-xs font-semibold text-slate-700 bg-slate-100 border border-slate-200 rounded-lg hover:bg-slate-200 transition-colors"
+                            className="px-2.5 py-1 text-xs font-semibold text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
                           >
                             Edit
                           </Link>
@@ -366,7 +378,7 @@ export default function TaskList() {
                         <button
                           type="button"
                           onClick={() => { setActiveDocId(item.id); setShowAttach(true); }}
-                          className="px-2.5 py-1 text-xs font-semibold text-slate-600 bg-slate-100 border border-slate-200 rounded-lg hover:bg-slate-200 transition-colors flex items-center gap-1 mx-auto"
+                          className="px-2.5 py-1 text-xs font-semibold text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors flex items-center gap-1 mx-auto"
                         >
                           📎 Docs
                         </button>
@@ -404,70 +416,58 @@ export default function TaskList() {
       )}
 
       {/* Read-Only Task View Modal */}
-      {viewModalTask && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl max-w-2xl w-full p-6 space-y-4">
-            <div className="flex justify-between items-center border-b border-slate-200 dark:border-slate-800 pb-3">
-              <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">
-                Task Details - {viewModalTask.task_title || viewModalTask.title || viewModalTask.name}
-              </h2>
-              <button
-                type="button"
-                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 font-bold"
-                onClick={() => setViewModalTask(null)}
-              >
-                ✕
-              </button>
+      <ProjectModal
+        open={Boolean(viewModalTask)}
+        onClose={() => setViewModalTask(null)}
+        title={viewModalTask ? `Task Details: ${viewModalTask.task_title || viewModalTask.title || viewModalTask.name}` : "Task Details"}
+        subtitle="Comprehensive task attributes, project alignment, and status"
+        icon={ListTodo}
+        cancelLabel="Close"
+      >
+        {viewModalTask && (
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200/80 dark:border-slate-700/60">
+                <span className="text-slate-400 block text-[11px] font-semibold mb-1 uppercase tracking-wider">Project</span>
+                <span className="font-bold text-sm text-slate-900 dark:text-slate-100">{viewModalTask.project_name || "—"}</span>
+              </div>
+              <div className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200/80 dark:border-slate-700/60">
+                <span className="text-slate-400 block text-[11px] font-semibold mb-1 uppercase tracking-wider">Assignee</span>
+                <span className="font-bold text-sm text-slate-900 dark:text-slate-100">{viewModalTask.assigned_to_name || "—"}</span>
+              </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4 text-sm">
-              <div>
-                <span className="text-slate-400 block text-xs font-semibold">Project</span>
-                <span className="font-semibold text-slate-900 dark:text-slate-100">{viewModalTask.project_name || "—"}</span>
-              </div>
-              <div>
-                <span className="text-slate-400 block text-xs font-semibold">Assignee</span>
-                <span className="font-semibold text-slate-900 dark:text-slate-100">{viewModalTask.assigned_to_name || "—"}</span>
-              </div>
-              <div>
-                <span className="text-slate-400 block text-xs font-semibold">Status</span>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200/80 dark:border-slate-700/60 flex items-center justify-between">
+                <span className="text-slate-400 text-[11px] font-semibold uppercase tracking-wider">Status</span>
                 <StatusBadge status={viewModalTask.status} />
               </div>
-              <div>
-                <span className="text-slate-400 block text-xs font-semibold">Priority</span>
+              <div className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200/80 dark:border-slate-700/60 flex items-center justify-between">
+                <span className="text-slate-400 text-[11px] font-semibold uppercase tracking-wider">Priority</span>
                 <PriorityBadge priority={viewModalTask.priority} />
               </div>
-              <div>
-                <span className="text-slate-400 block text-xs font-semibold">Start Date</span>
-                <span>{fmtDate(viewModalTask.start_date || viewModalTask.startDate)}</span>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200/80 dark:border-slate-700/60">
+                <span className="text-slate-400 block text-[11px] font-semibold mb-1 uppercase tracking-wider">Start Date</span>
+                <span className="font-mono text-slate-800 dark:text-slate-200 font-semibold">{fmtDate(viewModalTask.start_date || viewModalTask.startDate)}</span>
               </div>
-              <div>
-                <span className="text-slate-400 block text-xs font-semibold">Due Date</span>
-                <span>{fmtDate(viewModalTask.end_date || viewModalTask.endDate || viewModalTask.due_date)}</span>
+              <div className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200/80 dark:border-slate-700/60">
+                <span className="text-slate-400 block text-[11px] font-semibold mb-1 uppercase tracking-wider">Due Date</span>
+                <span className="font-mono text-slate-800 dark:text-slate-200 font-semibold">{fmtDate(viewModalTask.end_date || viewModalTask.endDate || viewModalTask.due_date)}</span>
               </div>
             </div>
 
             {viewModalTask.reason_for_delay && (
-              <div className="pt-2 border-t border-slate-200 dark:border-slate-800">
-                <span className="text-slate-400 block text-xs font-semibold mb-1">Reason for Delay</span>
-                <div className="p-3 bg-amber-50 dark:bg-amber-950/30 text-amber-800 dark:text-amber-300 text-xs rounded-lg border border-amber-200 dark:border-amber-800">
-                  {viewModalTask.reason_for_delay}
-                </div>
+              <div className="p-3.5 bg-amber-50 dark:bg-amber-950/30 text-amber-900 dark:text-amber-200 rounded-xl border border-amber-200 dark:border-amber-800/60 space-y-1">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-amber-700 dark:text-amber-400">Reason for Delay</span>
+                <p className="text-xs leading-relaxed">{viewModalTask.reason_for_delay}</p>
               </div>
             )}
-
-            <div className="flex justify-end pt-3 border-t border-slate-200 dark:border-slate-800">
-              <button
-                type="button"
-                className="btn btn-secondary text-xs px-4 py-2"
-                onClick={() => setViewModalTask(null)}
-              >
-                Close
-              </button>
-            </div>
           </div>
-        </div>
-      )}
+        )}
+      </ProjectModal>
     </div>
   );
 }

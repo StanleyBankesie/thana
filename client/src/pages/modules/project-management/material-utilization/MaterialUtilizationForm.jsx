@@ -5,6 +5,7 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
+import { ArrowLeft, Save, Wrench, Plus, Trash2 } from "lucide-react";
 
 import { api } from "api/client";
 import { useUoms } from "@/hooks/useUoms";
@@ -191,10 +192,10 @@ export default function MaterialUtilizationForm() {
   }, [items]);
 
   const statusColors = {
-    DRAFT: "bg-gray-500 text-white",
-    SUBMITTED: "bg-yellow-300 text-black",
-    CONFIRMED: "bg-green-500 text-white",
-    CANCELLED: "bg-red-500 text-white",
+    DRAFT: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border border-slate-200 dark:border-slate-700",
+    SUBMITTED: "bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300 border border-blue-200 dark:border-blue-800",
+    CONFIRMED: "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800",
+    CANCELLED: "bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300 border border-rose-200 dark:border-rose-800",
   };
 
   const handleSubmit = async (e) => {
@@ -334,26 +335,46 @@ export default function MaterialUtilizationForm() {
 
   return (
     <div className="space-y-6">
-      <div className="card">
-        <div className="card-header bg-brand text-white rounded-t-lg">
-          <div className="flex justify-between items-center text-white">
-            <div>
-              <h1 className="text-2xl font-bold dark:text-brand-300">
-                {isNew
-                  ? "New Material Utilization"
-                  : "Edit Material Utilization"}
-              </h1>
-              <p className="text-sm mt-1">
-                Record material consumption against project tasks
-              </p>
-            </div>
-            <button onClick={() => window.history.back()} className="btn-success"
-            >
-              Back to List
-            </button>
+      {/* Canonical ERP Flex Header */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <button
+            type="button"
+            onClick={() => window.history.back()}
+            className="btn btn-secondary inline-flex items-center gap-1.5 text-sm"
+          >
+            <ArrowLeft size={16} /> Back
+          </button>
+          <div>
+            <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2.5">
+              <Wrench size={26} className="text-brand-900 dark:text-brand-400" />
+              {isNew ? "New Material Utilization" : "Edit Material Utilization"}
+            </h1>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+              Record material consumption against project tasks
+            </p>
           </div>
         </div>
-        <div className="card-body">
+        <div className="flex items-center gap-2.5">
+          <button
+            type="button"
+            onClick={() => window.history.back()}
+            className="btn btn-secondary text-sm"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={handleSubmit}
+            disabled={saving}
+            className="btn btn-primary inline-flex items-center gap-2 text-sm font-semibold shadow-sm"
+          >
+            <Save size={16} /> {saving ? "Saving..." : "Save Utilization"}
+          </button>
+        </div>
+      </div>
+
+      <div className="card bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm p-6">
           <form onSubmit={handleSubmit} className="space-y-6">
             {loading ? <div className="text-sm">Loading...</div> : null}
             {error ? <div className="text-sm text-red-600">{error}</div> : null}
@@ -422,7 +443,7 @@ export default function MaterialUtilizationForm() {
                 <label className="label">Status</label>
                 <div className="pt-2">
                   <span
-                    className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${statusColors[formData.status] || "bg-gray-500 text-white"}`}
+                    className={`inline-block px-3 py-1 rounded-full text-xs font-semibold ${statusColors[formData.status] || "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border border-slate-200 dark:border-slate-700"}`}
                   >
                     {formData.status}
                   </span>
@@ -480,9 +501,7 @@ export default function MaterialUtilizationForm() {
                 <button
                   type="button"
                   onClick={addItem}
-                  className="btn-success text-sm"
-                >
-                  + Add Item
+                  className="btn btn-secondary text-xs inline-flex items-center gap-1.5"><Plus size={14} /> Add Item
                 </button>
               </div>
 
@@ -566,7 +585,7 @@ export default function MaterialUtilizationForm() {
                                       : { bottom: 0, left: 0, width: 0 };
                                     return (
                                       <div
-                                        className="bg-white border border-slate-200 rounded-lg shadow-lg max-h-48 overflow-auto"
+                                        className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-md max-h-48 overflow-auto"
                                         style={{
                                           position: "fixed",
                                           top: `${r.bottom + 4}px`,
@@ -701,17 +720,23 @@ export default function MaterialUtilizationForm() {
               </div>
             </div>
 
-            <div className="flex justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-700">
-              <button onClick={() => window.history.back()} className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 transition-colors"
+            <div className="flex justify-end gap-3 pt-6 border-t border-slate-200 dark:border-slate-800">
+              <button
+                type="button"
+                onClick={() => window.history.back()}
+                className="btn btn-secondary text-sm"
               >
                 Cancel
               </button>
-              <button type="submit" className="btn-success" disabled={saving}>
-                {saving ? "Saving..." : "Save"}
+              <button
+                type="submit"
+                className="btn btn-primary inline-flex items-center gap-2 text-sm font-semibold shadow-sm"
+                disabled={saving}
+              >
+                <Save size={16} /> {saving ? "Saving..." : "Save Utilization"}
               </button>
             </div>
           </form>
-        </div>
       </div>
     </div>
   );

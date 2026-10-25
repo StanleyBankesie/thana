@@ -5,7 +5,7 @@
 
 import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { Link } from "react-router-dom";
-import { Loader2, User, Trash2, Plus, X, Pencil, Building2, Warehouse, Wrench } from "lucide-react";
+import { Loader2, User, Trash2, Plus, X, Pencil, Building2, Warehouse, Wrench, Settings, HardHat, ArrowLeft } from "lucide-react";
 import { api } from "../../../../api/client.js";
 import { toast } from "react-toastify";
 import PhoneInput from "../../../../components/PhoneInput.jsx";
@@ -14,13 +14,30 @@ import PhoneInput from "../../../../components/PhoneInput.jsx";
 function ModalForm({ open, onClose, title, children }) {
   if (!open) return null;
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30" onClick={onClose}>
-      <div className="bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-        <div className="flex items-center justify-between p-4 border-b">
-          <h3 className="font-semibold">{title}</h3>
-          <button onClick={onClose} className="p-1 text-slate-400 hover:text-slate-600"><X size={18} /></button>
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-sm flex justify-center items-start p-4 sm:p-6 md:p-10 animate-fadeIn" onClick={onClose}>
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl w-full max-w-2xl lg:max-w-3xl shadow-2xl overflow-hidden my-auto sm:my-8 transition-all" onClick={e => e.stopPropagation()}>
+        <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-white dark:bg-slate-900">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <Link to="/project-management" className="btn btn-secondary inline-flex items-center gap-1.5 text-sm">
+            <ArrowLeft size={16} /> Back
+          </Link>
+          <div>
+            <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2.5">
+              <Settings size={26} className="text-brand-900 dark:text-brand-400" />
+              Operations Setup
+            </h1>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+              Configure managers, operational departments, temporal warehouses, and service suppliers
+            </p>
+          </div>
         </div>
-        <div className="p-4 space-y-4">{children}</div>
+      </div>
+          <button onClick={onClose} className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+            <X size={18} />
+          </button>
+        </div>
+        <div className="p-6 space-y-4 text-xs">{children}</div>
       </div>
     </div>
   );
@@ -35,11 +52,11 @@ function CrudSection({ title, icon, emptyMsg, columns, rows, loading, onAdd, onE
           {icon}
           <h3 className="font-semibold text-slate-800 dark:text-slate-100">{title}</h3>
         </div>
-        <button onClick={onAdd} className="btn-primary flex items-center gap-1.5 text-xs py-1.5 px-3">
+        <button onClick={onAdd} className="btn btn-primary inline-flex items-center gap-1.5 text-xs py-1.5 px-3">
           <Plus size={14} /> Add
         </button>
       </div>
-      <div className="bg-white dark:bg-slate-800 rounded-lg shadow-sm overflow-hidden border border-slate-100 dark:border-slate-700">
+      <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm overflow-hidden border border-slate-200 dark:border-slate-800">
         <table className="min-w-full">
           <thead className="bg-slate-50 dark:bg-slate-900/50">
             <tr className="text-left text-xs font-bold text-slate-500 uppercase tracking-wider">
@@ -106,6 +123,29 @@ export default function Setup() {
   const [editingWh, setEditingWh] = useState(null);
   const [whForm, setWhForm] = useState({ warehouse_name: "", warehouse_code: "", location: "", is_active: 1 });
   const [whSaving, setWhSaving] = useState(false);
+
+  
+  // ── Contractors / Subcontractors ───────────────────
+  const [subcontractors, setSubcontractors] = useState([]);
+  const [subModal, setSubModal] = useState(false);
+  const [editingSub, setEditingSub] = useState(null);
+  const [subForm, setSubForm] = useState({
+    supplier_name: "", supplier_code: "", contact_person: "", email: "", phone: "", address: "", 
+    city: "", state: "", country: "Ghana", payment_terms: "", 
+    tax_id: "", business_reg_no: "", supplier_type: "LOCAL", 
+    service_contractor: true, industry: "Contractor/Subcontractor", is_active: 1,
+    expense_account_id: "", currency_id: ""
+  });
+  const [subSaving, setSubSaving] = useState(false);
+  const [subExpenseAccountSearch, setSubExpenseAccountSearch] = useState("");
+  const subExpenseAccountResults = useMemo(() => {
+    if (!subExpenseAccountSearch) return [];
+    const q = subExpenseAccountSearch.toLowerCase();
+    return accounts
+      .filter((a) => String(a.name || "").toLowerCase().includes(q) || String(a.code || "").toLowerCase().includes(q))
+      .slice(0, 50)
+      .map((a) => ({ value: String(a.id), label: String(a.name), code: String(a.code) }));
+  }, [subExpenseAccountSearch, accounts]);
 
   const [suppliers, setSuppliers] = useState([]);
   const [supModal, setSupModal] = useState(false);
@@ -186,6 +226,14 @@ export default function Setup() {
     } catch { toast.error("Failed to load warehouses"); }
   }, []);
 
+  
+  const loadSubcontractors = useCallback(async () => {
+    try {
+      const res = await api.get("/purchase/suppliers?contractor=Y");
+      setSubcontractors(res.data?.data?.items || res.data?.items || []);
+    } catch { toast.error("Failed to load contractors/subcontractors"); }
+  }, []);
+
   const loadSuppliers = useCallback(async () => {
     try {
       const res = await api.get("/purchase/suppliers?contractor=Y");
@@ -227,8 +275,8 @@ export default function Setup() {
 
   useEffect(() => {
     setLoading(true);
-    Promise.all([loadManagers(), loadDepartments(), loadWarehouses(), loadSuppliers(), loadClients(), loadEquipments(), loadMaintAssets(), loadAccountsAndCurrencies()]).finally(() => setLoading(false));
-  }, [loadManagers, loadDepartments, loadWarehouses, loadSuppliers, loadClients, loadEquipments, loadMaintAssets, loadAccountsAndCurrencies]);
+    Promise.all([loadManagers(), loadDepartments(), loadWarehouses(), loadSubcontractors(), loadSuppliers(), loadClients(), loadEquipments(), loadMaintAssets(), loadAccountsAndCurrencies()]).finally(() => setLoading(false));
+  }, [loadManagers, loadDepartments, loadWarehouses, loadSubcontractors, loadSuppliers, loadClients, loadEquipments, loadMaintAssets, loadAccountsAndCurrencies]);
 
   /* ── Project Managers ── */
   const handleAddManager = async () => {
@@ -311,6 +359,63 @@ export default function Setup() {
       toast.success("Warehouse deleted");
       loadWarehouses();
     } catch (e) { toast.error(e?.response?.data?.message || "Failed to delete warehouse"); }
+  };
+
+  
+  /* ── Contractors / Subcontractors ── */
+  const openSubAdd = () => { 
+    setEditingSub(null); 
+    setSubExpenseAccountSearch("");
+    setSubForm({ 
+      supplier_name: "", supplier_code: "", contact_person: "", email: "", phone: "", address: "", 
+      city: "", state: "", country: "Ghana", payment_terms: "", 
+      tax_id: "", business_reg_no: "", supplier_type: "LOCAL", 
+      service_contractor: true, industry: "Contractor/Subcontractor", is_active: 1,
+      expense_account_id: "", currency_id: baseCurrencyId
+    }); 
+    setSubModal(true); 
+  };
+  const openSubEdit = (s) => { 
+    setEditingSub(s); 
+    setSubExpenseAccountSearch(s.expense_account_id ? String(accounts.find(a => String(a.id) === String(s.expense_account_id))?.name || "") : "");
+    setSubForm({ 
+      supplier_name: s.supplier_name || "", supplier_code: s.supplier_code || "", 
+      contact_person: s.contact_person || "", email: s.email || "", phone: s.phone || "", 
+      address: s.address || "", city: s.city || "", state: s.state || "", country: s.country || "Ghana", 
+      payment_terms: s.payment_terms || "", tax_id: s.tax_id || "", business_reg_no: s.business_reg_no || "", 
+      supplier_type: s.supplier_type || "LOCAL", service_contractor: true, 
+      industry: "Contractor/Subcontractor", is_active: s.is_active ?? 1,
+      expense_account_id: s.expense_account_id || "", currency_id: s.currency_id || ""
+    }); 
+    setSubModal(true); 
+  };
+
+  const saveSub = async () => {
+    if (!subForm.supplier_name.trim()) { toast.error("Contractor / Subcontractor name is required"); return; }
+    setSubSaving(true);
+    try {
+      const payload = { ...subForm, service_contractor: "Y" };
+      
+      if (editingSub) {
+        await api.put(`/purchase/suppliers/${editingSub.id}`, payload);
+        toast.success("Contractor / Subcontractor updated");
+      } else {
+        await api.post("/purchase/suppliers", payload);
+        toast.success("Contractor / Subcontractor created");
+      }
+      setSubModal(false);
+      loadSubcontractors();
+    } catch (e) { toast.error(e?.response?.data?.message || "Failed to save contractor/subcontractor"); }
+    finally { setSubSaving(false); }
+  };
+
+  const deleteSub = async (id) => {
+    if (!confirm("Delete this contractor/subcontractor?")) return;
+    try {
+      await api.delete(`/purchase/suppliers/${id}`);
+      toast.success("Contractor / Subcontractor deleted");
+      loadSubcontractors();
+    } catch (e) { toast.error(e?.response?.data?.message || "Failed to delete contractor/subcontractor"); }
   };
 
   /* ── Suppliers ── */
@@ -433,7 +538,8 @@ export default function Setup() {
   const TABS = [
     { id: "managers",    label: "Project Managers" },
     { id: "departments", label: "Departments" },
-    { id: "warehouses",  label: "Temp. Storage / Warehouses" },
+    { id: "warehouses",     label: "Temp. Storage / Warehouses" },
+    { id: "subcontractors", label: "Contractor / Subcontractor" },
     { id: "suppliers",   label: "Suppliers" },
     { id: "clients",     label: "Clients" },
     { id: "equipments",  label: "Equipments" },
@@ -445,19 +551,19 @@ export default function Setup() {
       <div className="flex items-center gap-3">
         <button onClick={() => window.history.back()} className="btn-secondary text-sm">Back</button>
         <div>
-          <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100">Project Setup</h2>
+          <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100">Operations Setup</h2>
           <p className="text-xs text-slate-500">Configure managers, departments, and storage</p>
         </div>
       </div>
 
       {/* Tabs */}
-      <div className="flex border-b overflow-x-auto gap-1">
+      <div className="flex border-b border-slate-200 dark:border-slate-800 overflow-x-auto gap-1">
         {TABS.map(tab => (
           <button key={tab.id} onClick={() => setActiveTab(tab.id)}
-            className={`px-5 py-2.5 text-sm font-medium whitespace-nowrap transition-colors ${
+            className={`px-5 py-2.5 text-sm font-semibold whitespace-nowrap transition-colors border-b-2 ${
               activeTab === tab.id
-                ? "border-b-2 border-brand text-brand"
-                : "text-slate-500 hover:text-slate-700"
+                ? "border-brand-900 text-brand-900 dark:border-brand-400 dark:text-brand-400"
+                : "border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
             }`}>
             {tab.label}
           </button>
@@ -468,7 +574,7 @@ export default function Setup() {
       {activeTab === "managers" && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-1">
-            <div className="bg-white dark:bg-slate-800 p-5 rounded-lg shadow-sm border border-slate-100 dark:border-slate-700">
+            <div className="bg-white dark:bg-slate-900 p-5 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800">
               <h3 className="font-semibold mb-4 text-slate-800 dark:text-slate-100">Add Project Manager</h3>
               <div className="space-y-4">
                 <div>
@@ -478,14 +584,14 @@ export default function Setup() {
                     {availableUsers.map(u => <option key={u.id} value={u.id}>{u.username}</option>)}
                   </select>
                 </div>
-                <button type="button" onClick={handleAddManager} className="btn-primary flex items-center gap-2 w-full justify-center">
+                <button type="button" onClick={handleAddManager} className="btn btn-primary inline-flex items-center gap-2 w-full justify-center text-sm">
                   <Plus size={16} /> Add Manager
                 </button>
               </div>
             </div>
           </div>
           <div className="lg:col-span-2">
-            <div className="bg-white dark:bg-slate-800 rounded-lg shadow-sm overflow-hidden border border-slate-100 dark:border-slate-700">
+            <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm overflow-hidden border border-slate-200 dark:border-slate-800">
               <table className="min-w-full">
                 <thead className="bg-slate-50 dark:bg-slate-900/50">
                   <tr className="text-left text-xs font-bold text-slate-500 uppercase tracking-wider">
@@ -523,7 +629,7 @@ export default function Setup() {
         <>
           <CrudSection
             title="Departments"
-            icon={<Building2 size={18} className="text-indigo-500" />}
+            icon={<Building2 size={18} className="text-brand-700 dark:text-brand-400" />}
             emptyMsg="No departments found. Add one to get started."
             columns={["Name", "Code", "Status"]}
             rows={departments}
@@ -619,6 +725,161 @@ export default function Setup() {
               <button className="btn-outline" onClick={() => setWhModal(false)}>Cancel</button>
               <button className="btn-primary flex items-center gap-2" disabled={whSaving} onClick={saveWh}>
                 {whSaving ? <Loader2 size={14} className="animate-spin" /> : null} Save
+              </button>
+            </div>
+          </ModalForm>
+        </>
+      )}
+
+      
+      {activeTab === "subcontractors" && (
+        <>
+          <CrudSection
+            title="Contractors / Subcontractors"
+            icon={<HardHat size={18} className="text-brand-900 dark:text-brand-400" />}
+            emptyMsg="No contractors or subcontractors defined yet."
+            columns={["Name", "Contact Person", "Phone", "Status"]}
+            rows={subcontractors}
+            loading={loading}
+            onAdd={openSubAdd}
+            onEdit={openSubEdit}
+            onDelete={deleteSub}
+            renderRow={(s) => (
+              <>
+                <td className="px-4 py-3 text-sm font-semibold text-slate-800 dark:text-slate-100">{s.supplier_name}</td>
+                <td className="px-4 py-3 text-sm text-slate-600 dark:text-slate-300">{s.contact_person || "—"}</td>
+                <td className="px-4 py-3 text-sm text-slate-600 dark:text-slate-300">{s.phone || "—"}</td>
+                <td className="px-4 py-3 text-sm">
+                  {s.is_active ? (
+                    <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">Active</span>
+                  ) : (
+                    <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700">Inactive</span>
+                  )}
+                </td>
+              </>
+            )}
+          />
+
+          <ModalForm open={subModal} onClose={() => setSubModal(false)} title={editingSub ? "Edit Contractor / Subcontractor" : "New Contractor / Subcontractor"}>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="sm:col-span-2">
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-1">Contractor / Subcontractor Name *</label>
+                <input type="text" className="input w-full text-sm" placeholder="e.g. Acme Concrete & Engineering Ltd" value={subForm.supplier_name} onChange={e => setSubForm(p => ({ ...p, supplier_name: e.target.value }))} />
+              </div>
+              <div>
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-1">Contractor Type</label>
+                <select className="input w-full text-sm" value={subForm.supplier_type} onChange={e => setSubForm(p => ({ ...p, supplier_type: e.target.value }))}>
+                  <option value="LOCAL">LOCAL</option>
+                  <option value="FOREIGN">FOREIGN</option>
+                </select>
+              </div>
+              <div>
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-1">Contact Person</label>
+                <input type="text" className="input w-full text-sm" placeholder="John Doe" value={subForm.contact_person} onChange={e => setSubForm(p => ({ ...p, contact_person: e.target.value }))} />
+              </div>
+              <div>
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-1">Email</label>
+                <input type="email" className="input w-full text-sm" placeholder="contact@example.com" value={subForm.email} onChange={e => setSubForm(p => ({ ...p, email: e.target.value }))} />
+              </div>
+              <div>
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-1">Phone</label>
+                <PhoneInput value={subForm.phone} onChange={v => setSubForm(p => ({ ...p, phone: v }))} />
+              </div>
+              <div>
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-1">Tax ID / TIN</label>
+                <input type="text" className="input w-full text-sm" placeholder="Tax ID / TIN" value={subForm.tax_id} onChange={e => setSubForm(p => ({ ...p, tax_id: e.target.value }))} />
+              </div>
+              <div>
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-1">Business Reg No</label>
+                <input type="text" className="input w-full text-sm" placeholder="Registration No" value={subForm.business_reg_no} onChange={e => setSubForm(p => ({ ...p, business_reg_no: e.target.value }))} />
+              </div>
+              <div className="sm:col-span-2">
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-1">Address</label>
+                <input type="text" className="input w-full text-sm" placeholder="Physical Address" value={subForm.address} onChange={e => setSubForm(p => ({ ...p, address: e.target.value }))} />
+              </div>
+              <div>
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-1">City</label>
+                <input type="text" className="input w-full text-sm" placeholder="City" value={subForm.city} onChange={e => setSubForm(p => ({ ...p, city: e.target.value }))} />
+              </div>
+              <div>
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-1">State/Region</label>
+                <input type="text" className="input w-full text-sm" placeholder="State/Region" value={subForm.state} onChange={e => setSubForm(p => ({ ...p, state: e.target.value }))} />
+              </div>
+              <div>
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-1">Country</label>
+                <input type="text" className="input w-full text-sm" placeholder="Country" value={subForm.country} onChange={e => setSubForm(p => ({ ...p, country: e.target.value }))} />
+              </div>
+              <div className="relative">
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-1">Expense Account</label>
+                <input
+                  type="text"
+                  className="input w-full text-sm"
+                  placeholder="Search account..."
+                  value={subExpenseAccountSearch || ""}
+                  onChange={(e) => {
+                    setSubExpenseAccountSearch(e.target.value);
+                    if (!e.target.value) {
+                      setSubForm((p) => ({ ...p, expense_account_id: "" }));
+                    }
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && subExpenseAccountResults.length) {
+                      const selected = subExpenseAccountResults[0];
+                      const acc = accounts.find((a) => String(a.id) === selected.value);
+                      if (acc) {
+                        setSubExpenseAccountSearch(acc.name || "");
+                        setSubForm((p) => ({ ...p, expense_account_id: String(acc.id) }));
+                      }
+                    }
+                  }}
+                />
+                {subExpenseAccountSearch && subExpenseAccountResults.length > 0 && (
+                  <div className="absolute z-50 mt-1 w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-md max-h-48 overflow-auto">
+                    {subExpenseAccountResults.map((o) => (
+                      <button
+                        type="button"
+                        key={o.value}
+                        className="block w-full text-left px-3 py-2 hover:bg-slate-50 dark:hover:bg-slate-700 text-sm"
+                        onClick={() => {
+                          setSubExpenseAccountSearch(o.label);
+                          setSubForm((p) => ({ ...p, expense_account_id: o.value }));
+                        }}
+                      >
+                        {o.label} <span className="text-xs text-slate-400">({o.code})</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <div>
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-1">Currency</label>
+                <select
+                  className="input w-full text-sm"
+                  value={subForm.currency_id || ""}
+                  onChange={(e) => setSubForm((p) => ({ ...p, currency_id: e.target.value }))}
+                >
+                  <option value="">Default Currency</option>
+                  {currencies.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.code} - {c.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-1">Payment Terms</label>
+                <input type="text" className="input w-full text-sm" placeholder="e.g. Net 30 days" value={subForm.payment_terms} onChange={e => setSubForm(p => ({ ...p, payment_terms: e.target.value }))} />
+              </div>
+              <div className="flex items-center gap-2 pt-5">
+                <input type="checkbox" id="sub_active" checked={!!subForm.is_active} onChange={e => setSubForm(p => ({ ...p, is_active: e.target.checked ? 1 : 0 }))} className="checkbox checkbox-sm" />
+                <label htmlFor="sub_active" className="text-xs font-medium cursor-pointer">Active Contractor / Subcontractor</label>
+              </div>
+            </div>
+            <div className="flex justify-end gap-2 mt-6 pt-4 border-t border-slate-200 dark:border-slate-800">
+              <button type="button" onClick={() => setSubModal(false)} className="btn btn-secondary text-xs">Cancel</button>
+              <button type="button" onClick={saveSub} disabled={subSaving} className="btn btn-primary text-xs inline-flex items-center gap-1.5 shadow-sm">
+                {subSaving ? <Loader2 size={14} className="animate-spin" /> : null}
+                {editingSub ? "Update Contractor / Subcontractor" : "Create Contractor / Subcontractor"}
               </button>
             </div>
           </ModalForm>
@@ -724,7 +985,7 @@ export default function Setup() {
                   }}
                 />
                 {supExpenseAccountSearch && supExpenseAccountResults.length > 0 && (
-                  <div className="absolute z-50 mt-1 w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg max-h-48 overflow-auto">
+                  <div className="absolute z-50 mt-1 w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-md max-h-48 overflow-auto">
                     {supExpenseAccountResults.map((o) => (
                       <button
                         type="button"
@@ -776,9 +1037,9 @@ export default function Setup() {
       {activeTab === "clients" && (
         <>
           <CrudSection
-            title="Service Clients / Customers"
+            title="Clients"
             icon={<Building2 size={18} className="text-brand" />}
-            emptyMsg="No service clients defined yet."
+            emptyMsg="No clients defined yet."
             columns={["Name", "Contact Person", "Phone", "Status"]}
             rows={clients}
             loading={loading}
@@ -868,7 +1129,7 @@ export default function Setup() {
                   }}
                 />
                 {clientRevenueAccountSearch && clientRevenueAccountResults.length > 0 && (
-                  <div className="absolute z-50 mt-1 w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg max-h-48 overflow-auto">
+                  <div className="absolute z-50 mt-1 w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-md max-h-48 overflow-auto">
                     {clientRevenueAccountResults.map((o) => (
                       <button
                         type="button"
@@ -899,7 +1160,7 @@ export default function Setup() {
               <div className="sm:col-span-2 flex items-center gap-6 mt-2">
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input type="checkbox" className="checkbox" checked={clientForm.service_customer} onChange={e => setClientForm(p => ({ ...p, service_customer: e.target.checked }))} />
-                  <span className="text-sm font-medium">Service Customer</span>
+                  <span className="text-sm font-medium">Project Client</span>
                 </label>
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input type="checkbox" className="checkbox" checked={Number(clientForm.is_active) === 1} onChange={e => setClientForm(p => ({ ...p, is_active: e.target.checked ? 1 : 0 }))} />

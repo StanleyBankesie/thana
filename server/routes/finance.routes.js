@@ -324,6 +324,13 @@ router.get(
   financeController.listTaxCodeComponents,
 );
 
+router.get(
+  "/tax-components",
+  requireAuth,
+  requireCompanyScope,
+  financeController.listAllTaxComponents,
+);
+
 router.put(
   "/tax-components/:id",
   requireAuth,

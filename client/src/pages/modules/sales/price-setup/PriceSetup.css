@@ -35,24 +35,24 @@
   gap: 8px;
 }
 
-.btn-primary {
-  background: #28a745;
+.price-setup-container .btn-primary {
+  background: #0E3646;
   color: white;
 }
 
-.btn-primary:hover {
-  background: #218838;
+.price-setup-container .btn-primary:hover {
+  background: #173d50;
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+  box-shadow: 0 4px 12px rgba(14, 54, 70, 0.3);
 }
 
-.btn-secondary {
-  background: #6c757d;
+.price-setup-container .btn-secondary {
+  background: #0E3646;
   color: white;
 }
 
-.btn-secondary:hover {
-  background: #5a6268;
+.price-setup-container .btn-secondary:hover {
+  background: #173d50;
 }
 
 .btn-info {

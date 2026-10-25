@@ -72,12 +72,51 @@
     min-height: 40px;
   }
 
-  .btn-primary {
-    @apply inline-flex items-center justify-center px-5 py-2.5 rounded-xl font-medium text-white bg-brand-900 hover:bg-brand-800 active:bg-brand-950 transition-all duration-150 shadow-apple-xs disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98];
+  .btn-primary,
+  .btn.btn-primary,
+  button.btn-primary,
+  a.btn-primary,
+  button[data-action="create"],
+  .btn-create {
+    @apply inline-flex items-center justify-center px-5 py-2.5 rounded-xl font-medium text-white transition-all duration-150 shadow-apple-xs disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98];
+    background-color: #0E3646 !important;
+    color: #ffffff !important;
+    border: none !important;
     min-height: 42px;
   }
-  .btn-primary:focus-visible {
+  .btn-primary:hover:not(:disabled),
+  .btn.btn-primary:hover:not(:disabled),
+  button.btn-primary:hover:not(:disabled),
+  a.btn-primary:hover:not(:disabled),
+  button[data-action="create"]:hover:not(:disabled),
+  .btn-create:hover:not(:disabled) {
+    background-color: #173d50 !important;
+    color: #ffffff !important;
+    box-shadow: 0 4px 12px rgba(14, 54, 70, 0.25) !important;
+  }
+  .btn-primary:active:not(:disabled),
+  .btn.btn-primary:active:not(:disabled),
+  button.btn-primary:active:not(:disabled),
+  a.btn-primary:active:not(:disabled) {
+    background-color: #061a22 !important;
+    color: #ffffff !important;
+  }
+  .btn-primary:focus-visible,
+  .btn.btn-primary:focus-visible,
+  button.btn-primary:focus-visible,
+  a.btn-primary:focus-visible {
     @apply outline-none ring-2 ring-brand-900/40 ring-offset-2 ring-offset-white dark:ring-offset-slate-800;
+  }
+
+  /* Any button with legacy grey #6c757d forced to Brand Deep Teal #0E3646 */
+  button[style*="6c757d"],
+  .btn[style*="6c757d"],
+  button[style*="108, 117, 125"],
+  .btn-secondary-brand,
+  .btn-slate-action {
+    background-color: #0E3646 !important;
+    color: #ffffff !important;
+    border-color: #0E3646 !important;
   }
 
   .btn-danger {

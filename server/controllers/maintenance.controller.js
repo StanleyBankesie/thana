@@ -145,7 +145,7 @@ function ensureTables(companyId, branchId) {
     start_date DATE, end_date DATE,
     technicians TEXT, work_done TEXT,
     materials_used TEXT, completion_status VARCHAR(50) DEFAULT 'IN_PROGRESS',
-    sign_off_by VARCHAR(200), status VARCHAR(50) DEFAULT 'DRAFT',
+    sign_off_by VARCHAR(200), sign_off_date DATE NULL, status VARCHAR(50) DEFAULT 'DRAFT',
     notes TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`);
   await query('ALTER TABLE maint_job_executions ADD COLUMN IF NOT EXISTS warehouse_id BIGINT UNSIGNED DEFAULT NULL AFTER created_by').catch(() => {});
@@ -155,6 +155,7 @@ function ensureTables(companyId, branchId) {
     ["start_time", "VARCHAR(10) NULL AFTER start_date"],
     ["end_time", "VARCHAR(10) NULL AFTER end_date"],
     ["downtime_hours", "DECIMAL(8,2) NULL AFTER end_time"],
+    ["sign_off_date", "DATE NULL AFTER sign_off_by"],
     ["current_step", "INT NOT NULL DEFAULT 1 AFTER notes"],
     ["material_lines", "TEXT NULL AFTER materials_used"],
     ["checklist", "TEXT NULL AFTER material_lines"],

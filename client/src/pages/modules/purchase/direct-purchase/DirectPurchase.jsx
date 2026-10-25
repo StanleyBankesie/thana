@@ -13,6 +13,7 @@ import { useExchangeRate } from "../../../../hooks/useExchangeRate";
 import { Trash2 } from "lucide-react";
 import { toast } from "react-toastify";
 import { filterByPrefix } from "@/utils/searchUtils.js";
+import TaxPricingModal, { TaxModeRadioSelector } from "@/components/common/TaxPricingModal.jsx";
 
 /**
  *  component
@@ -58,6 +59,10 @@ export default function DirectPurchase() {
     payment_reference: "",
     cheque_date: "",
     paid_amount: "",
+    tax_mode: "EXCLUSIVE",
+    tax_code_id: "",
+    tax_rate: 0,
+    tax_component_name: "",
   });
   const baseCurrencyCode = useMemo(() => {
     return (
@@ -93,6 +98,8 @@ export default function DirectPurchase() {
     discount_percent: "",
     tax_code_id: "",
     tax_percent: 0,
+    tax_mode: "EXCLUSIVE",
+    tax_component_name: "",
     uom: "PCS",
     batch_no: "",
     mfg_date: "",
@@ -109,6 +116,9 @@ export default function DirectPurchase() {
     rowIdx: null,
   });
   const [taxComponentsByCode, setTaxComponentsByCode] = useState({});
+  const [taxModalOpen, setTaxModalOpen] = useState(false);
+  const [showTaxModeAlert, setShowTaxModeAlert] = useState(false);
+  const [hasPromptedTaxMode, setHasPromptedTaxMode] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -329,8 +339,30 @@ export default function DirectPurchase() {
     return { components, taxTotal, taxableTotal };
   };
 
+  const handleTaxModeChange = (newMode) => {
+    setForm((prev) => ({
+      ...prev,
+      tax_mode: newMode,
+    }));
+    setNewItem((prev) => ({
+      ...prev,
+      tax_mode: newMode,
+    }));
+    setLines((prev) =>
+      prev.map((ln) =>
+        recomputeLineTotals({
+          ...ln,
+          tax_mode: newMode,
+        }),
+      ),
+    );
+  };
+
   const handleNewItemChange = (e) => {
     const { name, value } = e.target;
+    const currentTaxMode = String(form.tax_mode || "EXCLUSIVE").toUpperCase();
+    const isInclusive = currentTaxMode === "INCLUSIVE";
+
     setNewItem((prev) => {
       let next = { ...prev, [name]: value };
       if (name === "item_id") {
@@ -339,26 +371,11 @@ export default function DirectPurchase() {
         let unitPrice = it && Number(it.cost_price) ? Number(it.cost_price) : 0;
         next.uom = String(fallbackUom || "PCS");
         next.unit_price = unitPrice;
+        next.tax_mode = currentTaxMode;
 
-        // Try to fetch item tax if applicable (added in modernize)
-        const fetchTax = async () => {
-          try {
-            const res = await api.get(`/finance/item-tax/${value}`);
-            const tax = res.data?.tax;
-            if (tax && tax.id) {
-              setNewItem((p) =>
-                p.item_id === value
-                  ? {
-                      ...p,
-                      tax_code_id: String(tax.id),
-                      tax_percent: Number(tax.tax_rate),
-                    }
-                  : p,
-              );
-            }
-          } catch {}
-        };
-        fetchTax();
+        next.tax_code_id = form.tax_code_id || prev.tax_code_id || "";
+        next.tax_percent = form.tax_rate !== undefined ? form.tax_rate : (prev.tax_percent || 0);
+        next.tax_component_name = form.tax_component_name || prev.tax_component_name || "";
       }
       if (name === "tax_code_id") {
         const tax = taxes.find((t) => String(t.value) === String(value));
@@ -382,19 +399,22 @@ export default function DirectPurchase() {
       toast.warning("Please enter a valid quantity greater than 0");
       return;
     }
-    const { taxTotal, taxableTotal } = calcNewItemTaxBreakdown();
+    const currentTaxMode = String(form.tax_mode || "EXCLUSIVE").toUpperCase();
+    const isInclusive = currentTaxMode === "INCLUSIVE";
     const it = items.find((x) => Number(x.id) === Number(newItem.item_id));
 
-    setLines((prev) => [
-      ...prev,
-      {
-        ...newItem,
-        id: Date.now(),
-        item_name: it?.item_name || "",
-        item_code: it?.item_code || "",
-        line_total: taxableTotal + taxTotal,
-      },
-    ]);
+    const lineCalculated = recomputeLineTotals({
+      ...newItem,
+      id: Date.now(),
+      item_name: it?.item_name || "",
+      item_code: it?.item_code || "",
+      tax_mode: currentTaxMode,
+      tax_code_id: form.tax_code_id || newItem.tax_code_id || "",
+      tax_percent: form.tax_rate !== undefined ? form.tax_rate : newItem.tax_percent,
+      tax_component_name: form.tax_component_name || newItem.tax_component_name || "",
+    });
+
+    setLines((prev) => [...prev, lineCalculated]);
 
     setItemQueries((prev) => ({ ...prev, new: "" }));
     setNewItem({
@@ -402,8 +422,10 @@ export default function DirectPurchase() {
       qty: 1,
       unit_price: "",
       discount_percent: "",
-      tax_code_id: "",
-      tax_percent: 0,
+      tax_code_id: form.tax_code_id || "",
+      tax_percent: form.tax_rate || 0,
+      tax_mode: currentTaxMode,
+      tax_component_name: form.tax_component_name || "",
       uom: defaultUomCode,
       batch_no: "",
       mfg_date: "",
@@ -413,9 +435,11 @@ export default function DirectPurchase() {
   };
 
   const totals = useMemo(() => {
-    let subtotal = 0;
+    let grossSub = 0;
+    let netSub = 0;
     let totalDiscount = 0;
-    const compTotals = {};
+    let totalTax = 0;
+    const isInclusive = String(form.tax_mode || "").toUpperCase() === "INCLUSIVE";
 
     for (const l of lines) {
       const qty = Number(l.qty || 0);
@@ -423,54 +447,40 @@ export default function DirectPurchase() {
       const discP = Number(l.discount_percent || 0);
       const gross = qty * unit;
       const disc = gross * (discP / 100);
-      const base = Math.max(0, gross - disc);
-      subtotal += gross;
+      const taxable = Math.max(0, gross - disc);
+      grossSub += gross;
       totalDiscount += disc;
 
-      const taxCodeId = l.tax_code_id;
-      const comps = taxComponentsByCode[String(taxCodeId)] || [];
-      if (comps.length > 0) {
-        comps.forEach((c) => {
-          const rate = Number(c.rate_percent) || 0;
-          if (rate === 0) return;
-          const amt = (base * rate) / 100;
-          const name = c.component_name;
-          if (!compTotals[name]) {
-            compTotals[name] = {
-              amount: 0,
-              rate,
-              sort_order: c.sort_order || 0,
-            };
-          }
-          compTotals[name].amount += amt;
-        });
+      const taxRate = Number(l.tax_percent !== undefined && Number(l.tax_percent) > 0 ? l.tax_percent : (form.tax_rate || 0));
+      if (isInclusive) {
+        const lineNet = taxRate > 0 ? Math.round((taxable / (1 + taxRate / 100)) * 100) / 100 : taxable;
+        const lineTax = Math.round((taxable - lineNet) * 100) / 100;
+        netSub += lineNet;
+        totalTax += lineTax;
       } else {
-        const taxP = Number(l.tax_percent || 0);
-        const taxVal = (base * taxP) / 100;
-        if (taxP > 0) {
-          const name = "Tax";
-          if (!compTotals[name]) {
-            compTotals[name] = { amount: 0, rate: taxP, sort_order: 99 };
-          }
-          compTotals[name].amount += taxVal;
-        }
+        const lineTax = taxRate > 0 ? Math.round((taxable * (taxRate / 100)) * 100) / 100 : 0;
+        netSub += taxable;
+        totalTax += lineTax;
       }
     }
 
-    const components = Object.keys(compTotals)
-      .map((name) => ({
-        name,
-        amount: compTotals[name].amount,
-        rate: compTotals[name].rate,
-        sort_order: compTotals[name].sort_order,
-      }))
-      .sort((a, b) => a.sort_order - b.sort_order);
+    const subtotal = isInclusive ? netSub : grossSub;
+    const grandTotal = isInclusive
+      ? lines.reduce((s, l) => s + Number(l.line_total || 0), 0)
+      : Math.max(0, subtotal - totalDiscount + totalTax);
 
-    const totalTax = components.reduce((s, c) => s + c.amount, 0);
-    const grandTotal = subtotal - totalDiscount + totalTax;
+    const components = [];
+    if (totalTax > 0) {
+      components.push({
+        name: form.tax_component_name || (form.tax_rate ? `Tax (${form.tax_rate}%)` : "Tax"),
+        amount: totalTax,
+        rate: form.tax_rate || 0,
+        sort_order: 1,
+      });
+    }
 
-    return { subtotal, totalDiscount, totalTax, grandTotal, components };
-  }, [lines, taxComponentsByCode]);
+    return { subtotal, grossSub, totalDiscount, totalTax, grandTotal, components };
+  }, [lines, form.tax_mode, form.tax_rate, form.tax_component_name]);
 
   const isChequeLike = useMemo(
     () =>
@@ -577,21 +587,47 @@ export default function DirectPurchase() {
     const qty = Number(row.qty || 0);
     const price = Number(row.unit_price || 0);
     const discPct = Number(row.discount_percent || 0);
-    const taxPct = Number(row.tax_percent || 0);
-    const base = qty * price;
-    const disc = base * (discPct / 100);
-    const taxable = base - disc;
+    const gross = qty * price;
+    const disc = gross * (discPct / 100);
+    const taxable = Math.max(0, gross - disc);
 
-    const comps = taxComponentsByCode[String(row.tax_code_id)] || [];
+    const effectiveMode = String(row.tax_mode || form.tax_mode || "EXCLUSIVE").toUpperCase();
+    const isInclusive = effectiveMode === "INCLUSIVE";
+    const taxRate = Number(
+      row.tax_percent !== undefined && row.tax_percent !== null && Number(row.tax_percent) > 0
+        ? row.tax_percent
+        : (form.tax_rate || 0)
+    );
+    const taxCodeId = row.tax_code_id || form.tax_code_id || "";
+
+    let net = taxable;
     let tax = 0;
-    if (comps.length > 0) {
-      comps.forEach((c) => {
-        tax += (taxable * Number(c.rate_percent || 0)) / 100;
-      });
+    let line_total = taxable;
+
+    if (isInclusive && taxRate > 0) {
+      line_total = taxable;
+      net = Math.round((taxable / (1 + taxRate / 100)) * 100) / 100;
+      tax = Math.round((taxable - net) * 100) / 100;
+    } else if (!isInclusive && taxRate > 0) {
+      net = taxable;
+      tax = Math.round((taxable * (taxRate / 100)) * 100) / 100;
+      line_total = Math.round((taxable + tax) * 100) / 100;
     } else {
-      tax = taxable * (taxPct / 100);
+      net = taxable;
+      tax = 0;
+      line_total = taxable;
     }
-    return { ...row, line_total: taxable + tax };
+
+    return {
+      ...row,
+      tax_mode: effectiveMode,
+      tax_code_id: row.tax_code_id || form.tax_code_id || "",
+      tax_percent: taxRate,
+      tax_component_name: row.tax_component_name || form.tax_component_name || "",
+      net,
+      tax,
+      line_total,
+    };
   }
   function updateLine(i, k, v) {
     setLines((prev) => {
@@ -801,8 +837,8 @@ export default function DirectPurchase() {
   }
 
   return (
-    <div className="p-6">
-      <div className="rounded-lg border border-[#dee2e6] bg-white shadow-erp">
+    <div className="p-6" data-no-overview="true">
+      <div className="rounded-lg border border-[#dee2e6] bg-white shadow-erp" data-no-overview="true">
         <div className="px-6 py-4 border-b bg-brand text-white rounded-t-lg flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold">Direct Purchase</h1>
@@ -1045,7 +1081,7 @@ export default function DirectPurchase() {
             <div className="md:col-span-3 flex flex-col gap-1">
               <label className="label">Remarks</label>
               <textarea
-                className="input w-96"
+                className="input w-full"
                 rows="4"
                 value={form.remarks}
                 onChange={(e) => updateForm("remarks", e.target.value)}
@@ -1055,9 +1091,20 @@ export default function DirectPurchase() {
           </div>
           {/* Add Item Card matching screenshot */}
           <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm mb-6">
-            <h3 className="text-sm font-bold text-[#0E3646] mb-4">
-              Add Item
-            </h3>
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-sm font-bold text-[#0E3646]">
+                Add Item
+              </h3>
+              <TaxModeRadioSelector
+                taxMode={form.tax_mode || "EXCLUSIVE"}
+                onModeChange={handleTaxModeChange}
+                onOpenTaxModal={() => setTaxModalOpen(true)}
+                selectedTaxLabel={form.tax_component_name || newItem.tax_component_name}
+                openAlert={showTaxModeAlert}
+                onCloseAlert={() => setShowTaxModeAlert(false)}
+                anchorSelector="#dp-item-search"
+              />
+            </div>
             <div className="grid grid-cols-1 md:grid-cols-12 gap-3 mb-3 items-end">
               {/* Row 1 */}
               {/* Item * */}
@@ -1069,6 +1116,18 @@ export default function DirectPurchase() {
                   <input
                     id="dp-item-search"
                     autoComplete="off"
+                    onFocus={() => {
+                      if (!hasPromptedTaxMode) {
+                        setShowTaxModeAlert(true);
+                        setHasPromptedTaxMode(true);
+                      }
+                    }}
+                    onClick={() => {
+                      if (!hasPromptedTaxMode) {
+                        setShowTaxModeAlert(true);
+                        setHasPromptedTaxMode(true);
+                      }
+                    }}
                     className="input w-full text-xs"
                     placeholder="Scan barcode or type item name"
                     value={itemQueries.new || ""}
@@ -1235,20 +1294,16 @@ export default function DirectPurchase() {
                 <label className="block text-xs font-medium text-slate-700 mb-1">
                   Tax Code
                 </label>
-                <select
-                  name="tax_code_id"
-                  className="input w-full text-xs"
-                  value={newItem.tax_code_id}
-                  onChange={handleNewItemChange}
-                  disabled={isViewMode}
+                <button
+                  type="button"
+                  onClick={() => setTaxModalOpen(true)}
+                  className="w-full text-left px-2 py-1.5 text-xs border border-gray-300 rounded bg-white hover:bg-gray-50 flex items-center justify-between"
                 >
-                  <option value="">No Tax</option>
-                  {taxes.map((t) => (
-                    <option key={t.value} value={t.value}>
-                      {t.label}
-                    </option>
-                  ))}
-                </select>
+                  <span className="truncate">
+                    {form.tax_component_name || (form.tax_rate ? `Tax (${form.tax_rate}%)` : "Select Tax")}
+                  </span>
+                  <span className="text-blue-600 font-semibold ml-1">Edit</span>
+                </button>
               </div>
 
               {/* Batch No */}
@@ -1389,10 +1444,15 @@ export default function DirectPurchase() {
                           </td>
                           <td className="text-right">{l.discount_percent}%</td>
                           <td className="text-right font-medium">
-                            {net.toFixed(2)}
+                            {(l.net !== undefined ? Number(l.net) : net).toFixed(2)}
                           </td>
                           <td className="text-right text-gray-600">
-                            {tax.toFixed(2)}
+                            <div>{(l.tax !== undefined ? Number(l.tax) : tax).toFixed(2)}</div>
+                            {Number(l.tax_percent || 0) > 0 && (
+                              <span className="inline-block px-1.5 py-0.5 text-[10px] bg-blue-50 text-blue-700 rounded font-medium mt-0.5">
+                                {l.tax_percent}%
+                              </span>
+                            )}
                           </td>
                           <td className="text-right font-bold text-[#0E3646]">
                             {Number(l.line_total).toLocaleString(undefined, {
@@ -1641,6 +1701,58 @@ export default function DirectPurchase() {
           ) : null}
         </div>
       </div>
+      <TaxPricingModal
+        open={taxModalOpen}
+        form="DIRECT_PURCHASE"
+        pageId={1}
+        onClose={() => setTaxModalOpen(false)}
+        taxMode={form.tax_mode || "EXCLUSIVE"}
+        price={Number(newItem.unit_price || 0)}
+        selectedComponent={{
+          name: form.tax_component_name || newItem.tax_component_name,
+          rate: form.tax_rate ?? newItem.tax_percent,
+          id: form.tax_code_id || newItem.tax_code_id,
+        }}
+        onSelectComponent={(comp) => {
+          const compLabel = `${comp.name}${comp.rate !== undefined ? ` (${comp.rate}%)` : ""}`;
+          const taxCodeId = comp.taxCodeId || comp.originalId || comp.id;
+          const taxRate = comp.rate;
+
+          const currentMode = form.tax_mode || "EXCLUSIVE";
+          setForm((prev) => ({
+            ...prev,
+            tax_mode: currentMode,
+            tax_code_id: taxCodeId || prev.tax_code_id,
+            tax_rate: taxRate,
+            tax_component_name: compLabel,
+          }));
+
+          setNewItem((prev) => ({
+            ...prev,
+            tax_code_id: taxCodeId || prev.tax_code_id,
+            tax_percent: taxRate,
+            tax_component_name: compLabel,
+            tax_mode: currentMode,
+          }));
+
+          setLines((prev) =>
+            prev.map((ln) =>
+              recomputeLineTotals({
+                ...ln,
+                tax_code_id: taxCodeId || ln.tax_code_id,
+                tax_percent: taxRate,
+                tax_component_name: compLabel,
+                tax_mode: currentMode,
+              })
+            )
+          );
+
+          if (taxCodeId) {
+            fetchTaxComponentsForCode(taxCodeId);
+          }
+          setTaxModalOpen(false);
+        }}
+      />
       <UnitConversionModal
         open={convModal.open}
         onClose={() => setConvModal((p) => ({ ...p, open: false }))}

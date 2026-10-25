@@ -10,13 +10,14 @@ import { useUoms } from "@/hooks/useUoms";
 import { useExchangeRate } from "@/hooks/useExchangeRate";
 import UnitConversionModal from "@/components/UnitConversionModal";
 import { filterByPrefix } from "@/utils/searchUtils.js";
-import { Printer, Download, Plus } from "lucide-react";
+import { Plus, ArrowLeft, FileText, Save } from "lucide-react";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 import { useAuth } from "../../../../auth/AuthContext.jsx";
 import defaultLogo from "../../../../assets/resources/OMNISUITE_LOGO_FILL.png";
 import { toast } from "react-toastify";
 import { usePermission } from "../../../../auth/PermissionContext.jsx";
+import TaxPricingModal, { TaxModeRadioSelector } from "@/components/common/TaxPricingModal.jsx";
 
 /**
  *  component
@@ -50,6 +51,10 @@ export default function ProjectInvoiceForm() {
     invoice_date: new Date().toISOString().split("T")[0],
     customer_id: "",
     status: "POSTED",
+    tax_mode: "EXCLUSIVE",
+    tax_type: "",
+    tax_rate: 0,
+    tax_component_name: "",
     currency_id: "",
     exchange_rate: 1,
     address: "",
@@ -71,9 +76,15 @@ export default function ProjectInvoiceForm() {
     discount_percent: "",
     tax_type: "",
     tax_rate: undefined,
+    tax_mode: "EXCLUSIVE",
+    tax_component_name: "",
     remarks: "",
     uom: "",
   });
+  const [taxModalOpen, setTaxModalOpen] = useState(false);
+  const [editingLineTaxIdx, setEditingLineTaxIdx] = useState(null);
+  const [showTaxModeAlert, setShowTaxModeAlert] = useState(false);
+  const [hasPromptedTaxMode, setHasPromptedTaxMode] = useState(false);
   const [itemQuery, setItemQuery] = useState("");
   const pdfRef = useRef(null);
   const [taxComponentsByCode, setTaxComponentsByCode] = useState({});
@@ -112,7 +123,7 @@ export default function ProjectInvoiceForm() {
     rowId: null,
   });
   const [unitConversions, setUnitConversions] = useState([]);
-  const [autoDelivery, setAutoDelivery] = useState(false);
+  const [autoDelivery, setAutoDelivery] = useState(true);
   const [projects, setProjects] = useState([]);
 
   const baseCurrencyCode = React.useMemo(() => {
@@ -337,7 +348,7 @@ export default function ProjectInvoiceForm() {
 
   const fetchTaxCodes = async () => {
     try {
-      const response = await api.get("/finance/tax-codes?form=INVOICE");
+      const response = await api.get("/finance/tax-codes?form=PROJECT_INVOICE");
       const fetchedTaxes = Array.isArray(response.data?.items)
         ? response.data.items
         : [];
@@ -394,25 +405,44 @@ export default function ProjectInvoiceForm() {
     const sub = lines.reduce((s, i) => s + (i.net || 0), 0);
     const compTotals = {};
     lines.forEach((i) => {
-      const comps = taxComponentsByCode[String(i.tax_type)] || [];
-      comps.forEach((c) => {
-        const rate = Number(c.rate_percent) || 0;
-        const amt = ((i.net || 0) * rate) / 100;
-        const name = c.component_name;
-        if (!compTotals[name])
-          compTotals[name] = { amount: 0, rate, sort_order: c.sort_order || 0 };
-        compTotals[name].amount += amt;
-      });
+      const taxKey = String(i.tax_type || form.tax_type || "");
+      const comps = taxComponentsByCode[taxKey] || [];
+      if (comps.length > 0) {
+        comps.forEach((c) => {
+          const rate = Number(c.rate_percent) || 0;
+          const amt = Math.round((((i.net || 0) * rate) / 100) * 100) / 100;
+          const name = c.component_name;
+          if (!compTotals[name])
+            compTotals[name] = { amount: 0, rate, sort_order: c.sort_order || 0 };
+          compTotals[name].amount += amt;
+        });
+      } else {
+        const name =
+          i.tax_component_name ||
+          form.tax_component_name ||
+          (i.tax_rate ? `Tax (${i.tax_rate}%)` : "");
+        const rate = Number(
+          i.tax_rate !== undefined && i.tax_rate !== null
+            ? i.tax_rate
+            : (form.tax_rate || 0),
+        );
+        const amt = Number(i.taxAmt || 0);
+        if (name && amt > 0) {
+          if (!compTotals[name])
+            compTotals[name] = { amount: 0, rate, sort_order: 0 };
+          compTotals[name].amount += amt;
+        }
+      }
     });
     const components = Object.keys(compTotals)
       .map((name) => ({
         name,
-        amount: compTotals[name].amount,
+        amount: Math.round(compTotals[name].amount * 100) / 100,
         rate: compTotals[name].rate,
         sort_order: compTotals[name].sort_order,
       }))
       .sort((a, b) => a.sort_order - b.sort_order);
-    const taxTotal = components.reduce((s, c) => s + c.amount, 0);
+    const taxTotal = Math.round(components.reduce((s, c) => s + c.amount, 0) * 100) / 100;
     const total = sub + taxTotal;
     return { sub, components, taxTotal, total };
   };
@@ -442,18 +472,30 @@ export default function ProjectInvoiceForm() {
     };
   };
   const calcAggregates = () => {
+    const isInclusive = String(form.tax_mode || "").toUpperCase() === "INCLUSIVE";
     const grossSub = lines.reduce((s, i) => s + (i.sub || 0), 0);
     const discountTotal = lines.reduce((s, i) => s + (i.discAmt || 0), 0);
     const netSub = lines.reduce((s, i) => s + (i.net || 0), 0);
-    const tc = calcTaxComponentsTotals();
     const lineTax = lines.reduce((s, i) => s + Number(i.taxAmt || 0), 0);
-    const taxTotal = tc.taxTotal > 0 ? tc.taxTotal : lineTax;
-    const grand = netSub + taxTotal;
+    const tc = calcTaxComponentsTotals();
+    const taxTotal = tc.taxTotal > 0 ? tc.taxTotal : Math.round(lineTax * 100) / 100;
+    const grand = isInclusive
+      ? lines.reduce((s, i) => s + (i.total || 0), 0)
+      : Math.round((netSub + taxTotal) * 100) / 100;
+    // Subtotal: when inclusive, user wants: "recalculate the subtotal, this amount should be less tax"
+    const subtotal = isInclusive ? netSub : grossSub;
+    const components = [...tc.components];
+    if (components.length === 0 && taxTotal > 0) {
+      const name = form.tax_component_name || (form.tax_rate ? `Tax (${form.tax_rate}%)` : "Tax");
+      const rate = form.tax_rate || 0;
+      components.push({ name, amount: taxTotal, rate, sort_order: 1 });
+    }
     return {
       grossSub,
+      subtotal,
       discountTotal,
       netSub,
-      components: tc.components,
+      components,
       taxTotal,
       grand,
     };
@@ -690,6 +732,8 @@ export default function ProjectInvoiceForm() {
     const { name, value } = e.target;
     if (name === "item_id") {
       const prod = itemsCatalog.find((p) => p.id === parseInt(value));
+      const currentTaxMode = form.tax_mode || newItem.tax_mode || "EXCLUSIVE";
+      const isInclusive = currentTaxMode === "INCLUSIVE";
       setNewItem((prev) => ({
         ...prev,
         item_id: value,
@@ -697,6 +741,10 @@ export default function ProjectInvoiceForm() {
         unit_price: "",
         qty: 1,
         uom: String(prod?.uom || "") || defaultUomCode,
+        tax_mode: currentTaxMode,
+        tax_type: form.tax_type || prev.tax_type || "",
+        tax_rate: form.tax_rate !== undefined ? form.tax_rate : (prev.tax_rate || 0),
+        tax_component_name: form.tax_component_name || prev.tax_component_name || "",
       }));
       if (value) {
         {
@@ -720,43 +768,54 @@ export default function ProjectInvoiceForm() {
             })
             .catch((err) => console.error("Error fetching price:", err));
         }
-        api
-          .get(`/finance/item-tax/${value}`)
-          .then((resp) => {
-            const tax = resp.data?.tax;
-            if (tax) {
-              const resolvedTaxType =
-                tax.id ||
-                taxes.find((t) => t.code === tax.tax_code)?.value ||
-                null;
-              const resolvedTaxRate = resolvedTaxType
-                ? taxes.find((t) => String(t.value) === String(resolvedTaxType))
-                    ?.rate
-                : null;
-              setNewItem((prev) => ({
-                ...prev,
-                tax_type: resolvedTaxType ?? prev.tax_type,
-                tax_rate:
-                  resolvedTaxRate !== null && resolvedTaxRate !== undefined
-                    ? resolvedTaxRate
-                    : tax.tax_rate,
-              }));
-              if (resolvedTaxType) {
-                fetchTaxComponentsForCode(resolvedTaxType);
+        const currentMode = form.tax_mode || "EXCLUSIVE";
+        if (form.tax_rate !== undefined || form.tax_type) {
+          setNewItem((prev) => ({
+            ...prev,
+            tax_type: form.tax_type || prev.tax_type,
+            tax_rate: form.tax_rate !== undefined ? form.tax_rate : prev.tax_rate,
+            tax_component_name: form.tax_component_name || prev.tax_component_name,
+            tax_mode: currentMode,
+          }));
+        } else {
+          api
+            .get(`/finance/item-tax/${value}`)
+            .then((resp) => {
+              const tax = resp.data?.tax;
+              if (tax) {
+                const resolvedTaxType =
+                  tax.id ||
+                  taxes.find((t) => t.code === tax.tax_code)?.value ||
+                  null;
+                const resolvedTaxRate = resolvedTaxType
+                  ? taxes.find((t) => String(t.value) === String(resolvedTaxType))
+                      ?.rate
+                  : null;
+                setNewItem((prev) => ({
+                  ...prev,
+                  tax_type: resolvedTaxType ?? prev.tax_type,
+                  tax_rate:
+                    resolvedTaxRate !== null && resolvedTaxRate !== undefined
+                      ? resolvedTaxRate
+                      : tax.tax_rate,
+                }));
+                if (resolvedTaxType) {
+                  fetchTaxComponentsForCode(resolvedTaxType);
+                }
+              } else {
+                setNewItem((prev) => ({
+                  ...prev,
+                  tax_rate: prev.tax_rate !== undefined ? prev.tax_rate : 0,
+                }));
               }
-            } else {
+            })
+            .catch(() => {
               setNewItem((prev) => ({
                 ...prev,
-                tax_rate: undefined,
+                tax_rate: prev.tax_rate !== undefined ? prev.tax_rate : 0,
               }));
-            }
-          })
-          .catch(() => {
-            setNewItem((prev) => ({
-              ...prev,
-              tax_rate: undefined,
-            }));
-          });
+            });
+        }
       }
     } else {
       if (
@@ -775,16 +834,45 @@ export default function ProjectInvoiceForm() {
     }
   }
 
+  const handleInvoiceTaxModeChange = (newMode) => {
+    update("tax_mode", newMode);
+    setForm((prev) => ({
+      ...prev,
+      tax_mode: newMode,
+    }));
+    setNewItem((prev) => ({
+      ...prev,
+      tax_mode: newMode,
+    }));
+    setLines((prev) =>
+      prev.map((ln) => {
+        const updated = {
+          ...ln,
+          tax_mode: newMode,
+        };
+        return { ...updated, ...calcItemTotals(updated) };
+      })
+    );
+  };
+
   function addLine() {
     if ((!newItem.item_id && !newItem.item_name) || !newItem.qty || !newItem.unit_price) {
       toast.error("Please fill in the item name, quantity, and unit price");
       return;
     }
-    const calculations = calcItemTotals(newItem);
+    const currentTaxMode = form.tax_mode || newItem.tax_mode || "EXCLUSIVE";
+    const lineItemData = {
+      ...newItem,
+      tax_mode: currentTaxMode,
+      tax_type: newItem.tax_type || form.tax_type || "",
+      tax_rate: newItem.tax_rate !== undefined && newItem.tax_rate !== null ? newItem.tax_rate : (form.tax_rate || 0),
+      tax_component_name: newItem.tax_component_name || form.tax_component_name || "",
+    };
+    const calculations = calcItemTotals(lineItemData);
     setLines((prev) => [
       ...prev,
       {
-        ...newItem,
+        ...lineItemData,
         line_id: Date.now(),
         ...calculations,
         uom: newItem.uom || defaultUomCode,
@@ -796,8 +884,10 @@ export default function ProjectInvoiceForm() {
       qty: "",
       unit_price: "",
       discount_percent: "",
-      tax_type: taxes.length > 0 ? taxes[0].value : "",
-      tax_rate: undefined,
+      tax_type: form.tax_type || newItem.tax_type || "",
+      tax_rate: form.tax_rate !== undefined ? form.tax_rate : (newItem.tax_rate || 0),
+      tax_mode: currentTaxMode,
+      tax_component_name: form.tax_component_name || newItem.tax_component_name || "",
       remarks: "",
       uom: defaultUomCode,
     });
@@ -893,18 +983,48 @@ export default function ProjectInvoiceForm() {
     const disc = Math.round(Number(itm.discount_percent || 0) * 100) / 100;
     const sub = Math.round(qty * price * 100) / 100;
     const discAmt = Math.round(((sub * disc) / 100) * 100) / 100;
-    const net = Math.round((sub - discAmt) * 100) / 100;
+    const discountedGross = Math.round((sub - discAmt) * 100) / 100;
+
+    const effectiveMode = String(itm.tax_mode || form.tax_mode || "").toUpperCase();
+    const isInclusive = effectiveMode === "INCLUSIVE";
+
+    const fallbackRate = form.tax_rate !== undefined && form.tax_rate !== null ? Number(form.tax_rate) : 0;
     const taxRate =
-      taxes.find((t) => String(t.value) === String(itm.tax_type))?.rate || 0;
-    const taxAmt = Math.round(((net * taxRate) / 100) * 100) / 100;
-    const total = Math.round((net + taxAmt) * 100) / 100;
-    return { sub, discAmt, net, taxAmt, total, line_total: total };
+      itm.tax_rate !== undefined && itm.tax_rate !== null && Number(itm.tax_rate) > 0
+        ? Number(itm.tax_rate)
+        : (fallbackRate > 0
+            ? fallbackRate
+            : (taxes.find((t) => String(t.value) === String(itm.tax_type || form.tax_type))?.rate ?? fallbackRate));
+
+    let net = discountedGross;
+    let taxAmt = 0;
+    let total = discountedGross;
+
+    if (isInclusive && taxRate > 0) {
+      total = discountedGross;
+      net = Math.round((total / (1 + taxRate / 100)) * 100) / 100;
+      taxAmt = Math.round((total - net) * 100) / 100;
+    } else if (!isInclusive && taxRate > 0) {
+      net = discountedGross;
+      taxAmt = Math.round((discountedGross * (taxRate / 100)) * 100) / 100;
+      total = Math.round((discountedGross + taxAmt) * 100) / 100;
+    } else {
+      net = discountedGross;
+      taxAmt = 0;
+      total = discountedGross;
+    }
+
+    return { sub, discAmt, net, taxAmt, total, line_total: total, tax_mode: isInclusive ? "INCLUSIVE" : "EXCLUSIVE", isInclusive };
   }
 
   function calcGrandTotal() {
+    const isInclusive = String(form.tax_mode || "").toUpperCase() === "INCLUSIVE";
     const sub = lines.reduce((s, l) => s + Number(l.net || 0), 0);
     const tax = lines.reduce((s, l) => s + Number(l.taxAmt || 0), 0);
-    return { sub, tax, total: sub + tax };
+    const total = isInclusive
+      ? lines.reduce((s, l) => s + Number(l.total || 0), 0)
+      : sub + tax;
+    return { sub, tax, total };
   }
   function toYmd(value) {
     if (!value) return "";
@@ -1014,8 +1134,10 @@ export default function ProjectInvoiceForm() {
       }
 
       toast.success(`Invoice ${invoiceNo} saved successfully`);
-      if (autoDelivery) {
-        try {
+      // Auto delivery is always performed after invoice is created/saved
+      try {
+        const deliverableItems = workingLines.filter((l) => l.item_id);
+        if (deliverableItems.length > 0) {
           const nextNoResp = await api.get("/sales/deliveries/next-no");
           const nextNo = nextNoResp?.data?.nextNo || "";
           const dPayload = {
@@ -1025,7 +1147,7 @@ export default function ProjectInvoiceForm() {
             invoice_id: savedId || null,
             remarks: `Auto delivery for invoice ${invoiceNo}`,
             status: "DELIVERED",
-            items: workingLines.map((l) => ({
+            items: deliverableItems.map((l) => ({
               item_id: Number(l.item_id),
               quantity: Math.round(Number(l.qty || 0) * 100) / 100,
               unit_price: Math.round(Number(l.unit_price || 0) * 100) / 100,
@@ -1041,11 +1163,11 @@ export default function ProjectInvoiceForm() {
           } else {
             toast.success(`Delivery ${createdNo} created automatically`);
           }
-        } catch (delErr) {
-          const dmsg =
-            delErr?.response?.data?.message || "Failed to create delivery note";
-          toast.error(dmsg);
         }
+      } catch (delErr) {
+        const dmsg =
+          delErr?.response?.data?.message || "Failed to create delivery note";
+        toast.error(dmsg);
       }
       navigate("/project-management/project-invoices");
     } catch (err) {
@@ -1145,85 +1267,44 @@ export default function ProjectInvoiceForm() {
           }
         }
       `}</style>
-      <div className="card print:hidden">
-        <div className="card-header bg-brand text-white rounded-t-lg">
-          <div className="flex justify-between items-center text-white">
-            <div>
-              <h1 className="text-2xl font-bold dark:text-brand-300">
-                {isEdit ? "Edit Invoice" : "New Invoice"}
-              </h1>
-              <p className="text-sm mt-1">Create and manage project invoices</p>
-            </div>
-            <div className="flex gap-2 items-center">
-              <button
-                type="button"
-                onClick={async () => {
-                  try {
-                    await ensureTaxComponentsLoaded();
-                  } catch {}
-                  window.print();
-                }}
-                className="btn-secondary"
-                title="Print"
-              >
-                <Printer className="w-4 h-4 inline mr-1" />
-                Print
-              </button>
-              <button
-                type="button"
-                onClick={async () => {
-                  const el = pdfRef.current;
-                  if (!el) return;
-                  const original = el.style.cssText;
-                  el.style.cssText =
-                    original +
-                    ";position:fixed;left:-10000px;top:0;display:block;z-index:-1;background:white;width:794px;padding:32px;";
-                  try {
-                    const canvas = await html2canvas(el, {
-                      scale: 2,
-                      useCORS: true,
-                    });
-                    const imgData = canvas.toDataURL("image/png");
-                    const pdf = new jsPDF("p", "mm", "a4");
-                    const pageWidth = pdf.internal.pageSize.getWidth();
-                    const pageHeight = pdf.internal.pageSize.getHeight();
-                    const imgWidth = pageWidth;
-                    const imgHeight = (canvas.height * imgWidth) / canvas.width;
-                    let rendered = 0;
-                    while (rendered < imgHeight) {
-                      pdf.addImage(
-                        imgData,
-                        "PNG",
-                        0,
-                        -rendered,
-                        imgWidth,
-                        imgHeight,
-                      );
-                      rendered += pageHeight;
-                      if (rendered < imgHeight) pdf.addPage();
-                    }
-                    const fname =
-                      "Invoice_" +
-                      (form.invoice_no ||
-                        new Date().toISOString().slice(0, 10)) +
-                      ".pdf";
-                    pdf.save(fname);
-                  } finally {
-                    el.style.cssText = original;
-                  }
-                }}
-                className="btn-secondary"
-                title="Download PDF"
-              >
-                <Download className="w-4 h-4 inline mr-1" />
-                Download PDF
-              </button>
-              <button onClick={() => window.history.back()} className="btn-success"
-              >
-                Back
-              </button>
-            </div>
+      {/* Canonical ERP Flex Header */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 print:hidden">
+        <div className="flex items-center gap-4">
+          <button
+            type="button"
+            onClick={() => window.history.back()}
+            className="btn btn-secondary inline-flex items-center gap-1.5 text-sm"
+          >
+            <ArrowLeft size={16} /> Back
+          </button>
+          <div>
+            <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2.5">
+              <FileText size={26} className="text-brand-900 dark:text-brand-400" />
+              {isEdit ? "Edit Invoice" : "New Invoice"}
+            </h1>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+              Create and manage project invoices
+            </p>
           </div>
+        </div>
+        <div className="flex items-center gap-2.5">
+          <button
+            type="button"
+            onClick={() => window.history.back()}
+            className="btn btn-secondary text-sm"
+          >
+            Cancel
+          </button>
+          {!readOnly && (
+            <button
+              type="button"
+              onClick={submit}
+              disabled={loading}
+              className="btn btn-primary inline-flex items-center gap-2 text-sm font-semibold shadow-sm"
+            >
+              <Save size={16} /> {loading ? "Saving..." : "Save Invoice"}
+            </button>
+          )}
         </div>
       </div>
 
@@ -1257,11 +1338,11 @@ export default function ProjectInvoiceForm() {
                 />
               </div>
               <div className="relative">
-                <label className="label">Customer *</label>
+                <label className="label">Client *</label>
                 <input
                   type="text"
                   className="input w-56"
-                  placeholder="Search customer..."
+                  placeholder="Search client..."
                   required={!form.customer_id}
                   disabled={readOnly}
                   value={
@@ -1318,14 +1399,14 @@ export default function ProjectInvoiceForm() {
                     ) : q.length >= 2 ? (
                       <div className="absolute z-30 w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg shadow-lg mt-1">
                         <div className="p-3 text-sm text-slate-600 dark:text-slate-400 text-center">
-                          Customer not found.{" "}
+                          Client not found.{" "}
                           <button
                             type="button"
                             className="text-brand-700 dark:text-brand-400 font-medium underline ml-1"
                             onMouseDown={(e) => e.preventDefault()}
                             onClick={() => setShowCustomerModal(true)}
                           >
-                            Add customer
+                            Add client
                           </button>
                         </div>
                       </div>
@@ -1466,8 +1547,20 @@ export default function ProjectInvoiceForm() {
             <div className="border-t border-slate-200 dark:border-slate-700 pt-4">
               <div className="flex justify-between items-center mb-3">
                 <div className="font-semibold">Invoice Items</div>
+                <TaxModeRadioSelector
+                  taxMode={form.tax_mode || "EXCLUSIVE"}
+                  onModeChange={handleInvoiceTaxModeChange}
+                  onOpenTaxModal={() => {
+                    setEditingLineTaxIdx(null);
+                    setTaxModalOpen(true);
+                  }}
+                  selectedTaxLabel={newItem.tax_component_name}
+                  openAlert={showTaxModeAlert}
+                  onCloseAlert={() => setShowTaxModeAlert(false)}
+                  anchorSelector="#invoice-item-search"
+                />
               </div>
-              <div className="bg-gray-50 p-4 rounded-lg mb-6 border border-gray-200">
+              <div className="bg-white dark:bg-slate-900 p-4 rounded-lg mb-6 border border-slate-200 dark:border-slate-800 shadow-sm">
                 <div className="grid grid-cols-1 md:grid-cols-6 gap-3 mb-3">
                   <div className="md:col-span-2">
                     <label className="block text-xs font-medium text-gray-700 mb-1">
@@ -1478,9 +1571,21 @@ export default function ProjectInvoiceForm() {
                         id="invoice-item-search"
                         name="item_id"
                         autoComplete="off"
-                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0E3646]"
+                        className="input text-sm w-full"
                         placeholder="Scan barcode or type item name"
                         value={itemQuery}
+                        onFocus={() => {
+                          if (!hasPromptedTaxMode) {
+                            setShowTaxModeAlert(true);
+                            setHasPromptedTaxMode(true);
+                          }
+                        }}
+                        onClick={() => {
+                          if (!hasPromptedTaxMode) {
+                            setShowTaxModeAlert(true);
+                            setHasPromptedTaxMode(true);
+                          }
+                        }}
                         onChange={(e) => {
                           const val = e.target.value;
                           setItemQuery(val);
@@ -1588,7 +1693,7 @@ export default function ProjectInvoiceForm() {
                       name="uom"
                       value={newItem.uom || defaultUomCode}
                       onChange={handleNewItemChange}
-                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0E3646]"
+                      className="input text-sm w-full"
                     >
                       {(Array.isArray(uoms) ? uoms : []).map((u) => (
                         <option key={u.id} value={u.uom_code}>
@@ -1639,7 +1744,7 @@ export default function ProjectInvoiceForm() {
                       name="qty"
                       value={newItem.qty === "" ? "" : newItem.qty}
                       onChange={handleNewItemChange}
-                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0E3646]"
+                      className="input text-sm w-full"
                       min="1"
                       step="1"
                     />
@@ -1698,7 +1803,7 @@ export default function ProjectInvoiceForm() {
                         newItem.unit_price === "" ? "" : newItem.unit_price
                       }
                       onChange={handleNewItemChange}
-                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0E3646]"
+                      className="input text-sm w-full"
                       step="1"
                     />
                   </div>
@@ -1717,7 +1822,7 @@ export default function ProjectInvoiceForm() {
                           : newItem.discount_percent
                       }
                       onChange={handleNewItemChange}
-                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0E3646]"
+                      className="input text-sm w-full"
                       min="0"
                       max="100"
                       step="1"
@@ -1726,20 +1831,26 @@ export default function ProjectInvoiceForm() {
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-gray-700 mb-1">
-                      Tax
+                      Tax Code
                     </label>
-                    <select
-                      name="tax_type"
-                      value={newItem.tax_type}
-                      onChange={handleNewItemChange}
-                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0E3646]"
+                    <div
+                      data-tax-anchor="true"
+                      onClick={() => {
+                        setEditingLineTaxIdx(null);
+                        setTaxModalOpen(true);
+                      }}
+                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg bg-white dark:bg-slate-900 cursor-pointer flex items-center justify-between hover:border-brand-500 transition-colors shadow-sm min-h-[38px]"
+                      title="Click to select tax code"
                     >
-                      {taxes.map((t) => (
-                        <option key={t.value} value={t.value}>
-                          {t.label}
-                        </option>
-                      ))}
-                    </select>
+                      <span className="truncate text-xs text-slate-800 dark:text-slate-200">
+                        {newItem.tax_component_name || (newItem.tax_type ? taxes.find(t => String(t.value) === String(newItem.tax_type))?.label : '') || (newItem.tax_rate ? `Tax (${newItem.tax_rate}%)` : 'Select Tax')}
+                      </span>
+                      {newItem.tax_rate !== undefined && Number(newItem.tax_rate) > 0 && (
+                        <span className="text-[11px] font-bold text-brand-600 bg-brand-50 dark:bg-brand-900/30 px-1.5 py-0.5 rounded shrink-0 ml-1">
+                          {Number(newItem.tax_rate)}%
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
                 <div className="flex justify-end">
@@ -1747,7 +1858,7 @@ export default function ProjectInvoiceForm() {
                     <button
                       type="button"
                       onClick={addLine}
-                      className="bg-[#0E3646] text-white px-4 py-2 rounded-lg hover:bg-[#092530] flex items-center gap-2 transition-colors text-sm"
+                      className="btn btn-primary inline-flex items-center gap-2 text-sm font-semibold"
                     >
                       <Plus className="w-4 h-4" /> Add Item
                     </button>
@@ -1996,23 +2107,31 @@ export default function ProjectInvoiceForm() {
                           </td>
                           <td className="px-4 py-3 text-gray-900">
                             {canEdit ? (
-                              <select
-                                className="input w-full min-w-[9rem]"
-                                value={i.tax_type}
-                                onChange={(e) =>
-                                  updateLine(idx, { tax_type: e.target.value })
-                                }
+                              <div
+                                onClick={() => {
+                                  setEditingLineTaxIdx(idx);
+                                  setTaxModalOpen(true);
+                                }}
+                                className="cursor-pointer border border-dashed border-slate-300 dark:border-slate-700 rounded-lg px-2 py-1 text-xs hover:border-brand-500 bg-slate-50 dark:bg-slate-800/50 transition-colors"
+                                title="Click to change tax component or mode"
                               >
-                                {taxes.map((t) => (
-                                  <option key={t.value} value={t.value}>
-                                    {t.label}
-                                  </option>
-                                ))}
-                              </select>
+                                <div className="font-semibold text-slate-800 dark:text-slate-200 truncate">
+                                  {i.tax_component_name || form.tax_component_name || (taxes.find((t) => String(t.value) === String(i.tax_type || form.tax_type))?.label) || (i.tax_rate ? `Tax (${i.tax_rate}%)` : '-')}
+                                </div>
+                                <div className="text-[10px] text-slate-500 flex items-center justify-between gap-1 mt-0.5">
+                                  <span className={`px-1 rounded text-[9px] font-bold ${(i.tax_mode || form.tax_mode) === 'INCLUSIVE' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}`}>
+                                    {(i.tax_mode || form.tax_mode) === 'INCLUSIVE' ? 'Incl' : 'Excl'}
+                                  </span>
+                                  <span className="font-bold text-brand-600">
+                                    {Number(i.tax_rate !== undefined && i.tax_rate !== null ? i.tax_rate : (form.tax_rate !== undefined && form.tax_rate !== null ? form.tax_rate : (taxes.find((t) => String(t.value) === String(i.tax_type || form.tax_type))?.rate || 0)))}%
+                                  </span>
+                                </div>
+                              </div>
                             ) : (
-                              taxes.find(
-                                (t) => String(t.value) === String(i.tax_type),
-                              )?.label || ""
+                              <span>
+                                {i.tax_component_name || (taxes.find((t) => String(t.value) === String(i.tax_type))?.label) || ''}
+                                {i.tax_mode ? ` [${i.tax_mode === 'INCLUSIVE' ? 'Incl' : 'Excl'}]` : ''}
+                              </span>
                             )}
                           </td>
                           <td className="px-4 py-3 text-gray-900">
@@ -2081,7 +2200,7 @@ export default function ProjectInvoiceForm() {
                 <div className="space-y-2">
                   <div className="flex justify-between font-medium">
                     <span>Subtotal:</span>
-                    <span>{calcAggregates().grossSub.toFixed(2)}</span>
+                    <span>{calcAggregates().subtotal.toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between font-medium">
                     <span>Total Discount:</span>
@@ -2109,10 +2228,10 @@ export default function ProjectInvoiceForm() {
               </div>
             </div>
 
-            <div>
+            <div className="w-full">
               <label className="label">Remarks / Notes</label>
               <textarea
-                className="input"
+                className="input w-full"
                 rows={3}
                 value={form.remarks}
                 onChange={(e) => update("remarks", e.target.value)}
@@ -2121,27 +2240,21 @@ export default function ProjectInvoiceForm() {
               />
             </div>
 
-            <div className="flex justify-end gap-3">
-              <button onClick={() => window.history.back()} className="btn-success"
+            <div className="flex justify-end gap-3 pt-6 border-t border-slate-200 dark:border-slate-800">
+              <button
+                type="button"
+                onClick={() => window.history.back()}
+                className="btn btn-secondary text-sm"
               >
                 Cancel
               </button>
-              <label className="flex items-center gap-2 mr-4">
-                <input
-                  type="checkbox"
-                  checked={autoDelivery}
-                  onChange={(e) => setAutoDelivery(e.target.checked)}
-                  disabled={readOnly || loading}
-                />
-                <span className="text-sm">Auto Delivery</span>
-              </label>
               {!readOnly && (
                 <button
-                  className="btn-success"
                   type="submit"
+                  className="btn btn-primary inline-flex items-center gap-2 text-sm font-semibold shadow-sm"
                   disabled={loading}
                 >
-                  {loading ? "Saving..." : "Save Invoice"}
+                  <Save size={16} /> {loading ? "Saving..." : "Save Invoice"}
                 </button>
               )}
             </div>
@@ -2183,7 +2296,7 @@ export default function ProjectInvoiceForm() {
             <div>DATE: {form.invoice_date || ""}</div>
             <div>Invoice #: {form.invoice_no || ""}</div>
             <div>
-              Customer:{" "}
+              Client:{" "}
               {customers.find((c) => String(c.id) === String(form.customer_id))
                 ?.customer_name || ""}
             </div>
@@ -2251,7 +2364,7 @@ export default function ProjectInvoiceForm() {
               <div className="grid grid-cols-2">
                 <div className="px-2 py-1 font-medium">Subtotal</div>
                 <div className="px-2 py-1 text-right">
-                  {calcAggregates().grossSub.toFixed(2)}
+                  {calcAggregates().subtotal.toFixed(2)}
                 </div>
                 <div className="px-2 py-1 font-medium">Discount</div>
                 <div className="px-2 py-1 text-right">
@@ -2320,7 +2433,7 @@ export default function ProjectInvoiceForm() {
             <div>DATE: {form.invoice_date || ""}</div>
             <div>Invoice #: {form.invoice_no || ""}</div>
             <div>
-              Customer:{" "}
+              Client:{" "}
               {customers.find((c) => String(c.id) === String(form.customer_id))
                 ?.customer_name || ""}
             </div>
@@ -2389,7 +2502,7 @@ export default function ProjectInvoiceForm() {
               <div className="grid grid-cols-2">
                 <div className="px-2 py-1 font-medium">Subtotal</div>
                 <div className="px-2 py-1 text-right">
-                  {calcAggregates().grossSub.toFixed(2)}
+                  {calcAggregates().subtotal.toFixed(2)}
                 </div>
                 <div className="px-2 py-1 font-medium">Discount</div>
                 <div className="px-2 py-1 text-right">
@@ -2460,11 +2573,11 @@ export default function ProjectInvoiceForm() {
             onClick={(e) => e.stopPropagation()}
           >
             <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-2">
-              Customer not found
+              Client not found
             </h3>
             <p className="text-sm text-slate-600 dark:text-slate-400 mb-6">
-              Customer cannot be found in the system. Would you like to add a
-              new customer?
+              Client cannot be found in the system. Would you like to add a
+              new client?
             </p>
             <div className="flex gap-3 justify-end">
               <button
@@ -2486,7 +2599,7 @@ export default function ProjectInvoiceForm() {
                   }
                 }}
               >
-                Add Customer
+                Add Client
               </button>
             </div>
           </div>
@@ -2519,6 +2632,81 @@ export default function ProjectInvoiceForm() {
           </div>
         </div>
       )}
+
+      {/* Universal Tax Pricing & Components Modal */}
+      <TaxPricingModal
+        open={taxModalOpen}
+        form="PROJECT_INVOICE"
+        pageId={26}
+        onClose={() => {
+          setTaxModalOpen(false);
+          setEditingLineTaxIdx(null);
+        }}
+        taxMode={
+          editingLineTaxIdx !== null && lines[editingLineTaxIdx]
+            ? (lines[editingLineTaxIdx].tax_mode || form.tax_mode || 'EXCLUSIVE')
+            : (form.tax_mode || 'EXCLUSIVE')
+        }
+        price={
+          editingLineTaxIdx !== null && lines[editingLineTaxIdx]
+            ? (lines[editingLineTaxIdx].unit_price || 0)
+            : (newItem.unit_price || 0)
+        }
+        selectedComponent={
+          editingLineTaxIdx !== null && lines[editingLineTaxIdx]
+            ? {
+                name: lines[editingLineTaxIdx].tax_component_name,
+                rate: lines[editingLineTaxIdx].tax_rate,
+                id: lines[editingLineTaxIdx].tax_type,
+              }
+            : {
+                name: newItem.tax_component_name,
+                rate: newItem.tax_rate,
+                id: newItem.tax_type,
+              }
+        }
+        onSelectComponent={(comp) => {
+          const compLabel = `${comp.name}${comp.rate !== undefined ? ` (${comp.rate}%)` : ''}`;
+          const taxTypeId = comp.taxCodeId || comp.originalId || comp.id;
+          const taxRate = comp.rate;
+          const currentMode = form.tax_mode || 'EXCLUSIVE';
+
+          setForm((prev) => ({
+            ...prev,
+            tax_mode: currentMode,
+            tax_type: taxTypeId || prev.tax_type,
+            tax_rate: taxRate,
+            tax_component_name: compLabel,
+          }));
+
+          setNewItem((prev) => ({
+            ...prev,
+            tax_type: taxTypeId || prev.tax_type,
+            tax_rate: taxRate,
+            tax_component_name: compLabel,
+            tax_mode: currentMode,
+          }));
+
+          setLines((prev) =>
+            prev.map((ln) => {
+              const updated = {
+                ...ln,
+                tax_type: taxTypeId || ln.tax_type,
+                tax_rate: taxRate,
+                tax_component_name: compLabel,
+                tax_mode: currentMode,
+              };
+              return { ...updated, ...calcItemTotals(updated) };
+            })
+          );
+
+          if (taxTypeId) {
+            fetchTaxComponentsForCode(taxTypeId);
+          }
+          setTaxModalOpen(false);
+          setEditingLineTaxIdx(null);
+        }}
+      />
     </div>
   );
 }

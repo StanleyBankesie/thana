@@ -356,6 +356,7 @@ export async function fetchReportHeader(api) {
   const companyPhone =
     tpl?.header_phone?.trim() || co?.telephone || co?.phone || "";
   const companyEmail = tpl?.header_email?.trim() || co?.email || "";
+  const companyWebsite = tpl?.header_website?.trim() || co?.website || "";
   const logoUrl = tpl?.header_logo_url?.trim() || logoDataUrl || stannessLogo;
   const currPrefix = currCode === "GHS" ? "GH " : `${currCode} `;
 
@@ -364,6 +365,7 @@ export async function fetchReportHeader(api) {
     companyAddress,
     companyPhone,
     companyEmail,
+    companyWebsite,
     logoUrl,
     currCode,
     currSymbol,

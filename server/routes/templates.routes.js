@@ -71,11 +71,30 @@ function canonicalDocumentType(type) {
   ) {
     return "salary-slip";
   }
+  if (
+    t === "boq" ||
+    t === "bill-of-quantities" ||
+    t === "bill of quantities" ||
+    t === "bill_of_quantities" ||
+    t === "boq-manager"
+  ) {
+    return "boq";
+  }
   return String(type || "").trim();
 }
 
 function docTypeSynonymsLower(type) {
   const c = canonicalDocumentType(type).toLowerCase();
+  if (c === "boq") {
+    return [
+      "boq",
+      "bill-of-quantities",
+      "bill of quantities",
+      "bill_of_quantities",
+      "boqs",
+      "boq-manager",
+    ];
+  }
   if (c === "general-template") {
     return [
       "general-template",

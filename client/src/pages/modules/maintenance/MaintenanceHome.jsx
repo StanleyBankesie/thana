@@ -97,6 +97,7 @@ export const maintenanceSections = [
       buildFeature("Maintenance Requests", "/maintenance/maintenance-requests", "Service/repair requests", "📬"),
       buildFeature("Job Orders", "/maintenance/job-orders", "Job orders and work tickets", "📋"),
       buildFeature("Job Execution", "/maintenance/job-executions", "Track active job execution", "🔧"),
+      buildFeature("Field Technician Workspace", "/maintenance/field-service", "Mobile field technician job card, step transitions, and customer sign-off", "👨‍🔧"),
       buildFeature("PM Schedules", "/maintenance/pm-schedules", "Preventive maintenance schedules", "📅"),
       buildFeature("Maintenance Schedules", "/maintenance/schedules", "Master calendar for maintenance", "📆"),
     ],

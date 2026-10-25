@@ -68,4 +68,5 @@ export const PAGE_IDS = {
   SALES_RETURN: 19,
   PURCHASE_RETURN: 20,
   DELIVERY_NOTE: 21,
+  BOQ: 29,
 };

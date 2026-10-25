@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { api } from "../../../../api/client.js";
 import { toast } from "react-toastify";
+import ProjectModal from "../components/ProjectModal.jsx";
 
 export default function GanttScheduleView() {
   const [projects, setProjects] = useState([]);
@@ -219,7 +220,7 @@ export default function GanttScheduleView() {
 
       {/* CPM Schedule Table & Interactive Visualizer */}
       <div className="card overflow-hidden">
-        <div className="p-4 bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center">
+        <div className="p-4 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center">
           <h2 className="font-bold text-sm uppercase tracking-wider text-slate-900 dark:text-white flex items-center gap-2">
             Network Activity Analysis & Float
           </h2>
@@ -315,7 +316,7 @@ export default function GanttScheduleView() {
       {/* Extension of Time (EOT) Register */}
       {eotRequests.length > 0 && (
         <div className="card overflow-hidden">
-          <div className="p-4 bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center">
+          <div className="p-4 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center">
             <h3 className="font-bold text-sm uppercase tracking-wider text-slate-900 dark:text-white">
               Extension of Time (EOT) Claims Register
             </h3>
@@ -354,90 +355,88 @@ export default function GanttScheduleView() {
       )}
 
       {/* Modal: EOT Claim */}
-      {showEOTModal && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="card max-w-lg w-full p-6 space-y-4 animate-in fade-in zoom-in-95 duration-200">
-            <div className="flex justify-between items-center border-b pb-2">
-              <h3 className="font-bold text-lg text-slate-900 dark:text-white flex items-center gap-2">
-                <Flag size={18} className="text-brand-600" /> Extension of Time (EOT) Claim
-              </h3>
-              <button onClick={() => setShowEOTModal(false)} className="text-slate-400 hover:text-slate-600">
-                <X size={20} />
-              </button>
+      <ProjectModal
+        open={showEOTModal}
+        onClose={() => setShowEOTModal(false)}
+        title="Extension of Time (EOT) Claim"
+        subtitle="Submit contractual delay event, calendar days requested, and prolongation costs"
+        icon={Flag}
+        onSubmit={handleCreateEOT}
+        submitLabel="Submit EOT Claim"
+      >
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                Delay Category <span className="text-red-500">*</span>
+              </label>
+              <select
+                className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500"
+                value={eotForm.delay_category}
+                onChange={e => setEotForm({ ...eotForm, delay_category: e.target.value })}
+              >
+                <option value="CLIENT_CHANGE">Client / Employer Variation</option>
+                <option value="WEATHER">Inclement Weather Event</option>
+                <option value="SITE_CONDITION">Unforeseen Ground / Site Condition</option>
+                <option value="STATUTORY">Statutory / Permit Delay</option>
+                <option value="MATERIAL_SHORTAGE">Industry Material Supply Disruption</option>
+              </select>
             </div>
-            <form onSubmit={handleCreateEOT} className="space-y-3">
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-500 uppercase">Delay Category</label>
-                <select
-                  className="w-full px-3 py-2 border rounded-lg text-sm bg-white dark:bg-slate-900"
-                  value={eotForm.delay_category}
-                  onChange={e => setEotForm({ ...eotForm, delay_category: e.target.value })}
-                >
-                  <option value="CLIENT_CHANGE">Client / Employer Variation</option>
-                  <option value="WEATHER">Inclement Weather Event</option>
-                  <option value="SITE_CONDITION">Unforeseen Ground / Site Condition</option>
-                  <option value="STATUTORY">Statutory / Permit Delay</option>
-                  <option value="MATERIAL_SHORTAGE">Industry Material Supply Disruption</option>
-                </select>
-              </div>
+            <div>
+              <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                Cause of Delay <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                required
+                placeholder="e.g. Late issuance of revised foundation drawings"
+                className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500"
+                value={eotForm.delay_cause}
+                onChange={e => setEotForm({ ...eotForm, delay_cause: e.target.value })}
+              />
+            </div>
+          </div>
 
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-500 uppercase">Cause of Delay</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Late issuance of revised foundation drawings"
-                  className="w-full px-3 py-2 border rounded-lg text-sm bg-white dark:bg-slate-900"
-                  value={eotForm.delay_cause}
-                  onChange={e => setEotForm({ ...eotForm, delay_cause: e.target.value })}
-                />
-              </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                Calendar Days Claimed <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="number"
+                min="1"
+                required
+                className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500 font-mono"
+                value={eotForm.days_requested}
+                onChange={e => setEotForm({ ...eotForm, days_requested: Number(e.target.value) })}
+              />
+            </div>
+            <div>
+              <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                Financial Claim (GHS)
+              </label>
+              <input
+                type="number"
+                className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500 font-mono"
+                value={eotForm.financial_claim_amount}
+                onChange={e => setEotForm({ ...eotForm, financial_claim_amount: Number(e.target.value) })}
+              />
+            </div>
+          </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-500 uppercase">Calendar Days Claimed</label>
-                  <input
-                    type="number"
-                    min="1"
-                    required
-                    className="w-full px-3 py-2 border rounded-lg text-sm bg-white dark:bg-slate-900 font-mono"
-                    value={eotForm.days_requested}
-                    onChange={e => setEotForm({ ...eotForm, days_requested: Number(e.target.value) })}
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-500 uppercase">Financial Claim (GHS)</label>
-                  <input
-                    type="number"
-                    className="w-full px-3 py-2 border rounded-lg text-sm bg-white dark:bg-slate-900 font-mono"
-                    value={eotForm.financial_claim_amount}
-                    onChange={e => setEotForm({ ...eotForm, financial_claim_amount: Number(e.target.value) })}
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-500 uppercase">Justification & Contract Clause</label>
-                <textarea
-                  className="w-full px-3 py-2 border rounded-lg text-sm bg-white dark:bg-slate-900 min-h-[90px]"
-                  placeholder="Reference contract clause, timeline impact, and supporting site records..."
-                  value={eotForm.justification}
-                  onChange={e => setEotForm({ ...eotForm, justification: e.target.value })}
-                />
-              </div>
-
-              <div className="flex justify-end gap-2 pt-2 border-t">
-                <button type="button" onClick={() => setShowEOTModal(false)} className="btn btn-secondary text-xs">
-                  Cancel
-                </button>
-                <button type="submit" className="btn-success text-xs font-bold">
-                  Submit EOT Claim
-                </button>
-              </div>
-            </form>
+          <div>
+            <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">
+              Justification & Contract Clause
+            </label>
+            <textarea
+              className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500 min-h-[90px]"
+              placeholder="Reference contract clause, timeline impact, and supporting site records..."
+              value={eotForm.justification}
+              onChange={e => setEotForm({ ...eotForm, justification: e.target.value })}
+            />
           </div>
         </div>
-      )}
+      </ProjectModal>
     </div>
   );
 }

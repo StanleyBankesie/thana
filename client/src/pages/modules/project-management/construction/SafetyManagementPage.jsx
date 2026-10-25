@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { api } from "../../../../api/client.js";
 import { toast } from "react-toastify";
+import ProjectModal from "../components/ProjectModal.jsx";
 
 export default function SafetyManagementPage() {
   const [projects, setProjects] = useState([]);
@@ -233,7 +234,7 @@ export default function SafetyManagementPage() {
 
       {/* Incidents Table */}
       <div className="card overflow-hidden">
-        <div className="p-4 bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-700">
+        <div className="p-4 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700">
           <h2 className="font-bold text-sm uppercase tracking-wider text-slate-900 dark:text-white flex items-center gap-2">
             <HeartPulse size={16} className="text-rose-600" /> Incident & Near Miss Register ({filteredIncidents.length})
           </h2>
@@ -288,7 +289,7 @@ export default function SafetyManagementPage() {
 
       {/* Toolbox Talks Register */}
       <div className="card overflow-hidden">
-        <div className="p-4 bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-700">
+        <div className="p-4 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700">
           <h2 className="font-bold text-sm uppercase tracking-wider text-slate-900 dark:text-white flex items-center gap-2">
             <Megaphone size={16} className="text-brand-900 dark:text-brand-400" /> Toolbox Talks Briefings ({filteredTalks.length})
           </h2>
@@ -326,197 +327,170 @@ export default function SafetyManagementPage() {
       </div>
 
       {/* Modal: Report Incident */}
-      {showIncidentModal && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="card max-w-lg w-full p-6 space-y-4 animate-in fade-in zoom-in-95 duration-200">
-            <div className="flex justify-between items-center border-b pb-2">
-              <h3 className="font-bold text-lg text-slate-900 dark:text-white flex items-center gap-2">
-                <AlertTriangle size={18} className="text-rose-600" /> Report Safety Incident
-              </h3>
-              <button onClick={() => setShowIncidentModal(false)} className="text-slate-400 hover:text-slate-600">
-                <X size={20} />
-              </button>
+      <ProjectModal
+        open={showIncidentModal}
+        onClose={() => setShowIncidentModal(false)}
+        title="Report Safety Incident"
+        subtitle="Log HSE near-miss, first-aid, lost-time injury, or statutory notification"
+        icon={AlertTriangle}
+        onSubmit={handleCreateIncident}
+        submitLabel="Record Incident"
+      >
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">Incident Date <span className="text-red-500">*</span></label>
+              <input
+                type="date"
+                required
+                className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500 font-mono"
+                value={incidentForm.incident_date}
+                onChange={e => setIncidentForm({ ...incidentForm, incident_date: e.target.value })}
+              />
             </div>
-            <form onSubmit={handleCreateIncident} className="space-y-3">
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-500 uppercase">Incident Date</label>
-                  <input
-                    type="date"
-                    required
-                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-white dark:bg-slate-900 font-mono"
-                    value={incidentForm.incident_date}
-                    onChange={e => setIncidentForm({ ...incidentForm, incident_date: e.target.value })}
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-500 uppercase">Classification</label>
-                  <select
-                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-white dark:bg-slate-900"
-                    value={incidentForm.incident_type}
-                    onChange={e => setIncidentForm({ ...incidentForm, incident_type: e.target.value })}
-                  >
-                    <option value="NEAR_MISS">Near Miss</option>
-                    <option value="FIRST_AID">First Aid Case</option>
-                    <option value="MEDICAL_TREATMENT">Medical Treatment</option>
-                    <option value="LOST_TIME">Lost Time Injury (LTI)</option>
-                    <option value="FATALITY">Fatality</option>
-                  </select>
-                </div>
-              </div>
+            <div>
+              <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">Classification <span className="text-red-500">*</span></label>
+              <select
+                className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500"
+                value={incidentForm.incident_type}
+                onChange={e => setIncidentForm({ ...incidentForm, incident_type: e.target.value })}
+              >
+                <option value="NEAR_MISS">Near Miss</option>
+                <option value="FIRST_AID">First Aid Case</option>
+                <option value="MEDICAL_TREATMENT">Medical Treatment</option>
+                <option value="LOST_TIME">Lost Time Injury (LTI)</option>
+                <option value="FATALITY">Fatality</option>
+              </select>
+            </div>
+          </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-500 uppercase">Location / Grid</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. Scaffolding Bay 3"
-                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-white dark:bg-slate-900"
-                    value={incidentForm.location}
-                    onChange={e => setIncidentForm({ ...incidentForm, location: e.target.value })}
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-500 uppercase">Injured Person (if any)</label>
-                  <input
-                    type="text"
-                    placeholder="Worker Name / Trade"
-                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-white dark:bg-slate-900"
-                    value={incidentForm.injured_person_name}
-                    onChange={e => setIncidentForm({ ...incidentForm, injured_person_name: e.target.value })}
-                  />
-                </div>
-              </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">Location / Grid</label>
+              <input
+                type="text"
+                placeholder="e.g. Scaffolding Bay 3"
+                className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500"
+                value={incidentForm.location}
+                onChange={e => setIncidentForm({ ...incidentForm, location: e.target.value })}
+              />
+            </div>
+            <div>
+              <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">Injured Person (if any)</label>
+              <input
+                type="text"
+                placeholder="Worker Name / Trade"
+                className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500"
+                value={incidentForm.injured_person_name}
+                onChange={e => setIncidentForm({ ...incidentForm, injured_person_name: e.target.value })}
+              />
+            </div>
+          </div>
 
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-500 uppercase">Incident Description</label>
-                <textarea
-                  required
-                  placeholder="Detail what occurred..."
-                  className="w-full px-3 py-2 border rounded-lg text-sm bg-white dark:bg-slate-900 min-h-[60px]"
-                  value={incidentForm.description}
-                  onChange={e => setIncidentForm({ ...incidentForm, description: e.target.value })}
-                />
-              </div>
+          <div>
+            <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">Incident Description <span className="text-red-500">*</span></label>
+            <textarea
+              required
+              placeholder="Detail what occurred, circumstances, equipment involved..."
+              className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500 min-h-[70px]"
+              value={incidentForm.description}
+              onChange={e => setIncidentForm({ ...incidentForm, description: e.target.value })}
+            />
+          </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-500 uppercase">Days Lost</label>
-                  <input
-                    type="number"
-                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-white dark:bg-slate-900 font-mono"
-                    value={incidentForm.days_lost}
-                    onChange={e => setIncidentForm({ ...incidentForm, days_lost: Number(e.target.value) })}
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-500 uppercase">Statutory Report Filed?</label>
-                  <select
-                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-white dark:bg-slate-900"
-                    value={incidentForm.reported_to_authority}
-                    onChange={e => setIncidentForm({ ...incidentForm, reported_to_authority: e.target.value })}
-                  >
-                    <option value="N">No (Internal Only)</option>
-                    <option value="Y">Yes (Inspectorate of Factories)</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="flex justify-end gap-2 pt-2 border-t">
-                <button type="button" onClick={() => setShowIncidentModal(false)} className="btn btn-secondary text-xs">
-                  Cancel
-                </button>
-                <button type="submit" className="btn-danger text-xs font-bold">
-                  Record Incident
-                </button>
-              </div>
-            </form>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">Days Lost</label>
+              <input
+                type="number"
+                className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500 font-mono"
+                value={incidentForm.lost_work_days}
+                onChange={e => setIncidentForm({ ...incidentForm, lost_work_days: Number(e.target.value) })}
+              />
+            </div>
+            <div>
+              <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">Statutory Regulatory Notification</label>
+              <select
+                className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500"
+                value={incidentForm.regulatory_notified ? 'Y' : 'N'}
+                onChange={e => setIncidentForm({ ...incidentForm, regulatory_notified: e.target.value === 'Y' })}
+              >
+                <option value="N">No statutory notification required</option>
+                <option value="Y">Yes - Reported to Inspectorate of Factories</option>
+              </select>
+            </div>
           </div>
         </div>
-      )}
+      </ProjectModal>
 
-      {/* Modal: Log Toolbox Talk */}
-      {showTalkModal && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="card max-w-md w-full p-6 space-y-4 animate-in fade-in zoom-in-95 duration-200">
-            <div className="flex justify-between items-center border-b pb-2">
-              <h3 className="font-bold text-lg text-slate-900 dark:text-white flex items-center gap-2">
-                <Megaphone size={18} className="text-brand-600" /> Log Toolbox Safety Talk
-              </h3>
-              <button onClick={() => setShowTalkModal(false)} className="text-slate-400 hover:text-slate-600">
-                <X size={20} />
-              </button>
+            {/* Modal: Log Toolbox Talk */}
+      <ProjectModal
+        open={showTalkModal}
+        onClose={() => setShowTalkModal(false)}
+        title="Log Toolbox Safety Talk"
+        subtitle="Record pre-start briefing, topic discussed, and workforce attendee count"
+        icon={Megaphone}
+        onSubmit={handleCreateTalk}
+        submitLabel="Log Toolbox Talk"
+      >
+        <div className="space-y-4">
+          <div>
+            <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">Safety Topic <span className="text-red-500">*</span></label>
+            <input
+              type="text"
+              required
+              placeholder="e.g. Scaffolding tag inspection, harness tie-offs, PPE"
+              className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500"
+              value={talkForm.topic}
+              onChange={e => setTalkForm({ ...talkForm, topic: e.target.value })}
+            />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">Briefing Date <span className="text-red-500">*</span></label>
+              <input
+                type="date"
+                required
+                className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500 font-mono"
+                value={talkForm.talk_date}
+                onChange={e => setTalkForm({ ...talkForm, talk_date: e.target.value })}
+              />
             </div>
-            <form onSubmit={handleCreateTalk} className="space-y-3">
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-500 uppercase">Safety Topic</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Scaffolding tag inspection and tie-offs"
-                  className="w-full px-3 py-1.5 border rounded-lg text-sm bg-white dark:bg-slate-900"
-                  value={talkForm.topic}
-                  onChange={e => setTalkForm({ ...talkForm, topic: e.target.value })}
-                />
-              </div>
+            <div>
+              <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">Attendees Count <span className="text-red-500">*</span></label>
+              <input
+                type="number"
+                min="1"
+                required
+                className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500 font-mono"
+                value={talkForm.attendee_count}
+                onChange={e => setTalkForm({ ...talkForm, attendee_count: Number(e.target.value) })}
+              />
+            </div>
+          </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-500 uppercase">Briefing Date</label>
-                  <input
-                    type="date"
-                    required
-                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-white dark:bg-slate-900 font-mono"
-                    value={talkForm.talk_date}
-                    onChange={e => setTalkForm({ ...talkForm, talk_date: e.target.value })}
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-500 uppercase">Attendees Count</label>
-                  <input
-                    type="number"
-                    min="1"
-                    required
-                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-white dark:bg-slate-900 font-mono"
-                    value={talkForm.attendee_count}
-                    onChange={e => setTalkForm({ ...talkForm, attendee_count: Number(e.target.value) })}
-                  />
-                </div>
-              </div>
+          <div>
+            <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">Conductor / Speaker</label>
+            <input
+              type="text"
+              placeholder="HSE Officer / Site Supervisor Name"
+              className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500"
+              value={talkForm.conductor_name}
+              onChange={e => setTalkForm({ ...talkForm, conductor_name: e.target.value })}
+            />
+          </div>
 
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-500 uppercase">Conductor / Speaker</label>
-                <input
-                  type="text"
-                  placeholder="HSE Officer / Site Supervisor"
-                  className="w-full px-3 py-1.5 border rounded-lg text-sm bg-white dark:bg-slate-900"
-                  value={talkForm.conductor_name}
-                  onChange={e => setTalkForm({ ...talkForm, conductor_name: e.target.value })}
-                />
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-500 uppercase">Key Points & Operative Feedback</label>
-                <textarea
-                  placeholder="Summary of points emphasized, PPE distributed..."
-                  className="w-full px-3 py-2 border rounded-lg text-sm bg-white dark:bg-slate-900 min-h-[60px]"
-                  value={talkForm.notes}
-                  onChange={e => setTalkForm({ ...talkForm, notes: e.target.value })}
-                />
-              </div>
-
-              <div className="flex justify-end gap-2 pt-2 border-t">
-                <button type="button" onClick={() => setShowTalkModal(false)} className="btn btn-secondary text-xs">
-                  Cancel
-                </button>
-                <button type="submit" className="btn-success text-xs font-bold">
-                  Save Toolbox Talk
-                </button>
-              </div>
-            </form>
+          <div>
+            <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">Key Points & Operative Feedback</label>
+            <textarea
+              placeholder="Summary of safety points emphasized, hazards raised, PPE distributed..."
+              className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500 min-h-[70px]"
+              value={talkForm.notes}
+              onChange={e => setTalkForm({ ...talkForm, notes: e.target.value })}
+            />
           </div>
         </div>
-      )}
-    </div>
+      </ProjectModal>    </div>
   );
 }

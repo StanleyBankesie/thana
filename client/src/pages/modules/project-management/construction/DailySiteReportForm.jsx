@@ -235,7 +235,8 @@ export default function DailySiteReportForm() {
             </button>
           </div>
 
-          <table className="w-full text-left text-xs">
+          <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800">
+            <table className="w-full text-left text-xs">
             <thead className="bg-slate-50 dark:bg-slate-800 font-bold uppercase">
               <tr>
                 <th className="p-2">Category</th>
@@ -320,6 +321,7 @@ export default function DailySiteReportForm() {
               ))}
             </tbody>
           </table>
+          </div>
         </div>
 
         {/* Site Activities Completed */}
@@ -338,7 +340,8 @@ export default function DailySiteReportForm() {
             </button>
           </div>
 
-          <table className="w-full text-left text-xs">
+          <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800">
+            <table className="w-full text-left text-xs">
             <thead className="bg-slate-50 dark:bg-slate-800 font-bold uppercase">
               <tr>
                 <th className="p-2 w-32">Location / Grid</th>
@@ -433,6 +436,7 @@ export default function DailySiteReportForm() {
               ))}
             </tbody>
           </table>
+          </div>
         </div>
 
         {/* Safety & Remarks */}

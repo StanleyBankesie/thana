@@ -5,7 +5,7 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { Plus, RefreshCw } from "lucide-react";
+import { Plus, RefreshCw, ArrowLeft, PackageCheck, Search } from "lucide-react";
 import { api } from "../../../../api/client";
 import { toast } from "react-toastify";
 import { filterAndSort } from "@/utils/searchUtils.js";
@@ -15,7 +15,7 @@ import { useViewMode } from "@/hooks/useViewMode";
 import ViewToggle from "@/components/ViewToggle";
 
 /**
- *  component
+ * MaterialReceiptList component
  * 
  * @returns {JSX.Element} The rendered component
  */
@@ -63,71 +63,103 @@ export default function MaterialReceiptList() {
   const { sorted, sortKey, sortDir, toggle } = useSort(filtered, "created_at", "desc");
 
   return (
-    <div className="space-y-4">
-      <div className="card">
-        <div className="card-header bg-brand text-white rounded-t-lg">
-          <div className="flex justify-between items-center">
-            <div>
-              <h1 className="text-2xl font-bold">Materials Receipt</h1>
-              <p className="text-sm mt-1">Receive materials issued from Inventory (Project Management department)</p>
-            </div>
-            <div className="flex gap-2">
-              <button onClick={() => window.history.back()} className="btn btn-secondary">Back</button>
-              <button onClick={loadData} className="btn btn-secondary p-2" title="Refresh"><RefreshCw size={16} /></button>
-              <Link to="/project-management/material-receipts/new" className="btn-success flex items-center gap-2"><Plus size={16} />Receive{pendingIssues > 0 ? ` (${pendingIssues})` : ""}</Link>
-            </div>
+    <div className="space-y-6">
+      {/* Canonical ERP Header */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <Link to="/project-management" className="btn btn-secondary inline-flex items-center gap-1.5 text-sm">
+            <ArrowLeft size={16} /> Back
+          </Link>
+          <div>
+            <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2.5">
+              <PackageCheck size={26} className="text-brand-900 dark:text-brand-400" />
+              Materials Receipt
+            </h1>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+              Receive materials issued from Inventory (Project Management department)
+            </p>
           </div>
+        </div>
+        <div className="flex flex-wrap items-center gap-2.5">
+          <button onClick={loadData} className="btn btn-secondary p-2.5" title="Refresh">
+            <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
+          </button>
+          <Link
+            to="/project-management/material-receipts/new"
+            className="btn btn-primary inline-flex items-center gap-2 text-sm font-semibold shadow-sm"
+          >
+            <Plus size={16} /> Receive{pendingIssues > 0 ? ` (${pendingIssues})` : ""}
+          </Link>
         </div>
       </div>
 
-      <div className="card">
-        <div className="card-body">
-          <div className="flex flex-col md:flex-row gap-4 mb-6">
-            <div className="flex-1">
-              <input type="text" placeholder="Search receipts..." className="input"
-                value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
-            </div>
-          </div>
+      {error ? (
+        <div className="p-4 rounded-xl bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-400 text-sm">
+          {error}
+        </div>
+      ) : null}
 
-          
-                <div className="flex justify-end mb-4">
-                  <ViewToggle viewMode={viewMode} setViewMode={setViewMode} />
-                </div>
-                <div className="overflow-x-auto">
-            <table className={"table " + (viewMode === 'grid' ? 'table-grid-mode' : '')}>
-              <thead>
-                <tr>
-                  <SortableHeader label="Receipt No" sortKey="receipt_no" currentKey={sortKey} direction={sortDir} onToggle={toggle} />
-                  <SortableHeader label="Date" sortKey="receipt_date" currentKey={sortKey} direction={sortDir} onToggle={toggle} />
-                  <th>Warehouse</th>
-                  <th>Department</th>
-                  <SortableHeader label="Status" sortKey="status" currentKey={sortKey} direction={sortDir} onToggle={toggle} />
-                  <th className="text-center">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {loading ? (
-                  <tr><td colSpan="6" className="text-center py-8 text-slate-400">Loading...</td></tr>
-                ) : sorted.length > 0 ? sorted.map(r => (
-                  <tr key={r.id}>
-                    <td className="font-medium text-sm">{r.receipt_no}</td>
-                    <td className="text-sm whitespace-nowrap">{r.receipt_date ? new Date(r.receipt_date).toLocaleDateString() : "—"}</td>
-                    <td className="text-sm">{r.warehouse_name || "—"}</td>
-                    <td className="text-sm">{r.department_name || "—"}</td>
-                    <td><span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-slate-100 text-slate-600">{r.status}</span></td>
-                    <td className="text-center">
-                      <Link to={`/project-management/material-receipts/${r.id}`}
-                        className="px-3 py-1.5 text-xs font-medium text-slate-700 bg-slate-100 border border-slate-200 rounded-lg hover:bg-slate-200 inline-block">View</Link>
-                    </td>
-                  </tr>
-                )) : (
-                  <tr><td colSpan="6" className="text-center py-8 text-slate-400">
-                    {pendingIssues > 0 ? `${pendingIssues} pending issue(s) from inventory. Create a receipt to receive them.` : "No receipts found."}
-                  </td></tr>
-                )}
-              </tbody>
-            </table>
+      <div className="card overflow-hidden bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm">
+        <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="relative w-full md:w-80">
+            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <input
+              type="text"
+              placeholder="Search receipts..."
+              className="input pl-9 w-full text-sm"
+              value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
+            />
           </div>
+          <div className="flex items-center gap-3 w-full md:w-auto justify-end">
+            <ViewToggle viewMode={viewMode} setViewMode={setViewMode} />
+          </div>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className={"table w-full text-sm " + (viewMode === 'grid' ? 'table-grid-mode' : '')}>
+            <thead className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 text-xs font-semibold uppercase tracking-wider text-slate-500">
+              <tr>
+                <SortableHeader label="Receipt No" sortKey="receipt_no" currentKey={sortKey} direction={sortDir} onToggle={toggle} />
+                <SortableHeader label="Date" sortKey="receipt_date" currentKey={sortKey} direction={sortDir} onToggle={toggle} />
+                <th>Warehouse</th>
+                <th>Department</th>
+                <SortableHeader label="Status" sortKey="status" currentKey={sortKey} direction={sortDir} onToggle={toggle} />
+                <th className="text-center">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+              {loading ? (
+                <tr><td colSpan="6" className="text-center py-10 text-slate-400">Loading receipts...</td></tr>
+              ) : sorted.length > 0 ? sorted.map(r => (
+                <tr key={r.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/50 transition-colors">
+                  <td className="font-semibold text-slate-900 dark:text-slate-100">{r.receipt_no}</td>
+                  <td className="text-slate-600 dark:text-slate-300 whitespace-nowrap">{r.receipt_date ? new Date(r.receipt_date).toLocaleDateString() : "—"}</td>
+                  <td className="text-slate-600 dark:text-slate-300">{r.warehouse_name || "—"}</td>
+                  <td className="text-slate-600 dark:text-slate-300">{r.department_name || "—"}</td>
+                  <td>
+                    <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+                      {r.status}
+                    </span>
+                  </td>
+                  <td className="text-center">
+                    <Link
+                      to={`/project-management/material-receipts/${r.id}`}
+                      className="btn btn-outline text-xs px-3 py-1.5"
+                    >
+                      View
+                    </Link>
+                  </td>
+                </tr>
+              )) : (
+                <tr>
+                  <td colSpan="6" className="text-center py-10 text-slate-400">
+                    {pendingIssues > 0 ? `${pendingIssues} pending issue(s) from inventory. Create a receipt to receive them.` : "No receipts found."}
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
     </div>

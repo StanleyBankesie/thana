@@ -4,19 +4,15 @@
  */
 
 import React, { useEffect, useState } from "react";
-import { 
-  Link, 
-  useNavigate, 
-  useParams 
-} from "react-router-dom";
-import { 
-  ArrowLeft, 
-  Save, 
-  Loader2, 
-  Calendar, 
-  Briefcase, 
-  User, 
-  Activity, 
+import { Link, useNavigate, useParams } from "react-router-dom";
+import {
+  ArrowLeft,
+  Save,
+  Loader2,
+  Calendar,
+  Briefcase,
+  User,
+  Activity,
   DollarSign,
   AlertCircle,
   Clock,
@@ -26,7 +22,7 @@ import {
   ChevronDown,
   Building,
   MapPin,
-  ShieldCheck
+  ShieldCheck,
 } from "lucide-react";
 import { api } from "../../../../api/client.js";
 import { toast } from "react-toastify";
@@ -34,7 +30,7 @@ import { usePermission } from "@/auth/PermissionContext.jsx";
 
 /**
  *  component
- * 
+ *
  * @returns {JSX.Element} The rendered component
  */
 export default function ProjectForm() {
@@ -46,7 +42,7 @@ export default function ProjectForm() {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [managers, setManagers] = useState([]);
-  
+
   const [form, setForm] = useState({
     project_code: "",
     project_name: "",
@@ -108,11 +104,15 @@ export default function ProjectForm() {
         const item = res.data.item;
         setForm({
           ...item,
-          start_date: item.start_date ? item.start_date.split('T')[0] : "",
-          end_date: item.end_date ? item.end_date.split('T')[0] : "",
-          practical_completion_date: item.practical_completion_date ? item.practical_completion_date.split('T')[0] : "",
-          final_completion_date: item.final_completion_date ? item.final_completion_date.split('T')[0] : "",
-          is_active: item.is_active !== 'N',
+          start_date: item.start_date ? item.start_date.split("T")[0] : "",
+          end_date: item.end_date ? item.end_date.split("T")[0] : "",
+          practical_completion_date: item.practical_completion_date
+            ? item.practical_completion_date.split("T")[0]
+            : "",
+          final_completion_date: item.final_completion_date
+            ? item.final_completion_date.split("T")[0]
+            : "",
+          is_active: item.is_active !== "N",
         });
       }
     } catch (e) {
@@ -141,13 +141,21 @@ export default function ProjectForm() {
     }
   };
 
-  if (loading) return <div className="p-20 text-center animate-pulse font-bold text-slate-300 text-2xl uppercase tracking-widest italic">Loading Project Data...</div>;
+  if (loading)
+    return (
+      <div className="p-20 text-center animate-pulse font-bold text-slate-300 text-2xl uppercase tracking-widest italic">
+        Loading Project Data...
+      </div>
+    );
 
   return (
     <div className="p-6 max-w-5xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <Link to="/project-management/projects" className="btn btn-secondary p-2">
+          <Link
+            to="/project-management/projects"
+            className="btn btn-secondary p-2"
+          >
             <ArrowLeft size={20} />
           </Link>
           <div>
@@ -157,12 +165,16 @@ export default function ProjectForm() {
             <p className="text-slate-500 text-sm">Portfolio Management Entry</p>
           </div>
         </div>
-        <button 
+        <button
           onClick={handleSubmit}
           disabled={saving}
-          className="btn-success flex items-center gap-2"
+          className="btn btn-primary inline-flex items-center gap-2"
         >
-          {saving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
+          {saving ? (
+            <Loader2 size={18} className="animate-spin" />
+          ) : (
+            <Save size={18} />
+          )}
           {isEdit ? "Save Changes" : "Create Project"}
         </button>
       </div>
@@ -173,44 +185,60 @@ export default function ProjectForm() {
             <div className="space-y-6">
               <div className="flex items-center gap-3 text-brand-600 border-b border-slate-50 dark:border-slate-700 pb-3">
                 <Briefcase size={18} />
-                <h2 className="font-bold uppercase text-xs tracking-wider">Primary Information</h2>
+                <h2 className="font-bold uppercase text-xs tracking-wider">
+                  Primary Information
+                </h2>
               </div>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Project Code</label>
-                  <input 
-                    type="text" 
+                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">
+                    Project Code
+                  </label>
+                  <input
+                    type="text"
                     required
-                    className="w-full px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none font-medium text-sm"
-                    placeholder="PRJ-001"
+                    className="input w-full"
+                    placeholder=" "
                     value={form.project_code}
-                    onChange={e => setForm({...form, project_code: e.target.value})}
+                    onChange={(e) =>
+                      setForm({ ...form, project_code: e.target.value })
+                    }
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Project Title</label>
-                  <input 
-                    type="text" 
+                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">
+                    Project Title
+                  </label>
+                  <input
+                    type="text"
                     required
-                    className="w-full px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none font-medium text-sm"
+                    className="input w-full"
                     placeholder="Project Name"
                     value={form.project_name}
-                    onChange={e => setForm({...form, project_name: e.target.value})}
+                    onChange={(e) =>
+                      setForm({ ...form, project_name: e.target.value })
+                    }
                   />
                 </div>
               </div>
 
               <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Client / Organization</label>
-                <select 
-                  className="w-full px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none font-medium text-sm"
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">
+                  Client / Organization
+                </label>
+                <select
+                  className="input w-full"
                   value={form.client_name}
-                  onChange={e => setForm({...form, client_name: e.target.value})}
+                  onChange={(e) =>
+                    setForm({ ...form, client_name: e.target.value })
+                  }
                 >
                   <option value="">-- Select Client --</option>
-                  {clients.map(c => (
-                    <option key={c.id} value={c.customer_name}>{c.customer_name}</option>
+                  {clients.map((c) => (
+                    <option key={c.id} value={c.customer_name}>
+                      {c.customer_name}
+                    </option>
                   ))}
                 </select>
               </div>
@@ -219,100 +247,154 @@ export default function ProjectForm() {
             <div className="space-y-6">
               <div className="flex items-center gap-3 text-brand-600 border-b border-slate-50 dark:border-slate-700 pb-3">
                 <Clock size={18} />
-                <h2 className="font-bold uppercase text-xs tracking-wider">Timeline & Assignment</h2>
+                <h2 className="font-bold uppercase text-xs tracking-wider">
+                  Timeline & Assignment
+                </h2>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Start Date</label>
-                  <input 
-                    type="date" 
-                    className="w-full px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-sm"
+                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">
+                    Start Date
+                  </label>
+                  <input
+                    type="date"
+                    className="input w-full"
                     value={form.start_date}
-                    onChange={e => setForm({...form, start_date: e.target.value})}
-                  
+                    onChange={(e) =>
+                      setForm({ ...form, start_date: e.target.value })
+                    }
                     disabled={isEdit && !hasExceptional("DOCUMENT.EDIT_DATE")}
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Target End Date</label>
-                  <input 
-                    type="date" 
-                    className="w-full px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-sm"
+                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">
+                    Target End Date
+                  </label>
+                  <input
+                    type="date"
+                    className="input w-full"
                     value={form.end_date}
-                    onChange={e => setForm({...form, end_date: e.target.value})}
-                  
+                    onChange={(e) =>
+                      setForm({ ...form, end_date: e.target.value })
+                    }
                     disabled={isEdit && !hasExceptional("DOCUMENT.EDIT_DATE")}
                   />
                 </div>
               </div>
 
               <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Project Manager</label>
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">
+                  Project Manager
+                </label>
                 <div className="relative">
-                  <select 
-                    className="w-full pl-4 pr-10 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none font-medium text-sm appearance-none"
+                  <select
+                    className="input w-full appearance-none pr-10"
                     value={form.manager_id}
-                    onChange={e => {
-                      const m = managers.find(x => String(x.user_id) === String(e.target.value));
-                      setForm({...form, manager_id: e.target.value, manager_name: m?.username || ""});
+                    onChange={(e) => {
+                      const m = managers.find(
+                        (x) => String(x.user_id) === String(e.target.value),
+                      );
+                      setForm({
+                        ...form,
+                        manager_id: e.target.value,
+                        manager_name: m?.username || "",
+                      });
                     }}
                   >
                     <option value="">Select Manager...</option>
-                    {managers.map(m => <option key={m.user_id} value={m.user_id}>{m.username}</option>)}
+                    {managers.map((m) => (
+                      <option key={m.user_id} value={m.user_id}>
+                        {m.username}
+                      </option>
+                    ))}
                   </select>
-                  <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={16} />
+                  <ChevronDown
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
+                    size={16}
+                  />
                 </div>
               </div>
             </div>
 
             <div className="space-y-1">
-              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Project Scope & Remarks</label>
-              <textarea 
-                className="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none font-medium text-sm min-h-[120px]"
+              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">
+                Project Scope & Remarks
+              </label>
+              <textarea
+                className="input w-full min-h-[120px]"
                 placeholder="Objectives and constraints..."
                 value={form.remarks}
-                onChange={e => setForm({...form, remarks: e.target.value})}
+                onChange={(e) => setForm({ ...form, remarks: e.target.value })}
               />
             </div>
           </div>
 
-          {/* Construction & Contract Specifications */}
+          {/* Project Specifications & Contract Details */}
           <div className="card p-8 space-y-6">
             <div className="flex items-center gap-3 text-brand-600 border-b border-slate-50 dark:border-slate-700 pb-3">
               <Building size={18} />
-              <h2 className="font-bold uppercase text-xs tracking-wider">Construction & Contract Management</h2>
+              <h2 className="font-bold uppercase text-xs tracking-wider">
+                Project Specifications & Contract Details
+              </h2>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Construction Type</label>
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">
+                  Project Type
+                </label>
                 <select
-                  className="w-full px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none font-medium text-sm"
+                  className="input w-full"
                   value={form.project_type}
-                  onChange={e => setForm({...form, project_type: e.target.value})}
+                  onChange={(e) =>
+                    setForm({ ...form, project_type: e.target.value })
+                  }
                 >
-                  <option value="GENERAL_CONSTRUCTION">General Construction</option>
+                  <option value="GENERAL_PROJECT">General Project</option>
+                  <option value="INFORMATION_TECHNOLOGY">
+                    Information Technology
+                  </option>
+                  <option value="OPERATIONS">Operations</option>
+                  <option value="RESEARCH">Research & Development</option>
+                  <option value="OTHER">Other</option>
+                  <option value="GENERAL_CONSTRUCTION">
+                    General Construction
+                  </option>
                   <option value="RESIDENTIAL">Residential Construction</option>
-                  <option value="COMMERCIAL_BUILDING">Commercial Buildings</option>
+                  <option value="COMMERCIAL_BUILDING">
+                    Commercial Buildings
+                  </option>
                   <option value="INDUSTRIAL">Industrial Construction</option>
                   <option value="ROADS_HIGHWAYS">Roads & Highways</option>
-                  <option value="BRIDGES">Bridges & Civil Infrastructure</option>
-                  <option value="DRAINAGE_WATER">Drainage & Water Infrastructure</option>
+                  <option value="BRIDGES">
+                    Bridges & Civil Infrastructure
+                  </option>
+                  <option value="DRAINAGE_WATER">
+                    Drainage & Water Infrastructure
+                  </option>
                   <option value="RENOVATION">Renovation & Refurbishment</option>
                   <option value="MEP_INSTALLATION">MEP Installations</option>
-                  <option value="SPECIALIST_CONTRACTING">Specialist Contracting</option>
-                  <option value="PROPERTY_DEVELOPMENT">Property Development</option>
+                  <option value="SPECIALIST_CONTRACTING">
+                    Specialist Contracting
+                  </option>
+                  <option value="PROPERTY_DEVELOPMENT">
+                    Property Development
+                  </option>
                 </select>
               </div>
 
               <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Contract Reference No.</label>
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">
+                  Contract Reference No.
+                </label>
                 <input
                   type="text"
-                  className="w-full px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-sm"
+                  className="input w-full"
                   placeholder="e.g. CNT-2026-088"
                   value={form.contract_ref_no || ""}
-                  onChange={e => setForm({...form, contract_ref_no: e.target.value})}
+                  onChange={(e) =>
+                    setForm({ ...form, contract_ref_no: e.target.value })
+                  }
                 />
               </div>
             </div>
@@ -320,71 +402,119 @@ export default function ProjectForm() {
             {/* Commercial terms */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Original Contract Sum</label>
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">
+                  Original Contract Sum
+                </label>
                 <input
                   type="number"
-                  className="w-full px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-sm"
+                  className="input w-full"
                   value={form.contract_sum}
-                  onChange={e => setForm({...form, contract_sum: Number(e.target.value), revised_contract_sum: form.revised_contract_sum || Number(e.target.value)})}
+                  onChange={(e) =>
+                    setForm({
+                      ...form,
+                      contract_sum: Number(e.target.value),
+                      revised_contract_sum:
+                        form.revised_contract_sum || Number(e.target.value),
+                    })
+                  }
                 />
               </div>
               <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Revised Contract Sum</label>
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">
+                  Revised Contract Sum
+                </label>
                 <input
                   type="number"
-                  className="w-full px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-sm"
+                  className="input w-full"
                   value={form.revised_contract_sum}
-                  onChange={e => setForm({...form, revised_contract_sum: Number(e.target.value)})}
+                  onChange={(e) =>
+                    setForm({
+                      ...form,
+                      revised_contract_sum: Number(e.target.value),
+                    })
+                  }
                 />
               </div>
               <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Retention (%)</label>
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">
+                  Retention (%)
+                </label>
                 <input
                   type="number"
                   step="0.1"
-                  className="w-full px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-sm"
+                  className="input w-full"
                   value={form.retention_percent}
-                  onChange={e => setForm({...form, retention_percent: Number(e.target.value)})}
+                  onChange={(e) =>
+                    setForm({
+                      ...form,
+                      retention_percent: Number(e.target.value),
+                    })
+                  }
                 />
               </div>
               <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Retention Cap</label>
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">
+                  Retention Cap
+                </label>
                 <input
                   type="number"
-                  className="w-full px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-sm"
+                  className="input w-full"
                   value={form.retention_cap}
-                  onChange={e => setForm({...form, retention_cap: Number(e.target.value)})}
+                  onChange={(e) =>
+                    setForm({ ...form, retention_cap: Number(e.target.value) })
+                  }
                 />
               </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Advance Payment Amount</label>
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">
+                  Advance Payment Amount
+                </label>
                 <input
                   type="number"
-                  className="w-full px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-sm"
+                  className="input w-full"
                   value={form.advance_payment_amount}
-                  onChange={e => setForm({...form, advance_payment_amount: Number(e.target.value)})}
+                  onChange={(e) =>
+                    setForm({
+                      ...form,
+                      advance_payment_amount: Number(e.target.value),
+                    })
+                  }
                 />
               </div>
               <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Advance Recovery (%)</label>
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">
+                  Advance Recovery (%)
+                </label>
                 <input
                   type="number"
                   step="0.1"
-                  className="w-full px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-sm"
+                  className="input w-full"
                   value={form.advance_recovery_percent}
-                  onChange={e => setForm({...form, advance_recovery_percent: Number(e.target.value)})}
+                  onChange={(e) =>
+                    setForm({
+                      ...form,
+                      advance_recovery_percent: Number(e.target.value),
+                    })
+                  }
                 />
               </div>
               <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Defects Liability (Months)</label>
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">
+                  Defects Liability (Months)
+                </label>
                 <input
                   type="number"
-                  className="w-full px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-sm"
+                  className="input w-full"
                   value={form.defects_liability_months}
-                  onChange={e => setForm({...form, defects_liability_months: Number(e.target.value)})}
+                  onChange={(e) =>
+                    setForm({
+                      ...form,
+                      defects_liability_months: Number(e.target.value),
+                    })
+                  }
                 />
               </div>
             </div>
@@ -392,23 +522,31 @@ export default function ProjectForm() {
             {/* Site Location */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 border-t border-slate-100 dark:border-slate-700">
               <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Site Address</label>
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">
+                  Site Address
+                </label>
                 <input
                   type="text"
-                  className="w-full px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-sm"
+                  className="input w-full"
                   placeholder="Plot / Street / Area"
                   value={form.site_address || ""}
-                  onChange={e => setForm({...form, site_address: e.target.value})}
+                  onChange={(e) =>
+                    setForm({ ...form, site_address: e.target.value })
+                  }
                 />
               </div>
               <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">City / Town</label>
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">
+                  City / Town
+                </label>
                 <input
                   type="text"
-                  className="w-full px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-sm"
+                  className="input w-full"
                   placeholder="e.g. Accra"
                   value={form.site_city || ""}
-                  onChange={e => setForm({...form, site_city: e.target.value})}
+                  onChange={(e) =>
+                    setForm({ ...form, site_city: e.target.value })
+                  }
                 />
               </div>
             </div>
@@ -416,43 +554,62 @@ export default function ProjectForm() {
             {/* Key Personnel */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Site Engineer</label>
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">
+                  Site Engineer
+                </label>
                 <input
                   type="text"
-                  className="w-full px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-sm"
+                  className="input w-full"
                   placeholder="Site Engineer Name"
                   value={form.site_engineer_name || ""}
-                  onChange={e => setForm({...form, site_engineer_name: e.target.value})}
+                  onChange={(e) =>
+                    setForm({ ...form, site_engineer_name: e.target.value })
+                  }
                 />
               </div>
               <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Quantity Surveyor (QS)</label>
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">
+                  Quantity Surveyor (QS)
+                </label>
                 <input
                   type="text"
-                  className="w-full px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-sm"
+                  className="input w-full"
                   placeholder="Quantity Surveyor Name"
                   value={form.qs_name || ""}
-                  onChange={e => setForm({...form, qs_name: e.target.value})}
+                  onChange={(e) =>
+                    setForm({ ...form, qs_name: e.target.value })
+                  }
                 />
               </div>
               <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Site Supervisor</label>
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">
+                  Site Supervisor
+                </label>
                 <input
                   type="text"
-                  className="w-full px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-sm"
+                  className="input w-full"
                   placeholder="Site Supervisor Name"
                   value={form.supervisor_name || ""}
-                  onChange={e => setForm({...form, supervisor_name: e.target.value})}
+                  onChange={(e) =>
+                    setForm({ ...form, supervisor_name: e.target.value })
+                  }
                 />
               </div>
               <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Commercial Manager</label>
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">
+                  Commercial Manager
+                </label>
                 <input
                   type="text"
-                  className="w-full px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-sm"
+                  className="input w-full"
                   placeholder="Commercial Manager Name"
                   value={form.commercial_manager_name || ""}
-                  onChange={e => setForm({...form, commercial_manager_name: e.target.value})}
+                  onChange={(e) =>
+                    setForm({
+                      ...form,
+                      commercial_manager_name: e.target.value,
+                    })
+                  }
                 />
               </div>
             </div>
@@ -463,62 +620,90 @@ export default function ProjectForm() {
           <div className="card p-6 space-y-4">
             <div className="flex items-center gap-3 text-brand-600">
               <Flag size={18} />
-              <h2 className="font-bold uppercase text-xs tracking-wider">Status</h2>
-            </div>
-            
-            <div className="space-y-1">
-               <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Workflow Stage</label>
-               <select 
-                 className="w-full px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none font-bold text-xs"
-                 value={form.project_status}
-                 onChange={e => setForm({...form, project_status: e.target.value})}
-               >
-                  {['PLANNING', 'IN_PROGRESS', 'ON_HOLD', 'COMPLETED', 'CANCELLED'].map(s => (
-                    <option key={s} value={s}>{s}</option>
-                  ))}
-               </select>
+              <h2 className="font-bold uppercase text-xs tracking-wider">
+                Status
+              </h2>
             </div>
 
             <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Priority</label>
-               <select 
-                 className="w-full px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none font-bold text-xs"
-                 value={form.project_priority}
-                 onChange={e => setForm({...form, project_priority: e.target.value})}
-               >
-                  {['LOW', 'MEDIUM', 'HIGH'].map(p => (
-                    <option key={p} value={p}>{p}</option>
-                  ))}
-               </select>
-             </div>
+              <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                Workflow Stage
+              </label>
+              <select
+                className="w-full px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none font-bold text-xs"
+                value={form.project_status}
+                onChange={(e) =>
+                  setForm({ ...form, project_status: e.target.value })
+                }
+              >
+                {[
+                  "PLANNING",
+                  "IN_PROGRESS",
+                  "ON_HOLD",
+                  "COMPLETED",
+                  "CANCELLED",
+                ].map((s) => (
+                  <option key={s} value={s}>
+                    {s}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-             <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Status</label>
-                <select 
-                  className="w-full px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none font-bold text-xs"
-                  value={form.is_active ? 'Y' : 'N'}
-                  onChange={e => setForm({...form, is_active: e.target.value === 'Y'})}
-                >
-                   <option value="Y">Active</option>
-                   <option value="N">Inactive</option>
-                </select>
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                Priority
+              </label>
+              <select
+                className="w-full px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none font-bold text-xs"
+                value={form.project_priority}
+                onChange={(e) =>
+                  setForm({ ...form, project_priority: e.target.value })
+                }
+              >
+                {["LOW", "MEDIUM", "HIGH"].map((p) => (
+                  <option key={p} value={p}>
+                    {p}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                Status
+              </label>
+              <select
+                className="w-full px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none font-bold text-xs"
+                value={form.is_active ? "Y" : "N"}
+                onChange={(e) =>
+                  setForm({ ...form, is_active: e.target.value === "Y" })
+                }
+              >
+                <option value="Y">Active</option>
+                <option value="N">Inactive</option>
+              </select>
             </div>
           </div>
 
           <div className="bg-brand-600 p-6 rounded-2xl text-white shadow-sm space-y-4">
             <div className="flex items-center gap-3">
-               <DollarSign size={18} className="text-brand-200" />
-               <h2 className="font-bold uppercase text-xs tracking-wider">Budget</h2>
+              <DollarSign size={18} className="text-brand-200" />
+              <h2 className="font-bold uppercase text-xs tracking-wider">
+                Budget
+              </h2>
             </div>
             <div className="space-y-1">
-               <label className="text-[10px] font-bold text-indigo-200 uppercase tracking-wider">Estimated (GHS)</label>
-               <input 
-                 type="number" 
-                 className="w-full bg-white/10 border-none rounded-xl px-4 py-2 text-xl font-bold text-white placeholder-white/30 focus:ring-2 focus:ring-white outline-none"
-                 placeholder="0.00"
-                 value={form.budget}
-                 onChange={e => setForm({...form, budget: e.target.value})}
-               />
+              <label className="text-[10px] font-bold text-brand-100 uppercase tracking-wider">
+                Estimated (GHS)
+              </label>
+              <input
+                type="number"
+                className="w-full bg-white/10 border-none rounded-xl px-4 py-2 text-xl font-bold text-white placeholder-white/30 focus:ring-2 focus:ring-white outline-none"
+                placeholder="0.00"
+                value={form.budget}
+                onChange={(e) => setForm({ ...form, budget: e.target.value })}
+              />
             </div>
           </div>
 
@@ -527,7 +712,10 @@ export default function ProjectForm() {
               <div className="p-1.5 bg-rose-100 dark:bg-rose-900/50 rounded-lg text-rose-600">
                 <AlertCircle size={16} />
               </div>
-              <p className="text-[10px] text-rose-700 dark:text-rose-400/80 font-medium">Updating project parameters will reflect across all linked tasks and financial reports.</p>
+              <p className="text-[10px] text-rose-700 dark:text-rose-400/80 font-medium">
+                Updating project parameters will reflect across all linked tasks
+                and financial reports.
+              </p>
             </div>
           )}
         </div>

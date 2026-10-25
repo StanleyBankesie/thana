@@ -2079,6 +2079,8 @@ export const getTaskExecutionAnalyticsReport = async (req, res, next) => {
 
     const normalizedItems = (items || []).map((t) => {
       totalTasks++;
+      t.task_title = t.task_title || t.task_name || `Task #${t.id}`;
+      t.task_name = t.task_name || t.task_title || `Task #${t.id}`;
 
       const pct = Number(t.completion_percent || 0);
       let effectiveStatus = (t.status || "PENDING").toUpperCase();
@@ -2206,18 +2208,25 @@ export const getTaskExecutionAnalyticsReport = async (req, res, next) => {
 
 export const listPmEquipments = async (req, res, next) => {
   try {
-    const { companyId, branchId } = req.scope || {};
+    const companyId = req.scope?.companyId || req.user?.companyId || req.user?.company_id || 1;
+    const branchId = req.scope?.branchId || req.user?.branchId || req.user?.branch_id || null;
     await ensureProjectTables(companyId, branchId);
     
-    const rows = await query(
-      `SELECT e.*, me.asset_name as maint_equipment_name
-       FROM pm_equipments e
-       LEFT JOIN maint_assets me ON e.maint_equipment_id = me.id
-       WHERE e.company_id = ? AND e.branch_id = ?
-       ORDER BY e.name ASC`,
-      [companyId, branchId]
-    );
-    res.json(rows);
+    let sql = `
+      SELECT e.*, me.asset_name as maint_equipment_name
+      FROM pm_equipments e
+      LEFT JOIN maint_assets me ON e.maint_equipment_id = me.id
+      WHERE (e.company_id = ? OR ? IS NULL)
+    `;
+    const params = [companyId, companyId];
+    if (branchId) {
+      sql += " AND (e.branch_id = ? OR e.branch_id IS NULL OR e.branch_id = 0)";
+      params.push(branchId);
+    }
+    sql += " ORDER BY e.name ASC";
+
+    const rows = await query(sql, params);
+    res.json(Array.isArray(rows) ? rows : []);
   } catch (err) {
     next(err);
   }
@@ -2283,7 +2292,8 @@ export const deletePmEquipment = async (req, res, next) => {
 
 export const listPmResources = async (req, res, next) => {
   try {
-    const { companyId, branchId } = req.scope || {};
+    const companyId = req.scope?.companyId || req.user?.companyId || req.user?.company_id || 1;
+    const branchId = req.scope?.branchId || req.user?.branchId || req.user?.branch_id || null;
     const { project_id, task_id } = req.query;
     await ensureProjectTables(companyId, branchId);
 
@@ -2292,15 +2302,15 @@ export const listPmResources = async (req, res, next) => {
              p.project_name, p.project_code,
              t.task_title,
              e.name as pm_equipment_name,
-             he.employee_name as hr_employee_name
+             TRIM(CONCAT_WS(' ', he.first_name, NULLIF(he.middle_name, ''), he.last_name)) as hr_employee_name
       FROM pm_resources r
       LEFT JOIN pm_projects p ON r.project_id = p.id
       LEFT JOIN pm_tasks t ON r.task_id = t.id
       LEFT JOIN pm_equipments e ON r.pm_equipment_id = e.id
       LEFT JOIN hr_employees he ON r.hr_employee_id = he.id
-      WHERE r.company_id = ? AND r.branch_id = ?
+      WHERE (r.company_id = ? OR ? IS NULL)
     `;
-    const params = [companyId, branchId];
+    const params = [companyId, companyId];
     
     if (project_id) {
       sql += " AND r.project_id = ?";
@@ -2314,7 +2324,7 @@ export const listPmResources = async (req, res, next) => {
     sql += " ORDER BY r.created_at DESC";
 
     const rows = await query(sql, params);
-    res.json(rows);
+    res.json(Array.isArray(rows) ? rows : []);
   } catch (err) {
     next(err);
   }
@@ -2322,7 +2332,8 @@ export const listPmResources = async (req, res, next) => {
 
 export const createPmResource = async (req, res, next) => {
   try {
-    const { companyId, branchId } = req.scope || {};
+    const companyId = req.scope?.companyId || req.user?.companyId || req.user?.company_id || 1;
+    const branchId = req.scope?.branchId || req.user?.branchId || req.user?.branch_id || 1;
     await ensureProjectTables(companyId, branchId);
     
     const { 
@@ -2331,8 +2342,8 @@ export const createPmResource = async (req, res, next) => {
       start_date, end_date, remarks 
     } = req.body;
 
-    if (!project_id) return httpError(res, 400, "Project is required");
-    if (!resource_name) return httpError(res, 400, "Resource name is required");
+    if (!project_id) return res.status(400).json({ message: "Project is required" });
+    if (!resource_name) return res.status(400).json({ message: "Resource name is required" });
 
     const result = await query(
       `INSERT INTO pm_resources (
@@ -2356,26 +2367,28 @@ export const createPmResource = async (req, res, next) => {
 
 export const updatePmResource = async (req, res, next) => {
   try {
-    const { companyId, branchId } = req.scope || {};
+    const companyId = req.scope?.companyId || req.user?.companyId || req.user?.company_id || 1;
     const { id } = req.params;
     
     const { 
-      task_id, resource_type, pm_equipment_id, hr_employee_id, 
+      project_id, task_id, resource_type, pm_equipment_id, hr_employee_id, 
       resource_name, allocated_qty, status, accountable_user_id, accountable_user_name,
       start_date, end_date, remarks 
     } = req.body;
 
     await query(
       `UPDATE pm_resources SET
+        project_id = COALESCE(?, project_id),
         task_id = ?, resource_type = ?, pm_equipment_id = ?, hr_employee_id = ?,
         resource_name = ?, allocated_qty = ?, status = ?, accountable_user_id = ?, 
         accountable_user_name = ?, start_date = ?, end_date = ?, remarks = ?
-       WHERE id = ? AND company_id = ? AND branch_id = ?`,
+       WHERE id = ? AND company_id = ?`,
       [
+        project_id || null,
         task_id || null, resource_type || 'EQUIPMENT', pm_equipment_id || null, hr_employee_id || null,
         resource_name, allocated_qty || 1, status || 'ALLOCATED', accountable_user_id || null,
         accountable_user_name || null, start_date || null, end_date || null, remarks || null,
-        id, companyId, branchId
+        id, companyId
       ]
     );
 
@@ -2387,9 +2400,9 @@ export const updatePmResource = async (req, res, next) => {
 
 export const deletePmResource = async (req, res, next) => {
   try {
-    const { companyId, branchId } = req.scope || {};
+    const companyId = req.scope?.companyId || req.user?.companyId || req.user?.company_id || 1;
     const { id } = req.params;
-    await query(`DELETE FROM pm_resources WHERE id = ? AND company_id = ? AND branch_id = ?`, [id, companyId, branchId]);
+    await query(`DELETE FROM pm_resources WHERE id = ? AND company_id = ?`, [id, companyId]);
     res.json({ success: true, message: "Resource allocation deleted" });
   } catch (err) {
     next(err);

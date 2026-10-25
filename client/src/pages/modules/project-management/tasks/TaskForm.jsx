@@ -8,7 +8,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { api } from "../../../../api/client.js";
 import DocumentAttachmentsModal from "@/components/attachments/DocumentAttachmentsModal.jsx";
 import { usePermission } from "@/auth/PermissionContext.jsx";
-import { Plus, Trash2, Info } from "lucide-react";
+import { Plus, Trash2, Info, ArrowLeft, ListTodo } from "lucide-react";
 
 export default function TaskForm() {
   const { hasExceptional } = usePermission();
@@ -265,51 +265,55 @@ export default function TaskForm() {
   };
 
   const statusColors = {
-    PENDING: "bg-amber-500 text-white",
-    IN_PROGRESS: "bg-blue-600 text-white",
-    COMPLETED: "bg-emerald-600 text-white",
-    BLOCKED: "bg-rose-600 text-white",
+    PENDING: "bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300 border border-amber-200 dark:border-amber-800",
+    IN_PROGRESS: "bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300 border border-blue-200 dark:border-blue-800",
+    COMPLETED: "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800",
+    BLOCKED: "bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300 border border-rose-200 dark:border-rose-800",
   };
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
-      <div className="card shadow-md">
-        <div className="card-header bg-brand text-white rounded-t-lg p-5">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            <div>
-              <h1 className="text-2xl font-bold dark:text-brand-300">
-                {isNew ? "New Task" : "Edit Task"}
-              </h1>
-              <p className="text-sm opacity-90 mt-0.5">
-                WBS Item Specification & Execution Management
-              </p>
-            </div>
-            <div className="flex items-center gap-3">
-              {!isNew && (
-                <button
-                  type="button"
-                  onClick={() => setShowAttach(true)}
-                  className="btn btn-secondary text-xs flex items-center gap-1.5"
-                >
-                  📎 Attachments / Docs
-                </button>
-              )}
-              <button onClick={() => window.history.back()} className="btn btn-secondary text-xs"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleSubmit}
-                disabled={saving}
-                className="btn-success text-xs font-bold px-4 py-2"
-              >
-                {saving ? "Saving…" : "Save Task Assignment"}
-              </button>
-            </div>
+      {/* Canonical Form Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <button type="button" onClick={() => window.history.back()} className="btn btn-secondary inline-flex items-center gap-1.5">
+            <ArrowLeft size={16} /> Back
+          </button>
+          <div>
+            <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+              <ListTodo size={24} className="text-brand-900 dark:text-brand-400" /> {isNew ? "New Task" : "Edit Task"}
+            </h1>
+            <p className="text-slate-500 text-sm mt-0.5">
+              WBS Item Specification & Execution Management
+            </p>
           </div>
         </div>
 
+        <div className="flex items-center gap-2">
+          {!isNew && (
+            <button
+              type="button"
+              onClick={() => setShowAttach(true)}
+              className="btn btn-secondary text-sm inline-flex items-center gap-1.5"
+            >
+              📎 Attachments
+            </button>
+          )}
+          <button type="button" onClick={() => window.history.back()} className="btn btn-secondary text-sm">
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={handleSubmit}
+            disabled={saving}
+            className="btn btn-primary text-sm inline-flex items-center gap-2"
+          >
+            {saving ? "Saving…" : "Save Task Assignment"}
+          </button>
+        </div>
+      </div>
+
+      <div className="card bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm overflow-hidden">
         <div className="card-body p-6">
           <form onSubmit={handleSubmit} className="space-y-6">
             {loading ? (
@@ -324,7 +328,7 @@ export default function TaskForm() {
             ) : null}
 
             {/* Group 1: General & Assignment Information */}
-            <div className="space-y-4 bg-slate-50 dark:bg-slate-800/40 p-5 rounded-xl border border-slate-200 dark:border-slate-700">
+            <div className="space-y-4 bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-700">
               <div className="border-b border-slate-200 dark:border-slate-700 pb-2">
                 <h2 className="text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider">
                   1. Task Core Information
@@ -432,7 +436,7 @@ export default function TaskForm() {
             </div>
 
             {/* Group 2: Schedule & Effort */}
-            <div className="space-y-4 bg-slate-50 dark:bg-slate-800/40 p-5 rounded-xl border border-slate-200 dark:border-slate-700">
+            <div className="space-y-4 bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-700">
               <div className="border-b border-slate-200 dark:border-slate-700 pb-2">
                 <h2 className="text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider">
                   2. Schedule & Progress
@@ -490,7 +494,7 @@ export default function TaskForm() {
             </div>
 
             {/* Group 3: Scope & Execution Details */}
-            <div className="space-y-5 bg-slate-50 dark:bg-slate-800/40 p-5 rounded-xl border border-slate-200 dark:border-slate-700">
+            <div className="space-y-5 bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-700">
               <div className="border-b border-slate-200 dark:border-slate-700 pb-2">
                 <h2 className="text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider">
                   3. Execution Details & Delay Log
@@ -506,7 +510,7 @@ export default function TaskForm() {
                     <button
                       type="button"
                       onClick={handleAddScopeItem}
-                      className="text-xs text-blue-600 dark:text-blue-400 font-semibold hover:underline flex items-center gap-1"
+                      className="text-xs text-brand-600 dark:text-brand-400 font-semibold hover:underline flex items-center gap-1"
                     >
                       <Plus size={14} /> Add Scope Field
                     </button>
@@ -560,7 +564,7 @@ export default function TaskForm() {
                       <Info size={12} /> Read-only (Fetched from table)
                     </span>
                   </label>
-                  <div className="p-3 bg-slate-100 dark:bg-slate-800/80 rounded-lg border border-slate-200 dark:border-slate-700 text-xs sm:text-sm text-slate-700 dark:text-slate-300 min-h-[46px] flex items-center">
+                  <div className="p-3 bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700 text-xs sm:text-sm text-slate-700 dark:text-slate-300 min-h-[46px] flex items-center">
                     {formData.reasonForDelay ? (
                       <span className="whitespace-pre-wrap font-medium">{formData.reasonForDelay}</span>
                     ) : (

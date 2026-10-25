@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { api } from "../../../../api/client.js";
 import { toast } from "react-toastify";
+import ProjectModal from "../components/ProjectModal.jsx";
 
 export default function QualityControlPage() {
   const [activeTab, setActiveTab] = useState("inspections"); // 'inspections' | 'ncrs' | 'snag' | 'tests'
@@ -262,7 +263,8 @@ export default function QualityControlPage() {
       {/* TAB 1: Inspection Requests */}
       {activeTab === "inspections" && (
         <div className="card overflow-hidden">
-          <table className="w-full text-left text-xs">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs">
             <thead className="bg-slate-100 dark:bg-slate-900 uppercase font-bold text-slate-600 dark:text-slate-300">
               <tr>
                 <th className="p-3">IR Number</th>
@@ -300,13 +302,15 @@ export default function QualityControlPage() {
               )}
             </tbody>
           </table>
+          </div>
         </div>
       )}
 
       {/* TAB 2: NCRs */}
       {activeTab === "ncrs" && (
         <div className="card overflow-hidden">
-          <table className="w-full text-left text-xs">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs">
             <thead className="bg-slate-100 dark:bg-slate-900 uppercase font-bold text-slate-600 dark:text-slate-300">
               <tr>
                 <th className="p-3">NCR #</th>
@@ -346,13 +350,15 @@ export default function QualityControlPage() {
               )}
             </tbody>
           </table>
+          </div>
         </div>
       )}
 
       {/* TAB 3: Snag List */}
       {activeTab === "snag" && (
         <div className="card overflow-hidden">
-          <table className="w-full text-left text-xs">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs">
             <thead className="bg-slate-100 dark:bg-slate-900 uppercase font-bold text-slate-600 dark:text-slate-300">
               <tr>
                 <th className="p-3">Area / Room</th>
@@ -390,13 +396,15 @@ export default function QualityControlPage() {
               )}
             </tbody>
           </table>
+          </div>
         </div>
       )}
 
       {/* TAB 4: Material Tests */}
       {activeTab === "tests" && (
         <div className="card overflow-hidden">
-          <table className="w-full text-left text-xs">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs">
             <thead className="bg-slate-100 dark:bg-slate-900 uppercase font-bold text-slate-600 dark:text-slate-300">
               <tr>
                 <th className="p-3">Test Name</th>
@@ -436,350 +444,300 @@ export default function QualityControlPage() {
               )}
             </tbody>
           </table>
+          </div>
         </div>
       )}
 
       {/* Modal: Schedule IR */}
-      {showIRModal && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="card max-w-md w-full p-6 space-y-4 animate-in fade-in zoom-in-95 duration-200">
-            <div className="flex justify-between items-center border-b pb-2">
-              <h3 className="font-bold text-lg text-slate-900 dark:text-white flex items-center gap-2">
-                <ClipboardList size={18} className="text-brand-600" /> Schedule Inspection Request (IR)
-              </h3>
-              <button onClick={() => setShowIRModal(false)} className="text-slate-400 hover:text-slate-600">
-                <X size={20} />
-              </button>
+      <ProjectModal
+        open={showIRModal}
+        onClose={() => setShowIRModal(false)}
+        title="Schedule Inspection Request (IR)"
+        subtitle="Submit work inspection request for consultant / QA-QC verification"
+        icon={ClipboardList}
+        onSubmit={handleCreateIR}
+        submitLabel="Submit IR"
+      >
+        <div className="space-y-4">
+          <div>
+            <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">Inspection Title <span className="text-red-500">*</span></label>
+            <input
+              type="text"
+              required
+              placeholder="e.g. Pre-pour inspection for first floor slab"
+              className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500"
+              value={irForm.inspection_title}
+              onChange={e => setIrForm({ ...irForm, inspection_title: e.target.value })}
+            />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">Discipline</label>
+              <select
+                className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500"
+                value={irForm.inspection_type}
+                onChange={e => setIrForm({ ...irForm, inspection_type: e.target.value })}
+              >
+                <option value="STRUCTURAL">Structural</option>
+                <option value="ARCHITECTURAL">Architectural</option>
+                <option value="MEP">MEP</option>
+                <option value="GEOTECHNICAL">Geotechnical</option>
+              </select>
             </div>
-            <form onSubmit={handleCreateIR} className="space-y-3">
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-500 uppercase">Inspection Title</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Pre-pour inspection for first floor slab"
-                  className="w-full px-3 py-1.5 border rounded-lg text-sm bg-white dark:bg-slate-900"
-                  value={irForm.inspection_title}
-                  onChange={e => setIrForm({ ...irForm, inspection_title: e.target.value })}
-                />
-              </div>
+            <div>
+              <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">Grid / Level Location</label>
+              <input
+                type="text"
+                placeholder="e.g. Grid A-D / L2"
+                className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500"
+                value={irForm.location_grid}
+                onChange={e => setIrForm({ ...irForm, location_grid: e.target.value })}
+              />
+            </div>
+          </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-500 uppercase">Discipline</label>
-                  <select
-                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-white dark:bg-slate-900"
-                    value={irForm.inspection_type}
-                    onChange={e => setIrForm({ ...irForm, inspection_type: e.target.value })}
-                  >
-                    <option value="STRUCTURAL">Structural</option>
-                    <option value="ARCHITECTURAL">Architectural</option>
-                    <option value="MEP">MEP</option>
-                    <option value="GEOTECHNICAL">Geotechnical</option>
-                  </select>
-                </div>
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-500 uppercase">Location / Grid</label>
-                  <input
-                    type="text"
-                    placeholder="Grid 1-5 / Level 2"
-                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-white dark:bg-slate-900"
-                    value={irForm.location_grid}
-                    onChange={e => setIrForm({ ...irForm, location_grid: e.target.value })}
-                  />
-                </div>
-              </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">Scheduled Date & Time <span className="text-red-500">*</span></label>
+              <input
+                type="datetime-local"
+                required
+                className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500 font-mono"
+                value={irForm.scheduled_at}
+                onChange={e => setIrForm({ ...irForm, scheduled_at: e.target.value })}
+              />
+            </div>
+            <div>
+              <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">Lead Inspector / QA Engineer</label>
+              <input
+                type="text"
+                placeholder="Name of inspector"
+                className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500"
+                value={irForm.inspector_name}
+                onChange={e => setIrForm({ ...irForm, inspector_name: e.target.value })}
+              />
+            </div>
+          </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-500 uppercase">Inspection Date</label>
-                  <input
-                    type="date"
-                    required
-                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-white dark:bg-slate-900 font-mono"
-                    value={irForm.scheduled_date}
-                    onChange={e => setIrForm({ ...irForm, scheduled_date: e.target.value })}
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-500 uppercase">Inspector</label>
-                  <input
-                    type="text"
-                    placeholder="Consultant Engineer"
-                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-white dark:bg-slate-900"
-                    value={irForm.inspector_name}
-                    onChange={e => setIrForm({ ...irForm, inspector_name: e.target.value })}
-                  />
-                </div>
-              </div>
-
-              <div className="flex justify-end gap-2 pt-2 border-t">
-                <button type="button" onClick={() => setShowIRModal(false)} className="btn btn-secondary text-xs">
-                  Cancel
-                </button>
-                <button type="submit" className="btn-success text-xs font-bold">
-                  Schedule IR
-                </button>
-              </div>
-            </form>
+          <div>
+            <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">Inspection Notes / Scope</label>
+            <textarea
+              className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500 min-h-[70px]"
+              placeholder="Specific items to check, drawing references, tolerance standards..."
+              value={irForm.remarks}
+              onChange={e => setIrForm({ ...irForm, remarks: e.target.value })}
+            />
           </div>
         </div>
-      )}
+      </ProjectModal>
 
-      {/* Modal: Issue NCR */}
-      {showNCRModal && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="card max-w-md w-full p-6 space-y-4 animate-in fade-in zoom-in-95 duration-200">
-            <div className="flex justify-between items-center border-b pb-2">
-              <h3 className="font-bold text-lg text-slate-900 dark:text-white flex items-center gap-2">
-                <AlertOctagon size={18} className="text-rose-600" /> Issue Non-Conformance Report (NCR)
-              </h3>
-              <button onClick={() => setShowNCRModal(false)} className="text-slate-400 hover:text-slate-600">
-                <X size={20} />
-              </button>
+            {/* Modal: Issue NCR */}
+      <ProjectModal
+        open={showNCRModal}
+        onClose={() => setShowNCRModal(false)}
+        title="Issue Non-Conformance Report (NCR)"
+        subtitle="Record quality defect, standard deviation, and required corrective actions"
+        icon={AlertOctagon}
+        onSubmit={handleCreateNCR}
+        submitLabel="Issue NCR"
+      >
+        <div className="space-y-4">
+          <div>
+            <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">Defect / Issue Description <span className="text-red-500">*</span></label>
+            <textarea
+              required
+              className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500 min-h-[70px]"
+              placeholder="Describe deviation from spec or drawings..."
+              value={ncrForm.description}
+              onChange={e => setNcrForm({ ...ncrForm, description: e.target.value })}
+            />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">Discipline</label>
+              <select
+                className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500"
+                value={ncrForm.discipline}
+                onChange={e => setNcrForm({ ...ncrForm, discipline: e.target.value })}
+              >
+                <option value="STRUCTURAL">Structural</option>
+                <option value="ARCHITECTURAL">Architectural</option>
+                <option value="MEP">MEP</option>
+                <option value="CIVIL">Civil</option>
+              </select>
             </div>
-            <form onSubmit={handleCreateNCR} className="space-y-3">
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-500 uppercase">Defect / Issue Description</label>
-                <textarea
-                  required
-                  placeholder="Describe the non-conforming work..."
-                  className="w-full px-3 py-2 border rounded-lg text-sm bg-white dark:bg-slate-900 min-h-[70px]"
-                  value={ncrForm.issue_description}
-                  onChange={e => setNcrForm({ ...ncrForm, issue_description: e.target.value })}
-                />
-              </div>
+            <div>
+              <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">Severity Level</label>
+              <select
+                className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500"
+                value={ncrForm.severity}
+                onChange={e => setNcrForm({ ...ncrForm, severity: e.target.value })}
+              >
+                <option value="MINOR">Minor - Touch up / superficial</option>
+                <option value="MAJOR">Major - Rework required</option>
+                <option value="CRITICAL">Critical - Structural / safety concern</option>
+              </select>
+            </div>
+          </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-500 uppercase">Location / Grid</label>
-                  <input
-                    type="text"
-                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-white dark:bg-slate-900"
-                    value={ncrForm.location_grid}
-                    onChange={e => setNcrForm({ ...ncrForm, location_grid: e.target.value })}
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-500 uppercase">Severity</label>
-                  <select
-                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-white dark:bg-slate-900"
-                    value={ncrForm.severity}
-                    onChange={e => setNcrForm({ ...ncrForm, severity: e.target.value })}
-                  >
-                    <option value="LOW">Minor</option>
-                    <option value="MEDIUM">Medium</option>
-                    <option value="CRITICAL">Critical Structural Defect</option>
-                  </select>
-                </div>
-              </div>
+          <div>
+            <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">Root Cause Analysis</label>
+            <input
+              type="text"
+              placeholder="e.g. Inadequate formwork support"
+              className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500"
+              value={ncrForm.root_cause}
+              onChange={e => setNcrForm({ ...ncrForm, root_cause: e.target.value })}
+            />
+          </div>
 
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-500 uppercase">Required Corrective Action</label>
-                <textarea
-                  placeholder="Remedial action plan to rectify..."
-                  className="w-full px-3 py-2 border rounded-lg text-sm bg-white dark:bg-slate-900 min-h-[60px]"
-                  value={ncrForm.corrective_action}
-                  onChange={e => setNcrForm({ ...ncrForm, corrective_action: e.target.value })}
-                />
-              </div>
-
-              <div className="flex justify-end gap-2 pt-2 border-t">
-                <button type="button" onClick={() => setShowNCRModal(false)} className="btn btn-secondary text-xs">
-                  Cancel
-                </button>
-                <button type="submit" className="btn-success text-xs font-bold">
-                  Issue NCR
-                </button>
-              </div>
-            </form>
+          <div>
+            <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">Proposed Corrective & Preventive Action (CAPA)</label>
+            <textarea
+              className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500 min-h-[70px]"
+              placeholder="Action plan to remediate and prevent reoccurrence..."
+              value={ncrForm.corrective_action}
+              onChange={e => setNcrForm({ ...ncrForm, corrective_action: e.target.value })}
+            />
           </div>
         </div>
-      )}
+      </ProjectModal>
 
-      {/* Modal: Add Snag */}
-      {showSnagModal && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="card max-w-md w-full p-6 space-y-4 animate-in fade-in zoom-in-95 duration-200">
-            <div className="flex justify-between items-center border-b pb-2">
-              <h3 className="font-bold text-lg text-slate-900 dark:text-white flex items-center gap-2">
-                <CheckCircle2 size={18} className="text-brand-600" /> Log Snag Item
-              </h3>
-              <button onClick={() => setShowSnagModal(false)} className="text-slate-400 hover:text-slate-600">
-                <X size={20} />
-              </button>
+            {/* Modal: Add Snag */}
+      <ProjectModal
+        open={showSnagModal}
+        onClose={() => setShowSnagModal(false)}
+        title="Log Snag Item"
+        subtitle="Log punch list defect, rectification trade, and completion priority"
+        icon={CheckCircle2}
+        onSubmit={handleCreateSnag}
+        submitLabel="Log Snag Item"
+      >
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">Room / Area <span className="text-red-500">*</span></label>
+              <input
+                type="text"
+                required
+                placeholder="e.g. Master Bedroom / North Corridor"
+                className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500"
+                value={snagForm.location}
+                onChange={e => setSnagForm({ ...snagForm, location: e.target.value })}
+              />
             </div>
-            <form onSubmit={handleCreateSnag} className="space-y-3">
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-500 uppercase">Room / Area</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Unit 302 / Master Bathroom"
-                  className="w-full px-3 py-1.5 border rounded-lg text-sm bg-white dark:bg-slate-900"
-                  value={snagForm.room_area}
-                  onChange={e => setSnagForm({ ...snagForm, room_area: e.target.value })}
-                />
-              </div>
+            <div>
+              <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">Responsible Trade</label>
+              <input
+                type="text"
+                placeholder="e.g. Painter / Joinery / Electrician"
+                className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500"
+                value={snagForm.trade}
+                onChange={e => setSnagForm({ ...snagForm, trade: e.target.value })}
+              />
+            </div>
+          </div>
 
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-500 uppercase">Defect Description</label>
-                <textarea
-                  required
-                  placeholder="e.g. Uneven tiling joint next to shower drain"
-                  className="w-full px-3 py-2 border rounded-lg text-sm bg-white dark:bg-slate-900 min-h-[60px]"
-                  value={snagForm.defect_description}
-                  onChange={e => setSnagForm({ ...snagForm, defect_description: e.target.value })}
-                />
-              </div>
+          <div>
+            <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">Defect Description <span className="text-red-500">*</span></label>
+            <textarea
+              required
+              className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500 min-h-[70px]"
+              placeholder="e.g. Paint blister on east wall; skirting gap near balcony"
+              value={snagForm.description}
+              onChange={e => setSnagForm({ ...snagForm, description: e.target.value })}
+            />
+          </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-500 uppercase">Responsible Trade</label>
-                  <input
-                    type="text"
-                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-white dark:bg-slate-900"
-                    value={snagForm.trade_responsible}
-                    onChange={e => setSnagForm({ ...snagForm, trade_responsible: e.target.value })}
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-500 uppercase">Priority</label>
-                  <select
-                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-white dark:bg-slate-900"
-                    value={snagForm.priority}
-                    onChange={e => setSnagForm({ ...snagForm, priority: e.target.value })}
-                  >
-                    <option value="LOW">Low</option>
-                    <option value="MEDIUM">Medium</option>
-                    <option value="HIGH">High</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="flex justify-end gap-2 pt-2 border-t">
-                <button type="button" onClick={() => setShowSnagModal(false)} className="btn btn-secondary text-xs">
-                  Cancel
-                </button>
-                <button type="submit" className="btn-success text-xs font-bold">
-                  Save Snag
-                </button>
-              </div>
-            </form>
+          <div>
+            <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">Priority</label>
+            <select
+              className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500"
+              value={snagForm.priority}
+              onChange={e => setSnagForm({ ...snagForm, priority: e.target.value })}
+            >
+              <option value="LOW">Low - Cosmetic / non-urgent</option>
+              <option value="MEDIUM">Medium - Rectify before handover</option>
+              <option value="HIGH">High - Immediate attention</option>
+            </select>
           </div>
         </div>
-      )}
+      </ProjectModal>
 
-      {/* Modal: Material Test */}
-      {showTestModal && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="card max-w-md w-full p-6 space-y-4 animate-in fade-in zoom-in-95 duration-200">
-            <div className="flex justify-between items-center border-b pb-2">
-              <h3 className="font-bold text-lg text-slate-900 dark:text-white flex items-center gap-2">
-                <FlaskConical size={18} className="text-brand-600" /> Log Material Test Record
-              </h3>
-              <button onClick={() => setShowTestModal(false)} className="text-slate-400 hover:text-slate-600">
-                <X size={20} />
-              </button>
+            {/* Modal: Material Test */}
+      <ProjectModal
+        open={showTestModal}
+        onClose={() => setShowTestModal(false)}
+        title="Log Material Test Record"
+        subtitle="Record laboratory test results, sample references, and compliance status"
+        icon={FlaskConical}
+        onSubmit={handleCreateTest}
+        submitLabel="Save Test Record"
+      >
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">Test Title / Standard <span className="text-red-500">*</span></label>
+              <input
+                type="text"
+                required
+                placeholder="e.g. Concrete 28-day Cube Compressive Test"
+                className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500"
+                value={testForm.test_type}
+                onChange={e => setTestForm({ ...testForm, test_type: e.target.value })}
+              />
             </div>
-            <form onSubmit={handleCreateTest} className="space-y-3">
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-500 uppercase">Test Title</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Concrete 28-Day Compressive Cube Test"
-                  className="w-full px-3 py-1.5 border rounded-lg text-sm bg-white dark:bg-slate-900"
-                  value={testForm.test_name}
-                  onChange={e => setTestForm({ ...testForm, test_name: e.target.value })}
-                />
-              </div>
+            <div>
+              <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">Sample Batch Ref <span className="text-red-500">*</span></label>
+              <input
+                type="text"
+                required
+                placeholder="e.g. BATCH-SLAB-L3"
+                className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500 font-mono"
+                value={testForm.sample_reference}
+                onChange={e => setTestForm({ ...testForm, sample_reference: e.target.value })}
+              />
+            </div>
+          </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-500 uppercase">Material Type</label>
-                  <select
-                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-white dark:bg-slate-900"
-                    value={testForm.material_type}
-                    onChange={e => setTestForm({ ...testForm, material_type: e.target.value })}
-                  >
-                    <option value="CONCRETE">Concrete</option>
-                    <option value="STEEL_REBAR">Steel Rebar</option>
-                    <option value="SOIL">Soil / Subgrade</option>
-                    <option value="BLOCKS">Masonry Blocks</option>
-                  </select>
-                </div>
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-500 uppercase">Batch / Pour No.</label>
-                  <input
-                    type="text"
-                    placeholder="Batch-092"
-                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-white dark:bg-slate-900 font-mono"
-                    value={testForm.batch_number}
-                    onChange={e => setTestForm({ ...testForm, batch_number: e.target.value })}
-                  />
-                </div>
-              </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">Required Specification</label>
+              <input
+                type="text"
+                placeholder="e.g. >= 25 N/mm²"
+                className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500"
+                value={testForm.spec_requirement}
+                onChange={e => setTestForm({ ...testForm, spec_requirement: e.target.value })}
+              />
+            </div>
+            <div>
+              <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">Actual Measured Value</label>
+              <input
+                type="text"
+                placeholder="e.g. 28.4 N/mm²"
+                className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500 font-mono font-bold"
+                value={testForm.result_value}
+                onChange={e => setTestForm({ ...testForm, result_value: e.target.value })}
+              />
+            </div>
+          </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-500 uppercase">Required Strength</label>
-                  <input
-                    type="text"
-                    placeholder="C25/30"
-                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-white dark:bg-slate-900 font-mono"
-                    value={testForm.required_strength}
-                    onChange={e => setTestForm({ ...testForm, required_strength: e.target.value })}
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-500 uppercase">Achieved Strength</label>
-                  <input
-                    type="text"
-                    placeholder="28.4 MPa"
-                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-white dark:bg-slate-900 font-mono font-bold"
-                    value={testForm.achieved_strength}
-                    onChange={e => setTestForm({ ...testForm, achieved_strength: e.target.value })}
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-500 uppercase">Test Result</label>
-                  <select
-                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-white dark:bg-slate-900"
-                    value={testForm.result}
-                    onChange={e => setTestForm({ ...testForm, result: e.target.value })}
-                  >
-                    <option value="PASS">Pass / Compliant</option>
-                    <option value="FAIL">Fail / Non-Compliant</option>
-                  </select>
-                </div>
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-500 uppercase">Testing Laboratory</label>
-                  <input
-                    type="text"
-                    placeholder="Lab Name"
-                    className="w-full px-3 py-1.5 border rounded-lg text-sm bg-white dark:bg-slate-900"
-                    value={testForm.lab_name}
-                    onChange={e => setTestForm({ ...testForm, lab_name: e.target.value })}
-                  />
-                </div>
-              </div>
-
-              <div className="flex justify-end gap-2 pt-2 border-t">
-                <button type="button" onClick={() => setShowTestModal(false)} className="btn btn-secondary text-xs">
-                  Cancel
-                </button>
-                <button type="submit" className="btn-success text-xs font-bold">
-                  Save Certificate
-                </button>
-              </div>
-            </form>
+          <div>
+            <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">Pass / Fail Compliance</label>
+            <select
+              className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500"
+              value={testForm.status}
+              onChange={e => setTestForm({ ...testForm, status: e.target.value })}
+            >
+              <option value="PASS">PASS - Meets design specifications</option>
+              <option value="FAIL">FAIL - Out of specification tolerance</option>
+              <option value="PENDING">PENDING - Awaiting lab report</option>
+            </select>
           </div>
         </div>
-      )}
-    </div>
+      </ProjectModal>    </div>
   );
 }

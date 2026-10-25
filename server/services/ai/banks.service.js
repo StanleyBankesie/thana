@@ -10,6 +10,7 @@ import { checkPromptModulePermission } from "./banks.guardrails.js";
 // Provider Endpoints
 const GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions";
 const GROQ_MODELS_URL = "https://api.groq.com/openai/v1/models";
+const GROQ_AUDIO_URL = "https://api.groq.com/openai/v1/audio/transcriptions";
 
 const OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions";
 const OPENROUTER_MODELS_URL = "https://openrouter.ai/api/v1/models";
@@ -1107,4 +1108,41 @@ export async function autonomousDirectResponse(messages = [], options = {}) {
     model: "banks-autonomous-copilot",
     provider: "omnisuite-ai",
   };
+}
+
+/**
+ * Transcribe speech audio to text using Groq Whisper model.
+ * @param {Buffer} audioBuffer - Binary audio buffer.
+ * @param {string} originalFilename - Filename (e.g. audio.webm, audio.wav).
+ * @param {string} customApiKey - Optional override API key.
+ * @returns {Promise<string>} Transcribed text.
+ */
+export async function transcribeAudio(audioBuffer, originalFilename = "audio.webm", customApiKey = null) {
+  const apiKey = (customApiKey || getApiKey() || "").trim();
+  if (!apiKey) {
+    throw new Error("Groq API Key is not configured for voice transcription.");
+  }
+
+  const formData = new FormData();
+  const blob = new Blob([audioBuffer], { type: "audio/webm" });
+  formData.append("file", blob, originalFilename);
+  formData.append("model", "whisper-large-v3-turbo");
+  formData.append("response_format", "json");
+  formData.append("temperature", "0");
+
+  const response = await fetch(GROQ_AUDIO_URL, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Whisper transcription error (${response.status}): ${errorText}`);
+  }
+
+  const data = await response.json();
+  return data.text || "";
 }

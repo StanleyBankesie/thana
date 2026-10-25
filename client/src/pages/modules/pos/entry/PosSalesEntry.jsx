@@ -80,9 +80,9 @@ function FilterableSelect({
         }}
       />
       {open && (
-        <div className="absolute z-50 mt-1 w-full max-h-60 overflow-auto rounded-lg border border-slate-200 bg-white shadow-lg">
+        <div className="absolute z-50 mt-1 w-full max-h-60 overflow-auto rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 shadow-lg">
           <div
-            className="px-3 py-2 text-sm text-slate-500 cursor-pointer hover:bg-slate-100"
+            className="px-3 py-2 text-sm text-slate-500 dark:text-slate-400 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700"
             onClick={() => handleSelect("")}
           >
             {placeholder || "None"}
@@ -90,7 +90,7 @@ function FilterableSelect({
           {filtered.map((o) => (
             <div
               key={String(o.value)}
-              className={`px-3 py-2 text-sm cursor-pointer hover:bg-slate-100 ${
+              className={`px-3 py-2 text-sm cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 ${
                 String(o.value) === String(value)
                   ? "bg-brand/10 font-semibold"
                   : ""
@@ -394,8 +394,7 @@ export default function PosSalesEntry() {
           (assigned.length ? String(assigned[0]?.warehouse_id || "") : "") ||
           "";
         const bId =
-          (assigned.length ? String(assigned[0]?.branch_id || "") : "") ||
-          "";
+          (assigned.length ? String(assigned[0]?.branch_id || "") : "") || "";
         setTerminalCode(code);
         setTerminalWarehouseId(wId);
         setTerminalBranchId(bId);
@@ -407,7 +406,10 @@ export default function PosSalesEntry() {
           const item = res?.data?.item || null;
           const isDayEnabled = res?.data?.enable_day_open_close !== false;
           try {
-            localStorage.setItem("pos_enable_day_open_close", String(isDayEnabled));
+            localStorage.setItem(
+              "pos_enable_day_open_close",
+              String(isDayEnabled),
+            );
           } catch {}
           const status = String(item?.status || "").toUpperCase();
           const isOpen = status === "OPEN";
@@ -466,7 +468,10 @@ export default function PosSalesEntry() {
     }
     window.addEventListener("pos-day-control-changed", onPosDayControlChanged);
     return () => {
-      window.removeEventListener("pos-day-control-changed", onPosDayControlChanged);
+      window.removeEventListener(
+        "pos-day-control-changed",
+        onPosDayControlChanged,
+      );
     };
   }, []);
 
@@ -478,7 +483,12 @@ export default function PosSalesEntry() {
         if (terminalCode && t && t !== terminalCode) return;
         const eventUserId = d.userId;
         const currentUserId = user?.id ?? user?.sub;
-        if (eventUserId && currentUserId && String(eventUserId) !== String(currentUserId)) return;
+        if (
+          eventUserId &&
+          currentUserId &&
+          String(eventUserId) !== String(currentUserId)
+        )
+          return;
         const status = String(d.status || "").toUpperCase();
         if (status === "OPEN") {
           setDayExists(true);
@@ -658,7 +668,11 @@ export default function PosSalesEntry() {
     };
   }, []);
   const [headerDiscount, setHeaderDiscount] = useState("");
-  const [globalDiscountInfo, setGlobalDiscountInfo] = useState({ type: null, value: 0, amount: 0 });
+  const [globalDiscountInfo, setGlobalDiscountInfo] = useState({
+    type: null,
+    value: 0,
+    amount: 0,
+  });
 
   useEffect(() => {
     let mounted = true;
@@ -870,7 +884,9 @@ export default function PosSalesEntry() {
       .get("/sales/purchase-reward-campaigns/active")
       .then((res) => {
         if (!mounted) return;
-        setPurchaseRewardCampaigns(Array.isArray(res.data?.items) ? res.data.items : []);
+        setPurchaseRewardCampaigns(
+          Array.isArray(res.data?.items) ? res.data.items : [],
+        );
       })
       .catch(() => {});
     return () => {
@@ -917,7 +933,10 @@ export default function PosSalesEntry() {
     if (globalDiscountInfo.type === "percent") {
       return (base * Number(globalDiscountInfo.value)) / 100;
     }
-    return Math.min(base, Number(globalDiscountInfo.amount || globalDiscountInfo.value || 0));
+    return Math.min(
+      base,
+      Number(globalDiscountInfo.amount || globalDiscountInfo.value || 0),
+    );
   }, [globalDiscountInfo, gross, lineDiscountsTotal]);
   const subtotal = useMemo(() => {
     const rawSub = cart.reduce((sum, i) => {
@@ -1020,7 +1039,16 @@ export default function PosSalesEntry() {
 
       if (amount) {
         const amt = Number(amount);
-        const rawSub = cart.reduce((sum, item) => sum + Math.max(0, Number(item.price || 0) * Number(item.quantity || 0) - Number(item.discount || 0)), 0);
+        const rawSub = cart.reduce(
+          (sum, item) =>
+            sum +
+            Math.max(
+              0,
+              Number(item.price || 0) * Number(item.quantity || 0) -
+                Number(item.discount || 0),
+            ),
+          0,
+        );
         if (amt > rawSub) {
           Swal.fire("Error", "Discount cannot exceed subtotal", "error");
           return;
@@ -1051,7 +1079,16 @@ export default function PosSalesEntry() {
 
       if (percent) {
         const pct = Number(percent);
-        const rawSub = cart.reduce((sum, item) => sum + Math.max(0, Number(item.price || 0) * Number(item.quantity || 0) - Number(item.discount || 0)), 0);
+        const rawSub = cart.reduce(
+          (sum, item) =>
+            sum +
+            Math.max(
+              0,
+              Number(item.price || 0) * Number(item.quantity || 0) -
+                Number(item.discount || 0),
+            ),
+          0,
+        );
         const calcAmt = (pct / 100) * rawSub;
         if (calcAmt > rawSub) {
           Swal.fire("Error", "Discount cannot exceed subtotal", "error");
@@ -1064,13 +1101,26 @@ export default function PosSalesEntry() {
   };
 
   const applyGlobalDiscount = (totalDiscountAmt) => {
-    const rawSub = cart.reduce((sum, item) => sum + Math.max(0, Number(item.price || 0) * Number(item.quantity || 0) - Number(item.discount || 0)), 0);
+    const rawSub = cart.reduce(
+      (sum, item) =>
+        sum +
+        Math.max(
+          0,
+          Number(item.price || 0) * Number(item.quantity || 0) -
+            Number(item.discount || 0),
+        ),
+      0,
+    );
     if (rawSub === 0) return;
     if (totalDiscountAmt > rawSub) {
       Swal.fire("Error", "Discount cannot exceed subtotal", "error");
       return;
     }
-    setGlobalDiscountInfo({ type: "amount", value: Number(totalDiscountAmt), amount: Number(totalDiscountAmt) });
+    setGlobalDiscountInfo({
+      type: "amount",
+      value: Number(totalDiscountAmt),
+      amount: Number(totalDiscountAmt),
+    });
     setHeaderDiscount(Number(totalDiscountAmt).toFixed(2));
   };
 
@@ -1078,7 +1128,10 @@ export default function PosSalesEntry() {
     const activeModes = Array.isArray(paymentModes) ? paymentModes : [];
     const defaultMode =
       activeModes.find(
-        (m) => String(m.type || "").trim().toLowerCase() === "cash",
+        (m) =>
+          String(m.type || "")
+            .trim()
+            .toLowerCase() === "cash",
       ) || activeModes[0];
     return defaultMode?.id ? String(defaultMode.id) : "";
   }
@@ -1105,7 +1158,10 @@ export default function PosSalesEntry() {
   function resolvePaymentMethodForSale(mode) {
     const t = String(mode?.type || "").toLowerCase();
     const n = String(mode?.name || "").toLowerCase();
-    if (["credit", "on account", "account"].some((k) => n.includes(k)) || t === "credit") {
+    if (
+      ["credit", "on account", "account"].some((k) => n.includes(k)) ||
+      t === "credit"
+    ) {
       return "CREDIT";
     }
     if (t === "cash") return "CASH";
@@ -1504,7 +1560,11 @@ export default function PosSalesEntry() {
   }
 
   const getEffectiveSaleLines = (sourceCart) => {
-    if (!globalDiscountAmount || globalDiscountAmount <= 0 || !sourceCart.length) {
+    if (
+      !globalDiscountAmount ||
+      globalDiscountAmount <= 0 ||
+      !sourceCart.length
+    ) {
       return sourceCart.map((it) => ({
         item_id: it.id,
         name: it.name,
@@ -1513,7 +1573,16 @@ export default function PosSalesEntry() {
         discount: Number(it.discount || 0),
       }));
     }
-    const baseTotal = sourceCart.reduce((sum, it) => sum + Math.max(0, Number(it.quantity || 0) * Number(it.price || 0) - Number(it.discount || 0)), 0);
+    const baseTotal = sourceCart.reduce(
+      (sum, it) =>
+        sum +
+        Math.max(
+          0,
+          Number(it.quantity || 0) * Number(it.price || 0) -
+            Number(it.discount || 0),
+        ),
+      0,
+    );
     if (baseTotal <= 0) {
       return sourceCart.map((it) => ({
         item_id: it.id,
@@ -1525,12 +1594,18 @@ export default function PosSalesEntry() {
     }
     let remainingGlobal = globalDiscountAmount;
     return sourceCart.map((it, idx) => {
-      const lineBase = Math.max(0, Number(it.quantity || 0) * Number(it.price || 0) - Number(it.discount || 0));
+      const lineBase = Math.max(
+        0,
+        Number(it.quantity || 0) * Number(it.price || 0) -
+          Number(it.discount || 0),
+      );
       let addDisc = 0;
       if (idx === sourceCart.length - 1) {
         addDisc = Number(remainingGlobal.toFixed(2));
       } else {
-        addDisc = Number(((lineBase / baseTotal) * globalDiscountAmount).toFixed(2));
+        addDisc = Number(
+          ((lineBase / baseTotal) * globalDiscountAmount).toFixed(2),
+        );
         remainingGlobal -= addDisc;
       }
       return {
@@ -1611,15 +1686,14 @@ export default function PosSalesEntry() {
     };
   }, [entryBarcode, products]);
 
-    useEffect(() => {
-      if (cartRef.current) {
-        cartRef.current.scrollTop = cartRef.current.scrollHeight;
-      }
-      if (typeof window !== "undefined") {
-        window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
-      }
-    }, [cart]);
-
+  useEffect(() => {
+    if (cartRef.current) {
+      cartRef.current.scrollTop = cartRef.current.scrollHeight;
+    }
+    if (typeof window !== "undefined") {
+      window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
+    }
+  }, [cart]);
 
   const [searchParams, setSearchParams] = useSearchParams();
   const resumeId = searchParams.get("resume");
@@ -1666,7 +1740,11 @@ export default function PosSalesEntry() {
           }
           if (sale.discount_amount && Number(sale.discount_amount) > 0) {
             setHeaderDiscount(String(sale.discount_amount));
-            setGlobalDiscountInfo({ type: "amount", value: Number(sale.discount_amount), amount: Number(sale.discount_amount) });
+            setGlobalDiscountInfo({
+              type: "amount",
+              value: Number(sale.discount_amount),
+              amount: Number(sale.discount_amount),
+            });
           }
           api.put(`/pos/holds/${resumeId}/cancel`).catch(() => {});
           toast.success("On-hold sale loaded — review and complete");
@@ -1760,17 +1838,32 @@ export default function PosSalesEntry() {
       const lines = getEffectiveSaleLines(saleCart);
       // Purchase reward: add free items from active campaigns
       let consumedReward = [];
-      if (Array.isArray(purchaseRewardCampaigns) && purchaseRewardCampaigns.length) {
+      if (
+        Array.isArray(purchaseRewardCampaigns) &&
+        purchaseRewardCampaigns.length
+      ) {
         for (const campaign of purchaseRewardCampaigns) {
           const rows = Array.isArray(campaign.rows) ? campaign.rows : [];
           for (const rule of rows) {
-            const purchaseIds = (rule.item_ids || "").split(",").map(s => Number(s.trim())).filter(n => n > 0);
-            const freeIds = (rule.free_item_ids || "").split(",").map(s => Number(s.trim())).filter(n => n > 0);
+            const purchaseIds = (rule.item_ids || "")
+              .split(",")
+              .map((s) => Number(s.trim()))
+              .filter((n) => n > 0);
+            const freeIds = (rule.free_item_ids || "")
+              .split(",")
+              .map((s) => Number(s.trim()))
+              .filter((n) => n > 0);
             const purchaseQtyNeeded = Number(rule.item_qty || 0);
             const freeQtyPer = Number(rule.free_qty || 0);
-            if (!purchaseIds.length || !freeIds.length || !purchaseQtyNeeded || !freeQtyPer) continue;
-            const cartItem = saleCart.find(
-              (c) => purchaseIds.includes(Number(c.id)),
+            if (
+              !purchaseIds.length ||
+              !freeIds.length ||
+              !purchaseQtyNeeded ||
+              !freeQtyPer
+            )
+              continue;
+            const cartItem = saleCart.find((c) =>
+              purchaseIds.includes(Number(c.id)),
             );
             if (!cartItem) continue;
             const cartQty = Number(cartItem.quantity || 0);
@@ -1778,9 +1871,7 @@ export default function PosSalesEntry() {
             const times = Math.floor(cartQty / purchaseQtyNeeded);
             const totalFreeQty = times * freeQtyPer;
             for (const freeId of freeIds) {
-              const freeProduct = products.find(
-                (p) => Number(p.id) === freeId,
-              );
+              const freeProduct = products.find((p) => Number(p.id) === freeId);
               lines.push({
                 item_id: freeId,
                 name: freeProduct ? freeProduct.name : "Free Item",
@@ -2317,7 +2408,7 @@ export default function PosSalesEntry() {
           </p> */}
         </div>
         <div className="text-right">
-          <div className="text-sm text-slate-700">
+          <div className="text-sm text-slate-700 dark:text-slate-300">
             {now.toLocaleDateString(undefined, {
               weekday: "long",
               year: "numeric",
@@ -2347,11 +2438,7 @@ export default function PosSalesEntry() {
                       : "bg-red-100 text-red-700"
                   }`}
                 >
-                  {dayOpen
-                    ? "Open"
-                    : dayExists
-                      ? "Closed"
-                      : "Not Opened"}
+                  {dayOpen ? "Open" : dayExists ? "Closed" : "Not Opened"}
                 </span>
               </span>
             )}
@@ -2382,7 +2469,8 @@ export default function PosSalesEntry() {
                 <div>
                   <div className="font-semibold">POS Day is Closed</div>
                   <div className="text-sm">
-                    Today’s POS Day has been closed. You cannot make sales until a new day is opened.
+                    Today’s POS Day has been closed. You cannot make sales until
+                    a new day is opened.
                   </div>
                 </div>
                 <Link to="/pos/day-management" className="btn btn-primary">
@@ -2392,21 +2480,21 @@ export default function PosSalesEntry() {
             </div>
           ) : null}
           {(!dayControlEnabled || (dayExists && dayOpen)) && !dayLoading ? (
-            <div className="rounded-lg border border-slate-200 bg-white p-4 flex items-center justify-between">
+            <div className="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-4 flex items-center justify-between">
               <div>
                 {dayControlEnabled ? (
                   <>
                     <div className="font-semibold">POS Day is Open</div>
-                    <div className="text-sm text-slate-600">
+                    <div className="text-sm text-slate-600 dark:text-slate-300">
                       Review collections and close day when ready.
                     </div>
                   </>
                 ) : (
                   <div>
-                    <div className="font-semibold text-slate-800">
+                    <div className="font-semibold text-slate-800 dark:text-slate-100">
                       Customer & Payment
                     </div>
-                    <div className="text-sm text-slate-500">
+                    <div className="text-sm text-slate-500 dark:text-slate-400">
                       Select customer and payment mode
                     </div>
                   </div>
@@ -2510,19 +2598,19 @@ export default function PosSalesEntry() {
                       disabled={false}
                     />
                     {entryBarcode && itemSearchResults.length ? (
-                      <div className="absolute z-50 mt-1 w-full bg-white border border-slate-200 rounded-lg shadow-lg max-h-48 overflow-auto">
+                      <div className="absolute z-50 mt-1 w-full bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg max-h-48 overflow-auto">
                         {itemSearchResults.map((o) => (
                           <button
                             type="button"
                             key={o.value}
-                            className="block w-full text-left px-3 py-2 hover:bg-slate-50"
+                            className="block w-full text-left px-3 py-2 hover:bg-slate-50 dark:hover:bg-slate-700"
                             onClick={() => handleSelectItemById(o.value)}
                           >
                             <div className="flex justify-between items-center">
                               <span>{o.label}</span>
                               <div className="flex items-center gap-3">
                                 {isShowAvailableQty && (
-                                  <span className="text-xs text-slate-500 font-medium">
+                                  <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">
                                     Avail: {Number(o.availQty || 0)}
                                   </span>
                                 )}
@@ -2581,7 +2669,10 @@ export default function PosSalesEntry() {
                     className={`input w-full cursor-pointer ${!isDiscountAllowed || generalSettings.allowDiscounts === false ? "disabled-light-blue" : ""}`}
                     value={headerDiscount}
                     onClick={handleGlobalDiscountClick}
-                    disabled={!isDiscountAllowed || generalSettings.allowDiscounts === false}
+                    disabled={
+                      !isDiscountAllowed ||
+                      generalSettings.allowDiscounts === false
+                    }
                     placeholder="0.00"
                   />
                 </div>
@@ -2612,20 +2703,36 @@ export default function PosSalesEntry() {
               </div>
               <div className="flex-1 min-h-0 overflow-y-auto">
                 {selectedItems.length ? (
-                  <div className="overflow-x-auto overflow-y-auto max-h-[400px] rounded-lg border border-slate-200 bg-white">
-                    <table className="min-w-full text-sm font-bold">
+                  <div className="overflow-x-auto overflow-y-auto max-h-[400px] rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900">
+                    <table className="min-w-full text-sm font-bold text-slate-900 dark:text-slate-100">
                       <thead>
-                        <tr className="bg-slate-50 text-slate-700">
-                          <th className="px-3 py-2 text-left sticky top-0 bg-slate-50 shadow-sm z-10">Item Code</th>
-                          <th className="px-3 py-2 text-left sticky top-0 bg-slate-50 shadow-sm z-10">Item Name</th>
+                        <tr className="bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200">
+                          <th className="px-3 py-2 text-left sticky top-0 bg-slate-50 dark:bg-slate-800 shadow-sm z-10">
+                            Item Code
+                          </th>
+                          <th className="px-3 py-2 text-left sticky top-0 bg-slate-50 dark:bg-slate-800 shadow-sm z-10">
+                            Item Name
+                          </th>
                           {isShowAvailableQty && (
-                            <th className="px-3 py-2 text-right sticky top-0 bg-slate-50 shadow-sm z-10">Available Qty</th>
+                            <th className="px-3 py-2 text-right sticky top-0 bg-slate-50 dark:bg-slate-800 shadow-sm z-10">
+                              Available Qty
+                            </th>
                           )}
-                          <th className="px-3 py-2 text-right sticky top-0 bg-slate-50 shadow-sm z-10">Price</th>
-                          <th className="px-3 py-2 text-center sticky top-0 bg-slate-50 shadow-sm z-10 min-w-[130px]">QTY</th>
-                          <th className="px-3 py-2 text-right sticky top-0 bg-slate-50 shadow-sm z-10">Discount</th>
-                          <th className="px-3 py-2 text-right sticky top-0 bg-slate-50 shadow-sm z-10">Total</th>
-                          <th className="px-3 py-2 text-right sticky top-0 bg-slate-50 shadow-sm z-10">Actions</th>
+                          <th className="px-3 py-2 text-right sticky top-0 bg-slate-50 dark:bg-slate-800 shadow-sm z-10">
+                            Price
+                          </th>
+                          <th className="px-3 py-2 text-center sticky top-0 bg-slate-50 dark:bg-slate-800 shadow-sm z-10 min-w-[130px]">
+                            QTY
+                          </th>
+                          <th className="px-3 py-2 text-right sticky top-0 bg-slate-50 dark:bg-slate-800 shadow-sm z-10">
+                            Discount
+                          </th>
+                          <th className="px-3 py-2 text-right sticky top-0 bg-slate-50 dark:bg-slate-800 shadow-sm z-10">
+                            Total
+                          </th>
+                          <th className="px-3 py-2 text-right sticky top-0 bg-slate-50 dark:bg-slate-800 shadow-sm z-10">
+                            Actions
+                          </th>
                         </tr>
                       </thead>
                       <tbody>
@@ -2660,7 +2767,7 @@ export default function PosSalesEntry() {
                                 <div className="inline-flex items-center gap-1.5 justify-center">
                                   <button
                                     type="button"
-                                    className="w-8 h-8 flex items-center justify-center rounded-lg border border-slate-300 bg-white text-slate-700 hover:bg-slate-100 font-bold text-base select-none shrink-0"
+                                    className="w-8 h-8 flex items-center justify-center rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 font-bold text-base select-none shrink-0"
                                     onClick={() => updateQuantity(it.id, -1)}
                                     title="Decrease quantity"
                                   >
@@ -2671,7 +2778,7 @@ export default function PosSalesEntry() {
                                   </span>
                                   <button
                                     type="button"
-                                    className="w-8 h-8 flex items-center justify-center rounded-lg border border-slate-300 bg-white text-slate-700 hover:bg-slate-100 font-bold text-base select-none shrink-0"
+                                    className="w-8 h-8 flex items-center justify-center rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 font-bold text-base select-none shrink-0"
                                     onClick={() => updateQuantity(it.id, 1)}
                                     title="Increase quantity"
                                   >
@@ -2718,7 +2825,7 @@ export default function PosSalesEntry() {
                     </table>
                   </div>
                 ) : (
-                  <div className="rounded-lg border border-slate-200 bg-white p-6 text-center text-sm text-slate-600">
+                  <div className="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-6 text-center text-sm text-slate-600 dark:text-slate-300">
                     Scan barcode or search item to add to cart
                   </div>
                 )}
@@ -2819,11 +2926,11 @@ export default function PosSalesEntry() {
             <div className="card-body space-y-3 text-base">
               <div className="grid grid-cols-2 gap-2">
                 {paymentModesLoading ? (
-                  <div className="col-span-2 text-center text-sm text-slate-500">
+                  <div className="col-span-2 text-center text-sm text-slate-500 dark:text-slate-400">
                     Loading payment modes...
                   </div>
                 ) : !paymentModes.length ? (
-                  <div className="col-span-2 text-center text-sm text-slate-500">
+                  <div className="col-span-2 text-center text-sm text-slate-500 dark:text-slate-400">
                     No payment modes configured
                   </div>
                 ) : (
@@ -2839,11 +2946,17 @@ export default function PosSalesEntry() {
                         type="button"
                         className={`btn text-base ${
                           isPrimary || isAdditional
-                            ? "btn-primary"
+                            ? "btn-primary !bg-[#0E3646] !text-white !border-[#0E3646]"
                             : "btn-secondary"
                         }`}
                         onClick={() => {
-                          if (["credit","on account","account"].some(s => String(m.name || "").toLowerCase().includes(s))) {
+                          if (
+                            ["credit", "on account", "account"].some((s) =>
+                              String(m.name || "")
+                                .toLowerCase()
+                                .includes(s),
+                            )
+                          ) {
                             setCreditPendingModeId(String(m.id));
                             setShowCreditCustomerModal(true);
                             return;
@@ -2902,12 +3015,21 @@ export default function PosSalesEntry() {
                     type="button"
                     className="btn-success w-full text-base"
                     onClick={() => {
-                      const isCredit = selectedPaymentMode && ["credit","on account","account"].some(s => String(selectedPaymentMode.name || "").toLowerCase().includes(s));
+                      const isCredit =
+                        selectedPaymentMode &&
+                        ["credit", "on account", "account"].some((s) =>
+                          String(selectedPaymentMode.name || "")
+                            .toLowerCase()
+                            .includes(s),
+                        );
                       if (isCredit && paymentStatus === "PAID") {
                         setShowCreditPaymentModal(true);
                       } else if (isCredit && paymentStatus === "UNPAID") {
                         checkout();
-                      } else if (tendered < total && !additionalPaymentModeIds.length) {
+                      } else if (
+                        tendered < total &&
+                        !additionalPaymentModeIds.length
+                      ) {
                         setSplitPrimaryAmount(tendered);
                         setShowSplitPaymentModal(true);
                       } else {
@@ -2920,7 +3042,13 @@ export default function PosSalesEntry() {
                       paymentModesLoading ||
                       !paymentModes.length ||
                       !selectedPaymentModeId ||
-                      (selectedPaymentMode && ["credit","on account","account"].some(s => String(selectedPaymentMode.name || "").toLowerCase().includes(s)) && !selectedCustomerId)
+                      (selectedPaymentMode &&
+                        ["credit", "on account", "account"].some((s) =>
+                          String(selectedPaymentMode.name || "")
+                            .toLowerCase()
+                            .includes(s),
+                        ) &&
+                        !selectedCustomerId)
                     }
                   >
                     {tendered < total && !additionalPaymentModeIds.length
@@ -2942,8 +3070,14 @@ export default function PosSalesEntry() {
       </div>
 
       {showModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" data-rbac-exempt="true">
-          <div className="bg-white dark:bg-slate-900 rounded-lg p-6 w-full max-w-md relative shadow-xl border border-slate-200 dark:border-slate-800" data-rbac-exempt="true">
+        <div
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+          data-rbac-exempt="true"
+        >
+          <div
+            className="bg-white dark:bg-slate-900 rounded-lg p-6 w-full max-w-md relative shadow-xl border border-slate-200 dark:border-slate-800"
+            data-rbac-exempt="true"
+          >
             <button
               type="button"
               data-rbac-exempt="true"
@@ -3062,11 +3196,11 @@ export default function PosSalesEntry() {
 
       {showSplitPaymentModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-sm mx-4">
+          <div className="bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 rounded-lg p-6 w-full max-w-sm mx-4">
             <div className="text-xl font-extrabold text-red-600 mb-2">
               Amount Due: GH₵ {(total - tendered).toFixed(2)}
             </div>
-            <p className="text-sm text-slate-600 mb-4">
+            <p className="text-sm text-slate-600 dark:text-slate-300 mb-4">
               Select another payment method
             </p>
             <div className="grid grid-cols-2 gap-2">
@@ -3104,13 +3238,13 @@ export default function PosSalesEntry() {
 
       {showCreditCustomerModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-sm mx-4">
+          <div className="bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 rounded-lg p-6 w-full max-w-sm mx-4">
             {creditStep === 1 ? (
               <>
                 <div className="text-lg font-bold text-brand-700 mb-2">
                   Customer Required
                 </div>
-                <p className="text-sm text-slate-600 mb-4">
+                <p className="text-sm text-slate-600 dark:text-slate-300 mb-4">
                   This is an on-account sale. Select a customer to continue.
                 </p>
                 <FilterableSelect
@@ -3143,10 +3277,10 @@ export default function PosSalesEntry() {
                 <div className="text-lg font-bold text-brand-700 mb-2">
                   Payment Status
                 </div>
-                <p className="text-sm text-slate-600 mb-4">
+                <p className="text-sm text-slate-600 dark:text-slate-300 mb-4">
                   Set the payment status for this sale.
                 </p>
-                <label className="flex items-center gap-2 p-3 border rounded-lg cursor-pointer hover:bg-slate-50 mb-2">
+                <label className="flex items-center gap-2 p-3 border border-slate-200 dark:border-slate-700 rounded-lg cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700 mb-2">
                   <input
                     type="radio"
                     name="creditPaymentStatus"
@@ -3156,7 +3290,7 @@ export default function PosSalesEntry() {
                   />
                   <span className="font-medium">Paid</span>
                 </label>
-                <label className="flex items-center gap-2 p-3 border rounded-lg cursor-pointer hover:bg-slate-50 mb-4">
+                <label className="flex items-center gap-2 p-3 border border-slate-200 dark:border-slate-700 rounded-lg cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700 mb-4">
                   <input
                     type="radio"
                     name="creditPaymentStatus"
@@ -3193,29 +3327,38 @@ export default function PosSalesEntry() {
 
       {showCreditPaymentModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-sm mx-4">
+          <div className="bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 rounded-lg p-6 w-full max-w-sm mx-4">
             <div className="text-lg font-bold text-brand-700 mb-2">
               Select Payment Method
             </div>
-            <p className="text-sm text-slate-600 mb-4">
+            <p className="text-sm text-slate-600 dark:text-slate-300 mb-4">
               Choose the payment method for this credit sale.
             </p>
             <div className="grid grid-cols-2 gap-2">
-              {paymentModes.filter((m) => !["credit","on account","account"].some(s => String(m.name || "").toLowerCase().includes(s))).map((m) => (
-                <button
-                  key={m.id}
-                  type="button"
-                  className="btn btn-secondary text-base"
-                  onClick={() => {
-                    setSelectedPaymentModeId(String(m.id));
-                    setAdditionalPaymentModeIds([]);
-                    setShowCreditPaymentModal(false);
-                    focusBarcodeField();
-                  }}
-                >
-                  {m.name}
-                </button>
-              ))}
+              {paymentModes
+                .filter(
+                  (m) =>
+                    !["credit", "on account", "account"].some((s) =>
+                      String(m.name || "")
+                        .toLowerCase()
+                        .includes(s),
+                    ),
+                )
+                .map((m) => (
+                  <button
+                    key={m.id}
+                    type="button"
+                    className="btn btn-secondary text-base"
+                    onClick={() => {
+                      setSelectedPaymentModeId(String(m.id));
+                      setAdditionalPaymentModeIds([]);
+                      setShowCreditPaymentModal(false);
+                      focusBarcodeField();
+                    }}
+                  >
+                    {m.name}
+                  </button>
+                ))}
             </div>
             <button
               type="button"
@@ -3230,11 +3373,11 @@ export default function PosSalesEntry() {
 
       {showItemNotFound && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-sm mx-4">
+          <div className="bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 rounded-lg p-6 w-full max-w-sm mx-4">
             <div className="text-lg font-bold text-red-600">
               Item Not Registered
             </div>
-            <p className="mt-2 text-sm text-slate-600">
+            <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
               The scanned item is not registered in the system.
             </p>
             <div className="mt-6 flex gap-2">
@@ -3263,11 +3406,11 @@ export default function PosSalesEntry() {
 
       {showNoPermission && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-sm mx-4">
+          <div className="bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 rounded-lg p-6 w-full max-w-sm mx-4">
             <div className="text-lg font-bold text-red-600">
               Permission Denied
             </div>
-            <p className="mt-2 text-sm text-slate-600">
+            <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
               You do not have permission to register new items. Contact your
               administrator.
             </p>

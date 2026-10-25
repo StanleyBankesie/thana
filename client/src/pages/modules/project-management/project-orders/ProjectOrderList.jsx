@@ -11,7 +11,7 @@ import { toast } from "react-toastify";
 import { filterAndSort } from "../../../../utils/searchUtils.js";
 import useSort from "../../../../hooks/useSort.js";
 import SortableHeader from "../../../../components/SortableHeader.jsx";
-import { Plus } from "lucide-react";
+import { Plus, ArrowLeft, ShoppingCart, RefreshCw } from "lucide-react";
 import { useViewMode } from "@/hooks/useViewMode";
 import ViewToggle from "@/components/ViewToggle";
 import {
@@ -27,6 +27,23 @@ const STATUS_CONFIG = {
   REJECTED: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300",
   CANCELLED: "bg-slate-800 text-white dark:bg-slate-900 dark:text-slate-300",
 };
+
+
+const STATUS_CONFIG_LIST = [
+  { key: "DRAFT", label: "Draft", bg: "bg-slate-100 text-slate-700 dark:bg-slate-700/60 dark:text-slate-300" },
+  { key: "PENDING_APPROVAL", label: "Pending", bg: "bg-orange-50 text-orange-700 dark:bg-orange-950/40 dark:text-orange-300" },
+  { key: "APPROVED", label: "Approved", bg: "bg-green-50 text-green-700 dark:bg-green-950/40 dark:text-green-300" },
+  { key: "POSTED", label: "Posted", bg: "bg-emerald-50 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300" },
+  { key: "REJECTED", label: "Rejected", bg: "bg-red-50 text-red-700 dark:bg-red-950/40 dark:text-red-300" },
+  { key: "CANCELLED", label: "Cancelled", bg: "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400" },
+];
+
+const PRIORITY_CONFIG_LIST = [
+  { key: "LOW", label: "Low", bg: "bg-slate-100 text-slate-700 dark:bg-slate-700/60 dark:text-slate-300" },
+  { key: "MEDIUM", label: "Medium", bg: "bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300" },
+  { key: "HIGH", label: "High", bg: "bg-orange-50 text-orange-700 dark:bg-orange-950/40 dark:text-orange-300" },
+  { key: "URGENT", label: "Urgent", bg: "bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300" },
+];
 
 function StatusBadge({ status }) {
   const s = String(status || "").toUpperCase();
@@ -157,38 +174,81 @@ export default function ProjectOrderList() {
     if (!searchTerm.trim()) return orders;
     return filterAndSort(orders, {
       query: searchTerm,
-      getKeys: (o) => [o.order_no, o.project_name, o.priority],
+      getKeys: (o) => [o.order_no, o.project_name, o.client_name, o.priority],
     });
   }, [orders, searchTerm]);
 
   const { sorted: filteredOrders, sortKey, sortDir, toggle } = useSort(filtered, "order_date", "desc");
 
+  const statusCounts = useMemo(() => {
+    const counts = {
+      DRAFT: 0,
+      PENDING_APPROVAL: 0,
+      APPROVED: 0,
+      POSTED: 0,
+      REJECTED: 0,
+      CANCELLED: 0,
+    };
+    filteredOrders.forEach((o) => {
+      const s = String(o.status || "").toUpperCase();
+      if (counts[s] !== undefined) counts[s]++;
+      else counts[s] = (counts[s] || 0) + 1;
+    });
+    return counts;
+  }, [filteredOrders]);
+
+  const priorityCounts = useMemo(() => {
+    const counts = {
+      LOW: 0,
+      MEDIUM: 0,
+      HIGH: 0,
+      URGENT: 0,
+    };
+    filteredOrders.forEach((o) => {
+      const p = String(o.priority || "").toUpperCase();
+      if (counts[p] !== undefined) counts[p]++;
+      else counts[p] = (counts[p] || 0) + 1;
+    });
+    return counts;
+  }, [filteredOrders]);
+
+  const distinctProjects = useMemo(() => {
+    return new Set(
+      filteredOrders
+        .map((o) => o.project_name?.trim() || (o.project_id ? String(o.project_id) : ""))
+        .filter(Boolean)
+    ).size;
+  }, [filteredOrders]);
+
+
   return (
-    <div className="space-y-4">
-      <div className="card">
-        <div className="card-header bg-brand text-white rounded-t-lg">
-          <div className="flex justify-between items-center text-white">
-            <div>
-              <h1 className="text-2xl font-bold dark:text-brand-300">
-                Project Orders
-              </h1>
-              <p className="text-sm mt-1">
-                Manage orders placed against projects
-              </p>
-            </div>
-            <div className="flex gap-2">
-              <Link to="/project-management?section=Reports%20%26%20Analytics" className="btn btn-secondary">
-                Return to Menu
-              </Link>
-              <Link
-                to="/project-management/project-orders/new"
-                className="btn-success flex items-center gap-2"
-              >
-                <Plus size={16} />
-                New Order
-              </Link>
-            </div>
+    <div className="space-y-6">
+      {/* Canonical ERP Flex Header */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <Link to="/project-management" className="btn btn-secondary inline-flex items-center gap-1.5 text-sm">
+            <ArrowLeft size={16} /> Back
+          </Link>
+          <div>
+            <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2.5">
+              <ShoppingCart size={26} className="text-brand-900 dark:text-brand-400" />
+              Project Orders
+            </h1>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+              Manage orders placed against projects
+            </p>
           </div>
+        </div>
+        <div className="flex flex-wrap items-center gap-2.5">
+          <button onClick={() => fetchOrders(pagination.page || 1)} className="btn btn-secondary p-2.5" title="Refresh">
+            <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
+          </button>
+          <Link
+            to="/project-management/project-orders/new"
+            className="btn btn-primary inline-flex items-center gap-2 text-sm font-semibold shadow-sm"
+          >
+            <Plus size={16} /> New Order
+          </Link>
         </div>
       </div>
 
@@ -245,6 +305,13 @@ export default function ProjectOrderList() {
                       onToggle={toggle}
                     />
                     <SortableHeader
+                      label="Client"
+                      sortKey="client_name"
+                      currentKey={sortKey}
+                      direction={sortDir}
+                      onToggle={toggle}
+                    />
+                    <SortableHeader
                       label="Priority"
                       sortKey="priority"
                       currentKey={sortKey}
@@ -278,13 +345,13 @@ export default function ProjectOrderList() {
                 <tbody>
                   {loading ? (
                     <tr>
-                      <td colSpan="9" className="text-center py-8 text-slate-400">
+                      <td colSpan="10" className="text-center py-8 text-slate-400">
                         Loading project orders...
                       </td>
                     </tr>
                   ) : filteredOrders.length === 0 ? (
                     <tr>
-                      <td colSpan="9" className="text-center py-8 text-slate-400">
+                      <td colSpan="10" className="text-center py-8 text-slate-400">
                         No project orders found.
                       </td>
                     </tr>
@@ -300,6 +367,7 @@ export default function ProjectOrderList() {
                               : "-"}
                           </td>
                           <td>{order.project_name || "-"}</td>
+                          <td>{order.client_name || "-"}</td>
                           <td>
                             <span className="text-sm font-semibold">
                               {order.priority || "-"}

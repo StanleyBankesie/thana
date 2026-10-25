@@ -62,13 +62,7 @@ function parseDenominationCounts(input) {
   });
 }
 
-function FilterableSelect({
-  value,
-  onChange,
-  options,
-  placeholder,
-  disabled,
-}) {
+function FilterableSelect({ value, onChange, options, placeholder, disabled }) {
   const filtered = Array.isArray(options) ? options : [];
   const hasEmptyOption = filtered.some((o) => String(o.value) === "");
   return (
@@ -94,7 +88,7 @@ function FilterableSelect({
 
 /**
  *  component
- * 
+ *
  * @returns {JSX.Element} The rendered component
  */
 export default function PosPostToFinance() {
@@ -326,10 +320,8 @@ export default function PosPostToFinance() {
         bName.includes("sales account") ||
         bCode === "4000" ||
         bCode === "400000";
-      const aIsReturn =
-        aName.includes("return") || aName.includes("allowance");
-      const bIsReturn =
-        bName.includes("return") || bName.includes("allowance");
+      const aIsReturn = aName.includes("return") || aName.includes("allowance");
+      const bIsReturn = bName.includes("return") || bName.includes("allowance");
 
       const aScore = aIsSales
         ? 0
@@ -640,9 +632,9 @@ export default function PosPostToFinance() {
         if (Number(pm.is_active) === 0) continue;
         const t = String(pm.type || "").toLowerCase();
         const n = String(pm.name || "").toLowerCase();
-        
+
         if (!paymentModeByType.has(t)) paymentModeByType.set(t, pm);
-        
+
         // Ensure "credit" maps to a credit payment mode even if its type is "cash"
         if (["credit", "on account", "account"].some((k) => n.includes(k))) {
           paymentModeByType.set("credit", pm);
@@ -699,7 +691,8 @@ export default function PosPostToFinance() {
     const vNo = String(voucherNo || "").trim() || "Auto-generated";
     const vDate = voucherDate;
     const wh = String(warehouse || "").trim() || "-";
-    const totalAmount = totals.debit > 0 ? totals.debit.toFixed(2) : totals.credit.toFixed(2);
+    const totalAmount =
+      totals.debit > 0 ? totals.debit.toFixed(2) : totals.credit.toFixed(2);
     const cTotal = cashTotal.toFixed(2);
     const ok = window.confirm(
       `Post transaction to finance?\n\nVoucher: ${vNo}\nDate: ${vDate}\nTill: ${
@@ -748,7 +741,9 @@ export default function PosPostToFinance() {
   return (
     <div className="space-y-6">
       <div>
-        <button onClick={() => window.history.back()} className="text-sm text-brand hover:text-brand-600 dark:text-brand-400 dark:hover:text-brand-300"
+        <button
+          onClick={() => window.history.back()}
+          className="text-sm text-brand hover:text-brand-600 dark:text-brand-400 dark:hover:text-brand-300"
         >
           ← Back to POS
         </button>
@@ -832,7 +827,7 @@ export default function PosPostToFinance() {
                     </option>
                   ))}
               </select>
-              <small className="text-slate-500 mt-1 block">
+              <small className="text-slate-500 dark:text-slate-400 mt-1 block">
                 Account to be credited for sales revenue
               </small>
             </div>
@@ -890,7 +885,9 @@ export default function PosPostToFinance() {
                   Go
                 </button>
                 <div className="flex items-center gap-2">
-                  <div className="text-sm text-slate-600">Rows</div>
+                  <div className="text-sm text-slate-600 dark:text-slate-300">
+                    Rows
+                  </div>
                   <select
                     className="input"
                     value={String(rowsPerPage)}
@@ -911,10 +908,10 @@ export default function PosPostToFinance() {
                     Actions ▼
                   </button>
                   {actionsOpen && (
-                    <div className="absolute right-0 mt-2 w-40 rounded border border-slate-200 bg-white shadow-lg z-10">
+                    <div className="absolute right-0 mt-2 w-40 rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 shadow-lg z-10">
                       <button
                         type="button"
-                        className="w-full text-left px-3 py-2 text-sm hover:bg-slate-50"
+                        className="w-full text-left px-3 py-2 text-sm hover:bg-slate-50 dark:hover:bg-slate-700"
                         onClick={() => {
                           setActionsOpen(false);
                           resetForm();
@@ -928,41 +925,51 @@ export default function PosPostToFinance() {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
-                <div className="rounded border border-slate-200 bg-white p-3">
-                  <div className="text-xs text-slate-500">Paid Sales</div>
+                <div className="rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 p-3">
+                  <div className="text-xs text-slate-500 dark:text-slate-400">
+                    Paid Sales
+                  </div>
                   <div className="text-sm font-semibold">
                     {`GH₵ ${salesReturnsImpact.salesTotal.toFixed(2)}`}
                   </div>
-                  <div className="text-xs text-slate-500">
+                  <div className="text-xs text-slate-500 dark:text-slate-400">
                     {`${salesReturnsImpact.salesCount} txns`}
                   </div>
                 </div>
-                <div className="rounded border border-slate-200 bg-white p-3">
-                  <div className="text-xs text-slate-500">POS Returns</div>
+                <div className="rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 p-3">
+                  <div className="text-xs text-slate-500 dark:text-slate-400">
+                    POS Returns
+                  </div>
                   <div className="text-sm font-semibold text-red-700">
                     {`GH₵ ${salesReturnsImpact.returnsTotal.toFixed(2)}`}
                   </div>
-                  <div className="text-xs text-slate-500">
+                  <div className="text-xs text-slate-500 dark:text-slate-400">
                     {`${salesReturnsImpact.returnsCount} returns`}
                   </div>
                 </div>
-                <div className="rounded border border-slate-200 bg-white p-3">
-                  <div className="text-xs text-slate-500">Net Sales</div>
+                <div className="rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 p-3">
+                  <div className="text-xs text-slate-500 dark:text-slate-400">
+                    Net Sales
+                  </div>
                   <div className="text-sm font-semibold">
                     {`GH₵ ${salesReturnsImpact.netSales.toFixed(2)}`}
                   </div>
-                  <div className="text-xs text-slate-500">
+                  <div className="text-xs text-slate-500 dark:text-slate-400">
                     {`Date: ${voucherDate || "-"}`}
                   </div>
                 </div>
-                <div className="rounded border border-slate-200 bg-white p-3">
-                  <div className="text-xs text-slate-500">Voucher Debit</div>
+                <div className="rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 p-3">
+                  <div className="text-xs text-slate-500 dark:text-slate-400">
+                    Voucher Debit
+                  </div>
                   <div className="text-sm font-semibold">
                     {totals.debit.toFixed(2)}
                   </div>
                 </div>
-                <div className="rounded border border-slate-200 bg-white p-3">
-                  <div className="text-xs text-slate-500">Voucher Credit</div>
+                <div className="rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 p-3">
+                  <div className="text-xs text-slate-500 dark:text-slate-400">
+                    Voucher Credit
+                  </div>
                   <div className="text-sm font-semibold">
                     {totals.credit.toFixed(2)}
                   </div>
@@ -985,11 +992,11 @@ export default function PosPostToFinance() {
                       </th>
                     </tr>
                   </thead>
-                  <tbody className="bg-white">
+                  <tbody className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">
                     {!transactions.length ? (
                       <tr>
                         <td
-                          className="p-10 text-center text-slate-500"
+                          className="p-10 text-center text-slate-500 dark:text-slate-400"
                           colSpan={4}
                         >
                           Click "POPULATE DATA" to load transactions
@@ -1013,7 +1020,7 @@ export default function PosPostToFinance() {
                             </td>
                           </tr>
                         ))}
-                        <tr className="border-t bg-slate-50 font-semibold">
+                        <tr className="border-t bg-slate-50 dark:bg-slate-800 font-semibold">
                           <td className="p-2" />
                           <td className="p-2" />
                           <td className="p-2 text-right">
@@ -1029,14 +1036,14 @@ export default function PosPostToFinance() {
                 </table>
               </div>
 
-              <div className="flex justify-end text-xs text-slate-600">
+              <div className="flex justify-end text-xs text-slate-600 dark:text-slate-400">
                 {paginationText}
               </div>
 
               <div className="overflow-x-auto rounded border border-slate-200">
-                <div className="px-3 py-2 bg-slate-50 flex items-center justify-between">
+                <div className="px-3 py-2 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-slate-100 flex items-center justify-between">
                   <div className="text-sm font-semibold">POS Returns</div>
-                  <div className="text-xs text-slate-600">
+                  <div className="text-xs text-slate-600 dark:text-slate-400">
                     {`${salesReturnsImpact.returnsCount} returns • GH₵ ${salesReturnsImpact.returnsTotal.toFixed(2)}`}
                   </div>
                 </div>
@@ -1058,11 +1065,11 @@ export default function PosPostToFinance() {
                       </th>
                     </tr>
                   </thead>
-                  <tbody className="bg-white">
+                  <tbody className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">
                     {!returnsForDate.length ? (
                       <tr>
                         <td
-                          className="p-6 text-center text-slate-500"
+                          className="p-6 text-center text-slate-500 dark:text-slate-400"
                           colSpan={5}
                         >
                           No returns for selected date
@@ -1122,7 +1129,10 @@ export default function PosPostToFinance() {
                       value={denomCounts[idx] === 0 ? "" : denomCounts[idx]}
                       placeholder="0"
                       onChange={(e) => {
-                        const val = Math.max(0, parseInt(e.target.value, 10) || 0);
+                        const val = Math.max(
+                          0,
+                          parseInt(e.target.value, 10) || 0,
+                        );
                         setDenomCounts((prev) => {
                           const nextArr = [...prev];
                           nextArr[idx] = val;

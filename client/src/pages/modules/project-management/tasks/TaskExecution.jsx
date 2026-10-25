@@ -30,9 +30,11 @@ import {
   UserCheck,
   X,
   ChevronRight,
-  MousePointerClick
+  MousePointerClick,
+  ArrowLeft
 } from "lucide-react";
 import CarOdometerGauge from "@/components/CarOdometerGauge.jsx";
+import ProjectModal from "../components/ProjectModal.jsx";
 
 export default function TaskExecution() {
   const { user } = useAuth();
@@ -328,7 +330,8 @@ export default function TaskExecution() {
   };
 
   // Handle Task Reassignment with Exceptional Permission Check
-  const handleReassignTask = async () => {
+  const handleReassignTask = async (e) => {
+    e?.preventDefault?.();
     if (!canReassignTask) {
       toast.error("Exceptional Permission (TASK.REASSIGN) is required to reassign tasks.");
       return;
@@ -362,26 +365,26 @@ export default function TaskExecution() {
   return (
     <div className="space-y-4 sm:space-y-6 max-w-7xl mx-auto px-2 sm:px-4">
       {/* Header */}
-      <div className="card shadow-md overflow-hidden">
-        <div className="card-header bg-brand text-white p-4 sm:p-5">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-            <div>
-              <h1 className="text-xl sm:text-2xl font-bold flex items-center gap-2">
-                <ListTodo className="w-6 h-6 sm:w-7 sm:h-7" /> Task Execution
-              </h1>
-              <p className="text-xs sm:text-sm mt-1 opacity-90">
-                Interactive WBS execution, checklist tracking & gauge progress monitoring
-              </p>
-            </div>
-            <div className="flex flex-wrap gap-2 w-full sm:w-auto">
-              <Link to="/project-management?section=Reports%20%26%20Analytics" className="btn btn-secondary text-xs flex-1 sm:flex-initial text-center justify-center">
-                Return to Menu
-              </Link>
-              <Link to="/project-management/tasks" className="btn-success text-xs px-3 py-2 flex-1 sm:flex-initial text-center justify-center">
-                Task Management
-              </Link>
-            </div>
+      {/* Canonical Header */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <Link to="/project-management" className="btn btn-secondary inline-flex items-center gap-1.5">
+            <ArrowLeft size={16} /> Back
+          </Link>
+          <div>
+            <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+              <ListTodo size={24} className="text-brand-900 dark:text-brand-400" /> Task Execution
+            </h1>
+            <p className="text-slate-500 text-sm mt-0.5">
+              Interactive WBS execution, checklist tracking & gauge progress monitoring
+            </p>
           </div>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          <Link to="/project-management/tasks" className="btn btn-primary inline-flex items-center gap-1.5">
+            Task Management
+          </Link>
         </div>
       </div>
 
@@ -576,7 +579,7 @@ export default function TaskExecution() {
                         className={`flex items-center justify-between p-3 sm:p-3.5 rounded-xl border transition-all cursor-pointer ${
                           item.completed
                             ? "bg-emerald-50/60 border-emerald-200 dark:bg-emerald-950/20 dark:border-emerald-800/60"
-                            : "bg-slate-50 dark:bg-slate-800/40 border-slate-200 dark:border-slate-700 hover:border-slate-300"
+                            : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-slate-300"
                         }`}
                       >
                         <div className="flex items-center gap-3 pr-2">
@@ -690,7 +693,7 @@ export default function TaskExecution() {
                     type="button"
                     onClick={handleSaveDelays}
                     disabled={saving}
-                    className="btn-success text-xs px-4 py-2 flex items-center gap-1.5 w-full sm:w-auto justify-center"
+                    className="btn btn-primary text-xs px-4 py-2 inline-flex items-center gap-1.5 w-full sm:w-auto justify-center shadow-sm"
                   >
                     {saving ? (
                       <>
@@ -722,85 +725,52 @@ export default function TaskExecution() {
       </div>
 
       {/* Reassign Task Modal (Exceptional Permission Gated) */}
-      {showReassignModal && selectedTask && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4">
-          <div className="bg-white dark:bg-slate-900 rounded-2xl max-w-md w-full border border-slate-200 dark:border-slate-800 shadow-2xl p-4 sm:p-6 space-y-4 sm:space-y-5">
-            <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
-              <h3 className="text-base sm:text-lg font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                <UserCheck className="w-5 h-5 text-brand" /> Reassign Task
-              </h3>
-              <button
-                type="button"
-                onClick={() => setShowReassignModal(false)}
-                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
-              >
-                <X size={18} />
-              </button>
+      <ProjectModal
+        open={showReassignModal && Boolean(selectedTask)}
+        onClose={() => setShowReassignModal(false)}
+        title="Reassign Task"
+        subtitle="Update task assignment to another team member"
+        icon={UserCheck}
+        onSubmit={handleReassignTask}
+        submitLabel={reassigning ? "Reassigning..." : "Confirm Reassignment"}
+        submitting={reassigning}
+      >
+        <div className="space-y-4">
+          <div className="p-3.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700/60 rounded-xl space-y-2 text-xs">
+            <div>
+              <span className="text-slate-400 font-medium">Task Title:</span>
+              <p className="font-bold text-slate-800 dark:text-slate-200 text-sm mt-0.5">
+                {selectedTask?.task_title}
+              </p>
             </div>
-
-            <div className="space-y-3 text-xs">
-              <div>
-                <span className="text-slate-400">Task Title:</span>
-                <p className="font-bold text-slate-800 dark:text-slate-200 text-sm mt-0.5">
-                  {selectedTask.task_title}
-                </p>
-              </div>
-
-              <div>
-                <span className="text-slate-400">Current Assignee:</span>
-                <p className="font-semibold text-slate-700 dark:text-slate-300 mt-0.5">
-                  {selectedTask.assigned_to_name || "Unassigned"}
-                </p>
-              </div>
-
-              <div className="pt-2">
-                <label className="label font-bold text-slate-700 dark:text-slate-300 mb-1.5 block">
-                  Select New Assignee <span className="text-red-500">*</span>
-                </label>
-                <select
-                  className="input w-full text-xs"
-                  value={reassignUserId}
-                  onChange={(e) => setReassignUserId(e.target.value)}
-                  required
-                >
-                  <option value="">Select Assignee User...</option>
-                  {usersList.map((u) => (
-                    <option key={u.id} value={String(u.id)}>
-                      {u.username || u.full_name || u.name || `User #${u.id}`}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            <div className="flex justify-end gap-2 pt-2 border-t border-slate-200 dark:border-slate-800">
-              <button
-                type="button"
-                onClick={() => setShowReassignModal(false)}
-                className="btn btn-secondary text-xs"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleReassignTask}
-                disabled={reassigning || !reassignUserId}
-                className="btn-success text-xs px-4 py-2 flex items-center gap-1.5"
-              >
-                {reassigning ? (
-                  <>
-                    <Loader2 size={14} className="animate-spin" /> Reassigning...
-                  </>
-                ) : (
-                  <>
-                    <UserCheck size={14} /> Confirm Reassignment
-                  </>
-                )}
-              </button>
+            <div>
+              <span className="text-slate-400 font-medium">Current Assignee:</span>
+              <p className="font-semibold text-slate-700 dark:text-slate-300 mt-0.5">
+                {selectedTask?.assigned_to_name || "Unassigned"}
+              </p>
             </div>
           </div>
+
+          <div>
+            <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">
+              Select New Assignee <span className="text-red-500">*</span>
+            </label>
+            <select
+              className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500"
+              value={reassignUserId}
+              onChange={(e) => setReassignUserId(e.target.value)}
+              required
+            >
+              <option value="">Select Assignee User...</option>
+              {usersList.map((u) => (
+                <option key={u.id} value={String(u.id)}>
+                  {u.username || u.full_name || u.name || `User #${u.id}`}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
-      )}
+      </ProjectModal>
 
       {/* Attachments Modal */}
       {showAttach && selectedTask && (

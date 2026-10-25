@@ -10,6 +10,7 @@ import { api } from "api/client";
 import { useExchangeRate } from "../../../../hooks/useExchangeRate";
 import { filterByPrefix } from "@/utils/searchUtils.js";
 import { usePermission } from "@/auth/PermissionContext.jsx";
+import TaxPricingModal, { TaxModeRadioSelector } from "@/components/common/TaxPricingModal.jsx";
 
 /**
  *  component
@@ -43,6 +44,10 @@ export default function SupplierQuotationForm() {
     delivery_terms: "FOB",
     shipping_cost: 0,
     discount_percent: 0,
+    tax_mode: "EXCLUSIVE",
+    tax_code_id: "",
+    tax_rate: 0,
+    tax_component_name: "",
   });
 
   const [items, setItems] = useState([
@@ -69,6 +74,9 @@ export default function SupplierQuotationForm() {
   const [rfqSuppliersForSelection, setRfqSuppliersForSelection] = useState([]);
   const [currencies, setCurrencies] = useState([]);
   const [itemQueries, setItemQueries] = useState({});
+  const [taxModalOpen, setTaxModalOpen] = useState(false);
+  const [showTaxModeAlert, setShowTaxModeAlert] = useState(false);
+  const [hasPromptedTaxMode, setHasPromptedTaxMode] = useState(false);
 
   const baseCurrencyCode = useMemo(() => {
     return (
@@ -420,6 +428,7 @@ export default function SupplierQuotationForm() {
 
   const handleItemChange = (index, field, value) => {
     const updatedItems = [...items];
+    const isInclusive = String(formData.tax_mode || "EXCLUSIVE").toUpperCase() === "INCLUSIVE";
     updatedItems[index][field] = value;
 
     if (field === "item_id") {
@@ -427,6 +436,9 @@ export default function SupplierQuotationForm() {
       if (item) {
         updatedItems[index].item_name = item.item_name || "";
       }
+      updatedItems[index].tax_mode = formData.tax_mode || "EXCLUSIVE";
+      updatedItems[index].tax_code_id = formData.tax_code_id || updatedItems[index].tax_code_id || "";
+      updatedItems[index].tax_rate = formData.tax_rate !== undefined ? formData.tax_rate : (updatedItems[index].tax_rate || 0);
     }
 
     if (field === "qty" || field === "unit_price" || field === "tax_code_id") {
@@ -439,6 +451,7 @@ export default function SupplierQuotationForm() {
   };
 
   const addItem = () => {
+    const isInclusive = String(formData.tax_mode || "EXCLUSIVE").toUpperCase() === "INCLUSIVE";
     setItems([
       ...items,
       {
@@ -446,7 +459,9 @@ export default function SupplierQuotationForm() {
         item_name: "",
         qty: 0,
         unit_price: 0,
-        tax_code_id: "",
+        tax_mode: formData.tax_mode || "EXCLUSIVE",
+        tax_code_id: formData.tax_code_id || "",
+        tax_rate: formData.tax_rate || 0,
         delivery_date: "",
         line_total: 0,
       },
@@ -459,71 +474,88 @@ export default function SupplierQuotationForm() {
     }
   };
 
-  const totals = useMemo(() => {
-    const compTotals = {};
-    const sub = items.reduce(
-      (sum, item) => sum + (parseFloat(item.line_total) || 0),
-      0,
+  const handleTaxModeChange = (newMode) => {
+    setFormData((prev) => ({
+      ...prev,
+      tax_mode: newMode,
+    }));
+    setItems((prev) =>
+      prev.map((it) => {
+        const qty = parseFloat(it.qty || 0);
+        const price = parseFloat(it.unit_price || 0);
+        const gross = qty * price;
+        const isInclusive = newMode === "INCLUSIVE";
+        const taxRate = Number(it.tax_rate) > 0
+          ? Number(it.tax_rate)
+          : Number(formData.tax_rate || 0);
+        let line_total = gross;
+        if (!isInclusive && taxRate > 0) {
+          const taxAmt = Math.round((gross * (taxRate / 100)) * 100) / 100;
+          line_total = Math.round((gross + taxAmt) * 100) / 100;
+        }
+        return {
+          ...it,
+          tax_mode: newMode,
+          tax_code_id: it.tax_code_id || formData.tax_code_id || "",
+          tax_rate: taxRate,
+          line_total,
+        };
+      }),
     );
+  };
+
+  const totals = useMemo(() => {
+    let grossSub = 0;
+    let netSub = 0;
+    let totalTax = 0;
+    const isInclusive = String(formData.tax_mode || "").toUpperCase() === "INCLUSIVE";
 
     items.forEach((item) => {
-      const qty = parseFloat(item.qty) || 0;
-      const unitPrice = parseFloat(item.unit_price) || 0;
-      const base = qty * unitPrice;
+      const qty = parseFloat(item.qty || 0);
+      const unitPrice = parseFloat(item.unit_price || 0);
+      const gross = qty * unitPrice;
+      grossSub += gross;
 
-      const taxCodeId = item.tax_code_id;
-      const comps = taxComponentsByCode[String(taxCodeId)] || [];
-      if (comps.length > 0) {
-        comps.forEach((c) => {
-          const rate = Number(c.rate_percent) || 0;
-          const amt = (base * rate) / 100;
-          const name = c.component_name;
-          if (!compTotals[name]) {
-            compTotals[name] = {
-              amount: 0,
-              rate,
-              sort_order: c.sort_order || 0,
-            };
-          }
-          compTotals[name].amount += amt;
-        });
+      const taxRate = Number(item.tax_rate) > 0
+        ? Number(item.tax_rate)
+        : Number(formData.tax_rate || 0);
+      if (isInclusive) {
+        const lineNet = taxRate > 0 ? Math.round((gross / (1 + taxRate / 100)) * 100) / 100 : gross;
+        const lineTax = Math.round((gross - lineNet) * 100) / 100;
+        netSub += lineNet;
+        totalTax += lineTax;
       } else {
-        const tc = taxCodes.find((t) => String(t.id) === String(taxCodeId));
-        const rate = tc ? Number(tc.rate_percent) || 0 : 0;
-        const amt = (base * rate) / 100;
-        if (rate > 0) {
-          const name = "Tax";
-          if (!compTotals[name]) {
-            compTotals[name] = { amount: 0, rate, sort_order: 99 };
-          }
-          compTotals[name].amount += amt;
-        }
+        const lineTax = taxRate > 0 ? Math.round((gross * (taxRate / 100)) * 100) / 100 : 0;
+        netSub += gross;
+        totalTax += lineTax;
       }
     });
 
-    const components = Object.keys(compTotals)
-      .map((name) => ({
-        name,
-        amount: compTotals[name].amount,
-        rate: compTotals[name].rate,
-        sort_order: compTotals[name].sort_order,
-      }))
-      .sort((a, b) => a.sort_order - b.sort_order);
+    const subtotal = isInclusive ? netSub : grossSub;
 
-    const totalTax = components.reduce((s, c) => s + c.amount, 0);
+    const components = [];
+    if (totalTax > 0) {
+      components.push({
+        name: formData.tax_component_name || (formData.tax_rate ? `Tax (${formData.tax_rate}%)` : "Tax"),
+        amount: totalTax,
+        rate: formData.tax_rate || 0,
+        sort_order: 1,
+      });
+    }
 
-    return { subtotal: sub, totalTax, components };
-  }, [items, taxCodes, taxComponentsByCode]);
+    return { subtotal, grossSub, totalTax, components };
+  }, [items, formData.tax_mode, formData.tax_rate, formData.tax_component_name]);
 
   const grandTotal = useMemo(() => {
     const shipping = parseFloat(formData.shipping_cost) || 0;
     const discountPct = parseFloat(formData.discount_percent) || 0;
+    const isInclusive = String(formData.tax_mode || "").toUpperCase() === "INCLUSIVE";
     const sub = totals.subtotal;
     const tTax = totals.totalTax;
-    const beforeDiscount = sub + tTax + shipping;
+    const beforeDiscount = isInclusive ? (totals.grossSub + shipping) : (sub + tTax + shipping);
     const discount = beforeDiscount * (discountPct / 100);
     return beforeDiscount - discount;
-  }, [totals, formData.shipping_cost, formData.discount_percent]);
+  }, [totals, formData.shipping_cost, formData.discount_percent, formData.tax_mode]);
 
   const totalTax = useMemo(() => totals.totalTax, [totals.totalTax]);
   const subtotal = useMemo(() => totals.subtotal, [totals.subtotal]);
@@ -876,13 +908,24 @@ export default function SupplierQuotationForm() {
               <h2 className="text-lg font-semibold text-slate-800 dark:text-slate-100">
                 Quotation Items
               </h2>
-              <button
-                type="button"
-                className="btn btn-primary btn-sm"
-                onClick={addItem}
-              >
-                + Add Item
-              </button>
+              <div className="flex items-center gap-4">
+                <TaxModeRadioSelector
+                  taxMode={formData.tax_mode || "EXCLUSIVE"}
+                  onModeChange={handleTaxModeChange}
+                  onOpenTaxModal={() => setTaxModalOpen(true)}
+                  selectedTaxLabel={formData.tax_component_name}
+                  openAlert={showTaxModeAlert}
+                  onCloseAlert={() => setShowTaxModeAlert(false)}
+                  anchorSelector="#sq-item-search-0"
+                />
+                <button
+                  type="button"
+                  className="btn btn-primary btn-sm"
+                  onClick={addItem}
+                >
+                  + Add Item
+                </button>
+              </div>
             </div>
           </div>
           <div className="p-6 overflow-x-auto overflow-y-visible">
@@ -913,6 +956,18 @@ export default function SupplierQuotationForm() {
                        <div className="relative">
                          <input
                            id={`sq-item-search-${index}`} autoComplete="off"
+                            onFocus={() => {
+                              if (!hasPromptedTaxMode) {
+                                setShowTaxModeAlert(true);
+                                setHasPromptedTaxMode(true);
+                              }
+                            }}
+                            onClick={() => {
+                              if (!hasPromptedTaxMode) {
+                                setShowTaxModeAlert(true);
+                                setHasPromptedTaxMode(true);
+                              }
+                            }}
                            className="input w-72"
                             placeholder="Scan barcode or type item name"
                             value={itemQueries[index] !== undefined ? itemQueries[index] : (item.item_id && availableItems.find(i => String(i.id) === String(item.item_id)) ? availableItems.find(i => String(i.id) === String(item.item_id)).item_name : item.item_name || "")}
@@ -1030,22 +1085,16 @@ export default function SupplierQuotationForm() {
                       />
                     </td>
                     <td>
-                      <select
-                        className="input text-right w-32"
-                        value={item.tax_code_id}
-                        onChange={(e) =>
-                          handleItemChange(index, "tax_code_id", e.target.value)
-                        }
+                      <button
+                        type="button"
+                        onClick={() => setTaxModalOpen(true)}
+                        className="w-full text-left p-1.5 border border-slate-300 dark:border-slate-700 rounded text-xs bg-white dark:bg-slate-800 hover:bg-slate-50 flex items-center justify-between"
                       >
-                        <option value={0}>Select Tax</option>
-                        {taxCodes.map((t) => (
-                          <option key={t.id} value={String(t.id)}>
-                            {t.code} - {t.name} (
-                            {Number(t.rate_percent).toFixed(2)}
-                            %)
-                          </option>
-                        ))}
-                      </select>
+                        <span className="truncate">
+                          {formData.tax_component_name || (item.tax_rate ? `Tax (${item.tax_rate}%)` : "Select Tax")}
+                        </span>
+                        <span className="text-blue-600 font-semibold ml-1">Edit</span>
+                      </button>
                     </td>
                     <td className="text-right font-medium">
                       {item.line_total.toFixed(2)}
@@ -1121,7 +1170,7 @@ export default function SupplierQuotationForm() {
                         className="text-xs text-slate-500 pl-4 flex justify-between gap-2"
                       >
                         <span>
-                          {c.name} ({c.rate}%):
+                          {c.name && c.name.includes("%") ? c.name : `${c.name} (${c.rate}%)`}:
                         </span>
                         <span>{Number(c.amount || 0).toFixed(2)}</span>
                       </div>
@@ -1278,7 +1327,55 @@ export default function SupplierQuotationForm() {
         </div>
       </form>
       </div>
+      <TaxPricingModal
+        open={taxModalOpen}
+        form="SUPPLIER_QUOTATION"
+        pageId={11}
+        onClose={() => setTaxModalOpen(false)}
+        taxMode={formData.tax_mode || "EXCLUSIVE"}
+        price={0}
+        selectedComponent={{
+          name: formData.tax_component_name,
+          rate: formData.tax_rate,
+          id: formData.tax_code_id,
+        }}
+        onSelectComponent={(comp) => {
+          const compLabel = `${comp.name}${comp.rate !== undefined ? ` (${comp.rate}%)` : ""}`;
+          const taxCodeId = comp.taxCodeId || comp.originalId || comp.id;
+          const taxRate = comp.rate;
+          const currentMode = formData.tax_mode || "EXCLUSIVE";
+          const isInclusive = currentMode === "INCLUSIVE";
+
+          setFormData((prev) => ({
+            ...prev,
+            tax_mode: currentMode,
+            tax_code_id: taxCodeId || prev.tax_code_id,
+            tax_rate: taxRate,
+            tax_component_name: compLabel,
+          }));
+
+          setItems((prev) =>
+            prev.map((it) => {
+              const qty = parseFloat(it.qty || 0);
+              const price = parseFloat(it.unit_price || 0);
+              const gross = qty * price;
+              let line_total = gross;
+              if (!isInclusive && taxRate > 0) {
+                const taxAmt = Math.round((gross * (taxRate / 100)) * 100) / 100;
+                line_total = Math.round((gross + taxAmt) * 100) / 100;
+              }
+              return {
+                ...it,
+                tax_mode: currentMode,
+                tax_code_id: taxCodeId || it.tax_code_id,
+                tax_rate: taxRate,
+                line_total,
+              };
+            })
+          );
+          setTaxModalOpen(false);
+        }}
+      />
     </div>
   );
 }
-
