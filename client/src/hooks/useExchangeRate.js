@@ -31,9 +31,10 @@ export function useExchangeRate() {
     setLoading(true);
     setError(null);
     try {
-      const { data } = await api.get(`/finance/exchange-rates/${from}`);
-      if (data && data.rates && data.rates[to]) {
-        return data.rates[to];
+      const res = await api.get(`/finance/exchange-rates/${from}`);
+      const payload = res?.data?.rates ? res.data : (res?.rates ? res : (res?.data || {}));
+      if (payload && payload.rates && payload.rates[to] !== undefined) {
+        return Number(payload.rates[to]);
       }
       throw new Error('Failed to fetch exchange rate');
     } catch (err) {
@@ -53,18 +54,28 @@ export function useExchangeRate() {
     setLoading(true);
     setError(null);
     try {
-      const { data } = await api.get('/finance/exchange-rates/USD');
-      if (data && data.rates) {
-        return Object.keys(data.rates).map(code => ({
-          code,
-          name: code
-        }));
+      const res = await api.get('/finance/exchange-rates/USD');
+      const payload = res?.data?.rates ? res.data : (res?.rates ? res : (res?.data || {}));
+      if (payload && payload.rates && typeof payload.rates === 'object') {
+        const codes = Object.keys(payload.rates);
+        if (codes.length > 0) {
+          return codes.map(code => ({
+            code,
+            name: code
+          }));
+        }
       }
-      throw new Error('Failed to fetch currencies');
+      throw new Error('No currency rates returned from API');
     } catch (err) {
-      console.error('Error fetching available currencies:', err);
+      console.warn('Live currency fetch error, using global currency fallback:', err);
       setError(err.message);
-      return [];
+      // Fallback to top world/African currencies if live endpoint is unreachable
+      const fallbackCodes = [
+        "USD", "EUR", "GBP", "GHS", "CAD", "CNY", "JPY", "AUD", "CHF",
+        "NGN", "KES", "ZAR", "INR", "AED", "SAR", "QAR", "EGP", "SGD",
+        "NZD", "BRL", "MXN", "SEK", "NOK", "DKK", "PLN", "THB", "TRY"
+      ];
+      return fallbackCodes.map(code => ({ code, name: code }));
     } finally {
       setLoading(false);
     }

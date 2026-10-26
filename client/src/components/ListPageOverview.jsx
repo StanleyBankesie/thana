@@ -20,6 +20,7 @@ const OVERVIEW_EXCLUDED_PATHS = [
   "/pos/returns",
   "/pos/holds",
   "/pos/setup",
+  "/finance/setup/finance",
   "/project-management/projects",
   "/project-management/quotations",
   "/project-management/reports",
@@ -219,6 +220,10 @@ function summarize(snapshot) {
   const columns = snapshot.headers
     .map((label, index) => ({ label: label.trim(), index }))
     .filter(({ label }) => label && !ACTION_HEADER.test(label));
+  const isHardServicesSystemsTable =
+    columns.some(({ label }) => /^system name$/i.test(label)) &&
+    columns.some(({ label }) => /^system code$/i.test(label)) &&
+    columns.some(({ label }) => /^category$/i.test(label));
   const cards = [];
   if (!rows.length) return [];
 
@@ -235,10 +240,10 @@ function summarize(snapshot) {
     const text = String(value || "").trim();
     return text && text !== "-" && text !== "—" ? text : "";
   };
-  const getDistribution = (column) => {
+  const getDistribution = (column, getValue = (value) => value) => {
     const groups = new Map();
     rows.forEach((row) => {
-      const raw = validText(row[column.index]);
+      const raw = validText(getValue(row[column.index] || ""));
       if (!raw) return;
       const label = raw.replace(/[_-]+/g, " ").replace(/\s+/g, " ").trim();
       const key = label.toLowerCase();
@@ -253,6 +258,55 @@ function summarize(snapshot) {
         share: (group.count / rows.length) * 100,
       }));
   };
+
+  const softServicesColumns = {
+    status: columns.find(({ label }) => /^status$/i.test(label)),
+    signOff: columns.find(({ label }) =>
+      /^supervisor sign[- ]?off$/i.test(label),
+    ),
+    schedule: columns.find(({ label }) =>
+      /^schedule\s*\/\s*shift$/i.test(label),
+    ),
+  };
+  if (
+    softServicesColumns.status &&
+    softServicesColumns.signOff &&
+    softServicesColumns.schedule
+  ) {
+    const shiftValue = (value) => {
+      const text = String(value).trim();
+      const shift = text.match(
+        /\b(morning|afternoon|evening|night|day|weekend|am|pm)\b/i,
+      );
+      if (shift) return shift[0];
+      return (
+        text
+          .split(/\r?\n/)
+          .map((part) => part.trim())
+          .filter(Boolean)
+          .at(-1) || text
+      );
+    };
+    return [
+      ["Status", getDistribution(softServicesColumns.status)],
+      ["Supervisor Sign-off", getDistribution(softServicesColumns.signOff)],
+      [
+        "Schedule / Shift",
+        getDistribution(softServicesColumns.schedule, shiftValue),
+      ],
+    ].flatMap(([label, distribution]) => {
+      if (!distribution.length) return [];
+      const top = distribution[0];
+      return [
+        {
+          label,
+          value: `${top.label} · ${formatNumber(top.share)}%`,
+          detail: `${formatNumber(top.count)} of ${rows.length} tasks · ${distribution.length} categories`,
+          breakdown: distribution.slice(0, 2),
+        },
+      ];
+    });
+  }
 
   // Payment mixes show both volume and share of the displayed rows.
   columns
@@ -343,6 +397,7 @@ function summarize(snapshot) {
     .filter(
       ({ label }) =>
         ENTITY_HEADER.test(label) &&
+        !(isHardServicesSystemsTable && /^category$/i.test(label)) &&
         !STATUS_HEADER.test(label) &&
         !PAYMENT_HEADER.test(label) &&
         !MONEY_HEADER.test(label),

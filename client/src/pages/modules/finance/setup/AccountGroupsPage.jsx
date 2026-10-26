@@ -23,7 +23,13 @@ import {
   Trash2
 } from "lucide-react";
 
-export default function AccountGroupsPage() {
+export default function AccountGroupsPage({
+  hideBanner = false,
+  triggerCreate = false,
+  onResetTriggerCreate,
+  onGroupCreated,
+  onCountChange,
+}) {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -54,7 +60,9 @@ export default function AccountGroupsPage() {
           includeTotals: showTotals ? "1" : "0",
         },
       });
-      setItems(res.data?.items || []);
+      const loadedItems = res.data?.items || [];
+      setItems(loadedItems);
+      if (onCountChange) onCountChange(loadedItems.length);
     } catch (e) {
       toast.error(
         e?.response?.data?.message || "Failed to load account groups",
@@ -67,6 +75,13 @@ export default function AccountGroupsPage() {
   useEffect(() => {
     load();
   }, []);
+
+  useEffect(() => {
+    if (triggerCreate) {
+      setShowCreateModal(true);
+      if (onResetTriggerCreate) onResetTriggerCreate();
+    }
+  }, [triggerCreate, onResetTriggerCreate]);
 
   useEffect(() => {
     load();
@@ -217,7 +232,8 @@ export default function AccountGroupsPage() {
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
       {/* Header Banner */}
-      <div className="card shadow-md">
+      {!hideBanner && (
+        <div className="card shadow-md">
         <div className="card-header bg-brand text-white rounded-t-lg p-5">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
@@ -247,6 +263,7 @@ export default function AccountGroupsPage() {
           </div>
         </div>
       </div>
+      )}
 
       {/* Filter & Search Bar */}
       <div className="card p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
@@ -285,6 +302,14 @@ export default function AccountGroupsPage() {
               <option value="0">Inactive Only</option>
             </select>
           </div>
+            <button
+              type="button"
+              data-group-create-filter-btn="true"
+              className="btn-success text-xs px-3.5 py-2 flex items-center gap-1.5 font-bold cursor-pointer shrink-0 ml-auto"
+              onClick={() => setShowCreateModal(true)}
+            >
+              <Plus size={15} /> Create Group
+            </button>
         </div>
       </div>
 

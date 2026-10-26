@@ -26,7 +26,13 @@ import {
   Trash2
 } from "lucide-react";
 
-export default function AccountsPage() {
+export default function AccountsPage({
+  hideBanner = false,
+  triggerCreate = false,
+  onResetTriggerCreate,
+  onAccountCreated,
+  onCountChange,
+}) {
   const [items, setItems] = useState([]);
   const [groups, setGroups] = useState([]);
   const [currencies, setCurrencies] = useState([]);
@@ -69,7 +75,9 @@ export default function AccountsPage() {
         api.get("/finance/account-groups"),
         api.get("/finance/currencies"),
       ]);
-      setItems(accRes.data?.items || []);
+      const loadedItems = accRes.data?.items || [];
+      setItems(loadedItems);
+      if (onCountChange) onCountChange(loadedItems.length);
       setGroups(grpRes.data?.items || []);
       const c = curRes.data?.items || [];
       setCurrencies(c);
@@ -88,6 +96,13 @@ export default function AccountsPage() {
   useEffect(() => {
     load();
   }, []);
+
+  useEffect(() => {
+    if (triggerCreate) {
+      setShowCreateModal(true);
+      if (onResetTriggerCreate) onResetTriggerCreate();
+    }
+  }, [triggerCreate, onResetTriggerCreate]);
 
   useEffect(() => {
     load();
@@ -265,7 +280,8 @@ export default function AccountsPage() {
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
       {/* Header Banner */}
-      <div className="card shadow-md">
+      {!hideBanner && (
+        <div className="card shadow-md">
         <div className="card-header bg-brand text-white rounded-t-lg p-5">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
@@ -295,6 +311,7 @@ export default function AccountsPage() {
           </div>
         </div>
       </div>
+      )}
 
       {/* Filter Toolbar */}
       <div className="card p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
@@ -346,6 +363,14 @@ export default function AccountsPage() {
               <option value="0">Inactive Only</option>
             </select>
           </div>
+            <button
+              type="button"
+              data-account-create-filter-btn="true"
+              className="btn-success text-xs px-3.5 py-2 flex items-center gap-1.5 font-bold cursor-pointer shrink-0 ml-auto"
+              onClick={() => setShowCreateModal(true)}
+            >
+              <Plus size={15} /> Create Account
+            </button>
         </div>
       </div>
 

@@ -401,14 +401,14 @@ export default function ServiceBillingForm() {
     async function getNextBillNo() {
       try {
         const res = await api.get("/facilities/service-bills/next-no");
-        const nextNo = res.data?.nextNo;
+        const nextNo = res.data?.bill_no || res.data?.nextNo;
         if (!mounted) return;
         if (nextNo) {
           setBill((p) => (p.bill_no ? p : { ...p, bill_no: nextNo }));
         }
       } catch {
         if (!mounted) return;
-        setBill((p) => (p.bill_no ? p : { ...p, bill_no: `FB-${new Date().getFullYear()}-0001` }));
+        setBill((p) => (p.bill_no ? p : { ...p, bill_no: "FINV-000001" }));
       }
     }
     getNextBillNo();
@@ -608,24 +608,6 @@ export default function ServiceBillingForm() {
             <div className="flex gap-2 items-center flex-wrap">
               <button
                 type="button"
-                onClick={() => window.print()}
-                className="btn-secondary text-xs flex items-center gap-1.5"
-                title="Print Service Bill"
-              >
-                <Printer className="w-4 h-4" />
-                Print
-              </button>
-              <button
-                type="button"
-                onClick={handleDownloadPdf}
-                className="btn-secondary text-xs flex items-center gap-1.5"
-                title="Download PDF"
-              >
-                <Download className="w-4 h-4" />
-                Download PDF
-              </button>
-              <button
-                type="button"
                 onClick={() => navigate("/facilities/servicebilling")}
                 className="btn-success text-xs flex items-center gap-1"
               >
@@ -651,18 +633,9 @@ export default function ServiceBillingForm() {
       <form onSubmit={saveBill} className="print:hidden space-y-4">
         <div className="card">
           <div className="card-body space-y-6">
-            {/* Top 3-4 Column Metadata Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div>
-                <label className="label">Bill No *</label>
-                <input
-                  type="text"
-                  className="input bg-slate-50 dark:bg-slate-900 font-mono font-bold text-slate-800 dark:text-slate-200"
-                  value={bill.bill_no}
-                  readOnly
-                  placeholder="Auto-generated (FB-YYYY-XXXX)"
-                />
-              </div>
+            {/* Top 3 Column Metadata Grid */}
+            <input type="hidden" value={bill.bill_no} />
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
 
               <div>
                 <label className="label">Bill Date *</label>
@@ -849,7 +822,7 @@ export default function ServiceBillingForm() {
 
               {/* Add Item Bar matching InvoiceForm */}
               {!readOnly && (
-                <div className="mt-4 p-4 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-xl space-y-3">
+                <div className="mt-4 p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl space-y-3">
                   <div className="text-xs font-bold text-brand uppercase tracking-wider">Add Service Item</div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-12 gap-3 items-end">
                     <div className="md:col-span-4">
@@ -1017,7 +990,7 @@ export default function ServiceBillingForm() {
               {/* Table of Line Items */}
               <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800 mt-4">
                 <table className="w-full text-left text-xs">
-                  <thead className="bg-slate-50 dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 font-bold border-b border-slate-200 dark:border-slate-800 uppercase tracking-wider text-[11px]">
+                  <thead className="bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 font-bold border-b border-slate-200 dark:border-slate-800 uppercase tracking-wider text-[11px]">
                     <tr>
                       <th className="p-3 w-12 text-center">#</th>
                       <th className="p-3 min-w-[220px]">Service Item</th>
@@ -1138,7 +1111,7 @@ export default function ServiceBillingForm() {
               {/* Left Column: Settlement & Payment Details */}
               <div className="lg:col-span-7 space-y-4">
                 {/* Direct Settlement Card matching Sales Invoice */}
-                <div className="bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-xl p-4 space-y-3">
+                <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-4 space-y-3">
                   <div className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider">
                     Settlement & Payment Details
                   </div>
@@ -1190,7 +1163,7 @@ export default function ServiceBillingForm() {
 
               {/* Right Column: Totals Summary Card matching Sales Invoice */}
               <div className="lg:col-span-5">
-                <div className="bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl p-5 space-y-2.5 text-xs shadow-sm">
+                <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-5 space-y-2.5 text-xs shadow-sm">
                   <div className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider pb-2 border-b border-slate-200 dark:border-slate-700">
                     Bill Summary
                   </div>

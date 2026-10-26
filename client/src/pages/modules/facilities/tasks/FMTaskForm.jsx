@@ -324,7 +324,7 @@ export default function FMTaskForm() {
             ) : null}
 
             {/* Group 1: General & Assignment Information */}
-            <div className="space-y-4 bg-slate-50 dark:bg-slate-800/40 p-5 rounded-xl border border-slate-200 dark:border-slate-700">
+            <div className="space-y-4 bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-700">
               <div className="border-b border-slate-200 dark:border-slate-700 pb-2">
                 <h2 className="text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider">
                   1. Task Core Information
@@ -432,7 +432,7 @@ export default function FMTaskForm() {
             </div>
 
             {/* Group 2: Schedule & Effort */}
-            <div className="space-y-4 bg-slate-50 dark:bg-slate-800/40 p-5 rounded-xl border border-slate-200 dark:border-slate-700">
+            <div className="space-y-4 bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-700">
               <div className="border-b border-slate-200 dark:border-slate-700 pb-2">
                 <h2 className="text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider">
                   2. Schedule & Progress
@@ -490,7 +490,7 @@ export default function FMTaskForm() {
             </div>
 
             {/* Group 3: Scope & Execution Details */}
-            <div className="space-y-5 bg-slate-50 dark:bg-slate-800/40 p-5 rounded-xl border border-slate-200 dark:border-slate-700">
+            <div className="space-y-5 bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-700">
               <div className="border-b border-slate-200 dark:border-slate-700 pb-2">
                 <h2 className="text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider">
                   3. Execution Details & Delay Log

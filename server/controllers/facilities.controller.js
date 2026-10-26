@@ -722,6 +722,119 @@ export async function createContract(req, res, next) {
 }
 
 /**
+ * Update an existing FM Service Contract
+ */
+export async function updateContract(req, res, next) {
+  const conn = await pool.getConnection();
+  try {
+    await conn.beginTransaction();
+    const { id } = req.params;
+    const {
+      contract_title,
+      client_id,
+      start_date,
+      end_date,
+      billing_frequency,
+      billing_amount,
+      contract_value,
+      payment_terms,
+      emergency_callout_included,
+      emergency_callout_limit,
+      sla_standard_response_hours,
+      sla_standard_resolution_hours,
+      sla_critical_response_hours,
+      sla_critical_resolution_hours,
+      contract_status,
+      renewal_reminder_days,
+      terms_and_conditions,
+      contract_file_url,
+      property_ids,
+      service_lines
+    } = req.body;
+
+    await conn.query(
+      `UPDATE fm_service_contracts SET
+        contract_title = COALESCE(?, contract_title),
+        client_id = COALESCE(?, client_id),
+        start_date = COALESCE(?, start_date),
+        end_date = COALESCE(?, end_date),
+        billing_frequency = COALESCE(?, billing_frequency),
+        billing_amount = COALESCE(?, billing_amount),
+        contract_value = COALESCE(?, contract_value),
+        payment_terms = COALESCE(?, payment_terms),
+        emergency_callout_included = COALESCE(?, emergency_callout_included),
+        emergency_callout_limit = COALESCE(?, emergency_callout_limit),
+        sla_standard_response_hours = COALESCE(?, sla_standard_response_hours),
+        sla_standard_resolution_hours = COALESCE(?, sla_standard_resolution_hours),
+        sla_critical_response_hours = COALESCE(?, sla_critical_response_hours),
+        sla_critical_resolution_hours = COALESCE(?, sla_critical_resolution_hours),
+        contract_status = COALESCE(?, contract_status),
+        renewal_reminder_days = COALESCE(?, renewal_reminder_days),
+        terms_and_conditions = COALESCE(?, terms_and_conditions),
+        contract_file_url = COALESCE(?, contract_file_url)
+      WHERE id = ?`,
+      [
+        contract_title?.trim(),
+        client_id,
+        start_date,
+        end_date,
+        billing_frequency,
+        billing_amount !== undefined ? toNum(billing_amount) : null,
+        contract_value !== undefined ? toNum(contract_value) : null,
+        payment_terms,
+        emergency_callout_included !== undefined ? (emergency_callout_included ? 1 : 0) : null,
+        emergency_callout_limit !== undefined ? toNum(emergency_callout_limit, 0) : null,
+        sla_standard_response_hours !== undefined ? toNum(sla_standard_response_hours, 4.0) : null,
+        sla_standard_resolution_hours !== undefined ? toNum(sla_standard_resolution_hours, 24.0) : null,
+        sla_critical_response_hours !== undefined ? toNum(sla_critical_response_hours, 1.0) : null,
+        sla_critical_resolution_hours !== undefined ? toNum(sla_critical_resolution_hours, 4.0) : null,
+        contract_status,
+        renewal_reminder_days !== undefined ? toNum(renewal_reminder_days, 30) : null,
+        terms_and_conditions,
+        contract_file_url,
+        id
+      ]
+    );
+
+    if (Array.isArray(property_ids)) {
+      await conn.query("DELETE FROM fm_contract_properties WHERE contract_id = ?", [id]);
+      for (const propId of property_ids) {
+        await conn.query(
+          "INSERT INTO fm_contract_properties (contract_id, property_id) VALUES (?, ?)",
+          [id, propId]
+        );
+      }
+    }
+
+    if (Array.isArray(service_lines)) {
+      await conn.query("DELETE FROM fm_contract_service_lines WHERE contract_id = ?", [id]);
+      for (const sl of service_lines) {
+        await conn.query(
+          `INSERT INTO fm_contract_service_lines (contract_id, service_line, is_covered, coverage_scope_notes, max_included_labor_hours, parts_included)
+           VALUES (?, ?, ?, ?, ?, ?)`,
+          [
+            id,
+            sl.service_line,
+            sl.is_covered !== undefined ? (sl.is_covered ? 1 : 0) : 1,
+            sl.coverage_scope_notes || null,
+            toNum(sl.max_included_labor_hours, 0),
+            sl.parts_included ? 1 : 0
+          ]
+        );
+      }
+    }
+
+    await conn.commit();
+    res.json({ success: true, message: "FM Service Contract updated successfully" });
+  } catch (err) {
+    await conn.rollback();
+    next(err);
+  } finally {
+    conn.release();
+  }
+}
+
+/**
  * Check if a specific service line on a property is covered by an active contract
  */
 export async function checkContractCoverage(req, res, next) {
@@ -870,19 +983,21 @@ export async function generateContractInvoice(req, res, next) {
     );
     const clientName = clients[0]?.customer_name || clients[0]?.name || clients[0]?.company || `Client #${ctr.client_id}`;
 
-    // Generate sequential Facilities Service Bill number starting with FB-
-    const year = new Date().getFullYear();
-    const prefix = `FB-${year}-`;
+    // Generate sequential Facilities Service Bill number starting with FINV- (6 digits starting from 1)
+    const prefix = "FINV-";
     const [lastBills] = await conn.query(
       `SELECT bill_no FROM fm_service_bills WHERE company_id = ? AND bill_no LIKE ? ORDER BY id DESC LIMIT 1`,
       [companyId, `${prefix}%`]
     );
     let nextNum = 1;
     if (lastBills.length > 0 && lastBills[0].bill_no) {
-      const parsed = parseInt(lastBills[0].bill_no.replace(prefix, ""), 10);
-      if (!isNaN(parsed)) nextNum = parsed + 1;
+      const match = lastBills[0].bill_no.match(/FINV-(\d+)/);
+      if (match && match[1]) {
+        const parsed = parseInt(match[1], 10);
+        if (!isNaN(parsed)) nextNum = parsed + 1;
+      }
     }
-    const billNo = `${prefix}${String(nextNum).padStart(4, "0")}`;
+    const billNo = `${prefix}${String(nextNum).padStart(6, "0")}`;
 
     const [billRes] = await conn.query(
       `INSERT INTO fm_service_bills

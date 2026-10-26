@@ -209,7 +209,7 @@ export default function MaintenanceRFQForm() {
               );
               if (!selectedRequest) return null;
               return (
-                <div className="bg-slate-50 border border-slate-200 rounded-lg p-4 mt-4">
+                <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg p-4 mt-4">
                   <h4 className="text-sm font-semibold text-slate-800 mb-3 border-b pb-2">
                     Maintenance Request Details
                   </h4>

@@ -432,7 +432,7 @@ export default function MaintenanceBillForm() {
             />
           </div>
           <div className="card-body">
-            <div className="p-4 bg-slate-50 border border-slate-200 rounded-lg mb-6">
+            <div className="p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg mb-6">
               <h4 className="text-sm font-semibold mb-3 text-brand">Add Service Line</h4>
               <div className="grid grid-cols-1 md:grid-cols-12 gap-6 mb-3">
                 <div className="md:col-span-3">

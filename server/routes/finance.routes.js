@@ -13,6 +13,7 @@ import {
 import { requirePermission } from "../middleware/requirePermission.js";
 import * as financeController from "../controllers/finance.controller.js";
 import * as budgetController from "../controllers/finance.budget.controller.js";
+import { upload } from "../middleware/upload.js";
 
 const router = express.Router();
 
@@ -27,6 +28,14 @@ router.get(
   requireCompanyScope,
   requireBranchScope,
   financeController.listChartOfAccounts,
+);
+
+router.post(
+  "/template/upload",
+  requireAuth,
+  requireCompanyScope,
+  upload.single("file"),
+  financeController.uploadAccountsTemplate,
 );
 
 router.get(

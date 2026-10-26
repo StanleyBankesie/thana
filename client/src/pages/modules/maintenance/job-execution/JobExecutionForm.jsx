@@ -422,7 +422,7 @@ export default function JobExecutionForm() {
                   </div>
 
                   {selectedJobOrder && (
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-2 p-3 rounded-lg bg-slate-50 dark:bg-slate-800 text-sm">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-2 p-3 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-sm">
                       <div>
                         <div className="text-xs text-slate-500 dark:text-slate-400">Asset</div>
                         <div className="font-medium">{selectedJobOrder.asset_name || "—"}</div>
@@ -739,15 +739,15 @@ export default function JobExecutionForm() {
 
                   {/* Cost Summary */}
                   <div className="grid grid-cols-1 md:grid-cols-4 gap-3 text-sm">
-                    <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800">
+                    <div className="p-3 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700">
                       <div className="text-xs text-slate-500">Labor Hours</div>
                       <div className="text-lg font-semibold">{totalLaborHours.toFixed(2)}</div>
                     </div>
-                    <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800">
+                    <div className="p-3 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700">
                       <div className="text-xs text-slate-500">Labor Cost</div>
                       <div className="text-lg font-semibold">{laborCost.toFixed(2)}</div>
                     </div>
-                    <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800">
+                    <div className="p-3 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700">
                       <div className="text-xs text-slate-500">Materials Cost</div>
                       <div className="text-lg font-semibold">{materialsCost.toFixed(2)}</div>
                     </div>

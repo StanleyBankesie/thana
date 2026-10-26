@@ -652,7 +652,7 @@ export default function HardServicesPage() {
 
             <form onSubmit={handleUpdateSystem} className="p-6 space-y-4 text-xs">
               {/* System info strip */}
-              <div className="bg-slate-50 dark:bg-slate-800 rounded-xl p-3 space-y-1">
+              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-3 space-y-1">
                 <p className="font-bold text-slate-800 dark:text-white">{activeSystem.system_name}</p>
                 <p className="text-slate-500 dark:text-slate-400">
                   {activeSystem.property_name} · {activeSystem.system_category?.replace(/_/g, " ")}
@@ -761,7 +761,7 @@ export default function HardServicesPage() {
             </div>
 
             <div className="p-6 space-y-4 text-xs">
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 p-4 bg-slate-50 dark:bg-slate-800 rounded-xl">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl">
                 <div>
                   <span className="text-slate-400 block text-[11px]">System Name</span>
                   <span className="font-semibold text-slate-800 dark:text-slate-200">{viewingSystem.system_name}</span>

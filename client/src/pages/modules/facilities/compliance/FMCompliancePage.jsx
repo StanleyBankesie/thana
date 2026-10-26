@@ -2,10 +2,12 @@ import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   ShieldCheck, AlertTriangle, Plus, ArrowLeft, RefreshCw,
-  FileText, Calendar, CheckCircle, Filter, Eye, Edit, X
+  FileText, Calendar, CheckCircle, Filter, Eye, Edit, X,
+  Cloud, ExternalLink, Paperclip, Upload
 } from "lucide-react";
 import { api } from "../../../../api/client.js";
 import { toast } from "react-toastify";
+import CloudinaryDocumentUploader from "../../project-management/components/CloudinaryDocumentUploader.jsx";
 
 // ─── Obligation helpers ───────────────────────────────────────────────────────
 const OBLIGATION_STATUS_COLORS = {
@@ -52,6 +54,10 @@ const getInitialObligationForm = () => ({
   category: "",
   issuing_authority: "",
   document_reference: "",
+  document_url: "",
+  document_name: "",
+  attachments: [],
+  attachments_json: "",
   issue_date: "",
   expiry_date: "",
   renewal_lead_days: 30,
@@ -63,6 +69,10 @@ const getInitialUpdateForm = () => ({
   status: "",
   expiry_date: "",
   document_reference: "",
+  document_url: "",
+  document_name: "",
+  attachments: [],
+  attachments_json: "",
   notes: "",
 });
 
@@ -96,6 +106,8 @@ export default function FMCompliancePage() {
   const [selectedObligation, setSelectedObligation] = useState(null);
   const [obForm, setObForm] = useState(getInitialObligationForm());
   const [obUpdateForm, setObUpdateForm] = useState(getInitialUpdateForm());
+  const [directUploadObligation, setDirectUploadObligation] = useState(null);
+  const [directUploadFiles, setDirectUploadFiles] = useState([]);
 
   // Hazards state
   const [hazards, setHazards] = useState([]);
@@ -176,6 +188,45 @@ export default function FMCompliancePage() {
       fetchObligations();
     } catch (err) {
       toast.error(err.response?.data?.message || "Failed to register obligation");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const openDirectUploadModal = (ob) => {
+    setDirectUploadObligation(ob);
+    let files = [];
+    if (ob.attachments_json) {
+      try {
+        const parsed = JSON.parse(ob.attachments_json);
+        if (Array.isArray(parsed) && parsed.length > 0) files = parsed;
+      } catch {}
+    }
+    if (files.length === 0 && ob.document_url) {
+      files = [{ url: ob.document_url, filename: ob.document_name || ob.document_url.split("/").pop() || "Document" }];
+    }
+    setDirectUploadFiles(files);
+  };
+
+  const handleSaveDirectUpload = async (e) => {
+    if (e && e.preventDefault) e.preventDefault();
+    if (!directUploadObligation) return;
+    setSubmitting(true);
+    try {
+      const docUrl = directUploadFiles.length > 0 ? directUploadFiles[0].url : "";
+      const docName = directUploadFiles.length > 0 ? directUploadFiles[0].filename : "";
+      const attJson = directUploadFiles.length > 0 ? JSON.stringify(directUploadFiles) : "";
+      await api.put(`/facilities/compliance/obligations/${directUploadObligation.id}`, {
+        document_url: docUrl,
+        document_name: docName,
+        attachments_json: attJson,
+        document_ref: directUploadObligation.document_ref || directUploadObligation.document_reference,
+      });
+      toast.success("Document attached to compliance obligation successfully!");
+      setDirectUploadObligation(null);
+      fetchObligations();
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Failed to update document");
     } finally {
       setSubmitting(false);
     }
@@ -400,6 +451,7 @@ export default function FMCompliancePage() {
                     <th className="px-3 py-3">Category</th>
                     <th className="px-3 py-3">Property</th>
                     <th className="px-3 py-3">Issuing Authority</th>
+                    <th className="px-3 py-3">Certificate / Document</th>
                     <th className="px-3 py-3">Issue Date</th>
                     <th className="px-3 py-3">Expiry Date</th>
                     <th className="px-3 py-3">Status</th>
@@ -410,13 +462,13 @@ export default function FMCompliancePage() {
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                   {obLoading ? (
                     <tr>
-                      <td colSpan={10} className="px-4 py-8 text-center text-slate-400 italic">
+                      <td colSpan={11} className="px-4 py-8 text-center text-slate-400 italic">
                         Loading obligations...
                       </td>
                     </tr>
                   ) : obligations.length === 0 ? (
                     <tr>
-                      <td colSpan={10} className="px-4 py-10 text-center text-slate-400 italic">
+                      <td colSpan={11} className="px-4 py-10 text-center text-slate-400 italic">
                         No compliance obligations found. Click &apos;+ Register Obligation&apos; to add one.
                       </td>
                     </tr>
@@ -436,6 +488,39 @@ export default function FMCompliancePage() {
                         </td>
                         <td className="px-3 py-3 text-slate-500 dark:text-slate-400">{ob.property_name || "—"}</td>
                         <td className="px-3 py-3 text-slate-600 dark:text-slate-300">{ob.issuing_authority}</td>
+                        <td className="px-3 py-3">
+                          {ob.document_url ? (
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <a
+                                href={ob.document_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-sky-50 dark:bg-sky-950/40 text-sky-700 dark:text-sky-300 hover:bg-sky-100 dark:hover:bg-sky-900 border border-sky-200 dark:border-sky-800 text-[10px] font-semibold transition-colors"
+                                title={ob.document_name || "View Document"}
+                              >
+                                <Cloud size={11} className="text-sky-500 flex-shrink-0" />
+                                <span className="max-w-[110px] truncate">{ob.document_name || "View Doc"}</span>
+                                <ExternalLink size={9} className="opacity-70 flex-shrink-0" />
+                              </a>
+                              <button
+                                onClick={() => openDirectUploadModal(ob)}
+                                className="p-1 rounded-md text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                                title="Update Document in Cloudinary"
+                              >
+                                <Upload size={11} />
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              onClick={() => openDirectUploadModal(ob)}
+                              className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 text-slate-600 dark:text-slate-300 hover:text-emerald-700 dark:hover:text-emerald-300 border border-dashed border-slate-300 dark:border-slate-700 hover:border-emerald-300 text-[10px] font-medium transition-colors"
+                              title="Upload Statutory Certificate or Document"
+                            >
+                              <Upload size={10} className="text-emerald-500" />
+                              <span>Upload Doc</span>
+                            </button>
+                          )}
+                        </td>
                         <td className="px-3 py-3 font-mono">{ob.issue_date ? String(ob.issue_date).slice(0, 10) : "—"}</td>
                         <td className={`px-3 py-3 font-mono font-bold ${isExpiredOrSoon(ob.status) ? "text-rose-600" : ""}`}>
                           {ob.expiry_date ? String(ob.expiry_date).slice(0, 10) : "—"}
@@ -458,10 +543,24 @@ export default function FMCompliancePage() {
                             <button
                               onClick={() => {
                                 setSelectedObligation(ob);
+                                let atts = [];
+                                if (ob.attachments_json) {
+                                  try {
+                                    const parsed = JSON.parse(ob.attachments_json);
+                                    if (Array.isArray(parsed) && parsed.length > 0) atts = parsed;
+                                  } catch {}
+                                }
+                                if (atts.length === 0 && ob.document_url) {
+                                  atts = [{ url: ob.document_url, filename: ob.document_name || ob.document_url.split("/").pop() || "Document" }];
+                                }
                                 setObUpdateForm({
                                   status: ob.status || "",
                                   expiry_date: ob.expiry_date ? String(ob.expiry_date).slice(0, 10) : "",
                                   document_reference: ob.document_reference || "",
+                                  document_url: ob.document_url || "",
+                                  document_name: ob.document_name || "",
+                                  attachments: atts,
+                                  attachments_json: ob.attachments_json || "",
                                   notes: ob.notes || "",
                                 });
                                 setShowObUpdateModal(true);
@@ -737,6 +836,29 @@ export default function FMCompliancePage() {
                 />
               </div>
               <div>
+                <CloudinaryDocumentUploader
+                  folder="omnisuite/facilities/compliance"
+                  label="Statutory Certificate / Compliance Document (Cloudinary)"
+                  value={
+                    obForm.attachments && obForm.attachments.length > 0
+                      ? obForm.attachments
+                      : obForm.document_url
+                      ? [{ url: obForm.document_url, filename: obForm.document_name || obForm.document_url.split("/").pop() || "Document" }]
+                      : []
+                  }
+                  onChange={(files) => {
+                    const first = files[0];
+                    setObForm((prev) => ({
+                      ...prev,
+                      attachments: files,
+                      document_url: first ? first.url : "",
+                      document_name: first ? (first.filename || first.name || "") : "",
+                      attachments_json: files.length > 0 ? JSON.stringify(files) : "",
+                    }));
+                  }}
+                />
+              </div>
+              <div>
                 <label className="block font-semibold mb-1">Notes</label>
                 <textarea
                   rows={2}
@@ -805,6 +927,29 @@ export default function FMCompliancePage() {
                 </div>
               </div>
               <div>
+                <CloudinaryDocumentUploader
+                  folder="omnisuite/facilities/compliance"
+                  label="Statutory Certificate / Compliance Document (Cloudinary)"
+                  value={
+                    obUpdateForm.attachments && obUpdateForm.attachments.length > 0
+                      ? obUpdateForm.attachments
+                      : obUpdateForm.document_url
+                      ? [{ url: obUpdateForm.document_url, filename: obUpdateForm.document_name || obUpdateForm.document_url.split("/").pop() || "Document" }]
+                      : []
+                  }
+                  onChange={(files) => {
+                    const first = files[0];
+                    setObUpdateForm((prev) => ({
+                      ...prev,
+                      attachments: files,
+                      document_url: first ? first.url : "",
+                      document_name: first ? (first.filename || first.name || "") : "",
+                      attachments_json: files.length > 0 ? JSON.stringify(files) : "",
+                    }));
+                  }}
+                />
+              </div>
+              <div>
                 <label className="block font-semibold mb-1">Notes</label>
                 <textarea
                   rows={2}
@@ -817,6 +962,64 @@ export default function FMCompliancePage() {
                 <button type="button" onClick={() => setShowObUpdateModal(false)} className="px-4 py-2 border rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100">Cancel</button>
                 <button type="submit" disabled={submitting} className="px-5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-semibold shadow-sm">
                   {submitting ? "Saving..." : "Save Changes"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ── MODAL: Quick Upload Document (List Page) ────────────────────── */}
+      {directUploadObligation && (
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-sm flex justify-center items-start p-4 sm:p-6 md:p-10 animate-fadeIn">
+          <div className="bg-white dark:bg-slate-850 rounded-2xl max-w-lg w-full shadow-2xl border border-slate-200 dark:border-slate-700 overflow-hidden my-auto sm:my-8 transition-all">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-700 bg-white/95 dark:bg-slate-850/95 backdrop-blur-md">
+              <div className="flex items-center gap-2">
+                <Cloud size={18} className="text-sky-500" />
+                <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+                  Upload Statutory Document — {directUploadObligation.obligation_code || `OBL-${directUploadObligation.id}`}
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setDirectUploadObligation(null)}
+                className="text-slate-400 hover:text-slate-600 text-sm font-bold p-1"
+              >
+                ✕
+              </button>
+            </div>
+            <form onSubmit={handleSaveDirectUpload} className="p-6 space-y-4 text-xs">
+              <div className="p-3 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-200 dark:border-slate-800">
+                <div className="text-xs font-semibold text-slate-800 dark:text-slate-200">{directUploadObligation.title}</div>
+                <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                  Authority: {directUploadObligation.issuing_authority} | Property: {directUploadObligation.property_name || "—"}
+                </div>
+              </div>
+
+              <div>
+                <CloudinaryDocumentUploader
+                  folder="omnisuite/facilities/compliance"
+                  label="Statutory Certificate / File (Cloudinary)"
+                  value={directUploadFiles}
+                  onChange={(files) => setDirectUploadFiles(files)}
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2 border-t border-slate-200 dark:border-slate-700">
+                <button
+                  type="button"
+                  onClick={() => setDirectUploadObligation(null)}
+                  className="px-4 py-2 border rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="px-5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-semibold shadow-sm flex items-center gap-1.5"
+                >
+                  <CheckCircle size={14} />
+                  {submitting ? "Saving..." : "Save Document"}
                 </button>
               </div>
             </form>
@@ -988,7 +1191,7 @@ export default function FMCompliancePage() {
               <button onClick={() => setViewingObligation(null)} className="text-slate-400 hover:text-slate-600 p-1">✕</button>
             </div>
             <div className="p-6 space-y-4 text-xs">
-              <div className="grid grid-cols-2 gap-3 p-3 bg-slate-50 dark:bg-slate-800 rounded-xl">
+              <div className="grid grid-cols-2 gap-3 p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl">
                 <div>
                   <span className="text-slate-400 block text-[11px]">Obligation Title</span>
                   <span className="font-bold text-slate-800 dark:text-slate-200">{viewingObligation.title}</span>
@@ -1026,14 +1229,37 @@ export default function FMCompliancePage() {
               </div>
 
               {viewingObligation.document_reference && (
-                <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-xl">
+                <div className="p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl">
                   <span className="text-slate-400 block text-[11px] font-semibold uppercase mb-0.5">Document Reference</span>
                   <span className="font-mono text-slate-800 dark:text-slate-200">{viewingObligation.document_reference}</span>
                 </div>
               )}
 
+              {viewingObligation.document_url && (
+                <div className="p-3 bg-sky-50/70 dark:bg-sky-950/30 border border-sky-200 dark:border-sky-850 rounded-xl flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2 overflow-hidden">
+                    <Cloud size={18} className="text-sky-500 flex-shrink-0" />
+                    <div className="min-w-0">
+                      <span className="text-[10px] text-slate-400 uppercase font-bold block">Statutory Certificate / Cloudinary Doc</span>
+                      <span className="font-semibold text-sky-800 dark:text-sky-300 text-xs truncate block max-w-xs">
+                        {viewingObligation.document_name || viewingObligation.document_url.split("/").pop()}
+                      </span>
+                    </div>
+                  </div>
+                  <a
+                    href={viewingObligation.document_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-sky-600 hover:bg-sky-500 text-white rounded-lg text-xs font-semibold shadow-sm flex-shrink-0 transition-colors"
+                  >
+                    <span>View in Cloudinary</span>
+                    <ExternalLink size={12} />
+                  </a>
+                </div>
+              )}
+
               {viewingObligation.notes && (
-                <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-xl">
+                <div className="p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl">
                   <span className="text-slate-400 block text-[11px] font-semibold uppercase mb-0.5">Notes</span>
                   <p className="text-slate-700 dark:text-slate-300 leading-relaxed whitespace-pre-wrap">{viewingObligation.notes}</p>
                 </div>
@@ -1045,10 +1271,24 @@ export default function FMCompliancePage() {
                     const ob = viewingObligation;
                     setViewingObligation(null);
                     setSelectedObligation(ob);
+                    let atts = [];
+                    if (ob.attachments_json) {
+                      try {
+                        const parsed = JSON.parse(ob.attachments_json);
+                        if (Array.isArray(parsed) && parsed.length > 0) atts = parsed;
+                      } catch {}
+                    }
+                    if (atts.length === 0 && ob.document_url) {
+                      atts = [{ url: ob.document_url, filename: ob.document_name || ob.document_url.split("/").pop() || "Document" }];
+                    }
                     setObUpdateForm({
                       status: ob.status || "",
                       expiry_date: ob.expiry_date ? String(ob.expiry_date).slice(0, 10) : "",
                       document_reference: ob.document_reference || "",
+                      document_url: ob.document_url || "",
+                      document_name: ob.document_name || "",
+                      attachments: atts,
+                      attachments_json: ob.attachments_json || "",
                       notes: ob.notes || "",
                     });
                     setShowObUpdateModal(true);
@@ -1080,7 +1320,7 @@ export default function FMCompliancePage() {
               <button onClick={() => setViewingHazard(null)} className="text-slate-400 hover:text-slate-600 p-1">✕</button>
             </div>
             <div className="p-6 space-y-4 text-xs">
-              <div className="grid grid-cols-2 gap-3 p-3 bg-slate-50 dark:bg-slate-800 rounded-xl">
+              <div className="grid grid-cols-2 gap-3 p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl">
                 <div>
                   <span className="text-slate-400 block text-[11px]">Work Activity</span>
                   <span className="font-semibold text-slate-800 dark:text-slate-200">{viewingHazard.work_activity}</span>

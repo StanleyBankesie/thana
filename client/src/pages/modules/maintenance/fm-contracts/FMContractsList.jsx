@@ -173,28 +173,88 @@ export default function FMContractsList() {
     }
   };
 
-  const handleEditContract = (ctr) => {
+  const handleEditContract = async (ctr) => {
     setEditingContract(ctr);
-    setFormData({
-      contract_title: ctr.contract_title || "",
-      client_id: ctr.client_id || "",
-      contract_no: ctr.contract_no || "",
-      start_date: ctr.start_date ? String(ctr.start_date).slice(0, 10) : "",
-      end_date: ctr.end_date ? String(ctr.end_date).slice(0, 10) : "",
-      billing_frequency: ctr.billing_frequency || "MONTHLY",
-      billing_amount: ctr.billing_amount || "",
-      contract_value: ctr.contract_value || "",
-      emergency_callout_included: ctr.emergency_callout_included ?? 1,
-      emergency_callout_limit: ctr.emergency_callout_limit ?? 10,
-      sla_critical_response_hours: ctr.sla_critical_response_hours ?? 1.0,
-      sla_critical_resolution_hours: ctr.sla_critical_resolution_hours ?? 4.0,
-      sla_standard_response_hours: ctr.sla_standard_response_hours ?? 4.0,
-      sla_standard_resolution_hours: ctr.sla_standard_resolution_hours ?? 24.0,
-      properties: [],
-      service_lines: [],
-      contract_file_url: ctr.contract_file_url || "",
-    });
-    setShowModal(true);
+    let initialProps = [];
+    let initialServiceLines = [];
+
+    try {
+      const res = await api.get(`/facilities/contracts/${ctr.id}`);
+      const fullCtr = res.data?.data || res.data?.contract || ctr;
+
+      if (Array.isArray(fullCtr.properties)) {
+        initialProps = fullCtr.properties.map((p) => Number(p.property_id || p.id));
+      } else if (Array.isArray(ctr.properties)) {
+        initialProps = ctr.properties.map((p) => Number(p.property_id || p.id));
+      } else if (Array.isArray(ctr.property_ids)) {
+        initialProps = ctr.property_ids.map(Number);
+      }
+
+      if (Array.isArray(fullCtr.service_lines) && fullCtr.service_lines.length > 0) {
+        initialServiceLines = fullCtr.service_lines;
+      } else if (Array.isArray(ctr.service_lines) && ctr.service_lines.length > 0) {
+        initialServiceLines = ctr.service_lines;
+      } else {
+        initialServiceLines = serviceNames.map((s) => ({
+          service_line: s,
+          is_covered: true,
+          parts_included: false,
+        }));
+      }
+
+      setFormData({
+        contract_title: fullCtr.contract_title || ctr.contract_title || "",
+        client_id: fullCtr.client_id || ctr.client_id || "",
+        contract_no: fullCtr.contract_no || ctr.contract_no || "",
+        start_date: (fullCtr.start_date || ctr.start_date) ? String(fullCtr.start_date || ctr.start_date).slice(0, 10) : "",
+        end_date: (fullCtr.end_date || ctr.end_date) ? String(fullCtr.end_date || ctr.end_date).slice(0, 10) : "",
+        billing_frequency: fullCtr.billing_frequency || ctr.billing_frequency || "MONTHLY",
+        billing_amount: fullCtr.billing_amount || ctr.billing_amount || "",
+        contract_value: fullCtr.contract_value || ctr.contract_value || "",
+        emergency_callout_included: fullCtr.emergency_callout_included ?? ctr.emergency_callout_included ?? 1,
+        emergency_callout_limit: fullCtr.emergency_callout_limit ?? ctr.emergency_callout_limit ?? 10,
+        sla_critical_response_hours: fullCtr.sla_critical_response_hours ?? ctr.sla_critical_response_hours ?? 1.0,
+        sla_critical_resolution_hours: fullCtr.sla_critical_resolution_hours ?? ctr.sla_critical_resolution_hours ?? 4.0,
+        sla_standard_response_hours: fullCtr.sla_standard_response_hours ?? ctr.sla_standard_response_hours ?? 4.0,
+        sla_standard_resolution_hours: fullCtr.sla_standard_resolution_hours ?? ctr.sla_standard_resolution_hours ?? 24.0,
+        property_ids: initialProps,
+        properties: fullCtr.properties || ctr.properties || [],
+        service_lines: initialServiceLines,
+        contract_file_url: fullCtr.contract_file_url || ctr.contract_file_url || "",
+      });
+      setShowModal(true);
+    } catch {
+      if (Array.isArray(ctr.properties)) {
+        initialProps = ctr.properties.map((p) => Number(p.property_id || p.id));
+      } else if (Array.isArray(ctr.property_ids)) {
+        initialProps = ctr.property_ids.map(Number);
+      }
+      initialServiceLines = Array.isArray(ctr.service_lines) && ctr.service_lines.length > 0
+        ? ctr.service_lines
+        : serviceNames.map((s) => ({ service_line: s, is_covered: true, parts_included: false }));
+
+      setFormData({
+        contract_title: ctr.contract_title || "",
+        client_id: ctr.client_id || "",
+        contract_no: ctr.contract_no || "",
+        start_date: ctr.start_date ? String(ctr.start_date).slice(0, 10) : "",
+        end_date: ctr.end_date ? String(ctr.end_date).slice(0, 10) : "",
+        billing_frequency: ctr.billing_frequency || "MONTHLY",
+        billing_amount: ctr.billing_amount || "",
+        contract_value: ctr.contract_value || "",
+        emergency_callout_included: ctr.emergency_callout_included ?? 1,
+        emergency_callout_limit: ctr.emergency_callout_limit ?? 10,
+        sla_critical_response_hours: ctr.sla_critical_response_hours ?? 1.0,
+        sla_critical_resolution_hours: ctr.sla_critical_resolution_hours ?? 4.0,
+        sla_standard_response_hours: ctr.sla_standard_response_hours ?? 4.0,
+        sla_standard_resolution_hours: ctr.sla_standard_resolution_hours ?? 24.0,
+        property_ids: initialProps,
+        properties: ctr.properties || [],
+        service_lines: initialServiceLines,
+        contract_file_url: ctr.contract_file_url || "",
+      });
+      setShowModal(true);
+    }
   };
 
   const handleCreateContract = async (e) => {
@@ -205,12 +265,17 @@ export default function FMContractsList() {
     }
     try {
       setSubmitting(true);
-      await api.post("/facilities/contracts", formData);
-      toast.success("FM Service Contract established successfully");
+      if (editingContract?.id) {
+        await api.put(`/facilities/contracts/${editingContract.id}`, formData);
+        toast.success("FM Service Contract updated successfully");
+      } else {
+        await api.post("/facilities/contracts", formData);
+        toast.success("FM Service Contract established successfully");
+      }
       setShowModal(false);
       fetchContracts();
     } catch (err) {
-      toast.error(err.response?.data?.message || "Failed to create contract");
+      toast.error(err.response?.data?.message || (editingContract ? "Failed to update contract" : "Failed to create contract"));
     } finally {
       setSubmitting(false);
     }
@@ -496,8 +561,8 @@ export default function FMContractsList() {
                   <ShieldCheck size={20} />
                 </div>
                 <div>
-                  <h3 className="font-bold text-slate-900 dark:text-white text-base">
-                    Create Facilities Management Service Contract & SLA
+                  <h3 className="font-bold text-slate-900 dark:white text-base">
+                    {editingContract ? "Edit Facilities Management Service Contract & SLA" : "Create Facilities Management Service Contract & SLA"}
                   </h3>
                   <p className="text-xs text-slate-500 dark:text-slate-400">
                     Establish recurring client agreements, response & resolution SLAs, and covered facilities.
@@ -636,8 +701,8 @@ export default function FMContractsList() {
                     className="input w-full text-xs"
                     onChange={(e) => {
                       const id = Number(e.target.value);
-                      if (id && !formData.property_ids.includes(id)) {
-                        setFormData({ ...formData, property_ids: [...formData.property_ids, id] });
+                      if (id && !(formData.property_ids || []).includes(id)) {
+                        setFormData({ ...formData, property_ids: [...(formData.property_ids || []), id] });
                       }
                     }}
                   >
@@ -647,9 +712,9 @@ export default function FMContractsList() {
                     ))}
                   </select>
 
-                  {formData.property_ids.length > 0 && (
+                  {(formData.property_ids || []).length > 0 && (
                     <div className="flex flex-wrap gap-2 mt-2.5">
-                      {formData.property_ids.map((pid) => {
+                      {(formData.property_ids || []).map((pid) => {
                         const prop = properties.find((p) => p.id === pid);
                         return (
                           <span
@@ -659,7 +724,7 @@ export default function FMContractsList() {
                             🏛️ {prop?.property_name || `Property #${pid}`}
                             <button
                               type="button"
-                              onClick={() => setFormData({ ...formData, property_ids: formData.property_ids.filter((x) => x !== pid) })}
+                              onClick={() => setFormData({ ...formData, property_ids: (formData.property_ids || []).filter((x) => x !== pid) })}
                               className="hover:text-red-500 font-bold p-0.5 ml-1"
                             >
                               ✕
@@ -742,7 +807,7 @@ export default function FMContractsList() {
                   Select the services covered under this contract. These services are defined in Operations Setup:
                 </p>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                  {formData.service_lines.map((sl, idx) => (
+                  {(formData.service_lines || []).map((sl, idx) => (
                     <label
                       key={sl.service_line}
                       className="flex items-center gap-2.5 p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer"
@@ -751,7 +816,7 @@ export default function FMContractsList() {
                         type="checkbox"
                         checked={sl.is_covered}
                         onChange={(e) => {
-                          const updated = [...formData.service_lines];
+                          const updated = [...(formData.service_lines || [])];
                           updated[idx].is_covered = e.target.checked;
                           setFormData({ ...formData, service_lines: updated });
                         }}
@@ -762,7 +827,7 @@ export default function FMContractsList() {
                       </span>
                     </label>
                   ))}
-                  {formData.service_lines.length === 0 && (
+                  {(formData.service_lines || []).length === 0 && (
                     <div className="col-span-3 text-slate-400 text-xs italic">
                       No services available. Configure them in Facilities Operations Setup.
                     </div>
@@ -775,7 +840,7 @@ export default function FMContractsList() {
                 <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2 flex items-center gap-1.5">
                   <Paperclip size={14} className="text-blue-500" /> Contract Document / Signed Agreement (Cloudinary)
                 </h4>
-                <div className="p-4 rounded-xl border border-dashed border-slate-300 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900/50">
+                <div className="p-4 rounded-xl border border-dashed border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900">
                   <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                     <div>
                       <p className="text-xs font-semibold text-slate-700 dark:text-slate-300">
@@ -830,7 +895,7 @@ export default function FMContractsList() {
                   disabled={submitting}
                   className="btn btn-primary text-xs px-6 py-2.5 font-bold"
                 >
-                  {submitting ? "Establishing..." : "Save Contract & SLAs"}
+                  {submitting ? "Saving..." : editingContract ? "Save Changes" : "Save Contract & SLAs"}
                 </button>
               </div>
             </form>

@@ -85,11 +85,11 @@ export default function ForgotPasswordRequest() {
 
   return (
     <div className="min-h-screen w-full flex items-center justify-center bg-slate-100 dark:bg-slate-950 p-2 sm:p-3 md:p-4 overflow-y-auto">
-      <div className="w-full max-w-5xl bg-white dark:bg-slate-900 rounded-2xl sm:rounded-3xl shadow-2xl overflow-hidden flex flex-col md:flex-row max-h-[calc(100vh-1rem)] sm:max-h-[calc(100vh-1.5rem)] my-auto transition-all">
+      <div className="w-full max-w-md sm:max-w-lg md:max-w-3xl lg:max-w-4xl bg-white dark:bg-slate-900 rounded-2xl sm:rounded-3xl shadow-2xl overflow-hidden flex flex-col md:flex-row max-h-[calc(100vh-1rem)] sm:max-h-[calc(100vh-1.5rem)] my-auto transition-all">
         
         {/* Left Side: Form */}
         <div 
-          className="w-full md:w-1/2 p-4 sm:p-6 md:p-8 flex flex-col justify-between relative bg-white dark:bg-slate-900 overflow-y-auto [scrollbar-width:thin]"
+          className="w-full md:w-1/2 p-4 sm:p-5 md:p-6 flex flex-col justify-between relative bg-white dark:bg-slate-900 overflow-y-auto [scrollbar-width:thin]"
         >
           {/* Background image with configurable opacity */}
           <div

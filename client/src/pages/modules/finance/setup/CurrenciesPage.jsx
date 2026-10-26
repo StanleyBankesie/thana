@@ -128,18 +128,24 @@ export default function CurrenciesPage() {
         return;
       }
       let added = 0;
-      for (const c of toAdd) {
-        try {
-          await api.post("/finance/currencies", {
-            code: c.code,
-            name: c.name,
-            isActive: true,
-            isBase: false,
-          });
-          added++;
-        } catch (err) {
-          console.error(`Failed to add ${c.code}:`, err);
-        }
+      const chunkSize = 10;
+      for (let i = 0; i < toAdd.length; i += chunkSize) {
+        const chunk = toAdd.slice(i, i + chunkSize);
+        await Promise.all(
+          chunk.map(async (c) => {
+            try {
+              await api.post("/finance/currencies", {
+                code: c.code,
+                name: c.name,
+                isActive: true,
+                isBase: false,
+              });
+              added++;
+            } catch (err) {
+              console.error(`Failed to add ${c.code}:`, err);
+            }
+          })
+        );
       }
       toast.success(`Successfully added ${added} currencies`);
       load();

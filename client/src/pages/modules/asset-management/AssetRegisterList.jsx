@@ -320,7 +320,7 @@ export default function AssetRegisterList() {
                     )}
                   </div>
 
-                  <div className="space-y-1.5 text-xs text-slate-500 bg-slate-50 dark:bg-slate-900/50 p-3 rounded-xl border border-slate-100 dark:border-slate-800 mb-4">
+                  <div className="space-y-1.5 text-xs text-slate-500 bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-800 mb-4">
                     <div className="flex items-center justify-between">
                       <span>Gross Cost:</span>
                       <span className="font-medium text-slate-800 dark:text-slate-200">{formatCurrency(asset.purchase_cost)}</span>

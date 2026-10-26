@@ -8174,3 +8174,212 @@ export const getBudgetVsActualReport = async (req, res, next) => {
   }
 };
 
+
+
+/**
+ * Upload and process Excel accounts template.
+ * Parses AccountGroups and Accounts sheets, creating missing groups and accounts.
+ * @route POST /api/finance/template/upload
+ */
+export const uploadAccountsTemplate = async (req, res, next) => {
+  try {
+    const { companyId } = req.scope || {};
+    if (!companyId) return next(httpError(401, "UNAUTHORIZED", "Company scope required"));
+    if (!req.file || !req.file.buffer) {
+      return next(httpError(400, "VALIDATION_ERROR", "Excel file is required"));
+    }
+
+    const wb = XLSX.read(req.file.buffer, { type: "buffer" });
+    let createdGroups = 0;
+    let createdAccounts = 0;
+    const errors = [];
+
+    const normalizeNature = (val) => {
+      if (!val) return "ASSET";
+      const s = String(val).trim().toUpperCase();
+      if (s.includes("ASSET")) return "ASSET";
+      if (s.includes("LIAB")) return "LIABILITY";
+      if (s.includes("EQU")) return "EQUITY";
+      if (s.includes("INC") || s.includes("REV")) return "INCOME";
+      if (s.includes("EXP") || s.includes("COST")) return "EXPENSE";
+      return "ASSET";
+    };
+
+    const baseCurRows = await query(
+      "SELECT id, code FROM fin_currencies WHERE company_id = :companyId AND is_base = 1 LIMIT 1",
+      { companyId }
+    );
+    const baseCurrencyId = baseCurRows[0]?.id || null;
+
+    const curRows = await query("SELECT id, code, name FROM fin_currencies WHERE company_id = :companyId", { companyId });
+    const curMap = new Map();
+    curRows.forEach((c) => {
+      curMap.set(String(c.code).trim().toUpperCase(), c.id);
+      curMap.set(String(c.name).trim().toUpperCase(), c.id);
+    });
+
+    let existingGroups = await query(
+      "SELECT id, code, name, nature FROM fin_account_groups WHERE company_id = :companyId",
+      { companyId }
+    );
+    const groupNameMap = new Map();
+    existingGroups.forEach((g) => {
+      groupNameMap.set(String(g.name).trim().toUpperCase(), g);
+      if (g.code) groupNameMap.set(String(g.code).trim().toUpperCase(), g);
+    });
+
+    // 1. Process AccountGroups sheet if present
+    if (wb.SheetNames.includes("AccountGroups")) {
+      const agWs = wb.Sheets["AccountGroups"];
+      const agRows = XLSX.utils.sheet_to_json(agWs, { defval: "" });
+      for (const row of agRows) {
+        try {
+          const groupName = String(row["GroupName*"] || row["GroupName"] || row["Group Name"] || "").trim();
+          if (!groupName) continue;
+          if (groupNameMap.has(groupName.toUpperCase())) continue;
+
+          const rawClass = row["GroupLevel1*"] || row["GroupLevel1"] || row["AccountClass"] || row["Class"] || "ASSET";
+          const nature = normalizeNature(rawClass);
+          let groupCode = String(row["GroupCode"] || row["Code"] || "").trim().toUpperCase();
+          if (!groupCode) {
+            const prefix = nature === "ASSET" ? "AST" : nature === "LIABILITY" ? "LIA" : nature === "EQUITY" ? "EQU" : nature === "INCOME" ? "INC" : "EXP";
+            const token = groupName.replace(/[^A-Za-z0-9]/g, "").toUpperCase().slice(0, 8);
+            groupCode = `${prefix}_${token || "GRP"}`;
+          }
+
+          const insertRes = await query(
+            "INSERT INTO fin_account_groups (company_id, code, name, nature, is_active) VALUES (:companyId, :groupCode, :groupName, :nature, 1)",
+            { companyId, groupCode, groupName, nature }
+          );
+          const newGrp = { id: insertRes.insertId, code: groupCode, name: groupName, nature };
+          groupNameMap.set(groupName.toUpperCase(), newGrp);
+          groupNameMap.set(groupCode.toUpperCase(), newGrp);
+          createdGroups++;
+        } catch (gErr) {
+          errors.push(`Group error: ${gErr.message}`);
+        }
+      }
+    }
+
+    // 2. Process Accounts sheet
+    const acctSheetName = wb.SheetNames.includes("Accounts") ? "Accounts" : wb.SheetNames[0];
+    const acctWs = wb.Sheets[acctSheetName];
+    const acctRows = XLSX.utils.sheet_to_json(acctWs, { defval: "" });
+
+    for (let i = 0; i < acctRows.length; i++) {
+      const row = acctRows[i];
+      const rowNum = i + 2;
+      try {
+        const accountName = String(row["AccountName*"] || row["AccountName"] || row["Account Name"] || row["Name"] || "").trim();
+        if (!accountName) continue;
+
+        const rawClass = row["GroupLevel1*"] || row["GroupLevel1"] || row["AccountClass"] || row["Class"] || row["Nature"] || "ASSET";
+        const nature = normalizeNature(rawClass);
+        const groupName = String(row["AccountGroupName*"] || row["AccountGroupName"] || row["GroupName"] || row["Group"] || "").trim();
+
+        let group = groupName ? groupNameMap.get(groupName.toUpperCase()) : null;
+        if (!group && groupName) {
+          const prefix = nature === "ASSET" ? "AST" : nature === "LIABILITY" ? "LIA" : nature === "EQUITY" ? "EQU" : nature === "INCOME" ? "INC" : "EXP";
+          const token = groupName.replace(/[^A-Za-z0-9]/g, "").toUpperCase().slice(0, 8);
+          const gCode = `${prefix}_${token || "GRP"}`;
+          const gRes = await query(
+            "INSERT INTO fin_account_groups (company_id, code, name, nature, is_active) VALUES (:companyId, :gCode, :groupName, :nature, 1)",
+            { companyId, gCode, groupName, nature }
+          );
+          group = { id: gRes.insertId, code: gCode, name: groupName, nature };
+          groupNameMap.set(groupName.toUpperCase(), group);
+          groupNameMap.set(gCode.toUpperCase(), group);
+          createdGroups++;
+        }
+
+        if (!group) {
+          const fallback = existingGroups.find((g) => g.nature === nature);
+          if (fallback) {
+            group = fallback;
+          } else {
+            const defName = `${nature.charAt(0) + nature.slice(1).toLowerCase()} General`;
+            const defCode = `${nature.slice(0, 3)}_GEN`;
+            const gRes = await query(
+              "INSERT INTO fin_account_groups (company_id, code, name, nature, is_active) VALUES (:companyId, :defCode, :defName, :nature, 1)",
+              { companyId, defCode, defName, nature }
+            );
+            group = { id: gRes.insertId, code: defCode, name: defName, nature };
+            groupNameMap.set(defName.toUpperCase(), group);
+            createdGroups++;
+          }
+        }
+
+        const rawCur = String(row["Currency*"] || row["Currency"] || "").trim().toUpperCase();
+        const currencyId = (rawCur && curMap.get(rawCur)) ? curMap.get(rawCur) : baseCurrencyId;
+
+        let accCode = String(row["AccountNumber"] || row["AccountCode"] || row["Code"] || "").trim();
+        const natureMap = { ASSET: 1, LIABILITY: 2, EQUITY: 3, INCOME: 4, EXPENSE: 5 };
+        const naturePrefix = (natureMap[nature] || 1).toString();
+
+        if (accCode) {
+          const exists = await query(
+            "SELECT id FROM fin_accounts WHERE company_id = :companyId AND code = :code LIMIT 1",
+            { companyId, code: accCode }
+          );
+          if (exists.length) {
+            let seq = 1;
+            while (true) {
+              const candidate = `${naturePrefix}${String(seq).padStart(3, "0")}`;
+              const cCheck = await query("SELECT id FROM fin_accounts WHERE company_id = :companyId AND code = :code LIMIT 1", { companyId, code: candidate });
+              if (!cCheck.length) {
+                accCode = candidate;
+                break;
+              }
+              seq++;
+            }
+          }
+        } else {
+          const maxRows = await query(
+            `SELECT MAX(CAST(code AS UNSIGNED)) as maxCode FROM fin_accounts WHERE company_id = :companyId AND code REGEXP '^[1-5][0-9]{3}$' AND code LIKE :prefix`,
+            { companyId, prefix: `${naturePrefix}%` }
+          );
+          if (maxRows[0]?.maxCode) {
+            accCode = (Number(maxRows[0].maxCode) + 1).toString();
+          } else {
+            accCode = (Number(naturePrefix) * 1000 + 1).toString();
+          }
+        }
+
+        const rawPostable = String(row["IsPostable*"] || row["IsPostable"] || row["Postable"] || "Yes").trim().toLowerCase();
+        const isPostable = rawPostable === "no" || rawPostable === "0" || rawPostable === "false" ? 0 : 1;
+
+        const rawBal = String(row["BalanceType"] || "").trim().toUpperCase();
+        const balanceType = (rawBal === "DEBIT" || rawBal === "CREDIT")
+          ? rawBal
+          : (nature === "ASSET" || nature === "EXPENSE" ? "DEBIT" : "CREDIT");
+
+        await query(
+          `INSERT INTO fin_accounts (company_id, group_id, code, name, balance_type, currency_id, is_postable, is_active)
+           VALUES (:companyId, :groupId, :accCode, :accountName, :balanceType, :currencyId, :isPostable, 1)`,
+          {
+            companyId,
+            groupId: group.id,
+            accCode,
+            accountName,
+            balanceType,
+            currencyId,
+            isPostable,
+          }
+        );
+        createdAccounts++;
+      } catch (rowErr) {
+        errors.push(`Row ${rowNum}: ${rowErr.message}`);
+      }
+    }
+
+    res.json({
+      success: true,
+      message: `Successfully processed template: ${createdAccounts} account(s) created, ${createdGroups} group(s) created.`,
+      accountsCreated: createdAccounts,
+      groupsCreated: createdGroups,
+      errors,
+    });
+  } catch (err) {
+    next(err);
+  }
+};

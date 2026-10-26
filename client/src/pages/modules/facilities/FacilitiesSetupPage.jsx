@@ -2530,7 +2530,7 @@ export default function FacilitiesSetupPage() {
               </div>
 
               {/* Dynamic Criteria Items Builder */}
-              <div className="border border-slate-200 dark:border-slate-800 rounded-2xl p-4 bg-slate-50/50 dark:bg-slate-900/40 space-y-3">
+              <div className="border border-slate-200 dark:border-slate-800 rounded-2xl p-4 bg-white dark:bg-slate-900 space-y-3">
                 <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-slate-800">
                   <div>
                     <h4 className="font-bold text-slate-900 dark:text-white text-xs flex items-center gap-1.5">

@@ -268,7 +268,7 @@ export default function MaintenanceContractForm() {
               <label className="label">Contract Document</label>
               <div className="space-y-2">
                 {form.contract_file_url ? (
-                  <div className="flex items-center gap-2 p-2 bg-slate-50 rounded border">
+                  <div className="flex items-center gap-2 p-2 bg-white dark:bg-slate-900 rounded border border-slate-200 dark:border-slate-700">
                     <FileText size={16} className="text-brand shrink-0" />
                     <a
                       href={form.contract_file_url}

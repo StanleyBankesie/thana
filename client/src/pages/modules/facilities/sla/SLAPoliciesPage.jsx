@@ -609,7 +609,7 @@ export default function SLAPoliciesPage() {
               <button onClick={() => setViewingPolicy(null)} className="text-slate-400 hover:text-slate-600 p-1">✕</button>
             </div>
             <div className="p-6 space-y-4 text-xs">
-              <div className="grid grid-cols-2 gap-3 p-3 bg-slate-50 dark:bg-slate-800 rounded-xl">
+              <div className="grid grid-cols-2 gap-3 p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl">
                 <div>
                   <span className="text-slate-400 block text-[11px]">Policy Name</span>
                   <span className="font-bold text-slate-800 dark:text-slate-200">{viewingPolicy.policy_name}</span>

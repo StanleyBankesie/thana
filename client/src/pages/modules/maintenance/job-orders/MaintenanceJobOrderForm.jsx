@@ -192,7 +192,7 @@ export default function MaintenanceJobOrderForm() {
 
         {/* Card 1: General Details */}
         <div className="card overflow-hidden border border-slate-200 dark:border-slate-700 shadow-sm">
-          <div className="bg-slate-50 dark:bg-slate-800/50 px-6 py-4 border-b border-slate-200 dark:border-slate-700 flex items-center gap-2">
+          <div className="bg-white dark:bg-slate-900 px-6 py-4 border-b border-slate-200 dark:border-slate-700 flex items-center gap-2">
             <FileText size={18} className="text-brand-500" />
             <h2 className="font-semibold text-slate-800 dark:text-slate-200">General Details</h2>
           </div>
@@ -257,7 +257,7 @@ export default function MaintenanceJobOrderForm() {
 
         {/* Card 2: Scheduling & Location */}
         <div className="card overflow-hidden border border-slate-200 dark:border-slate-700 shadow-sm">
-          <div className="bg-slate-50 dark:bg-slate-800/50 px-6 py-4 border-b border-slate-200 dark:border-slate-700 flex items-center gap-2">
+          <div className="bg-white dark:bg-slate-900 px-6 py-4 border-b border-slate-200 dark:border-slate-700 flex items-center gap-2">
             <Calendar size={18} className="text-brand-500" />
             <h2 className="font-semibold text-slate-800 dark:text-slate-200">Scheduling & Location</h2>
           </div>
@@ -290,7 +290,7 @@ export default function MaintenanceJobOrderForm() {
 
         {/* Card 3: Assignment */}
         <div className="card overflow-hidden border border-slate-200 dark:border-slate-700 shadow-sm">
-          <div className="bg-slate-50 dark:bg-slate-800/50 px-6 py-4 border-b border-slate-200 dark:border-slate-700 flex items-center gap-2">
+          <div className="bg-white dark:bg-slate-900 px-6 py-4 border-b border-slate-200 dark:border-slate-700 flex items-center gap-2">
             <Users size={18} className="text-brand-500" />
             <h2 className="font-semibold text-slate-800 dark:text-slate-200">Assignment & Resource</h2>
           </div>
@@ -346,7 +346,7 @@ export default function MaintenanceJobOrderForm() {
 
         {/* Card 4: Scope & Notes */}
         <div className="card overflow-hidden border border-slate-200 dark:border-slate-700 shadow-sm">
-          <div className="bg-slate-50 dark:bg-slate-800/50 px-6 py-4 border-b border-slate-200 dark:border-slate-700 flex items-center gap-2">
+          <div className="bg-white dark:bg-slate-900 px-6 py-4 border-b border-slate-200 dark:border-slate-700 flex items-center gap-2">
             <ClipboardList size={18} className="text-brand-500" />
             <h2 className="font-semibold text-slate-800 dark:text-slate-200">Scope & Notes</h2>
           </div>

@@ -44,6 +44,7 @@ import DebtorsLedgerReportPage from "./reports/DebtorsLedgerReportPage.jsx";
 import RatioAnalysisReportPage from "./reports/RatioAnalysisReportPage.jsx";
 import GraphicalChartOfAccountsPage from "./reports/GraphicalChartOfAccountsPage.jsx";
 import AccountGroupsPage from "./setup/AccountGroupsPage.jsx";
+import FinanceSetupPage from "./setup/FinanceSetupPage.jsx";
 import AccountsPage from "./setup/AccountsPage.jsx";
 import TaxCodesPage from "./setup/TaxCodesPage.jsx";
 import CurrenciesPage from "./setup/CurrenciesPage.jsx";
@@ -162,8 +163,12 @@ export default function FinanceRoutes() {
         <Route path="import-vouchers" element={<VoucherImportPage />} />
 
         {/* Setup & Master Data */}
-        <Route path="setup/account-groups" element={<AccountGroupsPage />} />
-        <Route path="setup/accounts" element={<AccountsPage />} />
+        <Route path="setup/finance" element={<FinanceSetupPage />} />
+        {/* Redirects from old separate routes to the combined page */}
+        <Route path="setup/account-groups" element={<Navigate to="/finance/setup/finance?tab=groups" replace />} />
+        <Route path="setup/account-groups/*" element={<Navigate to="/finance/setup/finance?tab=groups" replace />} />
+        <Route path="setup/accounts" element={<Navigate to="/finance/setup/finance?tab=accounts" replace />} />
+        <Route path="setup/accounts/*" element={<Navigate to="/finance/setup/finance?tab=accounts" replace />} />
         <Route path="setup/tax-codes" element={<TaxCodesPage />} />
         <Route path="setup/currencies" element={<CurrenciesPage />} />
         <Route path="setup/fiscal-years" element={<FiscalYearsPage />} />
@@ -176,7 +181,7 @@ export default function FinanceRoutes() {
           path="opening-balances"
           element={<OpeningBalancesPage />}
         />
-        <Route path="accounts" element={<AccountsPage />} />
+        <Route path="accounts" element={<Navigate to="/finance/setup/finance?tab=accounts" replace />} />
 
         {/* Banking */}
         <Route path="bank-reconciliation" element={<BankReconciliationList />} />

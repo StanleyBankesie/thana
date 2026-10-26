@@ -82,13 +82,10 @@ export const financeSections = [
   {
     title: "Accounting Setup",
     items: [
-      { title: "Chart of Account Groups", path: "/finance/setup/account-groups", description: "Setup account group hierarchy", icon: "🗂" , actions: [
-          <ActionButton key="view" label="View" path="/finance/setup/account-groups" type="outline" featureKey="finance:account-groups" action="view" />,
-          <ActionButton key="add" label="Add" path="/finance/setup/account-groups/create" type="primary" featureKey="finance:account-groups" action="create" />
-        ], },
-      { title: "Accounts Creation", path: "/finance/setup/accounts", description: "Create and manage accounts", icon: "🏦" , actions: [
-          <ActionButton key="view" label="View" path="/finance/setup/accounts" type="outline" featureKey="finance:accounts" action="view" />,
-          <ActionButton key="add" label="Add" path="/finance/setup/accounts/create" type="primary" featureKey="finance:accounts" action="create" />
+      { title: "Chart of Accounts & Groups Setup", path: "/finance/setup/finance", description: "Setup account groups, create accounts & bulk import via Excel template", icon: "🏦" , actions: [
+          <ActionButton key="accounts" label="Accounts" path="/finance/setup/finance?tab=accounts" type="outline" featureKey="finance:accounts" action="view" />,
+          <ActionButton key="groups" label="Groups" path="/finance/setup/finance?tab=groups" type="outline" featureKey="finance:account-groups" action="view" />,
+          <ActionButton key="add" label="Add Account" path="/finance/setup/finance?tab=accounts&action=create" type="primary" featureKey="finance:accounts" action="create" />
         ], },
       { title: "Cost Centers", path: "/finance/setup/cost-centers", description: "Define and manage cost centers", icon: "🏷️" , actions: [
           <ActionButton key="view" label="View" path="/finance/setup/cost-centers" type="outline" featureKey="finance:cost-centers" action="view" />,
@@ -352,14 +349,8 @@ export const financeFeatures = [
   },
   {
     module_key: "finance",
-    label: "Chart of Account Groups",
-    path: "/finance/account-groups",
-    type: "feature",
-  },
-  {
-    module_key: "finance",
-    label: "Accounts Creation",
-    path: "/finance/accounts",
+    label: "Account Groups & Accounts Setup",
+    path: "/finance/setup/finance",
     type: "feature",
   },
   {

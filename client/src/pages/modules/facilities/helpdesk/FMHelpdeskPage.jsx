@@ -67,7 +67,7 @@ const getInitialTicketForm = () => ({
   requester_name: "",
   requester_phone: "",
   source_channel: "",
-  sla_target_hours: 24,
+  sla_target_hours: "",
 });
 
 const getInitialStatusForm = () => ({
@@ -109,7 +109,7 @@ export default function FMHelpdeskPage() {
   // Forms
   const [ticketForm, setTicketForm] = useState(getInitialTicketForm());
   const [slaUnit, setSlaUnit] = useState("HOURS"); // "HOURS" | "DAYS"
-  const [slaValue, setSlaValue] = useState(24);
+  const [slaValue, setSlaValue] = useState("");
   const [statusForm, setStatusForm] = useState(getInitialStatusForm());
   const [noteForm, setNoteForm] = useState(getInitialNoteForm());
   const [addingNote, setAddingNote] = useState(false);
@@ -185,6 +185,7 @@ export default function FMHelpdeskPage() {
       toast.success("Service request raised successfully");
       setShowCreateModal(false);
       setTicketForm(getInitialTicketForm());
+      setSlaValue("");
       fetchTickets();
       fetchDashboard();
     } catch (err) {
@@ -278,6 +279,7 @@ export default function FMHelpdeskPage() {
         <button
           onClick={() => {
             setTicketForm(getInitialTicketForm());
+            setSlaValue("");
             setShowCreateModal(true);
           }}
           className="btn btn-primary inline-flex items-center gap-1.5 text-xs py-2 px-3.5 shadow-sm active:scale-95"
@@ -637,14 +639,14 @@ export default function FMHelpdeskPage() {
                   <input
                     required
                     type="number"
-                    min={1}
                     value={slaValue}
                     onChange={(e) => {
-                      const val = Math.max(1, Number(e.target.value));
+                      const val = e.target.value;
                       setSlaValue(val);
+                      const num = val === "" ? "" : Number(val);
                       setTicketForm({
                         ...ticketForm,
-                        sla_target_hours: slaUnit === "DAYS" ? val * 24 : val,
+                        sla_target_hours: num === "" ? "" : (slaUnit === "DAYS" ? num * 24 : num),
                       });
                     }}
                     className="flex-1 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-2 text-xs font-mono"
@@ -655,9 +657,10 @@ export default function FMHelpdeskPage() {
                     onChange={(e) => {
                       const unit = e.target.value;
                       setSlaUnit(unit);
+                      const num = slaValue === "" ? "" : Number(slaValue);
                       setTicketForm({
                         ...ticketForm,
-                        sla_target_hours: unit === "DAYS" ? slaValue * 24 : slaValue,
+                        sla_target_hours: num === "" ? "" : (unit === "DAYS" ? num * 24 : num),
                       });
                     }}
                     className="w-32 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-2 text-xs font-bold"
@@ -667,7 +670,7 @@ export default function FMHelpdeskPage() {
                   </select>
                 </div>
                 <p className="text-[10px] text-slate-400 mt-1">
-                  Total duration: <span className="font-semibold text-indigo-600 dark:text-indigo-400 font-mono">{ticketForm.sla_target_hours} hours</span> ({slaUnit === "DAYS" ? `${slaValue} days` : `${(slaValue / 24).toFixed(1)} days`})
+                  Total duration: <span className="font-semibold text-indigo-600 dark:text-indigo-400 font-mono">{ticketForm.sla_target_hours || 0} hours</span> {slaValue !== "" ? (slaUnit === "DAYS" ? `(${slaValue} days)` : `(${(!isNaN(Number(slaValue)) ? (Number(slaValue) / 24).toFixed(1) : 0)} days)`) : ""}
                 </p>
               </div>
 
@@ -714,7 +717,7 @@ export default function FMHelpdeskPage() {
 
             <div className="p-6 space-y-4 text-xs">
               {/* Ticket info strip */}
-              <div className="bg-slate-50 dark:bg-slate-800 rounded-xl p-3 space-y-1">
+              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-3 space-y-1">
                 <p className="font-bold text-slate-800 dark:text-white">{activeTicket.subject}</p>
                 <p className="text-slate-500 dark:text-slate-400">{activeTicket.property_name} · {activeTicket.requester_name}</p>
                 <div className="flex gap-2 pt-1">
@@ -846,7 +849,7 @@ export default function FMHelpdeskPage() {
             </div>
 
             <div className="p-6 space-y-4 text-xs">
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 p-4 bg-slate-50 dark:bg-slate-800 rounded-xl">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl">
                 <div>
                   <span className="text-slate-400 block text-[11px]">Property</span>
                   <span className="font-semibold text-slate-800 dark:text-slate-200">{activeTicket.property_name || "—"}</span>
@@ -886,7 +889,7 @@ export default function FMHelpdeskPage() {
 
               <div>
                 <span className="text-slate-400 block text-[11px] font-semibold uppercase mb-1">Description</span>
-                <div className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-xl text-slate-700 dark:text-slate-300 leading-relaxed whitespace-pre-wrap">
+                <div className="p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-700 dark:text-slate-300 leading-relaxed whitespace-pre-wrap">
                   {activeTicket.description || "No description provided."}
                 </div>
               </div>

@@ -478,7 +478,7 @@ export default function FMWorkforceRosterPage() {
               <button type="button" onClick={() => setShowAttendanceModal(false)} className="text-slate-400 hover:text-slate-600 text-sm font-bold p-1">✕</button>
             </div>
             <form onSubmit={handleUpdateAttendance} className="p-6 space-y-4 text-xs">
-              <div className="bg-slate-50 dark:bg-slate-800 rounded-xl p-3 text-slate-600 dark:text-slate-300">
+              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-3 text-slate-600 dark:text-slate-300">
                 <span className="font-bold">{selectedRoster.employee_name}</span>
                 <span className="text-slate-400 ml-2">— {selectedRoster.role_required}</span>
                 <span className="block text-[11px] text-slate-400 mt-0.5">{selectedRoster.shift_name} · {selectedRoster.property_name || "—"}</span>
@@ -528,7 +528,7 @@ export default function FMWorkforceRosterPage() {
               <button onClick={() => setViewingRoster(null)} className="text-slate-400 hover:text-slate-600 p-1">✕</button>
             </div>
             <div className="p-6 space-y-4 text-xs">
-              <div className="grid grid-cols-2 gap-3 p-3 bg-slate-50 dark:bg-slate-800 rounded-xl">
+              <div className="grid grid-cols-2 gap-3 p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl">
                 <div>
                   <span className="text-slate-400 block text-[11px]">Employee Name</span>
                   <span className="font-bold text-slate-800 dark:text-slate-200">{viewingRoster.employee_name}</span>

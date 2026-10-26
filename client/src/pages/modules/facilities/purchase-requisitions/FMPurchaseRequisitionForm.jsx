@@ -483,7 +483,7 @@ export default function FMPurchaseRequisitionForm() {
 
               {items.length > 0 && (
                 <div className="flex justify-end pt-4">
-                  <div className="bg-slate-50 rounded-lg px-6 py-3">
+                  <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-6 py-3">
                     <div className="flex items-center gap-4">
                       <span className="text-sm text-slate-500">Items: <strong>{items.length}</strong></span>
                       <span className="text-sm text-slate-500">Total Qty: <strong>{items.reduce((s, i) => s + Number(i.qty || 0), 0)}</strong></span>

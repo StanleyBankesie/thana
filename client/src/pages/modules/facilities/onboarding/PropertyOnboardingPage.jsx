@@ -464,7 +464,7 @@ export default function PropertyOnboardingPage() {
             ) : detailRecord ? (
               <div className="p-6 space-y-5 text-xs">
                 {/* Header info */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-200 dark:border-slate-700">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-700">
                   <div>
                     <span className="text-[10px] text-slate-400 font-bold uppercase block mb-0.5">Property</span>
                     <span className="font-semibold text-slate-800 dark:text-white">{detailRecord.property_name}</span>
@@ -564,7 +564,7 @@ export default function PropertyOnboardingPage() {
                 </div>
 
                 {detailRecord.condition_summary && (
-                  <div className="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-xl border border-slate-200 dark:border-slate-700">
+                  <div className="bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-700">
                     <span className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Condition Summary</span>
                     <p className="text-slate-600 dark:text-slate-300">{detailRecord.condition_summary}</p>
                   </div>

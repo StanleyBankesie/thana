@@ -7,12 +7,11 @@ function getScope(req) {
 }
 
 /**
- * Generate sequential bill number starting with "FB-"
- * Format: FB-YYYY-XXXX (e.g. FB-2026-0001)
+ * Generate sequential bill number starting with "FINV-"
+ * Format: FINV-XXXXXX (6 digits starting from 1, e.g. FINV-000001)
  */
 export async function getNextFMBillNumber(companyId) {
-  const year = new Date().getFullYear();
-  const prefix = `FB-${year}-`;
+  const prefix = "FINV-";
   const [rows] = await pool.query(
     `SELECT bill_no FROM fm_service_bills 
      WHERE company_id = ? AND bill_no LIKE ? 
@@ -20,20 +19,22 @@ export async function getNextFMBillNumber(companyId) {
     [companyId, `${prefix}%`]
   );
   if (rows.length > 0 && rows[0].bill_no) {
-    const lastNumStr = rows[0].bill_no.replace(prefix, "");
-    const lastNum = parseInt(lastNumStr, 10);
-    if (!isNaN(lastNum)) {
-      return `${prefix}${String(lastNum + 1).padStart(4, "0")}`;
+    const match = rows[0].bill_no.match(/FINV-(\d+)/);
+    if (match && match[1]) {
+      const lastNum = parseInt(match[1], 10);
+      if (!isNaN(lastNum)) {
+        return `${prefix}${String(lastNum + 1).padStart(6, "0")}`;
+      }
     }
   }
-  return `${prefix}0001`;
+  return `${prefix}000001`;
 }
 
 export async function getNextFMBillNo(req, res) {
   try {
     const { companyId } = getScope(req);
     const nextNo = await getNextFMBillNumber(companyId);
-    res.json({ success: true, bill_no: nextNo });
+    res.json({ success: true, bill_no: nextNo, nextNo });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
@@ -118,7 +119,7 @@ export async function createFMServiceBill(req, res) {
     const b = req.body;
 
     let billNo = b.bill_no;
-    if (!billNo || !billNo.startsWith("FB-")) {
+    if (!billNo || !billNo.startsWith("FINV-")) {
       billNo = await getNextFMBillNumber(companyId);
     }
 

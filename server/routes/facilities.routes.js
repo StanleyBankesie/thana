@@ -48,6 +48,7 @@ router.delete("/service-bills/:id", ...auth, fmb.deleteFMServiceBill);
 router.get("/contracts", ...auth, fc.listContracts);
 router.get("/contracts/:id", ...auth, fc.getContractById);
 router.post("/contracts", ...auth, fc.createContract);
+router.put("/contracts/:id", ...auth, fc.updateContract);
 router.get("/contracts/coverage/check", ...auth, fc.checkContractCoverage);
 router.post("/contracts/:id/generate-invoice", ...auth, fc.generateContractInvoice);
 

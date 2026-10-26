@@ -856,7 +856,8 @@ export async function createComplianceObligation(req, res, next) {
     const { companyId } = req.scope || {};
     const {
       property_id, asset_id, contractor_id, title, category, issuing_authority,
-      document_ref, issue_date, expiry_date, renewal_lead_days, responsible_person, notes
+      document_ref, document_url, document_name, attachments_json, file_url, attachments,
+      issue_date, expiry_date, renewal_lead_days, responsible_person, notes
     } = req.body;
 
     if (!property_id || !title || !issuing_authority || !expiry_date) {
@@ -875,13 +876,19 @@ export async function createComplianceObligation(req, res, next) {
     if (now > expiry) status = "EXPIRED";
     else if (now >= alertDate) status = "EXPIRING_SOON";
 
+    const docUrl = document_url || file_url || (Array.isArray(attachments) && attachments[0]?.url) || null;
+    const docName = document_name || (Array.isArray(attachments) && attachments[0]?.filename) || (docUrl ? docUrl.split("/").pop() : null);
+    const attJson = attachments_json || (Array.isArray(attachments) ? JSON.stringify(attachments) : null);
+
     const [result] = await pool.query(`
       INSERT INTO fm_compliance_obligations
         (company_id, obligation_code, property_id, asset_id, contractor_id, title, category,
-         issuing_authority, document_ref, issue_date, expiry_date, renewal_lead_days, status, responsible_person, notes)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+         issuing_authority, document_ref, document_url, document_name, attachments_json,
+         issue_date, expiry_date, renewal_lead_days, status, responsible_person, notes)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `, [companyId, obligation_code, property_id, asset_id || null, contractor_id || null,
         title, category || "STATUTORY", issuing_authority, document_ref || null,
+        docUrl, docName, attJson,
         issue_date || null, expiry_date, leadDays, status, responsible_person || null, notes || null]);
 
     res.status(201).json({ success: true, data: { id: result.insertId, obligation_code, status } });
@@ -892,17 +899,36 @@ export async function updateComplianceObligation(req, res, next) {
   try {
     const { companyId } = req.scope || {};
     const { id } = req.params;
-    const { status, expiry_date, document_ref, notes } = req.body;
+    const {
+      status, expiry_date, document_ref, document_url, document_name,
+      attachments_json, file_url, attachments, notes
+    } = req.body;
 
     const updates = [];
     const vals = [];
     if (status !== undefined) { updates.push("status = ?"); vals.push(status); }
     if (expiry_date !== undefined) { updates.push("expiry_date = ?"); vals.push(expiry_date); }
     if (document_ref !== undefined) { updates.push("document_ref = ?"); vals.push(document_ref); }
+    if (document_url !== undefined || file_url !== undefined) {
+      const docUrl = document_url !== undefined ? document_url : file_url;
+      updates.push("document_url = ?");
+      vals.push(docUrl || null);
+    }
+    if (document_name !== undefined) {
+      updates.push("document_name = ?");
+      vals.push(document_name || null);
+    }
+    if (attachments_json !== undefined || attachments !== undefined) {
+      const attJson = attachments_json !== undefined ? attachments_json : (Array.isArray(attachments) ? JSON.stringify(attachments) : null);
+      updates.push("attachments_json = ?");
+      vals.push(attJson || null);
+    }
     if (notes !== undefined) { updates.push("notes = ?"); vals.push(notes); }
     vals.push(id, companyId);
 
-    await pool.query(`UPDATE fm_compliance_obligations SET ${updates.join(", ")} WHERE id = ? AND company_id = ?`, vals);
+    if (updates.length > 0) {
+      await pool.query(`UPDATE fm_compliance_obligations SET ${updates.join(", ")} WHERE id = ? AND company_id = ?`, vals);
+    }
     res.json({ success: true, message: "Compliance record updated" });
   } catch (err) { next(err); }
 }

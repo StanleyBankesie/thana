@@ -308,7 +308,7 @@ export default function AssetDisposalsPage() {
               </div>
 
               {selectedAsset && (
-                <div className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-200 dark:border-slate-700 text-xs space-y-1">
+                <div className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 text-xs space-y-1">
                   <div className="flex justify-between">
                     <span className="text-slate-500">Gross Purchase Cost:</span>
                     <strong className="text-slate-800 dark:text-slate-200">{formatCurrency(selectedAsset.purchase_cost)}</strong>

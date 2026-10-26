@@ -345,7 +345,7 @@ export default function AssetRevaluationPage() {
               </div>
 
               {selectedAsset && (
-                <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs flex justify-between">
+                <div className="p-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs flex justify-between">
                   <div>
                     <span className="text-slate-400">Historical Cost Basis:</span>{" "}
                     <strong className="text-slate-800 dark:text-slate-200">{formatCurrency(selectedAsset.purchase_cost)}</strong>

@@ -830,7 +830,7 @@ export default function SupplierQuotationForm() {
             </div>
           </div>
         <div className="card">
-          <div className="card-header bg-slate-50 text-slate-800 rounded-t-lg border-b border-slate-200">
+          <div className="card-header bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 rounded-t-lg border-b border-slate-200 dark:border-slate-800">
             <h2 className="text-lg font-semibold text-slate-800">
               Terms
             </h2>
@@ -900,7 +900,7 @@ export default function SupplierQuotationForm() {
         </div>
 
         <div className="bg-white/80 backdrop-blur-xl shadow-xl border border-slate-200 rounded-2xl overflow-hidden mb-6">
-          <div className="bg-slate-50 p-5 text-slate-800 border-b border-slate-200">
+          <div className="bg-white dark:bg-slate-900 p-5 text-slate-800 dark:text-slate-100 border-b border-slate-200 dark:border-slate-800">
             <div className="flex justify-between items-center">
               <h2 className="text-lg font-semibold text-slate-800 dark:text-slate-100">
                 Quotation Items
@@ -1141,7 +1141,7 @@ export default function SupplierQuotationForm() {
         </div>
 
         <div className="card">
-          <div className="card-header bg-slate-50 text-slate-800 rounded-t-lg border-b border-slate-200">
+          <div className="card-header bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 rounded-t-lg border-b border-slate-200 dark:border-slate-800">
             <h2 className="text-lg font-semibold text-slate-800">
               Summary
             </h2>
@@ -1208,7 +1208,7 @@ export default function SupplierQuotationForm() {
         </div>
 
         <div className="card">
-          <div className="card-header bg-slate-50 text-slate-800 rounded-t-lg border-b border-slate-200">
+          <div className="card-header bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 rounded-t-lg border-b border-slate-200 dark:border-slate-800">
             <h2 className="text-lg font-semibold text-slate-800">
               Supporting Documents
             </h2>
