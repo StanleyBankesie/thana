@@ -8,6 +8,8 @@ import { Link, useNavigate } from "react-router-dom";
 import { api } from "../../../../api/client.js";
 import { toast } from "react-toastify";
 import { Guard } from "../../../../hooks/usePermissions.jsx";
+import { SkipForward } from "lucide-react";
+import LoanPeriodSkipsModal from "./LoanPeriodSkipsModal";
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
 const fmt = (n) =>
@@ -52,7 +54,7 @@ function StatCard({ label, value, color = "blue" }) {
 // ─── main component ───────────────────────────────────────────────────────────
 /**
  *  component
- * 
+ *
  * @returns {JSX.Element} The rendered component
  */
 export default function SalaryProcessing() {
@@ -64,6 +66,7 @@ export default function SalaryProcessing() {
   const [processing, setProcessing] = useState(false);
   const [expandedLoans, setExpandedLoans] = useState({});
   const [components, setComponents] = useState([]);
+  const [showLoanSkipsModal, setShowLoanSkipsModal] = useState(false);
 
   // load payroll periods and components on mount
   useEffect(() => {
@@ -128,7 +131,9 @@ export default function SalaryProcessing() {
     if (!selectedPeriod) return toast.error("Select a payroll period first");
     setProcessing(true);
     try {
-      await api.post("/hr/payroll/generate", { period_id: Number(selectedPeriod) });
+      await api.post("/hr/payroll/generate", {
+        period_id: Number(selectedPeriod),
+      });
       toast.success("Payroll generated successfully!");
       setTimeout(() => loadPreview(), 800);
     } catch (err) {
@@ -143,13 +148,30 @@ export default function SalaryProcessing() {
   // Identify dynamic columns (allowances and loans) present in the data
   const dynamicAllowCols = Array.from(
     new Set(
-      items.flatMap((r) => Object.keys(r.allowances || {}).map((id) => `allowance_${id}`))
-    )
+      items.flatMap((r) =>
+        Object.keys(r.allowances || {}).map((id) => `allowance_${id}`),
+      ),
+    ),
   );
   const dynamicLoanCols = Array.from(
     new Set(
-      items.flatMap((r) => Object.keys(r.loan_items || {}).map((id) => `loan_${id}`))
-    )
+      items.flatMap((r) =>
+        Object.keys(r.loan_items || {}).map((id) => `loan_${id}`),
+      ),
+    ),
+  );
+  const employeeComponentColumns = Array.from(
+    new Map(
+      items
+        .flatMap((row) => row.employee_components || [])
+        .map((component) => [component.column_name, component]),
+    ).values(),
+  );
+  const employeeEarningColumns = employeeComponentColumns.filter(
+    (component) => component.is_earning,
+  );
+  const employeeDeductionColumns = employeeComponentColumns.filter(
+    (component) => !component.is_earning,
   );
 
   const totals = items.reduce(
@@ -157,8 +179,14 @@ export default function SalaryProcessing() {
       const next = {
         basic: acc.basic + Number(r.basic_salary || 0),
         allowances: acc.allowances + Number(r.allowances_total || 0),
+        employeeEarnings:
+          acc.employeeEarnings +
+          (r.employee_components || [])
+            .filter((component) => component.is_earning)
+            .reduce((sum, component) => sum + Number(component.amount || 0), 0),
         ssf: acc.ssf + Number(r.ssf_employee || 0),
         tier3: acc.tier3 + Number(r.tier3_employee || 0),
+        tax_relief: acc.tax_relief + Number(r.tax_relief || 0),
         loans: acc.loans + Number(r.loan_deductions || 0),
         income_tax: acc.income_tax + Number(r.income_tax || 0),
         deductions: acc.deductions + Number(r.deductions || 0),
@@ -173,27 +201,39 @@ export default function SalaryProcessing() {
       // Sum for dynamic loan cols
       dynamicLoanCols.forEach((col) => {
         const lid = col.replace("loan_", "");
-        const val =
-          r.loan_items?.[lid]?.amount ?? r.loan_items?.[lid] ?? 0;
+        const val = r.loan_items?.[lid]?.amount ?? r.loan_items?.[lid] ?? 0;
         acc.dynamicLoans[lid] = (acc.dynamicLoans[lid] || 0) + Number(val);
       });
       return {
         ...next,
         dynamicAllowances: acc.dynamicAllowances,
         dynamicLoans: acc.dynamicLoans,
+        dynamicEmployeeComponents: Object.assign(
+          acc.dynamicEmployeeComponents,
+          Object.fromEntries(
+            (r.employee_components || []).map((component) => [
+              component.column_name,
+              (acc.dynamicEmployeeComponents[component.column_name] || 0) +
+                Number(component.amount || 0),
+            ]),
+          ),
+        ),
       };
     },
     {
       basic: 0,
       allowances: 0,
+      employeeEarnings: 0,
       ssf: 0,
       tier3: 0,
+      tax_relief: 0,
       loans: 0,
       income_tax: 0,
       deductions: 0,
       net: 0,
       dynamicAllowances: {},
       dynamicLoans: {},
+      dynamicEmployeeComponents: {},
     },
   );
 
@@ -207,7 +247,10 @@ export default function SalaryProcessing() {
       <div className="p-4 space-y-5">
         {/* ── header ─────────────────────────────────────────────────────── */}
         <div className="flex items-center gap-3">
-          <button onClick={() => window.history.back()} className="btn-secondary text-sm">
+          <button
+            onClick={() => window.history.back()}
+            className="btn-secondary text-sm"
+          >
             ← Back
           </button>
           <div>
@@ -246,6 +289,17 @@ export default function SalaryProcessing() {
                 ))}
               </select>
             </div>
+
+            <button
+              type="button"
+              className="btn-secondary h-10 px-4 flex items-center gap-2 border-slate-300 dark:border-slate-600"
+              onClick={() => setShowLoanSkipsModal(true)}
+              disabled={!selectedPeriod}
+              title="Review or skip loan deductions for this payroll month"
+            >
+              <SkipForward className="w-4 h-4 text-brand" />
+              <span>Loan Deductions</span>
+            </button>
 
             <button
               className="btn-secondary h-10 px-5 flex items-center gap-2"
@@ -311,7 +365,9 @@ export default function SalaryProcessing() {
               <StatCard label="Employees" value={items.length} color="blue" />
               <StatCard
                 label="Gross Payroll"
-                value={fmt(totals.basic + totals.allowances)}
+                value={fmt(
+                  totals.basic + totals.allowances + totals.employeeEarnings,
+                )}
                 color="green"
               />
               <StatCard
@@ -324,6 +380,13 @@ export default function SalaryProcessing() {
                 value={fmt(totals.tier3)}
                 color="purple"
               />
+              {totals.tax_relief > 0 && (
+                <StatCard
+                  label="Tax Relief"
+                  value={fmt(totals.tax_relief)}
+                  color="purple"
+                />
+              )}
               <StatCard
                 label="Total PAYE"
                 value={fmt(totals.income_tax)}
@@ -357,26 +420,44 @@ export default function SalaryProcessing() {
                       </th>
                       <th className="px-3 py-2.5 text-left">Code</th>
                       <th className="px-3 py-2.5 text-right">Basic Salary</th>
-                      
+
                       {/* Dynamic Allowance Columns */}
                       {dynamicAllowCols.length > 0 ? (
                         dynamicAllowCols.map((col) => {
-                          const comp = components.find((c) => c.column_name === col);
+                          const comp = components.find(
+                            (c) => c.column_name === col,
+                          );
                           return (
-                            <th key={col} className="px-3 py-2.5 text-right font-bold text-blue-600 dark:text-blue-400 bg-blue-50/30 dark:bg-blue-900/10">
-                              {comp?.label || col.replace("allowance_", "Allow. ")}
+                            <th
+                              key={col}
+                              className="px-3 py-2.5 text-right font-bold text-blue-600 dark:text-blue-400 bg-blue-50/30 dark:bg-blue-900/10"
+                            >
+                              {comp?.label ||
+                                col.replace("allowance_", "Allow. ")}
                             </th>
                           );
                         })
-                      ) : (
+                      ) : employeeEarningColumns.length === 0 ? (
                         <th className="px-3 py-2.5 text-right">Allowances</th>
-                      )}
+                      ) : null}
+
+                      {employeeEarningColumns.map((component) => (
+                        <th
+                          key={component.column_name}
+                          className="px-3 py-2.5 text-right font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-50/30 dark:bg-emerald-900/10"
+                        >
+                          {component.label}
+                        </th>
+                      ))}
 
                       <th className="px-3 py-2.5 text-right bg-amber-50/50 dark:bg-amber-900/10">
                         SSF (Emp)
                       </th>
                       <th className="px-3 py-2.5 text-right bg-amber-50/50 dark:bg-amber-900/10">
                         Tier 3
+                      </th>
+                      <th className="px-3 py-2.5 text-right bg-teal-50/50 dark:bg-teal-900/10 text-teal-800 dark:text-teal-300">
+                        Tax Relief
                       </th>
                       <th className="px-3 py-2.5 text-right bg-red-50/50 dark:bg-red-900/10">
                         PAYE Tax
@@ -385,9 +466,14 @@ export default function SalaryProcessing() {
                       {/* Dynamic Loan Columns */}
                       {dynamicLoanCols.length > 0 ? (
                         dynamicLoanCols.map((col) => {
-                          const comp = components.find((c) => c.column_name === col);
+                          const comp = components.find(
+                            (c) => c.column_name === col,
+                          );
                           return (
-                            <th key={col} className="px-3 py-2.5 text-right font-bold text-red-600 dark:text-red-400 bg-red-50/50 dark:bg-red-900/10">
+                            <th
+                              key={col}
+                              className="px-3 py-2.5 text-right font-bold text-red-600 dark:text-red-400 bg-red-50/50 dark:bg-red-900/10"
+                            >
                               {comp?.label || col.replace("loan_", "Loan ")}
                             </th>
                           );
@@ -397,6 +483,14 @@ export default function SalaryProcessing() {
                           Loan Deductions
                         </th>
                       )}
+                      {employeeDeductionColumns.map((component) => (
+                        <th
+                          key={component.column_name}
+                          className="px-3 py-2.5 text-right font-bold text-red-600 dark:text-red-400 bg-red-50/50 dark:bg-red-900/10"
+                        >
+                          {component.label}
+                        </th>
+                      ))}
                       <th className="px-3 py-2.5 text-right bg-red-50/50 dark:bg-red-900/10">
                         Total Deductions
                       </th>
@@ -427,22 +521,46 @@ export default function SalaryProcessing() {
                             const aid = col.replace("allowance_", "");
                             const val = row.allowances?.[aid] || 0;
                             return (
-                              <td key={col} className="px-3 py-2.5 text-right font-mono text-blue-700 dark:text-blue-400 bg-blue-50/20 dark:bg-blue-900/5">
+                              <td
+                                key={col}
+                                className="px-3 py-2.5 text-right font-mono text-blue-700 dark:text-blue-400 bg-blue-50/20 dark:bg-blue-900/5"
+                              >
                                 {fmt(val)}
                               </td>
                             );
                           })
-                        ) : (
+                        ) : employeeEarningColumns.length === 0 ? (
                           <td className="px-3 py-2.5 text-right font-mono text-slate-700 dark:text-slate-300">
                             {fmt(row.allowances_total)}
                           </td>
-                        )}
+                        ) : null}
+
+                        {employeeEarningColumns.map((component) => (
+                          <td
+                            key={component.column_name}
+                            className="px-3 py-2.5 text-right font-mono text-emerald-700 dark:text-emerald-400 bg-emerald-50/20 dark:bg-emerald-900/5"
+                          >
+                            {fmt(
+                              row.employee_components?.find(
+                                (item) =>
+                                  item.column_name === component.column_name,
+                              )?.amount || 0,
+                            )}
+                          </td>
+                        ))}
 
                         <td className="px-3 py-2.5 text-right font-mono text-amber-700 dark:text-amber-400 bg-amber-50/30 dark:bg-amber-900/10">
                           {fmt(row.ssf_employee)}
                         </td>
                         <td className="px-3 py-2.5 text-right font-mono text-amber-700 dark:text-amber-400 bg-amber-50/30 dark:bg-amber-900/10">
                           {fmt(row.tier3_employee)}
+                        </td>
+                        <td className="px-3 py-2.5 text-right font-mono text-teal-700 dark:text-teal-400 bg-teal-50/20 dark:bg-teal-900/5">
+                          {Number(row.tax_relief || 0) > 0 ? (
+                            <span className="font-semibold">{fmt(row.tax_relief)}</span>
+                          ) : (
+                            <span className="text-slate-400 dark:text-slate-500">—</span>
+                          )}
                         </td>
                         <td className="px-3 py-2.5 text-right font-mono text-red-600 dark:text-red-400 bg-red-50/30 dark:bg-red-900/10">
                           {fmt(row.income_tax)}
@@ -452,9 +570,15 @@ export default function SalaryProcessing() {
                         {dynamicLoanCols.length > 0 ? (
                           dynamicLoanCols.map((col) => {
                             const lid = col.replace("loan_", "");
-                            const val = row.loan_items?.[lid]?.amount ?? row.loan_items?.[lid] ?? 0;
+                            const val =
+                              row.loan_items?.[lid]?.amount ??
+                              row.loan_items?.[lid] ??
+                              0;
                             return (
-                              <td key={col} className="px-3 py-2.5 text-right font-mono text-red-700 dark:text-red-400 bg-red-50/30 dark:bg-red-900/10">
+                              <td
+                                key={col}
+                                className="px-3 py-2.5 text-right font-mono text-red-700 dark:text-red-400 bg-red-50/30 dark:bg-red-900/10"
+                              >
                                 {fmt(val)}
                               </td>
                             );
@@ -464,6 +588,19 @@ export default function SalaryProcessing() {
                             <span>{fmt(row.loan_deductions || 0)}</span>
                           </td>
                         )}
+                        {employeeDeductionColumns.map((component) => (
+                          <td
+                            key={component.column_name}
+                            className="px-3 py-2.5 text-right font-mono text-red-700 dark:text-red-400 bg-red-50/30 dark:bg-red-900/10"
+                          >
+                            {fmt(
+                              row.employee_components?.find(
+                                (item) =>
+                                  item.column_name === component.column_name,
+                              )?.amount || 0,
+                            )}
+                          </td>
+                        ))}
                         <td className="px-3 py-2.5 text-right font-mono text-red-700 dark:text-red-300 bg-red-50/30 dark:bg-red-900/10 font-semibold">
                           {fmt(row.deductions)}
                         </td>
@@ -480,7 +617,16 @@ export default function SalaryProcessing() {
                           key={`${row.employee_id}-loans`}
                           className="bg-slate-50/70 dark:bg-slate-700/40"
                         >
-                          <td colSpan={8 + dynamicAllowCols.length + dynamicLoanCols.length} className="px-3 py-2">
+                          <td
+                            colSpan={
+                              8 +
+                              dynamicAllowCols.length +
+                              dynamicLoanCols.length +
+                              employeeEarningColumns.length +
+                              employeeDeductionColumns.length
+                            }
+                            className="px-3 py-2"
+                          >
                             <div className="text-xs">
                               <div className="font-semibold mb-1">
                                 Loan Breakdown
@@ -493,10 +639,16 @@ export default function SalaryProcessing() {
                                       className="px-2 py-1 border rounded bg-white dark:bg-slate-800 shadow-sm"
                                     >
                                       <span className="mr-2 text-slate-600 dark:text-slate-300 font-semibold">
-                                        {item.loan_type ? `${item.loan_type}` : `Loan ${lid}`}
+                                        {item.loan_type
+                                          ? `${item.loan_type}`
+                                          : `Loan ${lid}`}
                                       </span>
                                       <span className="font-mono text-slate-900 dark:text-slate-100 italic">
-                                        {fmt(item.amount !== undefined ? item.amount : item)}
+                                        {fmt(
+                                          item.amount !== undefined
+                                            ? item.amount
+                                            : item,
+                                        )}
                                       </span>
                                     </div>
                                   ),
@@ -525,16 +677,32 @@ export default function SalaryProcessing() {
                         dynamicAllowCols.map((col) => {
                           const aid = col.replace("allowance_", "");
                           return (
-                            <td key={col} className="px-3 py-2.5 text-right font-mono bg-blue-50/50 dark:bg-blue-900/20">
+                            <td
+                              key={col}
+                              className="px-3 py-2.5 text-right font-mono bg-blue-50/50 dark:bg-blue-900/20"
+                            >
                               {fmt(totals.dynamicAllowances?.[aid] || 0)}
                             </td>
                           );
                         })
-                      ) : (
+                      ) : employeeEarningColumns.length === 0 ? (
                         <td className="px-3 py-2.5 text-right font-mono">
                           {fmt(totals.allowances)}
                         </td>
-                      )}
+                      ) : null}
+
+                      {employeeEarningColumns.map((component) => (
+                        <td
+                          key={component.column_name}
+                          className="px-3 py-2.5 text-right font-mono text-emerald-700 dark:text-emerald-400 bg-emerald-50/50 dark:bg-emerald-900/20"
+                        >
+                          {fmt(
+                            totals.dynamicEmployeeComponents[
+                              component.column_name
+                            ] || 0,
+                          )}
+                        </td>
+                      ))}
 
                       <td className="px-3 py-2.5 text-right font-mono text-amber-700 dark:text-amber-400 bg-amber-50/50 dark:bg-amber-900/20">
                         {fmt(totals.ssf)}
@@ -551,7 +719,10 @@ export default function SalaryProcessing() {
                         dynamicLoanCols.map((col) => {
                           const lid = col.replace("loan_", "");
                           return (
-                            <td key={col} className="px-3 py-2.5 text-right font-mono text-red-700 dark:text-red-300 bg-red-50/50 dark:bg-red-900/20">
+                            <td
+                              key={col}
+                              className="px-3 py-2.5 text-right font-mono text-red-700 dark:text-red-300 bg-red-50/50 dark:bg-red-900/20"
+                            >
                               {fmt(totals.dynamicLoans?.[lid] || 0)}
                             </td>
                           );
@@ -561,6 +732,19 @@ export default function SalaryProcessing() {
                           {fmt(totals.loans)}
                         </td>
                       )}
+
+                      {employeeDeductionColumns.map((component) => (
+                        <td
+                          key={component.column_name}
+                          className="px-3 py-2.5 text-right font-mono text-red-700 dark:text-red-300 bg-red-50/50 dark:bg-red-900/20"
+                        >
+                          {fmt(
+                            totals.dynamicEmployeeComponents[
+                              component.column_name
+                            ] || 0,
+                          )}
+                        </td>
+                      ))}
 
                       <td className="px-3 py-2.5 text-right font-mono text-red-700 dark:text-red-300 bg-red-50/50 dark:bg-red-900/20">
                         {fmt(totals.deductions)}
@@ -594,6 +778,15 @@ export default function SalaryProcessing() {
           </div>
         )}
       </div>
+          {showLoanSkipsModal && selectedPeriod && (
+        <LoanPeriodSkipsModal
+          open={showLoanSkipsModal}
+          onClose={() => setShowLoanSkipsModal(false)}
+          periodId={selectedPeriod}
+          periodName={selectedPeriodObj?.period_name}
+          onRefresh={loadPreview}
+        />
+      )}
     </Guard>
   );
 }

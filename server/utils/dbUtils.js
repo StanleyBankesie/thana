@@ -198,10 +198,14 @@ export async function ensureBranchColumns() {
     await query(`ALTER TABLE ${table} ADD COLUMN remarks TEXT NULL`);
   }
   if (!(await hasColumn(table, "is_superbranch"))) {
-    await query(`ALTER TABLE ${table} ADD COLUMN is_superbranch TINYINT(1) DEFAULT 0`);
+    await query(
+      `ALTER TABLE ${table} ADD COLUMN is_superbranch TINYINT(1) DEFAULT 0`,
+    );
   }
   if (!(await hasColumn(table, "parent_branch_id"))) {
-    await query(`ALTER TABLE ${table} ADD COLUMN parent_branch_id BIGINT UNSIGNED NULL`);
+    await query(
+      `ALTER TABLE ${table} ADD COLUMN parent_branch_id BIGINT UNSIGNED NULL`,
+    );
   }
   verifiedTables.add(table);
 }
@@ -271,7 +275,7 @@ export async function ensurePagesTable() {
   if (pendingEnsures.has(table)) return pendingEnsures.get(table);
   const promise = (async () => {
     try {
-  await query(`
+      await query(`
     CREATE TABLE IF NOT EXISTS adm_pages (
       id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
       module VARCHAR(50) NOT NULL,
@@ -286,61 +290,61 @@ export async function ensurePagesTable() {
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
   `);
 
-  // Backwards-compatible: add feature_key column if missing
-  if (!(await hasColumn("adm_pages", "feature_key"))) {
-    await query(
-      `ALTER TABLE adm_pages ADD COLUMN feature_key VARCHAR(150) NULL AFTER path`,
-    );
-  }
+      // Backwards-compatible: add feature_key column if missing
+      if (!(await hasColumn("adm_pages", "feature_key"))) {
+        await query(
+          `ALTER TABLE adm_pages ADD COLUMN feature_key VARCHAR(150) NULL AFTER path`,
+        );
+      }
 
-  // Backfill feature_key for existing rows based on path
-  const allFeatures = getAllFeatures();
-  const pagesNeedingFk = await query(
-    `SELECT id, path FROM adm_pages WHERE feature_key IS NULL OR feature_key = ''`,
-    {},
-  );
-  for (const row of pagesNeedingFk) {
-    const rawPath = String(row.path || "").trim();
-    if (!rawPath) continue;
-    let bestFeatureKey = null;
-    let bestLen = -1;
-    for (const f of allFeatures) {
-      const fp = String(f.path || "").trim();
-      if (!fp) continue;
-      if (rawPath === fp || rawPath.startsWith(fp + "/")) {
-        if (fp.length > bestLen) {
-          bestLen = fp.length;
-          bestFeatureKey = String(f.feature_key || "").trim();
+      // Backfill feature_key for existing rows based on path
+      const allFeatures = getAllFeatures();
+      const pagesNeedingFk = await query(
+        `SELECT id, path FROM adm_pages WHERE feature_key IS NULL OR feature_key = ''`,
+        {},
+      );
+      for (const row of pagesNeedingFk) {
+        const rawPath = String(row.path || "").trim();
+        if (!rawPath) continue;
+        let bestFeatureKey = null;
+        let bestLen = -1;
+        for (const f of allFeatures) {
+          const fp = String(f.path || "").trim();
+          if (!fp) continue;
+          if (rawPath === fp || rawPath.startsWith(fp + "/")) {
+            if (fp.length > bestLen) {
+              bestLen = fp.length;
+              bestFeatureKey = String(f.feature_key || "").trim();
+            }
+          }
+        }
+        if (bestFeatureKey) {
+          await query(
+            `UPDATE adm_pages SET feature_key = :feature_key WHERE id = :id`,
+            { feature_key: bestFeatureKey, id: row.id },
+          );
         }
       }
-    }
-    if (bestFeatureKey) {
-      await query(
-        `UPDATE adm_pages SET feature_key = :feature_key WHERE id = :id`,
-        { feature_key: bestFeatureKey, id: row.id },
-      );
-    }
-  }
 
-  const pagesStillNeedingFk = await query(
-    `SELECT id, path FROM adm_pages WHERE feature_key IS NULL OR feature_key = ''`,
-    {},
-  );
-  for (const row of pagesStillNeedingFk) {
-    const rawPath = String(row.path || "").trim();
-    if (!rawPath) continue;
-    const segs = rawPath.split("/").filter(Boolean);
-    if (segs.length < 2) continue;
-    const feature_key = `${segs[0]}:${segs[1]}`;
-    await query(
-      `UPDATE adm_pages SET feature_key = :feature_key WHERE id = :id`,
-      {
-        feature_key,
-        id: row.id,
-      },
-    );
-  }
-    verifiedTables.add(table);
+      const pagesStillNeedingFk = await query(
+        `SELECT id, path FROM adm_pages WHERE feature_key IS NULL OR feature_key = ''`,
+        {},
+      );
+      for (const row of pagesStillNeedingFk) {
+        const rawPath = String(row.path || "").trim();
+        if (!rawPath) continue;
+        const segs = rawPath.split("/").filter(Boolean);
+        if (segs.length < 2) continue;
+        const feature_key = `${segs[0]}:${segs[1]}`;
+        await query(
+          `UPDATE adm_pages SET feature_key = :feature_key WHERE id = :id`,
+          {
+            feature_key,
+            id: row.id,
+          },
+        );
+      }
+      verifiedTables.add(table);
     } finally {
       pendingEnsures.delete(table);
     }
@@ -1376,8 +1380,12 @@ export async function ensurePagesSeed() {
 
   // Ensure every feature in the registry has at least one entry in adm_pages.
   // This guarantees that page-based permission tables can store permissions for features without real pages.
-  const existingRows = await query("SELECT feature_key FROM adm_pages WHERE feature_key IS NOT NULL");
-  const existingFks = new Set(existingRows.map(r => String(r.feature_key).trim()));
+  const existingRows = await query(
+    "SELECT feature_key FROM adm_pages WHERE feature_key IS NOT NULL",
+  );
+  const existingFks = new Set(
+    existingRows.map((r) => String(r.feature_key).trim()),
+  );
 
   for (const f of allFeatures) {
     const fk = String(f.feature_key || "").trim();
@@ -1388,14 +1396,15 @@ export async function ensurePagesSeed() {
       .toUpperCase()
       .replace(/[^A-Z0-9]+/g, "_")
       .replace(/^_+|_+$/g, "");
-    
+
     await query(
       "INSERT IGNORE INTO adm_pages (module, name, code, path, feature_key) VALUES (:module, :name, :code, :path, :feature_key)",
       {
         module: moduleStr,
         name: f.name || fk,
         code: code,
-        path: f.path || `/${moduleStr}/synthetic/${fk.split(":")[1] || "feature"}`,
+        path:
+          f.path || `/${moduleStr}/synthetic/${fk.split(":")[1] || "feature"}`,
         feature_key: fk,
       },
     );
@@ -1647,6 +1656,64 @@ export async function ensureHRTables() {
       created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
       PRIMARY KEY (id),
       KEY idx_ebs_emp (employee_id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
+    `CREATE TABLE IF NOT EXISTS hr_salary_component_definitions (
+      id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+      company_id BIGINT UNSIGNED NOT NULL,
+      component_name VARCHAR(100) NOT NULL,
+      component_type ENUM('ALLOWANCE','DEDUCTION') NOT NULL,
+      manual_calculation TINYINT(1) NOT NULL DEFAULT 0,
+      is_active TINYINT(1) NOT NULL DEFAULT 1,
+      created_by BIGINT UNSIGNED NULL,
+      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      PRIMARY KEY (id),
+      UNIQUE KEY uq_salary_component_name (company_id, component_name),
+      KEY idx_salary_component_company (company_id, is_active)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
+    `CREATE TABLE IF NOT EXISTS hr_employee_salary_components (
+      id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+      company_id BIGINT UNSIGNED NOT NULL,
+      employee_id BIGINT UNSIGNED NOT NULL,
+      definition_id BIGINT UNSIGNED NULL,
+      component_name VARCHAR(100) NOT NULL,
+      component_type ENUM('ALLOWANCE','DEDUCTION') NOT NULL,
+      calculation_type ENUM('AMOUNT','PERCENT') NOT NULL DEFAULT 'AMOUNT',
+      value DECIMAL(18,4) NOT NULL DEFAULT 0,
+      basis_component_id BIGINT UNSIGNED NULL COMMENT 'NULL means base salary for percentage components',
+      effective_from DATE NOT NULL,
+      effective_to DATE NULL,
+      is_active TINYINT(1) NOT NULL DEFAULT 1,
+      created_by BIGINT UNSIGNED NULL,
+      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      PRIMARY KEY (id),
+      KEY idx_emp_salary_components (company_id, employee_id, is_active),
+      KEY idx_emp_salary_basis (basis_component_id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
+    `CREATE TABLE IF NOT EXISTS hr_payroll_manual_components (
+      id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+      company_id BIGINT UNSIGNED NOT NULL,
+      period_id BIGINT UNSIGNED NOT NULL,
+      employee_id BIGINT UNSIGNED NOT NULL,
+      definition_id BIGINT UNSIGNED NOT NULL,
+      amount DECIMAL(18,4) NOT NULL DEFAULT 0,
+      updated_by BIGINT UNSIGNED NULL,
+      updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      PRIMARY KEY (id),
+      UNIQUE KEY uq_manual_payroll_component (company_id, period_id, employee_id, definition_id),
+      KEY idx_manual_component_period (company_id, period_id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
+    `CREATE TABLE IF NOT EXISTS hr_payroll_manual_component_selections (
+      company_id BIGINT UNSIGNED NOT NULL,
+      period_id BIGINT UNSIGNED NOT NULL,
+      employee_id BIGINT UNSIGNED NOT NULL,
+      definition_id BIGINT UNSIGNED NOT NULL,
+      is_selected TINYINT(1) NOT NULL DEFAULT 1,
+      created_by BIGINT UNSIGNED NULL,
+      updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      PRIMARY KEY (company_id, period_id, employee_id, definition_id),
+      KEY idx_manual_selection_period (company_id, period_id)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
     `CREATE TABLE IF NOT EXISTS hr_positions (
       id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -2100,6 +2167,41 @@ export async function ensureHRTables() {
       PRIMARY KEY (id),
       KEY idx_loan_emp (employee_id)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
+    `CREATE TABLE IF NOT EXISTS hr_loan_skips (
+      id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+      company_id BIGINT UNSIGNED NOT NULL,
+      loan_id BIGINT UNSIGNED NOT NULL,
+      period_id BIGINT UNSIGNED NULL,
+      skip_month VARCHAR(7) NOT NULL,
+      reason VARCHAR(255) NULL,
+      created_by BIGINT UNSIGNED NULL,
+      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (id),
+      UNIQUE KEY uq_loan_month (loan_id, skip_month),
+      KEY idx_skip_co_loan (company_id, loan_id),
+      KEY idx_skip_period (loan_id, period_id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
+    `CREATE TABLE IF NOT EXISTS hr_loan_repayments (
+      id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+      company_id BIGINT UNSIGNED NOT NULL,
+      employee_id BIGINT UNSIGNED NOT NULL,
+      loan_id BIGINT UNSIGNED NOT NULL,
+      amount_paid DECIMAL(18,4) NOT NULL,
+      payment_date DATE NOT NULL,
+      payroll_id BIGINT UNSIGNED NULL,
+      payment_type VARCHAR(30) NOT NULL DEFAULT 'PAYROLL',
+      payment_method VARCHAR(50) NULL,
+      reference VARCHAR(100) NULL,
+      notes TEXT NULL,
+      remaining_balance DECIMAL(18,4) NULL,
+      created_by BIGINT UNSIGNED NULL,
+      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (id),
+      KEY idx_loan (loan_id),
+      KEY idx_employee (employee_id),
+      KEY idx_payroll (payroll_id),
+      KEY idx_payment_date (payment_date)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
     `CREATE TABLE IF NOT EXISTS hr_tax_config (
       id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
       company_id BIGINT UNSIGNED NOT NULL,
@@ -2209,6 +2311,46 @@ export async function ensureHRTables() {
       KEY idx_sc_company (company_id),
       KEY idx_sc_type (component_type)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
+    `CREATE TABLE IF NOT EXISTS hr_tax_relief_types (
+      id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+      company_id BIGINT UNSIGNED NOT NULL DEFAULT 1,
+      code VARCHAR(50) NOT NULL,
+      name VARCHAR(150) NOT NULL,
+      description TEXT NULL,
+      max_annual_amount DECIMAL(18,4) NOT NULL DEFAULT 0,
+      max_monthly_amount DECIMAL(18,4) NOT NULL DEFAULT 0,
+      requires_approval TINYINT(1) NOT NULL DEFAULT 1,
+      is_active TINYINT(1) NOT NULL DEFAULT 1,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      created_by BIGINT UNSIGNED NULL,
+      PRIMARY KEY (id),
+      KEY idx_company (company_id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
+    `CREATE TABLE IF NOT EXISTS hr_employee_tax_reliefs (
+      id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+      company_id BIGINT UNSIGNED NOT NULL DEFAULT 1,
+      employee_id BIGINT UNSIGNED NOT NULL,
+      relief_type_id BIGINT UNSIGNED NULL,
+      relief_name VARCHAR(150) NOT NULL,
+      monthly_amount DECIMAL(18,4) NOT NULL DEFAULT 0,
+      annual_amount DECIMAL(18,4) NOT NULL DEFAULT 0,
+      start_date DATE NOT NULL,
+      end_date DATE NULL,
+      certificate_number VARCHAR(100) NULL,
+      description TEXT NULL,
+      attachment_url VARCHAR(500) NULL,
+      status ENUM('PENDING', 'APPROVED', 'ACTIVE', 'REJECTED', 'INACTIVE') NOT NULL DEFAULT 'ACTIVE',
+      approved_by BIGINT UNSIGNED NULL,
+      approved_at DATETIME NULL,
+      rejection_reason TEXT NULL,
+      created_by BIGINT UNSIGNED NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      PRIMARY KEY (id),
+      KEY idx_emp_relief (employee_id, company_id),
+      KEY idx_status (status)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
   ];
 
   for (const sql of tables) {
@@ -2222,6 +2364,96 @@ export async function ensureHRTables() {
 
   // Ensure columns exist for older tables
   const columnChecks = [
+    {
+      table: "hr_employee_salary_components",
+      column: "definition_id",
+      sql: "ALTER TABLE hr_employee_salary_components ADD COLUMN definition_id BIGINT UNSIGNED NULL",
+    },
+    {
+      table: "hr_salary_component_definitions",
+      column: "company_id",
+      sql: "ALTER TABLE hr_salary_component_definitions ADD COLUMN company_id BIGINT UNSIGNED NOT NULL DEFAULT 1",
+    },
+    {
+      table: "hr_salary_component_definitions",
+      column: "component_name",
+      sql: "ALTER TABLE hr_salary_component_definitions ADD COLUMN component_name VARCHAR(100) NOT NULL DEFAULT 'Salary component'",
+    },
+    {
+      table: "hr_salary_component_definitions",
+      column: "component_type",
+      sql: "ALTER TABLE hr_salary_component_definitions ADD COLUMN component_type ENUM('ALLOWANCE','DEDUCTION') NOT NULL DEFAULT 'ALLOWANCE'",
+    },
+    {
+      table: "hr_salary_component_definitions",
+      column: "manual_calculation",
+      sql: "ALTER TABLE hr_salary_component_definitions ADD COLUMN manual_calculation TINYINT(1) NOT NULL DEFAULT 0",
+    },
+    {
+      table: "hr_salary_component_definitions",
+      column: "is_active",
+      sql: "ALTER TABLE hr_salary_component_definitions ADD COLUMN is_active TINYINT(1) NOT NULL DEFAULT 1",
+    },
+    {
+      table: "hr_salary_component_definitions",
+      column: "created_by",
+      sql: "ALTER TABLE hr_salary_component_definitions ADD COLUMN created_by BIGINT UNSIGNED NULL",
+    },
+    {
+      table: "hr_employee_salary_components",
+      column: "company_id",
+      sql: "ALTER TABLE hr_employee_salary_components ADD COLUMN company_id BIGINT UNSIGNED NOT NULL DEFAULT 1",
+    },
+    {
+      table: "hr_employee_salary_components",
+      column: "employee_id",
+      sql: "ALTER TABLE hr_employee_salary_components ADD COLUMN employee_id BIGINT UNSIGNED NOT NULL DEFAULT 0",
+    },
+    {
+      table: "hr_employee_salary_components",
+      column: "component_name",
+      sql: "ALTER TABLE hr_employee_salary_components ADD COLUMN component_name VARCHAR(100) NOT NULL DEFAULT 'Salary component'",
+    },
+    {
+      table: "hr_employee_salary_components",
+      column: "component_type",
+      sql: "ALTER TABLE hr_employee_salary_components ADD COLUMN component_type ENUM('ALLOWANCE','DEDUCTION') NOT NULL DEFAULT 'ALLOWANCE'",
+    },
+    {
+      table: "hr_employee_salary_components",
+      column: "calculation_type",
+      sql: "ALTER TABLE hr_employee_salary_components ADD COLUMN calculation_type ENUM('AMOUNT','PERCENT') NOT NULL DEFAULT 'AMOUNT'",
+    },
+    {
+      table: "hr_employee_salary_components",
+      column: "value",
+      sql: "ALTER TABLE hr_employee_salary_components ADD COLUMN value DECIMAL(18,4) NOT NULL DEFAULT 0",
+    },
+    {
+      table: "hr_employee_salary_components",
+      column: "basis_component_id",
+      sql: "ALTER TABLE hr_employee_salary_components ADD COLUMN basis_component_id BIGINT UNSIGNED NULL",
+    },
+    {
+      table: "hr_employee_salary_components",
+      column: "effective_from",
+      sql: "ALTER TABLE hr_employee_salary_components ADD COLUMN effective_from DATE NOT NULL DEFAULT '1000-01-01'",
+    },
+    {
+      table: "hr_employee_salary_components",
+      column: "effective_to",
+      sql: "ALTER TABLE hr_employee_salary_components ADD COLUMN effective_to DATE NULL",
+    },
+    {
+      table: "hr_employee_salary_components",
+      column: "is_active",
+      sql: "ALTER TABLE hr_employee_salary_components ADD COLUMN is_active TINYINT(1) NOT NULL DEFAULT 1",
+    },
+    {
+      table: "hr_employee_salary_components",
+      column: "created_by",
+      sql: "ALTER TABLE hr_employee_salary_components ADD COLUMN created_by BIGINT UNSIGNED NULL",
+    },
     {
       table: "hr_leave_requests",
       column: "company_id",
@@ -2281,6 +2513,136 @@ export async function ensureHRTables() {
       table: "hr_loans",
       column: "affect_payslip",
       sql: "ALTER TABLE hr_loans ADD COLUMN affect_payslip TINYINT(1) NOT NULL DEFAULT 1 AFTER monthly_installment",
+    },
+    {
+      table: "hr_loans",
+      column: "amount_due",
+      sql: "ALTER TABLE hr_loans ADD COLUMN amount_due DECIMAL(18,4) NULL AFTER amount",
+    },
+    {
+      table: "hr_loans",
+      column: "end_date",
+      sql: "ALTER TABLE hr_loans ADD COLUMN end_date DATE NULL AFTER start_date",
+    },
+    {
+      table: "hr_loans",
+      column: "purpose",
+      sql: "ALTER TABLE hr_loans ADD COLUMN purpose VARCHAR(255) NULL AFTER end_date",
+    },
+    {
+      table: "hr_loans",
+      column: "approved_by",
+      sql: "ALTER TABLE hr_loans ADD COLUMN approved_by BIGINT UNSIGNED NULL AFTER purpose",
+    },
+    {
+      table: "hr_loans",
+      column: "approved_at",
+      sql: "ALTER TABLE hr_loans ADD COLUMN approved_at DATETIME NULL AFTER approved_by",
+    },
+    {
+      table: "hr_loans",
+      column: "rejection_reason",
+      sql: "ALTER TABLE hr_loans ADD COLUMN rejection_reason VARCHAR(255) NULL AFTER approved_at",
+    },
+    {
+      table: "hr_loans",
+      column: "forwarded_to_user_id",
+      sql: "ALTER TABLE hr_loans ADD COLUMN forwarded_to_user_id BIGINT UNSIGNED NULL AFTER rejection_reason",
+    },
+    {
+      table: "hr_loans",
+      column: "workflow_id",
+      sql: "ALTER TABLE hr_loans ADD COLUMN workflow_id BIGINT UNSIGNED NULL AFTER forwarded_to_user_id",
+    },
+    {
+      table: "hr_loans",
+      column: "disbursed_by",
+      sql: "ALTER TABLE hr_loans ADD COLUMN disbursed_by BIGINT UNSIGNED NULL AFTER workflow_id",
+    },
+    {
+      table: "hr_loans",
+      column: "disbursed_at",
+      sql: "ALTER TABLE hr_loans ADD COLUMN disbursed_at DATETIME NULL AFTER disbursed_by",
+    },
+    {
+      table: "hr_loans",
+      column: "disbursement_voucher_id",
+      sql: "ALTER TABLE hr_loans ADD COLUMN disbursement_voucher_id BIGINT UNSIGNED NULL AFTER disbursed_at",
+    },
+    {
+      table: "hr_loans",
+      column: "disbursement_voucher_no",
+      sql: "ALTER TABLE hr_loans ADD COLUMN disbursement_voucher_no VARCHAR(50) NULL AFTER disbursement_voucher_id",
+    },
+    {
+      table: "hr_loans",
+      column: "payment_account_id",
+      sql: "ALTER TABLE hr_loans ADD COLUMN payment_account_id BIGINT UNSIGNED NULL AFTER disbursement_voucher_no",
+    },
+    {
+      table: "hr_loans",
+      column: "disbursement_method",
+      sql: "ALTER TABLE hr_loans ADD COLUMN disbursement_method VARCHAR(50) NULL AFTER payment_account_id",
+    },
+    {
+      table: "hr_loans",
+      column: "disbursement_notes",
+      sql: "ALTER TABLE hr_loans ADD COLUMN disbursement_notes TEXT NULL AFTER disbursement_method",
+    },
+    {
+      table: "hr_loan_repayments",
+      column: "payment_type",
+      sql: "ALTER TABLE hr_loan_repayments ADD COLUMN payment_type VARCHAR(30) NOT NULL DEFAULT 'PAYROLL' AFTER payroll_id",
+    },
+    {
+      table: "hr_loan_repayments",
+      column: "payment_method",
+      sql: "ALTER TABLE hr_loan_repayments ADD COLUMN payment_method VARCHAR(50) NULL AFTER payment_type",
+    },
+    {
+      table: "hr_loan_repayments",
+      column: "reference",
+      sql: "ALTER TABLE hr_loan_repayments ADD COLUMN reference VARCHAR(100) NULL AFTER payment_method",
+    },
+    {
+      table: "hr_loan_repayments",
+      column: "notes",
+      sql: "ALTER TABLE hr_loan_repayments ADD COLUMN notes TEXT NULL AFTER reference",
+    },
+    {
+      table: "hr_loan_repayments",
+      column: "remaining_balance",
+      sql: "ALTER TABLE hr_loan_repayments ADD COLUMN remaining_balance DECIMAL(18,4) NULL AFTER notes",
+    },
+    {
+      table: "hr_loan_repayments",
+      column: "voucher_id",
+      sql: "ALTER TABLE hr_loan_repayments ADD COLUMN voucher_id BIGINT UNSIGNED NULL AFTER remaining_balance",
+    },
+    {
+      table: "hr_loan_repayments",
+      column: "deposit_account_id",
+      sql: "ALTER TABLE hr_loan_repayments ADD COLUMN deposit_account_id BIGINT UNSIGNED NULL AFTER voucher_id",
+    },
+    {
+      table: "hr_loan_repayments",
+      column: "cost_center_id",
+      sql: "ALTER TABLE hr_loan_repayments ADD COLUMN cost_center_id BIGINT UNSIGNED NULL AFTER deposit_account_id",
+    },
+    {
+      table: "hr_loan_repayments",
+      column: "project_id",
+      sql: "ALTER TABLE hr_loan_repayments ADD COLUMN project_id BIGINT UNSIGNED NULL AFTER cost_center_id",
+    },
+    {
+      table: "hr_loan_repayments",
+      column: "cheque_date",
+      sql: "ALTER TABLE hr_loan_repayments ADD COLUMN cheque_date DATE NULL AFTER project_id",
+    },
+    {
+      table: "hr_setup_loan_types",
+      column: "account_id",
+      sql: "ALTER TABLE hr_setup_loan_types ADD COLUMN account_id BIGINT UNSIGNED NULL AFTER name",
     },
     {
       table: "hr_tax_config",
@@ -2587,8 +2949,22 @@ export async function ensureHRTables() {
       column: "created_at",
       sql: "ALTER TABLE hr_employee_base_salaries ADD COLUMN created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP",
     },
+    {
+      table: "hr_payroll_items",
+      column: "tax_relief",
+      sql: "ALTER TABLE hr_payroll_items ADD COLUMN tax_relief DECIMAL(18,4) NOT NULL DEFAULT 0",
+    },
+    {
+      table: "hr_payslips",
+      column: "tax_relief",
+      sql: "ALTER TABLE hr_payslips ADD COLUMN tax_relief DECIMAL(18,4) NOT NULL DEFAULT 0",
+    },
   ];
 
+  const salaryComponentValueExisted = await hasColumn(
+    "hr_employee_salary_components",
+    "value",
+  ).catch(() => false);
   for (const check of columnChecks) {
     try {
       // eslint-disable-next-line no-await-in-loop
@@ -2602,6 +2978,30 @@ export async function ensureHRTables() {
       }
     } catch (err) {
       // ignore
+    }
+  }
+  columnCache.delete("hr_employee_salary_components.value");
+  const salaryComponentValueExists = await hasColumn(
+    "hr_employee_salary_components",
+    "value",
+  ).catch(() => false);
+  if (!salaryComponentValueExisted && salaryComponentValueExists) {
+    const hasLegacyAmount = await hasColumn(
+      "hr_employee_salary_components",
+      "amount",
+    ).catch(() => false);
+    if (hasLegacyAmount) {
+      try {
+        await query(
+          `UPDATE hr_employee_salary_components SET value = amount`,
+          {},
+        );
+      } catch (err) {
+        console.error(
+          "Could not migrate legacy salary component amounts:",
+          err,
+        );
+      }
     }
   }
   if (!(await hasColumn("hr_leave_requests", "source"))) {
@@ -3200,7 +3600,6 @@ export async function ensureTemplateTables() {
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
   `);
 
-
   if (!(await hasColumn("document_templates", "header_logo_url"))) {
     await query(
       "ALTER TABLE document_templates ADD COLUMN header_logo_url VARCHAR(500) NULL",
@@ -3307,7 +3706,10 @@ export async function ensurePMOrderTables() {
   await ensureCol("currency_id", "BIGINT UNSIGNED DEFAULT 4");
   await ensureCol("exchange_rate", "DECIMAL(18,6) DEFAULT 1");
   await ensureCol("price_type", "ENUM('WHOLESALE','RETAIL') DEFAULT 'RETAIL'");
-  await ensureCol("payment_type", "ENUM('CASH','CHEQUE','CREDIT') DEFAULT 'CASH'");
+  await ensureCol(
+    "payment_type",
+    "ENUM('CASH','CHEQUE','CREDIT') DEFAULT 'CASH'",
+  );
   await ensureCol("warehouse_id", "BIGINT UNSIGNED NULL");
   await ensureCol("remarks", "TEXT NULL");
   await ensureCol("is_active", "ENUM('Y','N') NOT NULL DEFAULT 'Y'");
@@ -3317,7 +3719,9 @@ export async function ensurePMOrderTables() {
   const orderItems = "pm_order_items";
   const ensureItemCol = async (col, ddl) => {
     if (!(await hasColumn(orderItems, col))) {
-      await query(`ALTER TABLE ${orderItems} ADD COLUMN ${ddl}`).catch(() => null);
+      await query(`ALTER TABLE ${orderItems} ADD COLUMN ${ddl}`).catch(
+        () => null,
+      );
     }
   };
   await ensureItemCol("qty", "DECIMAL(18,4) NOT NULL DEFAULT 0");
@@ -3519,7 +3923,7 @@ export async function ensurePMInvoiceTables() {
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     `).catch(() => null);
   }
-  
+
   const ensureCol = async (col, ddl) => {
     if (!(await hasColumn(t, col))) {
       await query(`ALTER TABLE ${t} ADD COLUMN ${ddl}`).catch(() => null);
@@ -3581,11 +3985,15 @@ export async function ensureSocialFeedTables() {
   } else {
     // Add branch_id if missing (older schema only has warehouse_id)
     if (!(await hasColumn("posts", "branch_id"))) {
-      await query("ALTER TABLE posts ADD COLUMN branch_id INT DEFAULT NULL").catch(() => null);
+      await query(
+        "ALTER TABLE posts ADD COLUMN branch_id INT DEFAULT NULL",
+      ).catch(() => null);
     }
     // Add warehouse_id if missing
     if (!(await hasColumn("posts", "warehouse_id"))) {
-      await query("ALTER TABLE posts ADD COLUMN warehouse_id INT DEFAULT NULL").catch(() => null);
+      await query(
+        "ALTER TABLE posts ADD COLUMN warehouse_id INT DEFAULT NULL",
+      ).catch(() => null);
     }
     // Expand visibility_type enum to include 'branch' and 'warehouse'
     await query(`
@@ -3633,7 +4041,9 @@ export async function ensureSocialFeedTables() {
 export async function ensureTransportTables() {
   const ec = async (table, col, ddl) => {
     if (!(await hasColumn(table, col))) {
-      await query(`ALTER TABLE ${table} ADD COLUMN ${col} ${ddl}`).catch(() => null);
+      await query(`ALTER TABLE ${table} ADD COLUMN ${col} ${ddl}`).catch(
+        () => null,
+      );
     }
   };
 
@@ -3730,7 +4140,11 @@ export async function ensureTransportTables() {
     `).catch(() => null);
   } else {
     // Add columns added by later migrations
-    await ec("trans_trips", "tracking_status", "VARCHAR(50) DEFAULT 'PENDING' AFTER status");
+    await ec(
+      "trans_trips",
+      "tracking_status",
+      "VARCHAR(50) DEFAULT 'PENDING' AFTER status",
+    );
     await ec("trans_trips", "origin_name", "VARCHAR(255) NULL");
     await ec("trans_trips", "origin_lat", "DECIMAL(10,8) NULL");
     await ec("trans_trips", "origin_lng", "DECIMAL(11,8) NULL");
@@ -3805,17 +4219,39 @@ export async function ensureTaxTables() {
   `).catch(() => null);
 
   // Guarantee columns exist and type allows DEDUCTION without ENUM truncation
-  await query(`ALTER TABLE fin_tax_codes ADD COLUMN type VARCHAR(50) NOT NULL DEFAULT 'TAX'`).catch(() => {});
-  await query(`ALTER TABLE fin_tax_codes MODIFY COLUMN type VARCHAR(50) NOT NULL DEFAULT 'TAX'`).catch(() => {});
-  await query(`ALTER TABLE fin_tax_codes ADD COLUMN rate_percent DECIMAL(9,4) NOT NULL DEFAULT 0`).catch(() => {});
-  await query(`ALTER TABLE fin_tax_codes MODIFY COLUMN rate_percent DECIMAL(9,4) NOT NULL DEFAULT 0`).catch(() => {});
-  await query(`ALTER TABLE fin_tax_codes ADD COLUMN is_active TINYINT(1) NOT NULL DEFAULT 1`).catch(() => {});
-  await query(`ALTER TABLE fin_tax_codes ADD COLUMN is_sales_tax TINYINT(1) NOT NULL DEFAULT 0`).catch(() => {});
-  await query(`ALTER TABLE fin_tax_codes ADD COLUMN is_purchase_tax TINYINT(1) NOT NULL DEFAULT 0`).catch(() => {});
-  await query(`ALTER TABLE fin_tax_codes ADD COLUMN is_service_tax TINYINT(1) NOT NULL DEFAULT 0`).catch(() => {});
-  await query(`ALTER TABLE fin_tax_codes ADD COLUMN valid_pages VARCHAR(255) NULL`).catch(() => {});
-  await query(`ALTER TABLE fin_tax_codes ADD COLUMN created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP`).catch(() => {});
-  await query(`ALTER TABLE fin_tax_codes ADD COLUMN updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`).catch(() => {});
+  await query(
+    `ALTER TABLE fin_tax_codes ADD COLUMN type VARCHAR(50) NOT NULL DEFAULT 'TAX'`,
+  ).catch(() => {});
+  await query(
+    `ALTER TABLE fin_tax_codes MODIFY COLUMN type VARCHAR(50) NOT NULL DEFAULT 'TAX'`,
+  ).catch(() => {});
+  await query(
+    `ALTER TABLE fin_tax_codes ADD COLUMN rate_percent DECIMAL(9,4) NOT NULL DEFAULT 0`,
+  ).catch(() => {});
+  await query(
+    `ALTER TABLE fin_tax_codes MODIFY COLUMN rate_percent DECIMAL(9,4) NOT NULL DEFAULT 0`,
+  ).catch(() => {});
+  await query(
+    `ALTER TABLE fin_tax_codes ADD COLUMN is_active TINYINT(1) NOT NULL DEFAULT 1`,
+  ).catch(() => {});
+  await query(
+    `ALTER TABLE fin_tax_codes ADD COLUMN is_sales_tax TINYINT(1) NOT NULL DEFAULT 0`,
+  ).catch(() => {});
+  await query(
+    `ALTER TABLE fin_tax_codes ADD COLUMN is_purchase_tax TINYINT(1) NOT NULL DEFAULT 0`,
+  ).catch(() => {});
+  await query(
+    `ALTER TABLE fin_tax_codes ADD COLUMN is_service_tax TINYINT(1) NOT NULL DEFAULT 0`,
+  ).catch(() => {});
+  await query(
+    `ALTER TABLE fin_tax_codes ADD COLUMN valid_pages VARCHAR(255) NULL`,
+  ).catch(() => {});
+  await query(
+    `ALTER TABLE fin_tax_codes ADD COLUMN created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP`,
+  ).catch(() => {});
+  await query(
+    `ALTER TABLE fin_tax_codes ADD COLUMN updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`,
+  ).catch(() => {});
 
   // 2. fin_tax_details table
   await query(`
@@ -3835,12 +4271,24 @@ export async function ensureTaxTables() {
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
   `).catch(() => null);
 
-  await query(`ALTER TABLE fin_tax_details ADD COLUMN account_id BIGINT UNSIGNED NULL`).catch(() => {});
-  await query(`ALTER TABLE fin_tax_details MODIFY COLUMN account_id BIGINT UNSIGNED NULL`).catch(() => {});
-  await query(`ALTER TABLE fin_tax_details ADD COLUMN rate_percent DECIMAL(9,4) NOT NULL DEFAULT 0`).catch(() => {});
-  await query(`ALTER TABLE fin_tax_details ADD COLUMN is_active TINYINT(1) NOT NULL DEFAULT 1`).catch(() => {});
-  await query(`ALTER TABLE fin_tax_details ADD COLUMN created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP`).catch(() => {});
-  await query(`ALTER TABLE fin_tax_details ADD COLUMN updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`).catch(() => {});
+  await query(
+    `ALTER TABLE fin_tax_details ADD COLUMN account_id BIGINT UNSIGNED NULL`,
+  ).catch(() => {});
+  await query(
+    `ALTER TABLE fin_tax_details MODIFY COLUMN account_id BIGINT UNSIGNED NULL`,
+  ).catch(() => {});
+  await query(
+    `ALTER TABLE fin_tax_details ADD COLUMN rate_percent DECIMAL(9,4) NOT NULL DEFAULT 0`,
+  ).catch(() => {});
+  await query(
+    `ALTER TABLE fin_tax_details ADD COLUMN is_active TINYINT(1) NOT NULL DEFAULT 1`,
+  ).catch(() => {});
+  await query(
+    `ALTER TABLE fin_tax_details ADD COLUMN created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP`,
+  ).catch(() => {});
+  await query(
+    `ALTER TABLE fin_tax_details ADD COLUMN updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`,
+  ).catch(() => {});
 
   // 3. fin_tax_components table
   await query(`
@@ -3862,13 +4310,24 @@ export async function ensureTaxTables() {
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
   `).catch(() => null);
 
-  await query(`ALTER TABLE fin_tax_components ADD COLUMN rate_percent DECIMAL(9,4) NULL`).catch(() => {});
-  await query(`ALTER TABLE fin_tax_components ADD COLUMN sort_order INT NOT NULL DEFAULT 0`).catch(() => {});
-  await query(`ALTER TABLE fin_tax_components ADD COLUMN is_active TINYINT(1) NOT NULL DEFAULT 1`).catch(() => {});
-  await query(`ALTER TABLE fin_tax_components ADD COLUMN compound_level INT NULL DEFAULT 0`).catch(() => {});
-  await query(`ALTER TABLE fin_tax_components ADD COLUMN compound_levels VARCHAR(255) NULL`).catch(() => {});
-  await query(`ALTER TABLE fin_tax_components ADD COLUMN created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP`).catch(() => {});
+  await query(
+    `ALTER TABLE fin_tax_components ADD COLUMN rate_percent DECIMAL(9,4) NULL`,
+  ).catch(() => {});
+  await query(
+    `ALTER TABLE fin_tax_components ADD COLUMN sort_order INT NOT NULL DEFAULT 0`,
+  ).catch(() => {});
+  await query(
+    `ALTER TABLE fin_tax_components ADD COLUMN is_active TINYINT(1) NOT NULL DEFAULT 1`,
+  ).catch(() => {});
+  await query(
+    `ALTER TABLE fin_tax_components ADD COLUMN compound_level INT NULL DEFAULT 0`,
+  ).catch(() => {});
+  await query(
+    `ALTER TABLE fin_tax_components ADD COLUMN compound_levels VARCHAR(255) NULL`,
+  ).catch(() => {});
+  await query(
+    `ALTER TABLE fin_tax_components ADD COLUMN created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP`,
+  ).catch(() => {});
 
   verifiedTables.add("fin_tax_tables");
 }
-

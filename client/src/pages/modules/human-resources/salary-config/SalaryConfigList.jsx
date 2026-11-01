@@ -11,13 +11,12 @@ import ViewToggle from "@/components/ViewToggle";
 
 const CONFIG_CARDS = [
   {
-    title: "Base Salaries",
+    title: "Employee Salary Components",
     description:
-      "Set and manage each employee's base pay. Changes take effect on the next payroll run.",
+      "Set employee base pay and assign recurring or manually entered earnings and deductions.",
     icon: "💵",
     path: "/human-resources/salary-config/base-salaries",
-    accent: "from-emerald-500 to-teal-600",
-    badge: "Employee Rates",
+    badge: "Employee Pay Setup",
   },
   {
     title: "Salary Structure",
@@ -25,14 +24,13 @@ const CONFIG_CARDS = [
       "Define the net-pay formula — choose which allowances, PAYE brackets, SSF, and deductions apply.",
     icon: "⚙️",
     path: "/human-resources/salary-config/structure",
-    accent: "from-indigo-500 to-purple-600",
     badge: "Formula Builder",
   },
 ];
 
 /**
  *  component
- * 
+ *
  * @returns {JSX.Element} The rendered component
  */
 export default function SalaryConfigList() {
@@ -47,12 +45,11 @@ export default function SalaryConfigList() {
               Salary Configurations
             </h1>
             <p className="text-slate-500 dark:text-slate-400 mt-1 text-sm">
-              Configure base salaries and payroll calculation structures
+              Configure employee pay components and payroll calculation
+              structures
             </p>
           </div>
-          <button onClick={() => window.history.back()} className="btn-secondary shrink-0">
-            ← Back to Menu
-          </button>
+          <Link to="/human-resources" className="btn-secondary shrink-0">← Back to Menu</Link>
         </div>
 
         {/* Navigation cards */}
@@ -64,9 +61,7 @@ export default function SalaryConfigList() {
               className="group relative flex flex-col overflow-hidden rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm hover:shadow-lg transition-all duration-200 hover:-translate-y-0.5"
             >
               {/* Gradient accent bar */}
-              <div
-                className={`h-1.5 w-full bg-gradient-to-r ${card.accent}`}
-              />
+              
 
               <div className="p-6 flex flex-col gap-4">
                 {/* Icon + badge row */}
@@ -115,8 +110,14 @@ export default function SalaryConfigList() {
             How payroll is calculated
           </h3>
           <ol className="list-decimal ml-4 space-y-1.5 text-sm text-slate-600 dark:text-slate-300">
-            <li>Employee base salary is retrieved from <strong>Base Salaries</strong>.</li>
-            <li>Applicable allowances are added according to the <strong>Salary Structure</strong> formula.</li>
+            <li>
+              Employee base pay and assigned salary components are retrieved
+              from <strong>Employee Salary Components</strong>.
+            </li>
+            <li>
+              Applicable allowances are added according to the{" "}
+              <strong>Salary Structure</strong> formula.
+            </li>
             <li>Statutory deductions (PAYE, SSNIT, Tier 3) are subtracted.</li>
             <li>Net salary is calculated and used to generate payslips.</li>
           </ol>

@@ -43,9 +43,7 @@ export default function OffersList() {
     <div className="p-4">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
-          <button onClick={() => window.history.back()} className="btn-secondary text-sm">
-            Back to Menu
-          </button>
+          <Link to="/human-resources" className="btn-secondary text-sm">Back to Menu</Link>
           <h2 className="text-lg font-semibold">Offers</h2>
         </div>
         <Link to="/human-resources/offers/new" className="btn-primary text-sm">

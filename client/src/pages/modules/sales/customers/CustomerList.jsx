@@ -33,9 +33,13 @@ export default function CustomerList() {
   const location = useLocation();
   const fileInputRef = React.useRef(null);
   const dispatch = useDispatch();
-  const loading = useSelector(selectCustomersLoading) === "pending";
-  const error = useSelector(selectCustomersError) || "";
+  const reduxLoading = useSelector(selectCustomersLoading) === "pending";
+  const reduxError = useSelector(selectCustomersError) || "";
   const allCustomers = useSelector(selectAllCustomers);
+  const [customers, setCustomers] = useState([]);
+  const [localLoading, setLocalLoading] = useState(false);
+  const loading = localLoading || reduxLoading;
+  const [fetchError, setFetchError] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [showBulkDelete, setShowBulkDelete] = useState(false);
   const [bulkDeleteRaw, setBulkDeleteRaw] = useState("");
@@ -49,14 +53,34 @@ export default function CustomerList() {
   const [branchOnly, setBranchOnly] = useState(false);
   const [showInactive, setShowInactive] = useState(false);
   const [importLoading, setImportLoading] = useState(false);
-  const selectBySearch = React.useMemo(makeSelectCustomersBySearch, []);
-  const filteredCustomers = useSelector((s) => selectBySearch(s, searchTerm));
+
+  const loadCustomers = React.useCallback(async () => {
+    try {
+      setLocalLoading(true);
+      setFetchError("");
+      const res = await api.get("/sales/customers", {
+        params: { active: !showInactive },
+        __skipWarmCache: true,
+      });
+      const items = Array.isArray(res.data?.items)
+        ? res.data.items
+        : Array.isArray(res.data)
+          ? res.data
+          : [];
+      setCustomers(items);
+      dispatch({ type: "customers/fetchAll/fulfilled", payload: { items, skipped: false } });
+    } catch (err) {
+      console.error("Error loading customers:", err);
+      const msg = err?.response?.data?.message || err?.message || "Failed to load customers";
+      setFetchError(msg);
+    } finally {
+      setLocalLoading(false);
+    }
+  }, [dispatch, showInactive]);
 
   useEffect(() => {
-    dispatch(
-      fetchCustomers({ force: true, params: { active: !showInactive } }),
-    );
-  }, [dispatch, showInactive]);
+    loadCustomers();
+  }, [loadCustomers]);
 
   // Show success message from navigation state
   useEffect(() => {
@@ -71,16 +95,9 @@ export default function CustomerList() {
     }
   }, [location.state]);
 
-  const refreshThunk = React.useCallback(() => {
-    dispatch(fetchCustomers({ force: true, params: { active: !showInactive } }));
-  }, [dispatch, showInactive]);
+  useAfterSaveRefresh("customers", loadCustomers);
 
-  useAfterSaveRefresh("customers", refreshThunk);
-
-  const refresh = () =>
-    dispatch(
-      fetchCustomers({ force: true, params: { active: !showInactive } }),
-    );
+  const refresh = () => loadCustomers();
 
   const downloadTemplate = async () => {
     try {
@@ -123,11 +140,31 @@ export default function CustomerList() {
     }
   };
 
-  const branchFiltered = branchOnly
-    ? filteredCustomers.filter(
-        (x) => String(x.branch_id || "") === String(scope?.branchId || ""),
-      )
-    : filteredCustomers;
+  const customerList = customers.length > 0
+    ? customers
+    : (Array.isArray(allCustomers) && allCustomers.length > 0 ? allCustomers : []);
+
+  const filteredCustomers = React.useMemo(() => {
+    const list = Array.isArray(customerList) ? customerList : [];
+    const term = String(searchTerm || "").trim().toLowerCase();
+    if (!term) return list;
+    return list.filter((c) => {
+      const code = String(c.customer_code || "").toLowerCase();
+      const name = String(c.customer_name || "").toLowerCase();
+      const email = String(c.email || "").toLowerCase();
+      const phone = String(c.phone || c.mobile || "").toLowerCase();
+      return code.includes(term) || name.includes(term) || email.includes(term) || phone.includes(term);
+    });
+  }, [customerList, searchTerm]);
+
+  const branchFiltered = React.useMemo(() => {
+    if (!branchOnly || !scope?.branchId || scope.branchId === "all") {
+      return filteredCustomers;
+    }
+    return filteredCustomers.filter(
+      (x) => String(x.branch_id || "") === String(scope.branchId),
+    );
+  }, [branchOnly, filteredCustomers, scope?.branchId]);
 
   const { sorted: sortedBranchFiltered, sortKey, sortDir, toggle } = useSort(branchFiltered, "created_at", "desc");
 
@@ -171,12 +208,12 @@ export default function CustomerList() {
         </div>
       </div>
 
-      {error && (
+      {(fetchError || reduxError) && (
         <div className="alert alert-error">
-          <span>{error}</span>
+          <span>{fetchError || reduxError}</span>
         </div>
       )}
-      {loading && (
+      {(localLoading || reduxLoading) && (
         <div className="alert">
           <span>Loading customers...</span>
         </div>
@@ -424,7 +461,7 @@ export default function CustomerList() {
                     alert(msg);
                     setShowBulkDelete(false);
                     setBulkDeleteRaw("");
-                    dispatch(fetchCustomers({ force: true, params: { active: !showInactive } }));
+                    loadCustomers();
                   } catch (err) {
                     alert(
                       err?.response?.data?.message ||

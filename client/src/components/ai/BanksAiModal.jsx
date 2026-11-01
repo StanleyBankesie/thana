@@ -276,6 +276,7 @@ export default function BanksAiModal({ isOpen, onClose }) {
 
   return (
     <div
+      data-floating-ignore="true"
       className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-3 md:p-6 transition-all"
       onClick={(e) => {
         if (e.target === e.currentTarget) {

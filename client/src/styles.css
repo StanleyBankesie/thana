@@ -223,7 +223,7 @@
 
   /* ── ERP Input Styles (Apple Clean Controls) ──────── */
   .input {
-    @apply px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 outline-none focus:ring-4 focus:ring-brand-500/10 focus:border-brand-600 dark:focus:border-brand-400 transition-all shadow-apple-xs text-sm;
+    @apply w-full box-border px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 outline-none focus:ring-4 focus:ring-brand-500/10 focus:border-brand-600 dark:focus:border-brand-400 transition-all shadow-apple-xs text-sm;
     min-height: 42px;
     font-size: 0.875rem;
   }
@@ -1328,7 +1328,8 @@ textarea,
 .dark textarea,
 .dark .input {
   background-color: #0f172a !important;
-}
+}
+
 
 /* ==========================================================================
    GLOBAL STANDARDIZED MODAL DESIGN SYSTEM (PROJECT MANAGEMENT STANDARD)

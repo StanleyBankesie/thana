@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import banksIcon from "../../assets/banks_ai_icon.png";
 import BanksAiModal from "./BanksAiModal.jsx";
 import { api } from "../../api/client.js";
 import { usePermission } from "../../auth/PermissionContext.jsx";
 import { useAuth } from "../../auth/AuthContext.jsx";
+import { useFloatingCollision } from "../../hooks/useFloatingCollision.js";
 
 export default function BanksAiFloating() {
   const { user } = useAuth();
@@ -82,6 +83,9 @@ export default function BanksAiFloating() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [enabled, isPermittedForUser]);
 
+  const containerRef = useRef(null);
+  const shiftY = useFloatingCollision("banks-ai", containerRef);
+
   if (!enabled || !isPermittedForUser) {
     return null;
   }
@@ -92,7 +96,16 @@ export default function BanksAiFloating() {
 
   return (
     <>
-      <div className="fixed bottom-6 right-24 md:right-[88px] z-50 pointer-events-auto print:hidden">
+      <div
+        ref={containerRef}
+        data-floating-widget="true"
+        className="fixed bottom-6 right-24 md:right-[88px] z-50 pointer-events-auto print:hidden"
+        style={{
+          transform: `translate3d(0, -${shiftY}px, 0)`,
+          transition: "transform 0.4s cubic-bezier(0.22, 1, 0.36, 1)",
+          willChange: "transform",
+        }}
+      >
         <button
           onClick={handleOpen}
           title="Ask Banks (Alt + B)"

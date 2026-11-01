@@ -2846,10 +2846,11 @@ export default function PaymentVoucherForm() {
     if (!acc) return;
     const gc = String(acc.group_code || "").toUpperCase();
     const gn = String(acc.group_name || "").toUpperCase();
-    const name = String(acc.name || "").toUpperCase();
-    const isBank = gc === "AST_BANK" || gc === "1006" || gn.includes("BANK") || name.includes("BANK");
-    const isCash = gc === "AST_CASH" || gc === "1005" || gn.includes("CASH") || gn.includes("MONEY") || name.includes("CASH") || name.includes("MOMO") || name.includes("MOBILE MONEY");
-    if (!isBank && !isCash) updatePv({ paymentAccountId: "" });
+    const wantsBank = isChequeLike;
+    const ok = wantsBank
+      ? gc === "AST_BANK" || gn === "BANK ACCOUNTS" || gn.includes("BANK") || gc === "1006"
+      : gc === "AST_CASH" || gn === "CASH AND CASH EQUIVALENTS" || gn.includes("CASH") || gc === "1005";
+    if (!ok) updatePv({ paymentAccountId: "" });
   }, [isPAYV, isChequeLike, accounts, pvForm.paymentAccountId, readOnly, isEdit]);
   useEffect(() => {
     if (!isRV) return;
@@ -3959,10 +3960,9 @@ export default function PaymentVoucherForm() {
                         const filtered = accounts.filter((a) => {
                           const gc = String(a.group_code || "").toUpperCase();
                           const gn = String(a.group_name || "").toUpperCase();
-                          const name = String(a.name || "").toUpperCase();
-                          const isBank = gc === "AST_BANK" || gc === "1006" || gn.includes("BANK") || name.includes("BANK");
-                          const isCash = gc === "AST_CASH" || gc === "1005" || gn.includes("CASH") || gn.includes("MONEY") || name.includes("CASH") || name.includes("MOMO") || name.includes("MOBILE MONEY");
-                          return isBank || isCash;
+                          return isChequeLike
+                            ? gc === "AST_BANK" || gn === "BANK ACCOUNTS" || gn.includes("BANK") || gc === "1006"
+                            : gc === "AST_CASH" || gn === "CASH AND CASH EQUIVALENTS" || gn.includes("CASH") || gc === "1005";
                         });
                         if (currentAcc && !filtered.some((a) => String(a.id) === String(currentAcc.id))) {
                           filtered.unshift(currentAcc);

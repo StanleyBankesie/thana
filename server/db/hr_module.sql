@@ -246,6 +246,73 @@ CREATE TABLE IF NOT EXISTS hr_leave_requests (
 -- 💰 Payroll
 
 -- hr_employee_salaries (optional overrides)
+-- Reusable company salary component catalog.
+CREATE TABLE IF NOT EXISTS hr_salary_component_definitions (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  company_id BIGINT UNSIGNED NOT NULL,
+  component_name VARCHAR(100) NOT NULL,
+  component_type ENUM('ALLOWANCE','DEDUCTION') NOT NULL,
+  manual_calculation TINYINT(1) NOT NULL DEFAULT 0,
+  is_active TINYINT(1) NOT NULL DEFAULT 1,
+  created_by BIGINT UNSIGNED NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  UNIQUE KEY uq_salary_component_name (company_id, component_name),
+  KEY idx_salary_component_company (company_id, is_active)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Per-employee salary earnings and deductions (fixed amounts or percentages).
+CREATE TABLE IF NOT EXISTS hr_employee_salary_components (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  company_id BIGINT UNSIGNED NOT NULL,
+  employee_id BIGINT UNSIGNED NOT NULL,
+  definition_id BIGINT UNSIGNED NULL,
+  component_name VARCHAR(100) NOT NULL,
+  component_type ENUM('ALLOWANCE','DEDUCTION') NOT NULL,
+  calculation_type ENUM('AMOUNT','PERCENT') NOT NULL DEFAULT 'AMOUNT',
+  value DECIMAL(18,4) NOT NULL DEFAULT 0,
+  basis_component_id BIGINT UNSIGNED NULL COMMENT 'NULL means base salary for percentage components',
+  effective_from DATE NOT NULL,
+  effective_to DATE NULL,
+  is_active TINYINT(1) NOT NULL DEFAULT 1,
+  created_by BIGINT UNSIGNED NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  KEY idx_emp_salary_components (company_id, employee_id, is_active),
+  KEY idx_emp_salary_basis (basis_component_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Period-specific employee values for components configured as manual.
+CREATE TABLE IF NOT EXISTS hr_payroll_manual_components (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  company_id BIGINT UNSIGNED NOT NULL,
+  period_id BIGINT UNSIGNED NOT NULL,
+  employee_id BIGINT UNSIGNED NOT NULL,
+  definition_id BIGINT UNSIGNED NOT NULL,
+  amount DECIMAL(18,4) NOT NULL DEFAULT 0,
+  updated_by BIGINT UNSIGNED NULL,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  UNIQUE KEY uq_manual_payroll_component (company_id, period_id, employee_id, definition_id),
+  KEY idx_manual_component_period (company_id, period_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Manual component/employee links selected for each payroll period.
+CREATE TABLE IF NOT EXISTS hr_payroll_manual_component_selections (
+  company_id BIGINT UNSIGNED NOT NULL,
+  period_id BIGINT UNSIGNED NOT NULL,
+  employee_id BIGINT UNSIGNED NOT NULL,
+  definition_id BIGINT UNSIGNED NOT NULL,
+  is_selected TINYINT(1) NOT NULL DEFAULT 1,
+  created_by BIGINT UNSIGNED NULL,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (company_id, period_id, employee_id, definition_id),
+  KEY idx_manual_selection_period (company_id, period_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- hr_employee_salaries (optional overrides)
 CREATE TABLE IF NOT EXISTS hr_employee_salaries (
   id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
   company_id BIGINT UNSIGNED NOT NULL,

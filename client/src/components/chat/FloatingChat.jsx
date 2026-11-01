@@ -3,11 +3,12 @@
  * Displays a floating chat button with unread badge and handles opening the ChatModal.
  */
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { api } from "../../api/client";
 import useSocket from "../../hooks/useSocket";
 import ChatModal from "./ChatModal.jsx";
 import { useAuth } from "../../auth/AuthContext";
+import { useFloatingCollision } from "../../hooks/useFloatingCollision.js";
 
 /**
  * FloatingChat component
@@ -16,6 +17,8 @@ import { useAuth } from "../../auth/AuthContext";
 export default function FloatingChat() {
   const [open, setOpen] = useState(false);
   const [unread, setUnread] = useState(0);
+  const containerRef = useRef(null);
+  const shiftY = useFloatingCollision("floating-chat", containerRef);
   const socket = useSocket();
   const { user } = useAuth();
   const [lastSent, setLastSent] = useState({}); // { [conversation_id]: timestamp }
@@ -152,30 +155,41 @@ export default function FloatingChat() {
 
   return (
     <>
-      <button
-        type="button"
-        aria-label="Open chat"
-        onClick={() => setOpen(true)}
-        data-rbac-exempt="true"
-        className="fixed z-[9999] md:right-6 md:bottom-6 w-12 h-12 rounded-full shadow-xl text-white flex items-center justify-center hover:scale-105 active:scale-95 transition-transform"
+      <div
+        ref={containerRef}
+        data-floating-widget="true"
+        className="fixed z-[9999] pointer-events-auto print:hidden"
         style={{
-          backgroundColor: "#12543B",
           right: 16,
           bottom: "calc(env(safe-area-inset-bottom, 0px) + 16px)",
+          transform: `translate3d(0, -${shiftY}px, 0)`,
+          transition: "transform 0.4s cubic-bezier(0.22, 1, 0.36, 1)",
+          willChange: "transform",
         }}
       >
-        <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
-          <circle cx="12" cy="12" r="10.5" stroke="white" strokeWidth="1.5" />
-          <g transform="translate(9, 5) scale(0.4)">
-            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" fill="white" />
-          </g>
-          <g transform="translate(5.5, 8) scale(0.45)">
-            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" fill="#12543B" stroke="#12543B" strokeWidth="4" strokeLinejoin="round" />
-            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" fill="white" />
-          </g>
-        </svg>
-        {badge}
-      </button>
+        <button
+          type="button"
+          aria-label="Open chat"
+          onClick={() => setOpen(true)}
+          data-rbac-exempt="true"
+          className="relative w-12 h-12 rounded-full shadow-xl text-white flex items-center justify-center hover:scale-105 active:scale-95 transition-transform"
+          style={{
+            backgroundColor: "#12543B",
+          }}
+        >
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+            <circle cx="12" cy="12" r="10.5" stroke="white" strokeWidth="1.5" />
+            <g transform="translate(9, 5) scale(0.4)">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" fill="white" />
+            </g>
+            <g transform="translate(5.5, 8) scale(0.45)">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" fill="#12543B" stroke="#12543B" strokeWidth="4" strokeLinejoin="round" />
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" fill="white" />
+            </g>
+          </svg>
+          {badge}
+        </button>
+      </div>
       {open && <ChatModal onClose={() => setOpen(false)} />}
     </>
   );

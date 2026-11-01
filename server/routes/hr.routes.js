@@ -210,6 +210,12 @@ router.post(
   requireCompanyScope,
   hrController.savePromotion,
 );
+router.post(
+  "/promotions/:id/send-letter",
+  requireAuth,
+  requireCompanyScope,
+  hrController.sendPromotionLetter,
+);
 
 // Interviews
 router.get(
@@ -315,14 +321,14 @@ router.post(
   requireCompanyScope,
   hrController.saveAttendance,
 );
+router.get("/attendance/bulk", requireAuth, requireCompanyScope, (req, res) =>
+  res.json({ ok: true }),
+);
 router.get(
   "/attendance/:id",
   requireAuth,
   requireCompanyScope,
   hrController.getAttendance,
-);
-router.get("/attendance/bulk", requireAuth, requireCompanyScope, (req, res) =>
-  res.json({ ok: true }),
 );
 router.post(
   "/attendance/bulk",
@@ -451,11 +457,35 @@ router.get(
   requireCompanyScope,
   hrController.listBaseSalaries,
 );
+router.get(
+  "/salary-component-definitions",
+  requireAuth,
+  requireCompanyScope,
+  hrController.listSalaryComponentDefinitions,
+);
+router.post(
+  "/salary-component-definitions",
+  requireAuth,
+  requireCompanyScope,
+  hrController.saveSalaryComponentDefinition,
+);
 router.post(
   "/salary/base-salaries",
   requireAuth,
   requireCompanyScope,
   hrController.saveBaseSalary,
+);
+router.get(
+  "/salary/base-salaries/:employeeId/components",
+  requireAuth,
+  requireCompanyScope,
+  hrController.listEmployeeSalaryComponents,
+);
+router.put(
+  "/salary/base-salaries/:employeeId/components",
+  requireAuth,
+  requireCompanyScope,
+  hrController.saveEmployeeSalaryComponents,
 );
 router.post(
   "/salary/base-salaries/bulk",
@@ -465,6 +495,12 @@ router.post(
 );
 
 // Tax Configuration
+router.get(
+  "/tax-configs/gra-rates",
+  requireAuth,
+  requireCompanyScope,
+  hrController.getGraTaxRates,
+);
 router.get(
   "/tax-configs",
   requireAuth,
@@ -476,6 +512,56 @@ router.post(
   requireAuth,
   requireCompanyScope,
   hrController.saveTaxConfig,
+);
+
+// Tax Reliefs
+router.get(
+  "/tax-relief-types",
+  requireAuth,
+  requireCompanyScope,
+  hrController.listTaxReliefTypes,
+);
+router.post(
+  "/tax-relief-types",
+  requireAuth,
+  requireCompanyScope,
+  hrController.saveTaxReliefType,
+);
+router.delete(
+  "/tax-relief-types/:id",
+  requireAuth,
+  requireCompanyScope,
+  hrController.deleteTaxReliefType,
+);
+router.get(
+  "/tax-reliefs",
+  requireAuth,
+  requireCompanyScope,
+  hrController.listEmployeeTaxReliefs,
+);
+router.post(
+  "/tax-reliefs",
+  requireAuth,
+  requireCompanyScope,
+  hrController.saveEmployeeTaxRelief,
+);
+router.put(
+  "/tax-reliefs/:id",
+  requireAuth,
+  requireCompanyScope,
+  hrController.saveEmployeeTaxRelief,
+);
+router.post(
+  "/tax-reliefs/:id/status",
+  requireAuth,
+  requireCompanyScope,
+  hrController.updateTaxReliefStatus,
+);
+router.delete(
+  "/tax-reliefs/:id",
+  requireAuth,
+  requireCompanyScope,
+  hrController.deleteEmployeeTaxRelief,
 );
 
 // Allowances
@@ -493,14 +579,97 @@ router.post(
   hrController.saveAllowance,
 );
 
-// Loans
+// Loans & Loan Requests
+router.get("/loan-requests", requireAuth, requireCompanyScope, hrController.listLoanRequests);
+router.post(
+  "/loan-requests",
+  requireAuth,
+  requireCompanyScope,
+  requireBranchScope,
+  hrController.createLoanRequest,
+);
+router.post(
+  "/loans/:id/forward",
+  requireAuth,
+  requireCompanyScope,
+  hrController.forwardLoanRequest,
+);
+router.post(
+  "/loans/:id/approve",
+  requireAuth,
+  requireCompanyScope,
+  hrController.approveLoanRequest,
+);
+router.post(
+  "/loans/:id/reject",
+  requireAuth,
+  requireCompanyScope,
+  hrController.rejectLoanRequest,
+);
+router.post(
+  "/loans/:id/reverse-approval",
+  requireAuth,
+  requireCompanyScope,
+  hrController.reverseLoanApproval,
+);
+router.post(
+  "/loans/:id/disburse",
+  requireAuth,
+  requireCompanyScope,
+  requireBranchScope,
+  hrController.disburseLoan,
+);
+
 router.get("/loans", requireAuth, requireCompanyScope, hrController.listLoans);
+router.get(
+  "/loans/period-status",
+  requireAuth,
+  requireCompanyScope,
+  hrController.getLoansPeriodStatus,
+);
+router.get("/loans/:id", requireAuth, requireCompanyScope, hrController.getLoanById);
 router.post(
   "/loans",
   requireAuth,
   requireCompanyScope,
   requireBranchScope,
   hrController.saveLoan,
+);
+router.get(
+  "/loans/:id/skips",
+  requireAuth,
+  requireCompanyScope,
+  hrController.listLoanSkips,
+);
+router.post(
+  "/loans/:id/skips",
+  requireAuth,
+  requireCompanyScope,
+  hrController.addLoanSkip,
+);
+router.delete(
+  "/loans/:id/skips/:skipId",
+  requireAuth,
+  requireCompanyScope,
+  hrController.removeLoanSkip,
+);
+router.post(
+  "/loans/:id/manual-repayment",
+  requireAuth,
+  requireCompanyScope,
+  hrController.recordManualRepayment,
+);
+router.get(
+  "/loans/:id/repayments",
+  requireAuth,
+  requireCompanyScope,
+  hrController.getLoanRepayments,
+);
+router.delete(
+  "/loans/:id/repayments/:repaymentId",
+  requireAuth,
+  requireCompanyScope,
+  hrController.revertManualRepayment,
 );
 
 // Payroll
@@ -515,6 +684,18 @@ router.post(
   requireAuth,
   requireCompanyScope,
   hrController.savePayrollPeriod,
+);
+router.get(
+  "/payroll/manual-components",
+  requireAuth,
+  requireCompanyScope,
+  hrController.listPayrollManualComponents,
+);
+router.put(
+  "/payroll/manual-components",
+  requireAuth,
+  requireCompanyScope,
+  hrController.savePayrollManualComponents,
 );
 router.post(
   "/payroll/generate",
@@ -569,7 +750,6 @@ router.post(
   hrController.mapSalaryComponentAccount,
 );
 
-
 // Payslips
 router.get(
   "/payslips",
@@ -593,57 +773,212 @@ router.post(
 // ============ PERFORMANCE MANAGEMENT ============
 
 // KPI Categories
-router.get("/performance/kpi-categories", requireAuth, requireCompanyScope, perfController.listKpiCategories);
-router.post("/performance/kpi-categories", requireAuth, requireCompanyScope, perfController.saveKpiCategory);
-router.delete("/performance/kpi-categories/:id", requireAuth, requireCompanyScope, perfController.deleteKpiCategory);
+router.get(
+  "/performance/kpi-categories",
+  requireAuth,
+  requireCompanyScope,
+  perfController.listKpiCategories,
+);
+router.post(
+  "/performance/kpi-categories",
+  requireAuth,
+  requireCompanyScope,
+  perfController.saveKpiCategory,
+);
+router.delete(
+  "/performance/kpi-categories/:id",
+  requireAuth,
+  requireCompanyScope,
+  perfController.deleteKpiCategory,
+);
 
 // KPI Management
-router.get("/performance/kpis", requireAuth, requireCompanyScope, perfController.listKpis);
-router.get("/performance/kpis/:id", requireAuth, requireCompanyScope, perfController.getKpi);
-router.post("/performance/kpis", requireAuth, requireCompanyScope, perfController.saveKpi);
-router.delete("/performance/kpis/:id", requireAuth, requireCompanyScope, perfController.deleteKpi);
-router.post("/performance/kpis/clone", requireAuth, requireCompanyScope, perfController.cloneKpi);
+router.get(
+  "/performance/kpis",
+  requireAuth,
+  requireCompanyScope,
+  perfController.listKpis,
+);
+router.get(
+  "/performance/kpis/:id",
+  requireAuth,
+  requireCompanyScope,
+  perfController.getKpi,
+);
+router.post(
+  "/performance/kpis",
+  requireAuth,
+  requireCompanyScope,
+  perfController.saveKpi,
+);
+router.delete(
+  "/performance/kpis/:id",
+  requireAuth,
+  requireCompanyScope,
+  perfController.deleteKpi,
+);
+router.post(
+  "/performance/kpis/clone",
+  requireAuth,
+  requireCompanyScope,
+  perfController.cloneKpi,
+);
 
 // KPI Assignments
-router.get("/performance/kpi-assignments", requireAuth, requireCompanyScope, perfController.listKpiAssignments);
-router.post("/performance/kpi-assignments", requireAuth, requireCompanyScope, perfController.saveKpiAssignment);
-router.delete("/performance/kpi-assignments/:id", requireAuth, requireCompanyScope, perfController.deleteKpiAssignment);
+router.get(
+  "/performance/kpi-assignments",
+  requireAuth,
+  requireCompanyScope,
+  perfController.listKpiAssignments,
+);
+router.post(
+  "/performance/kpi-assignments",
+  requireAuth,
+  requireCompanyScope,
+  perfController.saveKpiAssignment,
+);
+router.delete(
+  "/performance/kpi-assignments/:id",
+  requireAuth,
+  requireCompanyScope,
+  perfController.deleteKpiAssignment,
+);
 
 // Appraisals
-router.get("/performance/appraisals", requireAuth, requireCompanyScope, perfController.listAppraisals);
-router.get("/performance/appraisals/:id", requireAuth, requireCompanyScope, perfController.getAppraisal);
-router.post("/performance/appraisals", requireAuth, requireCompanyScope, perfController.saveAppraisal);
-router.post("/performance/appraisals/:id/action", requireAuth, requireCompanyScope, perfController.submitAppraisal);
-router.get("/performance/dashboard", requireAuth, requireCompanyScope, perfController.getAppraisalDashboard);
-router.post("/performance/attachments", requireAuth, requireCompanyScope, perfController.uploadAttachment);
+router.get(
+  "/performance/appraisals",
+  requireAuth,
+  requireCompanyScope,
+  perfController.listAppraisals,
+);
+router.get(
+  "/performance/appraisals/:id",
+  requireAuth,
+  requireCompanyScope,
+  perfController.getAppraisal,
+);
+router.post(
+  "/performance/appraisals",
+  requireAuth,
+  requireCompanyScope,
+  perfController.saveAppraisal,
+);
+router.post(
+  "/performance/appraisals/:id/action",
+  requireAuth,
+  requireCompanyScope,
+  perfController.submitAppraisal,
+);
+router.get(
+  "/performance/dashboard",
+  requireAuth,
+  requireCompanyScope,
+  perfController.getAppraisalDashboard,
+);
+router.post(
+  "/performance/attachments",
+  requireAuth,
+  requireCompanyScope,
+  perfController.uploadAttachment,
+);
 
 // ============ TRAINING MANAGEMENT ============
 
 // Training Programs
-router.get("/training/programs", requireAuth, requireCompanyScope, trainController.listTrainingPrograms);
-router.get("/training/programs/:id", requireAuth, requireCompanyScope, trainController.getTrainingProgram);
-router.post("/training/programs", requireAuth, requireCompanyScope, trainController.saveTrainingProgram);
-router.delete("/training/programs/:id", requireAuth, requireCompanyScope, trainController.deleteTrainingProgram);
+router.get(
+  "/training/programs",
+  requireAuth,
+  requireCompanyScope,
+  trainController.listTrainingPrograms,
+);
+router.get(
+  "/training/programs/:id",
+  requireAuth,
+  requireCompanyScope,
+  trainController.getTrainingProgram,
+);
+router.post(
+  "/training/programs",
+  requireAuth,
+  requireCompanyScope,
+  trainController.saveTrainingProgram,
+);
+router.delete(
+  "/training/programs/:id",
+  requireAuth,
+  requireCompanyScope,
+  trainController.deleteTrainingProgram,
+);
 
 // Training Assignments
-router.get("/training/assignments", requireAuth, requireCompanyScope, trainController.listTrainingAssignments);
-router.post("/training/assignments", requireAuth, requireCompanyScope, trainController.saveTrainingAssignment);
-router.delete("/training/assignments/:id", requireAuth, requireCompanyScope, trainController.deleteTrainingAssignment);
+router.get(
+  "/training/assignments",
+  requireAuth,
+  requireCompanyScope,
+  trainController.listTrainingAssignments,
+);
+router.post(
+  "/training/assignments",
+  requireAuth,
+  requireCompanyScope,
+  trainController.saveTrainingAssignment,
+);
+router.delete(
+  "/training/assignments/:id",
+  requireAuth,
+  requireCompanyScope,
+  trainController.deleteTrainingAssignment,
+);
 
 // Training Attendance
-router.get("/training/attendance", requireAuth, requireCompanyScope, trainController.listTrainingAttendance);
-router.post("/training/attendance", requireAuth, requireCompanyScope, trainController.saveTrainingAttendance);
+router.get(
+  "/training/attendance",
+  requireAuth,
+  requireCompanyScope,
+  trainController.listTrainingAttendance,
+);
+router.post(
+  "/training/attendance",
+  requireAuth,
+  requireCompanyScope,
+  trainController.saveTrainingAttendance,
+);
 
 // Training History
-router.get("/training/history", requireAuth, requireCompanyScope, trainController.listTrainingHistory);
+router.get(
+  "/training/history",
+  requireAuth,
+  requireCompanyScope,
+  trainController.listTrainingHistory,
+);
 
 // Certifications
-router.get("/training/certifications", requireAuth, requireCompanyScope, trainController.listCertifications);
-router.post("/training/certifications", requireAuth, requireCompanyScope, trainController.saveCertification);
-router.delete("/training/certifications/:id", requireAuth, requireCompanyScope, trainController.deleteCertification);
+router.get(
+  "/training/certifications",
+  requireAuth,
+  requireCompanyScope,
+  trainController.listCertifications,
+);
+router.post(
+  "/training/certifications",
+  requireAuth,
+  requireCompanyScope,
+  trainController.saveCertification,
+);
+router.delete(
+  "/training/certifications/:id",
+  requireAuth,
+  requireCompanyScope,
+  trainController.deleteCertification,
+);
 
 // Training Dashboard
-router.get("/training/dashboard", requireAuth, requireCompanyScope, trainController.getTrainingDashboard);
+router.get(
+  "/training/dashboard",
+  requireAuth,
+  requireCompanyScope,
+  trainController.getTrainingDashboard,
+);
 
 // Compliance
 router.get(
@@ -736,120 +1071,209 @@ router.get(
   requireBranchScope,
   hrController.reportEmployeeAllowances,
 );
+router.get(
+  "/reports/salaries",
+  requireAuth,
+  requireCompanyScope,
+  requireBranchScope,
+  hrController.reportSalaries,
+);
+router.get(
+  "/reports/monthly-payroll",
+  requireAuth,
+  requireCompanyScope,
+  requireBranchScope,
+  hrController.reportMonthlyPayroll,
+);
 
 // ===== DASHBOARD METRICS (detailed dashboard page) =====
-router.get("/dashboard/metrics", requireAuth, requireCompanyScope, requireBranchScope, async (req, res, next) => {
-  try {
-    const { companyId = null } = req.scope || {};
-    const year = Number(req.query.year) || new Date().getFullYear();
-    const whereCompany = { companyId };
+router.get(
+  "/dashboard/metrics",
+  requireAuth,
+  requireCompanyScope,
+  requireBranchScope,
+  async (req, res, next) => {
+    try {
+      const { companyId = null } = req.scope || {};
+      const year = Number(req.query.year) || new Date().getFullYear();
+      const whereCompany = { companyId };
 
-    const [totalEmp] = await query("SELECT COUNT(*) as count FROM hr_employees WHERE company_id = :companyId AND deleted_at IS NULL", whereCompany).catch(() => [{ count: 0 }]);
-    const [newEmp] = await query("SELECT COUNT(*) as count FROM hr_employees WHERE company_id = :companyId AND YEAR(created_at) = :year AND deleted_at IS NULL", { ...whereCompany, year }).catch(() => [{ count: 0 }]);
-    const [confirmations] = await query("SELECT COUNT(*) as count FROM hr_performance_reviews WHERE company_id = :companyId AND YEAR(created_at) = :year AND review_type = 'CONFIRMATION'", { ...whereCompany, year }).catch(() => [{ count: 0 }]);
-    const [male] = await query("SELECT COUNT(*) as count FROM hr_employees WHERE company_id = :companyId AND gender = 'MALE' AND deleted_at IS NULL", whereCompany).catch(() => [{ count: 0 }]);
-    const [female] = await query("SELECT COUNT(*) as count FROM hr_employees WHERE company_id = :companyId AND gender = 'FEMALE' AND deleted_at IS NULL", whereCompany).catch(() => [{ count: 0 }]);
-    const [tenure] = await query("SELECT ROUND(AVG(DATEDIFF(CURDATE(), joining_date) / 365.25), 1) as avg_tenure FROM hr_employees WHERE company_id = :companyId AND joining_date IS NOT NULL AND deleted_at IS NULL", whereCompany).catch(() => [{ avg_tenure: 0 }]);
+      const [totalEmp] = await query(
+        "SELECT COUNT(*) as count FROM hr_employees WHERE company_id = :companyId AND deleted_at IS NULL",
+        whereCompany,
+      ).catch(() => [{ count: 0 }]);
+      const [newEmp] = await query(
+        "SELECT COUNT(*) as count FROM hr_employees WHERE company_id = :companyId AND YEAR(created_at) = :year AND deleted_at IS NULL",
+        { ...whereCompany, year },
+      ).catch(() => [{ count: 0 }]);
+      const [confirmations] = await query(
+        "SELECT COUNT(*) as count FROM hr_performance_reviews WHERE company_id = :companyId AND YEAR(created_at) = :year AND review_type = 'CONFIRMATION'",
+        { ...whereCompany, year },
+      ).catch(() => [{ count: 0 }]);
+      const [male] = await query(
+        "SELECT COUNT(*) as count FROM hr_employees WHERE company_id = :companyId AND gender = 'MALE' AND deleted_at IS NULL",
+        whereCompany,
+      ).catch(() => [{ count: 0 }]);
+      const [female] = await query(
+        "SELECT COUNT(*) as count FROM hr_employees WHERE company_id = :companyId AND gender = 'FEMALE' AND deleted_at IS NULL",
+        whereCompany,
+      ).catch(() => [{ count: 0 }]);
+      const [tenure] = await query(
+        "SELECT ROUND(AVG(DATEDIFF(CURDATE(), joining_date) / 365.25), 1) as avg_tenure FROM hr_employees WHERE company_id = :companyId AND joining_date IS NOT NULL AND deleted_at IS NULL",
+        whereCompany,
+      ).catch(() => [{ avg_tenure: 0 }]);
 
-    // Attrition: employees who left in the year / total active at start
-    const [attrition] = await query(`SELECT ROUND(
+      // Attrition: employees who left in the year / total active at start
+      const [attrition] = await query(
+        `SELECT ROUND(
       (SELECT COUNT(*) FROM hr_employees WHERE company_id = :companyId AND YEAR(deleted_at) = :year AND deleted_at IS NOT NULL)
       /
       GREATEST((SELECT COUNT(*) FROM hr_employees WHERE company_id = :companyId AND deleted_at IS NULL), 1) * 100, 1
-    ) as rate`, { ...whereCompany, year }).catch(() => [{ rate: 0 }]);
+    ) as rate`,
+        { ...whereCompany, year },
+      ).catch(() => [{ rate: 0 }]);
 
-    // Category pie
-    const categoryPie = await query("SELECT ec.category_name as label, COUNT(*) as value FROM hr_employees e JOIN hr_employee_categories ec ON ec.id = e.category_id WHERE e.company_id = :companyId AND e.deleted_at IS NULL GROUP BY ec.category_name ORDER BY value DESC", whereCompany).catch(() => []);
+      // Category pie
+      const categoryPie = await query(
+        "SELECT ec.category_name as label, COUNT(*) as value FROM hr_employees e JOIN hr_employee_categories ec ON ec.id = e.category_id WHERE e.company_id = :companyId AND e.deleted_at IS NULL GROUP BY ec.category_name ORDER BY value DESC",
+        whereCompany,
+      ).catch(() => []);
 
-    // Location pie
-    const locationPie = await query("SELECT l.location_name as label, COUNT(*) as value FROM hr_employees e JOIN hr_locations l ON l.id = e.location_id WHERE e.company_id = :companyId AND e.deleted_at IS NULL GROUP BY l.location_name ORDER BY value DESC", whereCompany).catch(() => []);
+      // Location pie
+      const locationPie = await query(
+        "SELECT l.location_name as label, COUNT(*) as value FROM hr_employees e JOIN hr_locations l ON l.id = e.location_id WHERE e.company_id = :companyId AND e.deleted_at IS NULL GROUP BY l.location_name ORDER BY value DESC",
+        whereCompany,
+      ).catch(() => []);
 
-    // Employee type bar
-    const typeBar = await query("SELECT employment_type as label, COUNT(*) as value FROM hr_employees WHERE company_id = :companyId AND deleted_at IS NULL GROUP BY employment_type ORDER BY value DESC", whereCompany).catch(() => []);
+      // Employee type bar
+      const typeBar = await query(
+        "SELECT employment_type as label, COUNT(*) as value FROM hr_employees WHERE company_id = :companyId AND deleted_at IS NULL GROUP BY employment_type ORDER BY value DESC",
+        whereCompany,
+      ).catch(() => []);
 
-    // Department bar
-    const departmentBar = await query("SELECT d.dept_name as label, COUNT(*) as value FROM hr_employees e JOIN hr_departments d ON d.id = e.dept_id WHERE e.company_id = :companyId AND e.deleted_at IS NULL GROUP BY d.dept_name ORDER BY value DESC", whereCompany).catch(() => []);
+      // Department bar
+      const departmentBar = await query(
+        "SELECT d.dept_name as label, COUNT(*) as value FROM hr_employees e JOIN hr_departments d ON d.id = e.dept_id WHERE e.company_id = :companyId AND e.deleted_at IS NULL GROUP BY d.dept_name ORDER BY value DESC",
+        whereCompany,
+      ).catch(() => []);
 
-    // Status bar
-    const statusBar = await query("SELECT status as label, COUNT(*) as value FROM hr_employees WHERE company_id = :companyId AND deleted_at IS NULL GROUP BY status ORDER BY value DESC", whereCompany).catch(() => []);
+      // Status bar
+      const statusBar = await query(
+        "SELECT status as label, COUNT(*) as value FROM hr_employees WHERE company_id = :companyId AND deleted_at IS NULL GROUP BY status ORDER BY value DESC",
+        whereCompany,
+      ).catch(() => []);
 
-    // Confirmations by department
-    const confirmationsByDept = await query(`SELECT d.dept_name as label, COUNT(*) as value FROM hr_performance_reviews pr JOIN hr_employees e ON e.id = pr.employee_id JOIN hr_departments d ON d.id = e.dept_id WHERE pr.company_id = :companyId AND YEAR(pr.created_at) = :year AND pr.review_type = 'CONFIRMATION' GROUP BY d.dept_name ORDER BY value DESC`, { ...whereCompany, year }).catch(() => []);
+      // Confirmations by department
+      const confirmationsByDept = await query(
+        `SELECT d.dept_name as label, COUNT(*) as value FROM hr_performance_reviews pr JOIN hr_employees e ON e.id = pr.employee_id JOIN hr_departments d ON d.id = e.dept_id WHERE pr.company_id = :companyId AND YEAR(pr.created_at) = :year AND pr.review_type = 'CONFIRMATION' GROUP BY d.dept_name ORDER BY value DESC`,
+        { ...whereCompany, year },
+      ).catch(() => []);
 
-    // Monthly joiners trend
-    const monthlyJoiners = await query(`SELECT DATE_FORMAT(created_at, '%b') as label, MONTH(created_at) as m, COUNT(*) as value FROM hr_employees WHERE company_id = :companyId AND YEAR(created_at) = :year AND deleted_at IS NULL GROUP BY MONTH(created_at), label ORDER BY m ASC`, { ...whereCompany, year }).catch(() => []);
+      // Monthly joiners trend
+      const monthlyJoiners = await query(
+        `SELECT DATE_FORMAT(created_at, '%b') as label, MONTH(created_at) as m, COUNT(*) as value FROM hr_employees WHERE company_id = :companyId AND YEAR(created_at) = :year AND deleted_at IS NULL GROUP BY MONTH(created_at), label ORDER BY m ASC`,
+        { ...whereCompany, year },
+      ).catch(() => []);
 
-    res.json({
-      cards: {
-        total_employees: totalEmp.count,
-        new_employees_year: newEmp.count,
-        confirmations_year: confirmations.count,
-        male_count: male.count,
-        female_count: female.count,
-        average_tenure_years: tenure.avg_tenure,
-        attrition_rate: attrition.rate,
-      },
-      category_pie: categoryPie.map(r => ({ label: r.label, value: Number(r.value) })),
-      location_pie: locationPie.map(r => ({ label: r.label, value: Number(r.value) })),
-      employee_type_bar: typeBar.map(r => ({ label: r.label, value: Number(r.value) })),
-      department_bar: departmentBar.map(r => ({ label: r.label, value: Number(r.value) })),
-      status_bar: statusBar.map(r => ({ label: r.label, value: Number(r.value) })),
-      confirmations_by_department: confirmationsByDept.map(r => ({ label: r.label, value: Number(r.value) })),
-      monthly_joiners_trend: monthlyJoiners.map(r => ({ label: r.label, value: Number(r.value) })),
-    });
-  } catch (err) {
-    next(err);
-  }
-});
+      res.json({
+        cards: {
+          total_employees: totalEmp.count,
+          new_employees_year: newEmp.count,
+          confirmations_year: confirmations.count,
+          male_count: male.count,
+          female_count: female.count,
+          average_tenure_years: tenure.avg_tenure,
+          attrition_rate: attrition.rate,
+        },
+        category_pie: categoryPie.map((r) => ({
+          label: r.label,
+          value: Number(r.value),
+        })),
+        location_pie: locationPie.map((r) => ({
+          label: r.label,
+          value: Number(r.value),
+        })),
+        employee_type_bar: typeBar.map((r) => ({
+          label: r.label,
+          value: Number(r.value),
+        })),
+        department_bar: departmentBar.map((r) => ({
+          label: r.label,
+          value: Number(r.value),
+        })),
+        status_bar: statusBar.map((r) => ({
+          label: r.label,
+          value: Number(r.value),
+        })),
+        confirmations_by_department: confirmationsByDept.map((r) => ({
+          label: r.label,
+          value: Number(r.value),
+        })),
+        monthly_joiners_trend: monthlyJoiners.map((r) => ({
+          label: r.label,
+          value: Number(r.value),
+        })),
+      });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
 
 // ===== DASHBOARD STATS =====
-router.get("/dashboard-stats", requireAuth, requireCompanyScope, requireBranchScope, async (req, res, next) => {
-  try {
-    const { companyId, branchId = null, branchIdsStr = '' } = req.scope || {};
-    const [employees] = await query(
-      "SELECT COUNT(*) as count FROM hr_employees WHERE company_id = :companyId AND (:branchIdsStr = '' OR FIND_IN_SET(branch_id, :branchIdsStr)) AND status IN ('ACTIVE','PROBATION') AND deleted_at IS NULL",
-      { companyId, branchId, branchIdsStr },
-    ).catch(() => [{ count: 0 }]);
-    const [onLeave] = await query(
-      "SELECT COUNT(*) as count FROM hr_attendance WHERE company_id = :companyId AND attendance_date = CURDATE() AND status = 'ON_LEAVE'",
-      { companyId },
-    ).catch(() => [{ count: 0 }]);
-    const [attendance] = await query(
-      "SELECT COUNT(*) as count FROM hr_attendance WHERE company_id = :companyId AND attendance_date = CURDATE() AND status IN ('PRESENT','LATE')",
-      { companyId },
-    ).catch(() => [{ count: 0 }]);
-    const [pendingLeave] = await query(
-      "SELECT COUNT(*) as count FROM hr_leave_requests WHERE company_id = :companyId AND status IN ('PENDING','SUBMITTED')",
-      { companyId },
-    ).catch(() => [{ count: 0 }]);
-    const [depts] = await query(
-      "SELECT COUNT(*) as count FROM hr_departments WHERE company_id = :companyId AND is_active = 1",
-      { companyId },
-    ).catch(() => [{ count: 0 }]);
-    let payrollStatus = "None";
+router.get(
+  "/dashboard-stats",
+  requireAuth,
+  requireCompanyScope,
+  requireBranchScope,
+  async (req, res, next) => {
     try {
-      const [pr] = await query(
-        `SELECT pp.status FROM hr_payroll_periods pp
+      const { companyId, branchId = null, branchIdsStr = "" } = req.scope || {};
+      const [employees] = await query(
+        "SELECT COUNT(*) as count FROM hr_employees WHERE company_id = :companyId AND (:branchIdsStr = '' OR FIND_IN_SET(branch_id, :branchIdsStr)) AND status IN ('ACTIVE','PROBATION') AND deleted_at IS NULL",
+        { companyId, branchId, branchIdsStr },
+      ).catch(() => [{ count: 0 }]);
+      const [onLeave] = await query(
+        "SELECT COUNT(*) as count FROM hr_attendance WHERE company_id = :companyId AND attendance_date = CURDATE() AND status = 'ON_LEAVE'",
+        { companyId },
+      ).catch(() => [{ count: 0 }]);
+      const [attendance] = await query(
+        "SELECT COUNT(*) as count FROM hr_attendance WHERE company_id = :companyId AND attendance_date = CURDATE() AND status IN ('PRESENT','LATE')",
+        { companyId },
+      ).catch(() => [{ count: 0 }]);
+      const [pendingLeave] = await query(
+        "SELECT COUNT(*) as count FROM hr_leave_requests WHERE company_id = :companyId AND status IN ('PENDING','SUBMITTED')",
+        { companyId },
+      ).catch(() => [{ count: 0 }]);
+      const [depts] = await query(
+        "SELECT COUNT(*) as count FROM hr_departments WHERE company_id = :companyId AND is_active = 1",
+        { companyId },
+      ).catch(() => [{ count: 0 }]);
+      let payrollStatus = "None";
+      try {
+        const [pr] = await query(
+          `SELECT pp.status FROM hr_payroll_periods pp
          WHERE pp.company_id = :companyId
          ORDER BY pp.start_date DESC LIMIT 1`,
-        { companyId },
-      );
-      if (pr) payrollStatus = pr.status;
-    } catch {}
-    res.json({
-      success: true,
-      data: {
-        activeEmployees: employees.count,
-        onLeaveToday: onLeave.count,
-        presentToday: attendance.count,
-        pendingLeaveRequests: pendingLeave.count,
-        departmentsCount: depts.count,
-        payrollStatus,
-      },
-    });
-  } catch (err) {
-    next(err);
-  }
-});
+          { companyId },
+        );
+        if (pr) payrollStatus = pr.status;
+      } catch {}
+      res.json({
+        success: true,
+        data: {
+          activeEmployees: employees.count,
+          onLeaveToday: onLeave.count,
+          presentToday: attendance.count,
+          pendingLeaveRequests: pendingLeave.count,
+          departmentsCount: depts.count,
+          payrollStatus,
+        },
+      });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
 
 export default router;

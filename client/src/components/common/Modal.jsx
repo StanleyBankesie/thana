@@ -74,7 +74,13 @@ export default function Modal({
           <div className="flex items-center gap-3 min-w-0">
             {Icon && (
               <div className="w-10 h-10 rounded-xl bg-brand-50 dark:bg-brand-900/30 text-brand-900 dark:text-brand-400 flex items-center justify-center font-bold flex-shrink-0 border border-brand-200/50 dark:border-brand-800/50">
-                {typeof Icon === 'function' ? <Icon size={20} /> : Icon}
+                {React.isValidElement(Icon)
+                  ? Icon
+                  : (typeof Icon === 'function' || (typeof Icon === 'object' && Icon !== null && (Icon.$$typeof || Icon.render)))
+                  ? <Icon size={20} />
+                  : typeof Icon === 'string' || typeof Icon === 'number'
+                  ? Icon
+                  : null}
               </div>
             )}
             <div className="min-w-0">

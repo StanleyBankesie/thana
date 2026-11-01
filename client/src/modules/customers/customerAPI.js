@@ -11,8 +11,8 @@ const baseUrl = "/sales/customers";
  * Collection of API methods for managing customers.
  */
 export const customerAPI = {
-  async list(params = {}) {
-    const res = await apiClient.get(baseUrl, { params });
+  async list(params = {}, config = {}) {
+    const res = await apiClient.get(baseUrl, { params, __skipWarmCache: true, ...config });
     const items = Array.isArray(res?.items)
       ? res.items
       : Array.isArray(res)

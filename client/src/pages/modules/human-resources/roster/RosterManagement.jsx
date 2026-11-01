@@ -217,9 +217,7 @@ export default function RosterManagement() {
     <div className="p-4 space-y-6">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <button onClick={() => window.history.back()} className="btn-secondary text-sm">
-            Back to Menu
-          </button>
+          <Link to="/human-resources" className="btn-secondary text-sm">Back to Menu</Link>
           <h1 className="text-xl font-semibold">Roster Management</h1>
         </div>
         <div className="flex items-center gap-2">

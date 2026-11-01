@@ -150,7 +150,13 @@ function canonicalDocumentType(type) {
   if (t === "project" || t === "project-profile" || t === "project_profile") {
     return "project";
   }
-  if (t === "boq" || t === "bill-of-quantities" || t === "bill of quantities" || t === "bill_of_quantities" || t === "boq-manager") {
+  if (
+    t === "boq" ||
+    t === "bill-of-quantities" ||
+    t === "bill of quantities" ||
+    t === "bill_of_quantities" ||
+    t === "boq-manager"
+  ) {
     return "boq";
   }
   if (
@@ -909,13 +915,13 @@ async function loadPreviewData(type, companyId, branchId) {
        LEFT JOIN pm_projects p ON p.id = b.project_id
        LEFT JOIN adm_users u ON u.id = b.created_by
        WHERE b.id = :id AND (b.company_id = :companyId OR :companyId IS NULL)`,
-      { id, companyId }
+      { id, companyId },
     );
     if (!boq) throw httpError(404, "NOT_FOUND", "BOQ not found");
 
     const items = await query(
       `SELECT * FROM pm_boq_items WHERE boq_id = :id ORDER BY item_order ASC, id ASC`,
-      { id }
+      { id },
     );
     const company = await loadCompany(companyId);
     return {
@@ -1226,7 +1232,9 @@ async function loadPreviewData(type, companyId, branchId) {
           if (!levels[lvl]) levels[lvl] = [];
           levels[lvl].push(c);
         });
-        const sortedLvls = Object.keys(levels).map(Number).sort((a, b) => a - b);
+        const sortedLvls = Object.keys(levels)
+          .map(Number)
+          .sort((a, b) => a - b);
         let base = netAmt;
         sortedLvls.forEach((lvl) => {
           levels[lvl].forEach((c) => {
@@ -1446,7 +1454,8 @@ async function loadPreviewData(type, companyId, branchId) {
         status: "DRAFT",
         project_name: "Corporate Headquarters Renovation",
         project_manager: "Kwame Mensah",
-        scope_of_work: "Full civil, architectural and electrical restructuring.",
+        scope_of_work:
+          "Full civil, architectural and electrical restructuring.",
         sub_total: 15000,
         discount_total: 0,
         tax_total: 0,
@@ -1454,7 +1463,8 @@ async function loadPreviewData(type, companyId, branchId) {
         total: 15000,
         remarks: "Payment terms: 50% advance, 50% upon completion.",
         valid_until: null,
-        terms_and_conditions: "Standard enterprise project delivery terms apply.",
+        terms_and_conditions:
+          "Standard enterprise project delivery terms apply.",
         items: [
           {
             name: "Phase 1 - Demolition & Clearing",
@@ -1475,7 +1485,8 @@ async function loadPreviewData(type, companyId, branchId) {
           {
             name: "Phase 2 - Electrical & Structural Works",
             phase_name: "Phase 2 - Electrical & Structural Works",
-            description: "Conduit wiring, reinforcement, and architectural framing",
+            description:
+              "Conduit wiring, reinforcement, and architectural framing",
             quantity: 60,
             est_hours: 60,
             price: 150,
@@ -1822,7 +1833,8 @@ async function loadPreviewData(type, companyId, branchId) {
       boq: {
         id: 1,
         boq_reference: "BOQ-PRJ01-2026-001",
-        boq_title: "Commercial Complex Construction - Substructure & Superstructure",
+        boq_title:
+          "Commercial Complex Construction - Substructure & Superstructure",
         boq_date: "2026-10-24",
         version: "1.0",
         currency: "GHS",
@@ -1846,7 +1858,8 @@ async function loadPreviewData(type, companyId, branchId) {
           {
             index: 1,
             item_code: "PRJ-001",
-            item_description: "Excavation and earthworks for foundations in ordinary soil",
+            item_description:
+              "Excavation and earthworks for foundations in ordinary soil",
             cost_category: "LABOUR",
             uom: "M3",
             quantity: 350,
@@ -1857,7 +1870,8 @@ async function loadPreviewData(type, companyId, branchId) {
           {
             index: 2,
             item_code: "PRJ-002",
-            item_description: "Reinforced concrete grade 25/30 in strip and pad footings",
+            item_description:
+              "Reinforced concrete grade 25/30 in strip and pad footings",
             cost_category: "MATERIALS",
             uom: "M3",
             quantity: 120,
@@ -1868,7 +1882,8 @@ async function loadPreviewData(type, companyId, branchId) {
           {
             index: 3,
             item_code: "PRJ-003",
-            item_description: "High yield deformed steel reinforcement bars (Y12, Y16, Y20)",
+            item_description:
+              "High yield deformed steel reinforcement bars (Y12, Y16, Y20)",
             cost_category: "MATERIALS",
             uom: "TON",
             quantity: 12.5,
@@ -2389,8 +2404,8 @@ async function loadData(type, id, companyId, branchId) {
         p.id, p.po_no, p.po_date, p.status, p.po_type,
         p.supplier_id, s.supplier_name, s.address AS supplier_address, s.city AS supplier_city, s.state AS supplier_state, s.country AS supplier_country, s.phone AS supplier_phone, s.email AS supplier_email,
         p.currency, p.exchange_rate, p.warehouse_id, p.remarks, p.total_amount, p.delivery_date, p.payment_type,
-          p.created_at,
-          u.username AS created_by_name
+          COALESCE(p.created_at, NOW()) AS created_at,
+          COALESCE(u.full_name, u.username, 'System Admin') AS created_by_name
          FROM pur_orders p
       LEFT JOIN pur_suppliers s ON s.id = p.supplier_id
         LEFT JOIN adm_users u ON u.id = p.created_by
@@ -3823,21 +3838,79 @@ async function loadData(type, id, companyId, branchId) {
     return voucherObj;
   }
   if (type === "salary-slip") {
+    const amountToGhanaCedisWords = (amount) => {
+      const num = Math.abs(Number(amount || 0));
+      if (isNaN(num) || num === 0) return "Zero Ghana Cedis Only";
+
+      const ones = [
+        "", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine",
+        "Ten", "Eleven", "Twelve", "Thirteen", "Fourteen", "Fifteen", "Sixteen",
+        "Seventeen", "Eighteen", "Nineteen",
+      ];
+      const tens = [
+        "", "", "Twenty", "Thirty", "Forty", "Fifty", "Sixty", "Seventy", "Eighty", "Ninety",
+      ];
+
+      function convertUnderThousand(n) {
+        let str = "";
+        if (n >= 100) {
+          str += ones[Math.floor(n / 100)] + " Hundred";
+          n %= 100;
+          if (n > 0) str += " and ";
+        }
+        if (n >= 20) {
+          str += tens[Math.floor(n / 10)] + (n % 10 > 0 ? " " + ones[n % 10] : "");
+        } else if (n > 0) {
+          str += ones[n];
+        }
+        return str.trim();
+      }
+
+      const intPart = Math.floor(num);
+      const decimalPart = Math.round((num - intPart) * 100);
+
+      let words = "";
+      if (intPart === 0) {
+        words = "Zero";
+      } else {
+        const billions = Math.floor(intPart / 1000000000);
+        const millions = Math.floor((intPart % 1000000000) / 1000000);
+        const thousands = Math.floor((intPart % 1000000) / 1000);
+        const remainder = intPart % 1000;
+
+        const parts = [];
+        if (billions > 0) parts.push(convertUnderThousand(billions) + " Billion");
+        if (millions > 0) parts.push(convertUnderThousand(millions) + " Million");
+        if (thousands > 0) parts.push(convertUnderThousand(thousands) + " Thousand");
+        if (remainder > 0) {
+          if (parts.length > 0 && remainder < 100) {
+            parts.push("and " + convertUnderThousand(remainder));
+          } else {
+            parts.push(convertUnderThousand(remainder));
+          }
+        }
+        words = parts.join(" ");
+      }
+
+      words += " Ghana Cedis";
+      if (decimalPart > 0) {
+        words += ", " + convertUnderThousand(decimalPart) + " Pesewas";
+      }
+      return words + " Only";
+    };
+
     const [payslip] = await query(
       `
       SELECT
-        p.id, p.period_id, p.status, p.paid_at, p.remarks,
-        p.basic_salary, p.allowances, p.deductions, p.net_salary,
-        p.ssf_employee, p.tier3_employee, p.income_tax, p.loan_deductions_total,
-        p.working_days, p.days_present, p.leave_taken,
+        p.*,
         e.emp_code, e.first_name, e.last_name, e.email, e.joining_date,
         e.ssnit_no, e.tin, e.bank_name, e.bank_account_no,
         d.dept_name AS dept_name,
         b.name AS branch_name,
         pos.pos_name AS position_name,
         per.period_name AS period_name,
-          p.created_at,
-          u.username AS created_by_name
+          COALESCE(p.created_at, NOW()) AS created_at,
+          COALESCE(u.full_name, u.username, 'System Admin') AS created_by_name
          FROM hr_payslips p
       JOIN hr_employees e ON e.id = p.employee_id AND e.company_id = :companyId
       LEFT JOIN hr_departments d ON d.id = e.dept_id
@@ -3868,12 +3941,41 @@ async function loadData(type, id, companyId, branchId) {
         amount: Number(payslip.basic_salary),
       });
     }
-    if (Number(payslip.allowances) > 0) {
+    const employeeComponents = await query(
+      `SELECT column_name, label, component_type, is_earning, display_order
+         FROM hr_salary_components
+        WHERE company_id = :companyId AND is_active = 1
+          AND column_name REGEXP '^employee_component_[0-9]+$'
+        ORDER BY display_order ASC, label ASC`,
+      { companyId },
+    ).catch(() => []);
+    const activeEmployeeComponents = employeeComponents
+      .filter((component) =>
+        /^employee_component_\d+$/.test(String(component.column_name)),
+      )
+      .map((component) => ({
+        ...component,
+        amount: Number(payslip[component.column_name] || 0),
+      }))
+      .filter((component) => component.amount > 0);
+    const employeeEarningsTotal = activeEmployeeComponents
+      .filter((component) => Number(component.is_earning) === 1)
+      .reduce((sum, component) => sum + component.amount, 0);
+    const otherAllowances = Math.max(
+      0,
+      Number(payslip.allowances || 0) - employeeEarningsTotal,
+    );
+    if (otherAllowances > 0) {
       earnings.push({
         label: "Allowances",
-        amount: Number(payslip.allowances),
+        amount: otherAllowances,
       });
     }
+    activeEmployeeComponents
+      .filter((component) => Number(component.is_earning) === 1)
+      .forEach((component) =>
+        earnings.push({ label: component.label, amount: component.amount }),
+      );
 
     let deductions = [];
     if (Number(payslip.ssf_employee) > 0) {
@@ -3900,6 +4002,28 @@ async function loadData(type, id, companyId, branchId) {
         amount: Number(payslip.loan_deductions_total),
       });
     }
+    activeEmployeeComponents
+      .filter((component) => Number(component.is_earning) !== 1)
+      .forEach((component) =>
+        deductions.push({ label: component.label, amount: component.amount }),
+      );
+    const employeeComponentDeductionTotal = activeEmployeeComponents
+      .filter((component) => Number(component.is_earning) !== 1)
+      .reduce((sum, component) => sum + component.amount, 0);
+    const otherDeductions = Math.max(
+      0,
+      Number(payslip.deductions || 0) -
+        Number(payslip.income_tax || 0) -
+        Number(payslip.ssf_employee || 0) -
+        Number(payslip.tier3_employee || 0) -
+        Number(payslip.loan_deductions_total || 0) -
+        employeeComponentDeductionTotal,
+    );
+    if (otherDeductions > 0) {
+      deductions.push({ label: "Other Deductions", amount: otherDeductions });
+    }
+    const totalEarnings =
+      Number(payslip.basic_salary || 0) + Number(payslip.allowances || 0);
 
     earnings = earnings.filter((e) => e.amount > 0);
     deductions = deductions.filter((d) => d.amount > 0);
@@ -3952,11 +4076,10 @@ async function loadData(type, id, companyId, branchId) {
         basic_salary: Number(payslip.basic_salary || 0).toFixed(2),
         allowances: Number(payslip.allowances || 0).toFixed(2),
         deductions: Number(payslip.deductions || 0).toFixed(2),
-        gross_pay: (
-          Number(payslip.basic_salary || 0) + Number(payslip.allowances || 0)
-        ).toFixed(2),
+        tax_relief: Number(payslip.tax_relief || 0).toFixed(2),
+        gross_pay: totalEarnings.toFixed(2),
         net_salary: Number(payslip.net_salary || 0).toFixed(2),
-        net_in_words: "",
+        net_in_words: amountToGhanaCedisWords(payslip.net_salary),
         status: payslip.status,
         working_days: payslip.working_days || 0,
         days_present: payslip.days_present || 0,
@@ -3978,12 +4101,11 @@ async function loadData(type, id, companyId, branchId) {
           name: String(d.label || ""),
           amount: Number(d.amount || 0).toFixed(2),
         })),
-        total_earnings: (
-          Number(payslip.basic_salary || 0) + Number(payslip.allowances || 0)
-        ).toFixed(2),
+        total_earnings: totalEarnings.toFixed(2),
         total_deductions: Number(payslip.deductions || 0).toFixed(2),
+        tax_relief: Number(payslip.tax_relief || 0).toFixed(2),
         net_pay: Number(payslip.net_salary || 0).toFixed(2),
-        net_pay_in_words: "",
+        net_pay_in_words: amountToGhanaCedisWords(payslip.net_salary),
       },
     };
   }

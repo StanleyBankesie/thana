@@ -25,10 +25,14 @@ import BaseSalariesPage from "./salary-config/BaseSalariesPage.jsx";
 import SalaryStructurePage from "./salary-config/SalaryStructurePage.jsx";
 import TaxConfigList from "./tax-config/TaxConfigList.jsx";
 import TaxConfigForm from "./tax-config/TaxConfigForm.jsx";
+import TaxReliefList from "./tax-reliefs/TaxReliefList.jsx";
 import AllowanceList from "./allowances/AllowanceList.jsx";
 import AllowanceForm from "./allowances/AllowanceForm.jsx";
 import LoanList from "./loans/LoanList.jsx";
 import LoanForm from "./loans/LoanForm.jsx";
+import LoanDisbursementPage from "./loans/LoanDisbursementPage.jsx";
+import LoanRequestList from "./loans/LoanRequestList.jsx";
+import LoanRequestForm from "./loans/LoanRequestForm.jsx";
 import PayslipList from "./payslips/PayslipList.jsx";
 import PayslipForm from "./payslips/PayslipForm.jsx";
 import PromotionList from "./promotions/PromotionList.jsx";
@@ -44,6 +48,7 @@ import OfferForm from "./recruitment/OfferForm.jsx";
 import PayrollDashboard from "./payroll/PayrollDashboard.jsx";
 import SalaryProcessing from "./payroll/SalaryProcessing.jsx";
 import SalaryPostingPage from "./payroll/SalaryPostingPage.jsx";
+import ManualPayrollComponents from "./payroll/ManualPayrollComponents.jsx";
 import LeaveRequestForm from "./leave/LeaveRequestForm.jsx"; // Keeping file loosely to not break anything
 import LeaveApprovals from "./leave/LeaveApprovals.jsx";
 import LeaveCalendar from "./leave/LeaveCalendar.jsx";
@@ -82,8 +87,16 @@ export const humanResourcesSections = [
         name: "Employee Setup",
         path: "/human-resources/employees",
         actions: [
-          { label: "View", path: "/human-resources/employees", type: "outline" },
-          { label: "New", path: "/human-resources/employees/new", type: "primary" }
+          {
+            label: "View",
+            path: "/human-resources/employees",
+            type: "outline",
+          },
+          {
+            label: "New",
+            path: "/human-resources/employees/new",
+            type: "primary",
+          },
         ],
         description: "Manage employee records and information",
         icon: "👥",
@@ -92,8 +105,16 @@ export const humanResourcesSections = [
         name: "Promotions",
         path: "/human-resources/promotions",
         actions: [
-          { label: "View", path: "/human-resources/promotions", type: "outline" },
-          { label: "New", path: "/human-resources/promotions/new", type: "primary" }
+          {
+            label: "View",
+            path: "/human-resources/promotions",
+            type: "outline",
+          },
+          {
+            label: "New",
+            path: "/human-resources/promotions/new",
+            type: "primary",
+          },
         ],
         description: "Record employee promotions and salary changes",
         icon: "⬆",
@@ -101,61 +122,126 @@ export const humanResourcesSections = [
     ],
   },
   {
-    title: "Organization & Structures",
+    title: "Reports",
+    icon: "📊",
     features: [
       {
-        name: "Organogram",
+        name: "Organogram Report",
         path: "/human-resources/organogram",
         actions: [
-          { label: "View", path: "/human-resources/organogram", type: "outline" }
+          {
+            label: "View",
+            path: "/human-resources/organogram",
+            type: "outline",
+          },
         ],
-        description: "Interactive visual chart of company positions and reporting structure",
+        description:
+          "Interactive visual chart of company positions and reporting structure",
         icon: "📊",
       },
       {
         name: "Employee Information",
-        path: "/human-resources/reports?type=employees",
+        path: "/human-resources/reports/employees",
         actions: [
-          { label: "View", path: "/human-resources/reports?type=employees", type: "outline" }
+          {
+            label: "View",
+            path: "/human-resources/reports/employees",
+            type: "outline",
+          },
         ],
         description: "View comprehensive employee information reports",
         icon: "👥",
       },
       {
         name: "SSF (SSNIT) Contributions",
-        path: "/human-resources/reports?type=ssf",
+        path: "/human-resources/reports/ssf",
         actions: [
-          { label: "View", path: "/human-resources/reports?type=ssf", type: "outline" }
+          {
+            label: "View",
+            path: "/human-resources/reports/ssf",
+            type: "outline",
+          },
         ],
         description: "View SSF and SSNIT contribution breakdown reports",
         icon: "🛡️",
       },
       {
         name: "Income Tax (PAYE)",
-        path: "/human-resources/reports?type=paye",
+        path: "/human-resources/reports/paye",
         actions: [
-          { label: "View", path: "/human-resources/reports?type=paye", type: "outline" }
+          {
+            label: "View",
+            path: "/human-resources/reports/paye",
+            type: "outline",
+          },
         ],
         description: "View statutory Income Tax and PAYE deduction reports",
         icon: "🧾",
       },
       {
-        name: "Employee Loans",
-        path: "/human-resources/reports?type=loans",
+        name: "Salaries Report",
+        path: "/human-resources/reports/salaries",
         actions: [
-          { label: "View", path: "/human-resources/reports?type=loans", type: "outline" }
+          {
+            label: "View",
+            path: "/human-resources/reports/salaries",
+            type: "outline",
+          },
+        ],
+        description: "View processed base salary, allowances, deductions and net salary reports",
+        icon: "💰",
+      },
+      {
+        name: "Monthly Payroll Report",
+        path: "/human-resources/reports/monthly-payroll",
+        actions: [
+          {
+            label: "View",
+            path: "/human-resources/reports/monthly-payroll",
+            type: "outline",
+          },
+        ],
+        description: "Full report of processed salaries per month with detailed employee or consolidated views",
+        icon: "📑",
+      },
+      {
+        name: "Employee Loans",
+        path: "/human-resources/reports/loans",
+        actions: [
+          {
+            label: "View",
+            path: "/human-resources/reports/loans",
+            type: "outline",
+          },
         ],
         description: "View employee loan statements and repayment reports",
         icon: "💳",
       },
       {
-        name: "Employee Allowances",
-        path: "/human-resources/reports?type=allowances",
+        name: "Employee Allowances Report",
+        path: "/human-resources/reports/allowances",
         actions: [
-          { label: "View", path: "/human-resources/reports?type=allowances", type: "outline" }
+          {
+            label: "View",
+            path: "/human-resources/reports/allowances",
+            type: "outline",
+          },
         ],
-        description: "View recurring and statutory employee allowance reports",
+        description: "View recurring and statutory employee allowance reports and distribution",
         icon: "🎁",
+      },
+      {
+        name: "HR Reports Dashboard",
+        path: "/human-resources/reports",
+        actions: [
+          {
+            label: "View",
+            path: "/human-resources/reports",
+            type: "outline",
+          },
+        ],
+        description: "Comprehensive HR metrics, reports and analytics dashboard",
+        icon: "📊",
       },
     ],
   },
@@ -166,8 +252,16 @@ export const humanResourcesSections = [
         name: "Clock In/Out",
         path: "/human-resources/attendance",
         actions: [
-          { label: "View", path: "/human-resources/attendance", type: "outline" },
-          { label: "New", path: "/human-resources/attendance/new", type: "primary" }
+          {
+            label: "View",
+            path: "/human-resources/attendance",
+            type: "outline",
+          },
+          {
+            label: "New",
+            path: "/human-resources/attendance/new",
+            type: "primary",
+          },
         ],
         description: "Daily attendance dashboard and logging",
         icon: "⏰",
@@ -176,8 +270,16 @@ export const humanResourcesSections = [
         name: "Timesheet Entry",
         path: "/human-resources/timesheet",
         actions: [
-          { label: "View", path: "/human-resources/timesheet", type: "outline" },
-          { label: "New", path: "/human-resources/timesheet/new", type: "primary" }
+          {
+            label: "View",
+            path: "/human-resources/timesheet",
+            type: "outline",
+          },
+          {
+            label: "New",
+            path: "/human-resources/timesheet/new",
+            type: "primary",
+          },
         ],
         description: "Track project and task work hours",
         icon: "⏱",
@@ -186,7 +288,11 @@ export const humanResourcesSections = [
         name: "Timesheet Report",
         path: "/human-resources/timesheet-report",
         actions: [
-          { label: "View", path: "/human-resources/timesheet-report", type: "outline" }
+          {
+            label: "View",
+            path: "/human-resources/timesheet-report",
+            type: "outline",
+          },
         ],
         description: "View and filter comprehensive timesheet logs and hours",
         icon: "📊",
@@ -195,8 +301,16 @@ export const humanResourcesSections = [
         name: "Work Schedule Management",
         path: "/human-resources/work-schedules",
         actions: [
-          { label: "View", path: "/human-resources/work-schedules", type: "outline" },
-          { label: "New", path: "/human-resources/work-schedules/new", type: "primary" }
+          {
+            label: "View",
+            path: "/human-resources/work-schedules",
+            type: "outline",
+          },
+          {
+            label: "New",
+            path: "/human-resources/work-schedules/new",
+            type: "primary",
+          },
         ],
         description: "Define employee work schedules",
         icon: "📆",
@@ -206,7 +320,11 @@ export const humanResourcesSections = [
         path: "/human-resources/roster",
         actions: [
           { label: "View", path: "/human-resources/roster", type: "outline" },
-          { label: "New", path: "/human-resources/roster/new", type: "primary" }
+          {
+            label: "New",
+            path: "/human-resources/roster/new",
+            type: "primary",
+          },
         ],
         description: "Manage shift rosters",
         icon: "📅",
@@ -220,8 +338,16 @@ export const humanResourcesSections = [
         name: "Apply for Leave",
         path: "/human-resources/leave/apply",
         actions: [
-          { label: "View", path: "/human-resources/leave/apply", type: "outline" },
-          { label: "New", path: "/human-resources/leave/apply/new", type: "primary" }
+          {
+            label: "View",
+            path: "/human-resources/leave/apply",
+            type: "outline",
+          },
+          {
+            label: "New",
+            path: "/human-resources/leave/apply/new",
+            type: "primary",
+          },
         ],
         description: "Submit a new leave application",
         icon: "✍️",
@@ -230,8 +356,16 @@ export const humanResourcesSections = [
         name: "My Leave Records",
         path: "/human-resources/leave/records",
         actions: [
-          { label: "View", path: "/human-resources/leave/records", type: "outline" },
-          { label: "New", path: "/human-resources/leave/records/new", type: "primary" }
+          {
+            label: "View",
+            path: "/human-resources/leave/records",
+            type: "outline",
+          },
+          {
+            label: "New",
+            path: "/human-resources/leave/records/new",
+            type: "primary",
+          },
         ],
         description: "View your personal leave history and status",
         icon: "📋",
@@ -240,8 +374,16 @@ export const humanResourcesSections = [
         name: "Leave Scheduling",
         path: "/human-resources/leave-scheduling",
         actions: [
-          { label: "View", path: "/human-resources/leave-scheduling", type: "outline" },
-          { label: "New", path: "/human-resources/leave-scheduling/new", type: "primary" }
+          {
+            label: "View",
+            path: "/human-resources/leave-scheduling",
+            type: "outline",
+          },
+          {
+            label: "New",
+            path: "/human-resources/leave-scheduling/new",
+            type: "primary",
+          },
         ],
         description: "Annual leave planning and approvals",
         icon: "🗓",
@@ -250,8 +392,16 @@ export const humanResourcesSections = [
         name: "Department Leave Roster",
         path: "/human-resources/leave-roster",
         actions: [
-          { label: "View", path: "/human-resources/leave-roster", type: "outline" },
-          { label: "New", path: "/human-resources/leave-roster/new", type: "primary" }
+          {
+            label: "View",
+            path: "/human-resources/leave-roster",
+            type: "outline",
+          },
+          {
+            label: "New",
+            path: "/human-resources/leave-roster/new",
+            type: "primary",
+          },
         ],
         description: "View department leave calendar",
         icon: "👥",
@@ -260,8 +410,16 @@ export const humanResourcesSections = [
         name: "Staff Leave Balances",
         path: "/human-resources/leave-balances",
         actions: [
-          { label: "View", path: "/human-resources/leave-balances", type: "outline" },
-          { label: "New", path: "/human-resources/leave-balances/new", type: "primary" }
+          {
+            label: "View",
+            path: "/human-resources/leave-balances",
+            type: "outline",
+          },
+          {
+            label: "New",
+            path: "/human-resources/leave-balances/new",
+            type: "primary",
+          },
         ],
         description: "Track entitlement and days taken per staff",
         icon: "📊",
@@ -275,18 +433,48 @@ export const humanResourcesSections = [
         name: "Process Payroll",
         path: "/human-resources/payroll/process",
         actions: [
-          { label: "View", path: "/human-resources/payroll/process", type: "outline" },
-          { label: "New", path: "/human-resources/payroll/process/new", type: "primary" }
+          {
+            label: "View",
+            path: "/human-resources/payroll/process",
+            type: "outline",
+          },
+          {
+            label: "New",
+            path: "/human-resources/payroll/process/new",
+            type: "primary",
+          },
         ],
         description: "Generate and finalize monthly payroll",
         icon: "💰",
       },
       {
+        name: "Manual Payroll Components",
+        path: "/human-resources/payroll/manual-components",
+        actions: [
+          {
+            label: "Enter Monthly Amounts",
+            path: "/human-resources/payroll/manual-components",
+            type: "outline",
+          },
+        ],
+        description:
+          "Enter employee-specific monthly allowances and deductions",
+        icon: "🧮",
+      },
+      {
         name: "Salary Configurations",
         path: "/human-resources/salary-config",
         actions: [
-          { label: "View", path: "/human-resources/salary-config", type: "outline" },
-          { label: "New", path: "/human-resources/salary-config/new", type: "primary" }
+          {
+            label: "View",
+            path: "/human-resources/salary-config",
+            type: "outline",
+          },
+          {
+            label: "New",
+            path: "/human-resources/salary-config/new",
+            type: "primary",
+          },
         ],
         description: "Configure employee base pay and structures",
         icon: "💵",
@@ -295,38 +483,67 @@ export const humanResourcesSections = [
         name: "Statutory Contributions",
         path: "/human-resources/tax-config",
         actions: [
-          { label: "View", path: "/human-resources/tax-config", type: "outline" },
-          { label: "New", path: "/human-resources/tax-config/new", type: "primary" }
+          {
+            label: "View",
+            path: "/human-resources/tax-config",
+            type: "outline",
+          },
+          {
+            label: "New",
+            path: "/human-resources/tax-config/new",
+            type: "primary",
+          },
         ],
         description: "Configure payroll deductions and statutory taxes",
         icon: "📜",
       },
       {
-        name: "Allowances",
-        path: "/human-resources/allowances",
+        name: "Tax Reliefs",
+        path: "/human-resources/tax-reliefs",
         actions: [
-          { label: "View", path: "/human-resources/allowances", type: "outline" },
-          { label: "New", path: "/human-resources/allowances/new", type: "primary" }
+          {
+            label: "View",
+            path: "/human-resources/tax-reliefs",
+            type: "outline",
+          },
+          {
+            label: "Claim Relief",
+            path: "/human-resources/tax-reliefs",
+            type: "primary",
+          },
         ],
-        description: "Manage employee recurring allowances",
-        icon: "➕",
+        description: "Manage and approve employee statutory tax reliefs reducing PAYE",
+        icon: "🛡️",
       },
       {
-        name: "Employee Loans",
+        name: "Loan Requests",
+        path: "/human-resources/loan-requests",
+        actions: [
+          { label: "View", path: "/human-resources/loan-requests", type: "outline" },
+          { label: "New", path: "/human-resources/loan-requests/new", type: "primary" },
+        ],
+        description: "Staff loan applications with approval workflow",
+        icon: "📋",
+      },
+      {
+        name: "Loan Management",
         path: "/human-resources/loans",
         actions: [
           { label: "View", path: "/human-resources/loans", type: "outline" },
-          { label: "New", path: "/human-resources/loans/new", type: "primary" }
         ],
-        description: "Track and manage staff loans",
-        icon: "🏦",
+        description: "Disburse approved loans, post direct repayments, and manage monthly skips",
+        icon: "💰",
       },
       {
         name: "Payslips",
         path: "/human-resources/payslips",
         actions: [
           { label: "View", path: "/human-resources/payslips", type: "outline" },
-          { label: "New", path: "/human-resources/payslips/new", type: "primary" }
+          {
+            label: "New",
+            path: "/human-resources/payslips/new",
+            type: "primary",
+          },
         ],
         description: "View and generate employee payslips",
         icon: "🧾",
@@ -335,8 +552,16 @@ export const humanResourcesSections = [
         name: "Salary Posting",
         path: "/human-resources/payroll/salary-posting",
         actions: [
-          { label: "View", path: "/human-resources/payroll/salary-posting", type: "outline" },
-          { label: "New", path: "/human-resources/payroll/salary-posting/new", type: "primary" }
+          {
+            label: "View",
+            path: "/human-resources/payroll/salary-posting",
+            type: "outline",
+          },
+          {
+            label: "New",
+            path: "/human-resources/payroll/salary-posting/new",
+            type: "primary",
+          },
         ],
         description: "Post finalized salary to finance",
         icon: "💸",
@@ -350,16 +575,21 @@ export const humanResourcesSections = [
         name: "HR Master Setup",
         path: "/human-resources/setup",
         actions: [
-          { label: "View", path: "/human-resources/setup", type: "outline" }
+          { label: "View", path: "/human-resources/setup", type: "outline" },
         ],
-        description: "Configure departments, shifts, categories, and HR parameters",
+        description:
+          "Configure departments, shifts, categories, and HR parameters",
         icon: "🛠️",
       },
       {
         name: "Branches Setup",
         path: "/human-resources/setup?tab=locations",
         actions: [
-          { label: "View", path: "/human-resources/setup?tab=locations", type: "outline" }
+          {
+            label: "View",
+            path: "/human-resources/setup?tab=locations",
+            type: "outline",
+          },
         ],
         description: "Manage company branch locations",
         icon: "📍",
@@ -368,26 +598,24 @@ export const humanResourcesSections = [
         name: "Job Roles Setup",
         path: "/human-resources/setup?tab=positions",
         actions: [
-          { label: "View", path: "/human-resources/setup?tab=positions", type: "outline" }
+          {
+            label: "View",
+            path: "/human-resources/setup?tab=positions",
+            type: "outline",
+          },
         ],
         description: "Define job roles and position hierarchy",
-        icon: "📋",
-      },
-      {
-        name: "Payroll Elements",
-        path: "/human-resources/allowances",
-        actions: [
-          { label: "View", path: "/human-resources/allowances", type: "outline" },
-          { label: "New", path: "/human-resources/allowances/new", type: "primary" }
-        ],
-        description: "Manage custom earnings and deduction types",
-        icon: "⚙️",
+                icon: "📋",
       },
       {
         name: "Leave Parameters",
         path: "/human-resources/leave-setup",
         actions: [
-          { label: "View", path: "/human-resources/leave-setup", type: "outline" }
+          {
+            label: "View",
+            path: "/human-resources/leave-setup",
+            type: "outline",
+          },
         ],
         description: "Configure leave types and entitlements",
         icon: "🏖️",
@@ -396,8 +624,16 @@ export const humanResourcesSections = [
         name: "Attendance Policies",
         path: "/human-resources/work-schedules",
         actions: [
-          { label: "View", path: "/human-resources/work-schedules", type: "outline" },
-          { label: "New", path: "/human-resources/work-schedules/new", type: "primary" }
+          {
+            label: "View",
+            path: "/human-resources/work-schedules",
+            type: "outline",
+          },
+          {
+            label: "New",
+            path: "/human-resources/work-schedules/new",
+            type: "primary",
+          },
         ],
         description: "Configure work shifts, grace periods, and rules",
         icon: "🕒",
@@ -406,8 +642,16 @@ export const humanResourcesSections = [
         name: "Medical Policies",
         path: "/human-resources/medical-policies",
         actions: [
-          { label: "View", path: "/human-resources/medical-policies", type: "outline" },
-          { label: "New", path: "/human-resources/medical-policies/new", type: "primary" }
+          {
+            label: "View",
+            path: "/human-resources/medical-policies",
+            type: "outline",
+          },
+          {
+            label: "New",
+            path: "/human-resources/medical-policies/new",
+            type: "primary",
+          },
         ],
         description: "Manage staff health insurance and medical policies",
         icon: "🏥",
@@ -421,7 +665,7 @@ export const humanResourcesSections = [
         name: "HR Analytics Dashboard",
         path: "/human-resources/reports",
         actions: [
-          { label: "View", path: "/human-resources/reports", type: "outline" }
+          { label: "View", path: "/human-resources/reports", type: "outline" },
         ],
         description: "Workforce demographics, turnover, and KPIs",
         icon: "📈",
@@ -430,8 +674,16 @@ export const humanResourcesSections = [
         name: "Appraisal Form",
         path: "/human-resources/performance/appraisal",
         actions: [
-          { label: "View", path: "/human-resources/performance/appraisal", type: "outline" },
-          { label: "New", path: "/human-resources/performance/appraisal/new", type: "primary" }
+          {
+            label: "View",
+            path: "/human-resources/performance/appraisal",
+            type: "outline",
+          },
+          {
+            label: "New",
+            path: "/human-resources/performance/appraisal/new",
+            type: "primary",
+          },
         ],
         description: "Fill performance appraisal forms",
         icon: "📝",
@@ -440,8 +692,16 @@ export const humanResourcesSections = [
         name: "Submit Appraisals",
         path: "/human-resources/performance/submit",
         actions: [
-          { label: "View", path: "/human-resources/performance/submit", type: "outline" },
-          { label: "New", path: "/human-resources/performance/submit/new", type: "primary" }
+          {
+            label: "View",
+            path: "/human-resources/performance/submit",
+            type: "outline",
+          },
+          {
+            label: "New",
+            path: "/human-resources/performance/submit/new",
+            type: "primary",
+          },
         ],
         description: "Submit or review employee performance appraisals",
         icon: "⭐",
@@ -450,8 +710,16 @@ export const humanResourcesSections = [
         name: "KPI Parameters",
         path: "/human-resources/performance/kpis",
         actions: [
-          { label: "View", path: "/human-resources/performance/kpis", type: "outline" },
-          { label: "New", path: "/human-resources/performance/kpis/new", type: "primary" }
+          {
+            label: "View",
+            path: "/human-resources/performance/kpis",
+            type: "outline",
+          },
+          {
+            label: "New",
+            path: "/human-resources/performance/kpis/new",
+            type: "primary",
+          },
         ],
         description: "Set performance indicators per role",
         icon: "🎯",
@@ -461,7 +729,11 @@ export const humanResourcesSections = [
         path: "/human-resources/training",
         actions: [
           { label: "View", path: "/human-resources/training", type: "outline" },
-          { label: "New", path: "/human-resources/training/new", type: "primary" }
+          {
+            label: "New",
+            path: "/human-resources/training/new",
+            type: "primary",
+          },
         ],
         description: "Manage company training programs",
         icon: "🎓",
@@ -470,8 +742,16 @@ export const humanResourcesSections = [
         name: "Training History",
         path: "/human-resources/training/history",
         actions: [
-          { label: "View", path: "/human-resources/training/history", type: "outline" },
-          { label: "New", path: "/human-resources/training/history/new", type: "primary" }
+          {
+            label: "View",
+            path: "/human-resources/training/history",
+            type: "outline",
+          },
+          {
+            label: "New",
+            path: "/human-resources/training/history/new",
+            type: "primary",
+          },
         ],
         description: "View employee training records",
         icon: "📜",
@@ -480,8 +760,16 @@ export const humanResourcesSections = [
         name: "Company Policies",
         path: "/human-resources/compliance/policies",
         actions: [
-          { label: "View", path: "/human-resources/compliance/policies", type: "outline" },
-          { label: "New", path: "/human-resources/compliance/policies/new", type: "primary" }
+          {
+            label: "View",
+            path: "/human-resources/compliance/policies",
+            type: "outline",
+          },
+          {
+            label: "New",
+            path: "/human-resources/compliance/policies/new",
+            type: "primary",
+          },
         ],
         description: "Publish and enforce HR compliance policies",
         icon: "📜",
@@ -490,8 +778,16 @@ export const humanResourcesSections = [
         name: "Offboarding & Clearance",
         path: "/human-resources/exit/clearance",
         actions: [
-          { label: "View", path: "/human-resources/exit/clearance", type: "outline" },
-          { label: "New", path: "/human-resources/exit/clearance/new", type: "primary" }
+          {
+            label: "View",
+            path: "/human-resources/exit/clearance",
+            type: "outline",
+          },
+          {
+            label: "New",
+            path: "/human-resources/exit/clearance/new",
+            type: "primary",
+          },
         ],
         description: "Manage exit requests and asset return",
         icon: "🚪",
@@ -509,10 +805,14 @@ function HRDashboard() {
       change: "Loading…",
       changeType: "neutral",
       path: "/human-resources/employees",
-        actions: [
-          { label: "View", path: "/human-resources/employees", type: "outline" },
-          { label: "New", path: "/human-resources/employees/new", type: "primary" }
-        ],
+      actions: [
+        { label: "View", path: "/human-resources/employees", type: "outline" },
+        {
+          label: "New",
+          path: "/human-resources/employees/new",
+          type: "primary",
+        },
+      ],
     },
     {
       rbac_key: "active-on-leave",
@@ -521,10 +821,18 @@ function HRDashboard() {
       change: "Loading…",
       changeType: "neutral",
       path: "/human-resources/leave-balances",
-        actions: [
-          { label: "View", path: "/human-resources/leave-balances", type: "outline" },
-          { label: "New", path: "/human-resources/leave-balances/new", type: "primary" }
-        ],
+      actions: [
+        {
+          label: "View",
+          path: "/human-resources/leave-balances",
+          type: "outline",
+        },
+        {
+          label: "New",
+          path: "/human-resources/leave-balances/new",
+          type: "primary",
+        },
+      ],
     },
     {
       rbac_key: "monthly-payroll",
@@ -533,10 +841,18 @@ function HRDashboard() {
       change: "Loading…",
       changeType: "neutral",
       path: "/human-resources/payroll/process",
-        actions: [
-          { label: "View", path: "/human-resources/payroll/process", type: "outline" },
-          { label: "New", path: "/human-resources/payroll/process/new", type: "primary" }
-        ],
+      actions: [
+        {
+          label: "View",
+          path: "/human-resources/payroll/process",
+          type: "outline",
+        },
+        {
+          label: "New",
+          path: "/human-resources/payroll/process/new",
+          type: "primary",
+        },
+      ],
     },
     {
       rbac_key: "pending-approvals",
@@ -545,10 +861,18 @@ function HRDashboard() {
       change: "Loading…",
       changeType: "neutral",
       path: "/human-resources/leave-scheduling",
-        actions: [
-          { label: "View", path: "/human-resources/leave-scheduling", type: "outline" },
-          { label: "New", path: "/human-resources/leave-scheduling/new", type: "primary" }
-        ],
+      actions: [
+        {
+          label: "View",
+          path: "/human-resources/leave-scheduling",
+          type: "outline",
+        },
+        {
+          label: "New",
+          path: "/human-resources/leave-scheduling/new",
+          type: "primary",
+        },
+      ],
     },
   ]);
 
@@ -581,7 +905,9 @@ function HRDashboard() {
             };
             next[3] = {
               ...next[3],
-              value: String(d.pendingLeaveRequests ?? d.pendingLeaveCount ?? "0"),
+              value: String(
+                d.pendingLeaveRequests ?? d.pendingLeaveCount ?? "0",
+              ),
               change:
                 (d.pendingLeaveRequests || d.pendingLeaveCount) > 0
                   ? "Requires review"
@@ -609,10 +935,18 @@ function HRDashboard() {
       description="Employee management and payroll processing"
       stats={stats}
       headerActions={[
-        { label: "Dashboard", path: "/human-resources/dashboard",
-        actions: [
-          { label: "View", path: "/human-resources/dashboard", type: "outline" }
-        ], icon: "📊" },
+        {
+          label: "Dashboard",
+          path: "/human-resources/dashboard",
+          actions: [
+            {
+              label: "View",
+              path: "/human-resources/dashboard",
+              type: "outline",
+            },
+          ],
+          icon: "📊",
+        },
       ]}
       sections={humanResourcesSections}
       features={humanResourcesFeatures}
@@ -622,7 +956,7 @@ function HRDashboard() {
 
 /**
  *  component
- * 
+ *
  * @returns {JSX.Element} The rendered component
  */
 export default function HumanResourcesHome() {
@@ -630,118 +964,134 @@ export default function HumanResourcesHome() {
     <ModuleLayout sections={humanResourcesSections} moduleKey="human-resources">
       <Routes>
         <Route index element={<HRDashboard />} />
-      <Route
-        path="dashboard"
-        element={
-          <React.Suspense fallback={<div className="p-4">Loading...</div>}>
-            {React.createElement(
-              React.lazy(() => import("./HRDashboardPage.jsx")),
-            )}
-          </React.Suspense>
-        }
-      />
-      <Route path="employees" element={<EmployeeList />} />
-      <Route path="employees/new" element={<EmployeeForm />} />
-      <Route path="employees/:id" element={<EmployeeForm />} />
-      <Route path="setup" element={<HRSetup />} />
-      <Route path="work-schedules" element={<WorkScheduleManagement />} />
-      <Route path="roster" element={<RosterManagement />} />
-      <Route path="requisitions" element={<RequisitionList />} />
-      <Route path="requisitions/new" element={<RequisitionForm />} />
-      <Route path="requisitions/:id" element={<RequisitionForm />} />
-      <Route path="candidates" element={<CandidatesList />} />
-      <Route path="candidates/new" element={<CandidateForm />} />
-      <Route path="candidates/:id" element={<CandidateForm />} />
-      <Route path="interviews" element={<InterviewsList />} />
-      <Route path="interviews/new" element={<InterviewForm />} />
-      <Route path="interviews/:id" element={<InterviewForm />} />
-      <Route path="offers" element={<OffersList />} />
-      <Route path="offers/new" element={<OfferForm />} />
-      <Route path="offers/:id" element={<OfferForm />} />
-      <Route path="payroll" element={<PayrollDashboard />} />
-      <Route path="payroll/process" element={<SalaryProcessing />} />
-      <Route path="payroll/salary-posting" element={<SalaryPostingPage />} />
-      <Route path="leave" element={<LeaveManagementDashboard />} />
-      <Route path="leave/request" element={<LeaveApplication />} />
-      <Route path="leave/apply" element={<LeaveApplication />} />
-      <Route path="leave/scheduling" element={<LeaveScheduling />} />
-      <Route path="leave-scheduling" element={<LeaveScheduling />} />
-      <Route path="leave/roster" element={<LeaveRoster />} />
-      <Route path="leave-roster" element={<LeaveRoster />} />
-      <Route path="leave/records" element={<LeaveRecords />} />
-      <Route path="leave/calendar" element={<LeaveCalendar />} />
-      <Route path="leave/balances" element={<LeaveBalances />} />
-      <Route path="leave-balances" element={<LeaveBalances />} />
+        <Route
+          path="dashboard"
+          element={
+            <React.Suspense fallback={<div className="p-4">Loading...</div>}>
+              {React.createElement(
+                React.lazy(() => import("./HRDashboardPage.jsx")),
+              )}
+            </React.Suspense>
+          }
+        />
+        <Route path="employees" element={<EmployeeList />} />
+        <Route path="employees/new" element={<EmployeeForm />} />
+        <Route path="employees/:id" element={<EmployeeForm />} />
+        <Route path="setup" element={<HRSetup />} />
+        <Route path="work-schedules" element={<WorkScheduleManagement />} />
+        <Route path="roster" element={<RosterManagement />} />
+        <Route path="requisitions" element={<RequisitionList />} />
+        <Route path="requisitions/new" element={<RequisitionForm />} />
+        <Route path="requisitions/:id" element={<RequisitionForm />} />
+        <Route path="candidates" element={<CandidatesList />} />
+        <Route path="candidates/new" element={<CandidateForm />} />
+        <Route path="candidates/:id" element={<CandidateForm />} />
+        <Route path="interviews" element={<InterviewsList />} />
+        <Route path="interviews/new" element={<InterviewForm />} />
+        <Route path="interviews/:id" element={<InterviewForm />} />
+        <Route path="offers" element={<OffersList />} />
+        <Route path="offers/new" element={<OfferForm />} />
+        <Route path="offers/:id" element={<OfferForm />} />
+        <Route path="payroll" element={<PayrollDashboard />} />
+        <Route path="payroll/process" element={<SalaryProcessing />} />
+        <Route
+          path="payroll/manual-components"
+          element={<ManualPayrollComponents />}
+        />
+        <Route path="payroll/salary-posting" element={<SalaryPostingPage />} />
+        <Route path="leave" element={<LeaveManagementDashboard />} />
+        <Route path="leave/request" element={<LeaveApplication />} />
+        <Route path="leave/apply" element={<LeaveApplication />} />
+        <Route path="leave/scheduling" element={<LeaveScheduling />} />
+        <Route path="leave-scheduling" element={<LeaveScheduling />} />
+        <Route path="leave/roster" element={<LeaveRoster />} />
+        <Route path="leave-roster" element={<LeaveRoster />} />
+        <Route path="leave/records" element={<LeaveRecords />} />
+        <Route path="leave/calendar" element={<LeaveCalendar />} />
+        <Route path="leave/balances" element={<LeaveBalances />} />
+        <Route path="leave-balances" element={<LeaveBalances />} />
 
-      {/* Organization & Structures routes */}
-      <Route path="departments" element={<HRSetup />} />
-      <Route path="designations" element={<HRSetup />} />
-      <Route path="job-roles" element={<HRSetup />} />
-      <Route path="branches" element={<HRSetup />} />
-      <Route path="organogram" element={<OrganogramPage />} />
+        {/* Organization & Reports routes */}
+        <Route path="departments" element={<HRSetup />} />
+        <Route path="designations" element={<HRSetup />} />
+        <Route path="job-roles" element={<HRSetup />} />
+        <Route path="branches" element={<HRSetup />} />
+        <Route path="organogram" element={<OrganogramPage />} />
 
-      <Route path="performance/kpis" element={<KPISetup />} />
-      <Route path="performance/appraisal" element={<AppraisalForm />} />
-      <Route path="performance/appraisal/:id" element={<AppraisalForm />} />
-      <Route path="performance/submit" element={<SubmitAppraisals />} />
-      <Route path="training" element={<TrainingPrograms />} />
-      <Route path="training/history" element={<TrainingHistory />} />
-      <Route path="policies" element={<PolicyList />} />
-      <Route path="policies/new" element={<PolicyForm />} />
-      <Route path="policies/view" element={<PolicyViewer />} />
-      <Route path="policies/:id" element={<PolicyForm />} />
-      <Route path="exit/request" element={<ExitRequest />} />
-      <Route path="exit/clearance" element={<ClearanceTracking />} />
-      <Route path="leave-setup" element={<LeaveSetupList />} />
-      <Route path="leave/types" element={<LeaveSetupList />} />
+        <Route path="performance/kpis" element={<KPISetup />} />
+        <Route path="performance/appraisal" element={<AppraisalForm />} />
+        <Route path="performance/appraisal/:id" element={<AppraisalForm />} />
+        <Route path="performance/submit" element={<SubmitAppraisals />} />
+        <Route path="training" element={<TrainingPrograms />} />
+        <Route path="training/history" element={<TrainingHistory />} />
+        <Route path="policies" element={<PolicyList />} />
+        <Route path="policies/new" element={<PolicyForm />} />
+        <Route path="policies/view" element={<PolicyViewer />} />
+        <Route path="policies/:id" element={<PolicyForm />} />
+        <Route path="exit/request" element={<ExitRequest />} />
+        <Route path="exit/clearance" element={<ClearanceTracking />} />
+        <Route path="leave-setup" element={<LeaveSetupList />} />
+        <Route path="leave/types" element={<LeaveSetupList />} />
 
-      <Route path="leave-setup/new" element={<LeaveSetupForm />} />
-      <Route path="leave-setup/:id" element={<LeaveSetupForm />} />
-      <Route path="shifts" element={<ShiftList />} />
-      <Route path="shifts/new" element={<ShiftForm />} />
-      <Route path="shifts/:id" element={<ShiftForm />} />
-      <Route path="work-schedules" element={<WorkScheduleManagement />} />
-      <Route path="attendance-policies" element={<WorkScheduleManagement />} />
-      <Route path="roster" element={<RosterManagement />} />
-      <Route path="payroll/elements" element={<AllowanceList />} />
-      {/* Time & Attendance extra routes */}
-      <Route path="attendance" element={<AttendanceDashboard />} />
-      <Route path="attendance/new" element={<AttendanceForm />} />
-      <Route path="attendance/list" element={<AttendanceList />} />
-      <Route path="attendance/bulk" element={<BulkAttendance />} />
-      <Route path="bulk-attendance" element={<BulkAttendance />} />
-      <Route path="attendance/timesheet" element={<TimesheetView />} />
-      <Route path="timesheet" element={<TimesheetView />} />
-      <Route path="timesheet-report" element={<TimesheetReport />} />
-      <Route path="attendance/:id" element={<AttendanceForm />} />
-      <Route path="salary-config" element={<SalaryConfigList />} />
-      <Route
-        path="salary-config/base-salaries"
-        element={<BaseSalariesPage />}
-      />
-      <Route path="salary-config/structure" element={<SalaryStructurePage />} />
-      <Route path="salary-config/new" element={<SalaryConfigForm />} />
-      <Route path="salary-config/:id" element={<SalaryConfigForm />} />
-      <Route path="tax-config" element={<TaxConfigList />} />
-      <Route path="tax-config/new" element={<TaxConfigForm />} />
-      <Route path="tax-config/:id" element={<TaxConfigForm />} />
-      <Route path="allowances" element={<AllowanceList />} />
-      <Route path="allowances/new" element={<AllowanceForm />} />
-      <Route path="allowances/:id" element={<AllowanceForm />} />
-      <Route path="loans" element={<LoanList />} />
-      <Route path="loans/new" element={<LoanForm />} />
-      <Route path="loans/:id" element={<LoanForm />} />
-      <Route path="payslips" element={<PayslipList />} />
-      <Route path="payslips/new" element={<PayslipForm />} />
-      <Route path="payslips/:id" element={<PayslipForm />} />
-      <Route path="promotions" element={<PromotionList />} />
-      <Route path="promotions/new" element={<PromotionForm />} />
-      <Route path="promotions/:id" element={<PromotionForm />} />
-      <Route path="medical-policies" element={<MedicalPolicyList />} />
-      <Route path="medical-policies/new" element={<MedicalPolicyForm />} />
-      <Route path="medical-policies/:id" element={<MedicalPolicyForm />} />
-      <Route path="reports" element={<HRReports />} />
-      <Route path="*" element={<Navigate to="/human-resources" replace />} />
+        <Route path="leave-setup/new" element={<LeaveSetupForm />} />
+        <Route path="leave-setup/:id" element={<LeaveSetupForm />} />
+        <Route path="shifts" element={<ShiftList />} />
+        <Route path="shifts/new" element={<ShiftForm />} />
+        <Route path="shifts/:id" element={<ShiftForm />} />
+        <Route path="work-schedules" element={<WorkScheduleManagement />} />
+        <Route
+          path="attendance-policies"
+          element={<WorkScheduleManagement />}
+        />
+        <Route path="roster" element={<RosterManagement />} />
+        <Route path="payroll/elements" element={<AllowanceList />} />
+        {/* Time & Attendance extra routes */}
+        <Route path="attendance" element={<AttendanceDashboard />} />
+        <Route path="attendance/new" element={<AttendanceForm />} />
+        <Route path="attendance/list" element={<AttendanceList />} />
+        <Route path="attendance/bulk" element={<BulkAttendance />} />
+        <Route path="bulk-attendance" element={<BulkAttendance />} />
+        <Route path="attendance/timesheet" element={<TimesheetView />} />
+        <Route path="timesheet" element={<TimesheetView />} />
+        <Route path="timesheet-report" element={<TimesheetReport />} />
+        <Route path="attendance/:id" element={<AttendanceForm />} />
+        <Route path="salary-config" element={<SalaryConfigList />} />
+        <Route
+          path="salary-config/base-salaries"
+          element={<BaseSalariesPage />}
+        />
+        <Route
+          path="salary-config/structure"
+          element={<SalaryStructurePage />}
+        />
+        <Route path="salary-config/new" element={<SalaryConfigForm />} />
+        <Route path="salary-config/:id" element={<SalaryConfigForm />} />
+        <Route path="tax-config" element={<TaxConfigList />} />
+        <Route path="tax-config/new" element={<TaxConfigForm />} />
+        <Route path="tax-config/:id" element={<TaxConfigForm />} />
+        <Route path="tax-reliefs" element={<TaxReliefList />} />
+        <Route path="allowances" element={<AllowanceList />} />
+        <Route path="allowances/new" element={<AllowanceForm />} />
+        <Route path="allowances/:id" element={<AllowanceForm />} />
+        <Route path="loan-requests" element={<LoanRequestList />} />
+        <Route path="loan-requests/new" element={<LoanRequestForm />} />
+        <Route path="loan-requests/:id" element={<LoanRequestForm />} />
+        <Route path="loans" element={<LoanList />} />
+        <Route path="loans/new" element={<LoanDisbursementPage />} />
+        <Route path="loans/:id" element={<LoanForm />} />
+        <Route path="loans/:id/disburse" element={<LoanDisbursementPage />} />
+        <Route path="payslips" element={<PayslipList />} />
+        <Route path="payslips/new" element={<PayslipForm />} />
+        <Route path="payslips/:id" element={<PayslipForm />} />
+        <Route path="promotions" element={<PromotionList />} />
+        <Route path="promotions/new" element={<PromotionForm />} />
+        <Route path="promotions/:id" element={<PromotionForm />} />
+        <Route path="medical-policies" element={<MedicalPolicyList />} />
+        <Route path="medical-policies/new" element={<MedicalPolicyForm />} />
+        <Route path="medical-policies/:id" element={<MedicalPolicyForm />} />
+        <Route path="reports" element={<HRReports />} />
+        <Route path="reports/:reportId" element={<HRReports />} />
+        <Route path="*" element={<Navigate to="/human-resources" replace />} />
       </Routes>
     </ModuleLayout>
   );
@@ -752,169 +1102,278 @@ export const humanResourcesFeatures = [
     module_key: "human-resources",
     label: "Employee Setup",
     path: "/human-resources/employees",
-        actions: [
-          { label: "View", path: "/human-resources/employees", type: "outline" },
-          { label: "New", path: "/human-resources/employees/new", type: "primary" }
-        ],
+    actions: [
+      { label: "View", path: "/human-resources/employees", type: "outline" },
+      { label: "New", path: "/human-resources/employees/new", type: "primary" },
+    ],
     type: "feature",
   },
   {
     module_key: "human-resources",
     label: "Promotions",
     path: "/human-resources/promotions",
-        actions: [
-          { label: "View", path: "/human-resources/promotions", type: "outline" },
-          { label: "New", path: "/human-resources/promotions/new", type: "primary" }
-        ],
+    actions: [
+      { label: "View", path: "/human-resources/promotions", type: "outline" },
+      {
+        label: "New",
+        path: "/human-resources/promotions/new",
+        type: "primary",
+      },
+    ],
     type: "feature",
   },
   {
     module_key: "human-resources",
     label: "KPI Setup",
     path: "/human-resources/performance/kpis",
-        actions: [
-          { label: "View", path: "/human-resources/performance/kpis", type: "outline" },
-          { label: "New", path: "/human-resources/performance/kpis/new", type: "primary" }
-        ],
+    actions: [
+      {
+        label: "View",
+        path: "/human-resources/performance/kpis",
+        type: "outline",
+      },
+      {
+        label: "New",
+        path: "/human-resources/performance/kpis/new",
+        type: "primary",
+      },
+    ],
     type: "feature",
   },
   {
     module_key: "human-resources",
     label: "Appraisal Form",
     path: "/human-resources/performance/appraisal",
-        actions: [
-          { label: "View", path: "/human-resources/performance/appraisal", type: "outline" },
-          { label: "New", path: "/human-resources/performance/appraisal/new", type: "primary" }
-        ],
+    actions: [
+      {
+        label: "View",
+        path: "/human-resources/performance/appraisal",
+        type: "outline",
+      },
+      {
+        label: "New",
+        path: "/human-resources/performance/appraisal/new",
+        type: "primary",
+      },
+    ],
     type: "feature",
   },
   {
     module_key: "human-resources",
     label: "Submit Appraisals",
     path: "/human-resources/performance/submit",
-        actions: [
-          { label: "View", path: "/human-resources/performance/submit", type: "outline" },
-          { label: "New", path: "/human-resources/performance/submit/new", type: "primary" }
-        ],
+    actions: [
+      {
+        label: "View",
+        path: "/human-resources/performance/submit",
+        type: "outline",
+      },
+      {
+        label: "New",
+        path: "/human-resources/performance/submit/new",
+        type: "primary",
+      },
+    ],
     type: "feature",
   },
   {
     module_key: "human-resources",
     label: "Training Programs",
     path: "/human-resources/training",
-        actions: [
-          { label: "View", path: "/human-resources/training", type: "outline" },
-          { label: "New", path: "/human-resources/training/new", type: "primary" }
-        ],
+    actions: [
+      { label: "View", path: "/human-resources/training", type: "outline" },
+      { label: "New", path: "/human-resources/training/new", type: "primary" },
+    ],
     type: "feature",
   },
   {
     module_key: "human-resources",
     label: "Training History",
     path: "/human-resources/training/history",
-        actions: [
-          { label: "View", path: "/human-resources/training/history", type: "outline" },
-          { label: "New", path: "/human-resources/training/history/new", type: "primary" }
-        ],
+    actions: [
+      {
+        label: "View",
+        path: "/human-resources/training/history",
+        type: "outline",
+      },
+      {
+        label: "New",
+        path: "/human-resources/training/history/new",
+        type: "primary",
+      },
+    ],
     type: "feature",
   },
   {
     module_key: "human-resources",
     label: "Attendance",
     path: "/human-resources/attendance",
-        actions: [
-          { label: "View", path: "/human-resources/attendance", type: "outline" },
-          { label: "New", path: "/human-resources/attendance/new", type: "primary" }
-        ],
+    actions: [
+      { label: "View", path: "/human-resources/attendance", type: "outline" },
+      {
+        label: "New",
+        path: "/human-resources/attendance/new",
+        type: "primary",
+      },
+    ],
     type: "feature",
   },
   {
     module_key: "human-resources",
     label: "Work Schedule Management",
     path: "/human-resources/work-schedules",
-        actions: [
-          { label: "View", path: "/human-resources/work-schedules", type: "outline" },
-          { label: "New", path: "/human-resources/work-schedules/new", type: "primary" }
-        ],
+    actions: [
+      {
+        label: "View",
+        path: "/human-resources/work-schedules",
+        type: "outline",
+      },
+      {
+        label: "New",
+        path: "/human-resources/work-schedules/new",
+        type: "primary",
+      },
+    ],
     type: "feature",
   },
   {
     module_key: "human-resources",
     label: "Roster Management",
     path: "/human-resources/roster",
-        actions: [
-          { label: "View", path: "/human-resources/roster", type: "outline" },
-          { label: "New", path: "/human-resources/roster/new", type: "primary" }
-        ],
+    actions: [
+      { label: "View", path: "/human-resources/roster", type: "outline" },
+      { label: "New", path: "/human-resources/roster/new", type: "primary" },
+    ],
     type: "feature",
   },
   {
     module_key: "human-resources",
     label: "Salary Configuration",
     path: "/human-resources/salary-config",
-        actions: [
-          { label: "View", path: "/human-resources/salary-config", type: "outline" },
-          { label: "New", path: "/human-resources/salary-config/new", type: "primary" }
-        ],
+    actions: [
+      {
+        label: "View",
+        path: "/human-resources/salary-config",
+        type: "outline",
+      },
+      {
+        label: "New",
+        path: "/human-resources/salary-config/new",
+        type: "primary",
+      },
+    ],
     type: "feature",
   },
   {
     module_key: "human-resources",
     label: "Tax & Deductions",
     path: "/human-resources/tax-config",
-        actions: [
-          { label: "View", path: "/human-resources/tax-config", type: "outline" },
-          { label: "New", path: "/human-resources/tax-config/new", type: "primary" }
-        ],
+    actions: [
+      { label: "View", path: "/human-resources/tax-config", type: "outline" },
+      {
+        label: "New",
+        path: "/human-resources/tax-config/new",
+        type: "primary",
+      },
+    ],
     type: "feature",
   },
   {
     module_key: "human-resources",
     label: "Employee Allowances",
     path: "/human-resources/allowances",
-        actions: [
-          { label: "View", path: "/human-resources/allowances", type: "outline" },
-          { label: "New", path: "/human-resources/allowances/new", type: "primary" }
-        ],
+    actions: [
+      { label: "View", path: "/human-resources/allowances", type: "outline" },
+      {
+        label: "New",
+        path: "/human-resources/allowances/new",
+        type: "primary",
+      },
+    ],
     type: "feature",
   },
   {
     module_key: "human-resources",
-    label: "Employee Loans",
+    label: "Tax Reliefs",
+    path: "/human-resources/tax-reliefs",
+    actions: [
+      { label: "View", path: "/human-resources/tax-reliefs", type: "outline" },
+      { label: "Claim Relief", path: "/human-resources/tax-reliefs", type: "primary" },
+    ],
+    type: "feature",
+  },
+  {
+    module_key: "human-resources",
+    label: "Loan Requests",
+    path: "/human-resources/loan-requests",
+    actions: [
+      { label: "View", path: "/human-resources/loan-requests", type: "outline" },
+      { label: "New", path: "/human-resources/loan-requests/new", type: "primary" },
+    ],
+    type: "feature",
+  },
+  {
+    module_key: "human-resources",
+    label: "Loan Management",
     path: "/human-resources/loans",
-        actions: [
-          { label: "View", path: "/human-resources/loans", type: "outline" },
-          { label: "New", path: "/human-resources/loans/new", type: "primary" }
-        ],
+    actions: [
+      { label: "View", path: "/human-resources/loans", type: "outline" },
+    ],
     type: "feature",
   },
   {
     module_key: "human-resources",
     label: "Payslips",
     path: "/human-resources/payslips",
-        actions: [
-          { label: "View", path: "/human-resources/payslips", type: "outline" },
-          { label: "New", path: "/human-resources/payslips/new", type: "primary" }
-        ],
+    actions: [
+      { label: "View", path: "/human-resources/payslips", type: "outline" },
+      { label: "New", path: "/human-resources/payslips/new", type: "primary" },
+    ],
     type: "feature",
   },
   {
     module_key: "human-resources",
     label: "Salary Posting",
     path: "/human-resources/payroll/salary-posting",
-        actions: [
-          { label: "View", path: "/human-resources/payroll/salary-posting", type: "outline" },
-          { label: "New", path: "/human-resources/payroll/salary-posting/new", type: "primary" }
-        ],
+    actions: [
+      {
+        label: "View",
+        path: "/human-resources/payroll/salary-posting",
+        type: "outline",
+      },
+      {
+        label: "New",
+        path: "/human-resources/payroll/salary-posting/new",
+        type: "primary",
+      },
+    ],
+    type: "feature",
+  },
+    {
+    module_key: "human-resources",
+    label: "Salaries Report",
+    path: "/human-resources/reports/salaries",
+    actions: [
+      { label: "View", path: "/human-resources/reports/salaries", type: "outline" },
+    ],
     type: "feature",
   },
   {
     module_key: "human-resources",
+    label: "Monthly Payroll Report",
+    path: "/human-resources/reports/monthly-payroll",
+    actions: [
+      { label: "View", path: "/human-resources/reports/monthly-payroll", type: "outline" },
+    ],
+    type: "feature",
+  },
+{
+    module_key: "human-resources",
     label: "HR Reports",
     path: "/human-resources/reports",
-        actions: [
-          { label: "View", path: "/human-resources/reports", type: "outline" }
-        ],
+    actions: [
+      { label: "View", path: "/human-resources/reports", type: "outline" },
+    ],
     type: "dashboard",
   },
 ];

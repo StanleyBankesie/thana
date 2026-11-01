@@ -13,6 +13,8 @@ import { filterAndSort } from "@/utils/searchUtils.js";
 import { useViewMode } from "@/hooks/useViewMode";
 import ViewToggle from "@/components/ViewToggle";
 import { resolveImageUrl } from "@/utils/imageUrl.js";
+import DocumentAttachmentsModal from "@/components/attachments/DocumentAttachmentsModal.jsx";
+import { ListAttachmentIconButton } from "@/components/list/ListDocActionIconButtons.jsx";
 
 function normalizeBool(val) {
   if (!val) return false;
@@ -23,6 +25,8 @@ function normalizeBool(val) {
 
 export default function EmployeeList() {
   const [viewMode, setViewMode] = useViewMode();
+  const [showAttach, setShowAttach] = useState(false);
+  const [activeDocId, setActiveDocId] = useState(null);
   const navigate = useNavigate();
   const { canPerformAction } = usePermission();
   const [employees, setEmployees] = useState([]);
@@ -363,24 +367,24 @@ export default function EmployeeList() {
               <table className={"table " + (viewMode === 'grid' ? 'table-grid-mode' : '')}>
                 <thead className="bg-[var(--table-header-bg)] dark:bg-slate-900/50">
                   <tr>
-                    <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Photo</th>
-                    <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Code</th>
-                    <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Name</th>
-                    <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Position</th>
-                    <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Department</th>
-                    <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Type</th>
-                    <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Status</th>
-                    <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 text-right">Actions</th>
-                    <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Created By</th>
-                    <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Created Date</th>
-                    <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Attachments</th>
+                    <th className="px-3 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 w-14 text-center">Photo</th>
+                    <th className="px-3 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 w-24">Code</th>
+                    <th className="px-3 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 min-w-[170px]">Name</th>
+                    <th className="px-3 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 min-w-[130px]">Position</th>
+                    <th className="px-3 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 min-w-[130px]">Department</th>
+                    <th className="px-3 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 w-28 text-center">Type</th>
+                    <th className="px-3 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 w-24 text-center">Status</th>
+                    <th className="px-3 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 text-center w-36">Actions</th>
+                    <th className="px-3 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 w-28">Created By</th>
+                    <th className="px-3 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 w-28 whitespace-nowrap">Created Date</th>
+                    <th className="px-3 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 text-center w-24">Attachments</th>
                   </tr>
                 </thead>
                 <tbody>
                   {filteredEmployees.map((emp) => (
-                    <tr key={emp.id}>
-                      <td>
-                        <div className="w-10 h-10 rounded-full bg-slate-100 overflow-hidden border border-slate-200">
+                    <tr key={emp.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/50 transition">
+                      <td className="text-center">
+                        <div className="w-10 h-10 rounded-full bg-slate-100 overflow-hidden border border-slate-200 inline-block">
                           {emp.picture_url ? (
                             <img src={resolveImageUrl(emp.picture_url)} alt="" className="w-full h-full object-cover" />
                           ) : (
@@ -388,75 +392,46 @@ export default function EmployeeList() {
                           )}
                         </div>
                       </td>
-                      <td className="font-medium">{emp.emp_code}</td>
+                      <td className="font-semibold text-slate-800 dark:text-slate-200">{emp.emp_code}</td>
                       <td>
                         <div>
-                          <div className="font-medium">{emp.full_name}</div>
-                          <div className="text-[10px] text-slate-500">{emp.email}</div>
+                          <div className="font-medium text-slate-900 dark:text-white">{emp.full_name}</div>
+                          <div className="text-[11px] text-slate-500">{emp.email || "-"}</div>
                         </div>
                       </td>
-                      <td>{emp.pos_name}</td>
-                      <td>{emp.dept_name}</td>
-                      <td>{getEmploymentTypeBadge(emp.employment_type_name || emp.employment_type)}</td>
-                      <td>{getStatusBadge(emp.is_active)}</td>
-                      <td className="px-6 py-4 text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          {/* Slot 1: View */}
-                          <div className="min-w-[80px]">
+                      <td className="text-sm">{emp.pos_name || "-"}</td>
+                      <td className="text-sm">{emp.dept_name || "-"}</td>
+                      <td className="text-center">{getEmploymentTypeBadge(emp.employment_type_name || emp.employment_type)}</td>
+                      <td className="text-center">{getStatusBadge(emp.is_active)}</td>
+                      <td className="text-center whitespace-nowrap">
+                        <div className="flex items-center justify-center gap-1.5">
+                          <button
+                            type="button"
+                            className="inline-flex items-center justify-center px-3 py-1 text-xs font-semibold text-slate-700 bg-slate-100 border border-slate-200 rounded-lg hover:bg-slate-200 transition-colors h-8"
+                            onClick={() => navigate(`/human-resources/employees/${emp.id}`)}
+                          >
+                            View
+                          </button>
+                          {canPerformAction("human-resources:employees", "edit") && (
                             <button
                               type="button"
-                              className="w-full inline-flex items-center justify-center px-4 py-1.5 text-sm font-medium text-slate-700 bg-slate-100 border border-slate-200 rounded-lg hover:bg-slate-200 transition-colors h-9"
+                              className="inline-flex items-center justify-center px-3 py-1 text-xs font-semibold text-slate-700 bg-slate-100 border border-slate-200 rounded-lg hover:bg-slate-200 transition-colors h-8"
                               onClick={() => navigate(`/human-resources/employees/${emp.id}`)}
                             >
-                              View
+                              Edit
                             </button>
-                          </div>
-
-                          {/* Slot 2: Edit */}
-                          <div className="min-w-[80px]">
-                            {canPerformAction("human-resources:employees", "edit") ? (
-                              <button
-                                type="button"
-                                className="w-full inline-flex items-center justify-center px-4 py-1.5 text-sm font-medium text-slate-700 bg-slate-100 border border-slate-200 rounded-lg hover:bg-slate-200 transition-colors h-9"
-                                onClick={() => navigate(`/human-resources/employees/${emp.id}`)}
-                              >
-                                Edit
-                              </button>
-                            ) : (
-                              <div className="w-full h-9" />
-                            )}
-                          </div>
-
-                          {/* Slot 3 & 4 & 5 & 6 & 7: Blank */}
-                          <div className="min-w-[80px]">
-                            <div className="w-full h-9" />
-                          </div>
-                          <div className="min-w-[80px]">
-                            <div className="w-full h-9" />
-                          </div>
-                          <div className="min-w-[80px]">
-                            <div className="w-full h-9" />
-                          </div>
-                          <div className="min-w-[160px]">
-                            <div className="w-full h-9" />
-                          </div>
-                          <div className="min-w-[80px]">
-                            <div className="w-full h-9" />
-                          </div>
+                          )}
                         </div>
                       </td>
-                      <td>{emp.created_by_username || emp.created_by_name || "-"}</td>
-                      <td>{emp.created_at ? new Date(emp.created_at).toLocaleDateString() : "-"}</td>
-                      <td>
-                        <button
-                          type="button"
-                          className="text-brand hover:underline font-medium text-sm"
+                      <td className="text-xs text-slate-600 dark:text-slate-400">{emp.created_by_username || emp.created_by_name || "-"}</td>
+                      <td className="text-xs text-slate-600 dark:text-slate-400 whitespace-nowrap">{emp.created_at ? new Date(emp.created_at).toLocaleDateString() : "-"}</td>
+                      <td className="text-center">
+                        <ListAttachmentIconButton
                           onClick={() => {
-                            toast.info("Attachments functionality coming soon");
+                            setActiveDocId(emp.id);
+                            setShowAttach(true);
                           }}
-                        >
-                          View
-                        </button>
+                        />
                       </td>
                     </tr>
                   ))}
@@ -468,6 +443,15 @@ export default function EmployeeList() {
 )}
         </div>
       </div>
-    </div>
+          <DocumentAttachmentsModal
+        open={showAttach}
+        onClose={() => {
+          setShowAttach(false);
+          setActiveDocId(null);
+        }}
+        docType="employee"
+        docId={activeDocId}
+      />
+</div>
   );
 }

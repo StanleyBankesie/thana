@@ -665,7 +665,7 @@ export default function ChatModal({ onClose }) {
   }
 
   return (
-    <div className="fixed right-4 bottom-20 md:right-6 md:bottom-20 z-50">
+    <div data-floating-ignore="true" className="fixed right-4 bottom-20 md:right-6 md:bottom-20 z-50">
       <div className="w-[880px] max-w-[95vw] h-[520px] rounded-xl shadow-erp-lg bg-white border border-slate-200 overflow-hidden flex text-black">
         <div className={(sidebarOpen ? "" : "hidden ") + "md:block"}>
         <ConversationList

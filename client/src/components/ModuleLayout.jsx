@@ -141,8 +141,8 @@ export function ModuleNavDropdown({ section, location, navigate, moduleKey }) {
                 >
                   {typeof itemIcon === "string" ? (
                     <span className="text-base flex-shrink-0 mt-0.5">{itemIcon}</span>
-                  ) : itemIcon && typeof itemIcon === "function" ? (
-                    <itemIcon className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                  ) : itemIcon && (typeof itemIcon === "function" || (typeof itemIcon === "object" && (itemIcon.$typeof || itemIcon.render))) ? (
+                    React.createElement(itemIcon, { className: "w-4 h-4 flex-shrink-0 mt-0.5" })
                   ) : (
                     <span className="text-base flex-shrink-0 mt-0.5">📄</span>
                   )}

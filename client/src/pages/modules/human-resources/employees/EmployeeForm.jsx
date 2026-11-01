@@ -978,88 +978,95 @@ export default function EmployeeForm() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-8">
-              <section className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-lg">
-                <h3 className="font-semibold mb-4 border-b pb-2 flex items-center justify-between">
-                  Statutory Deductions & Taxes
-                  {/* <span className="text-[10px] uppercase font-bold text-brand">Affects Payslip</span> */}
-                </h3>
-                <div className="space-y-2 max-h-48 overflow-y-auto pr-2">
+            <div className="mt-8">
+              <section className="bg-slate-50 dark:bg-slate-800/50 p-6 rounded-lg border border-slate-200 dark:border-slate-700">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200 dark:border-slate-700 pb-3 mb-4">
+                  <div>
+                    <h3 className="font-semibold text-slate-800 dark:text-slate-100 text-base">
+                      Statutory Deductions & Taxes
+                    </h3>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                      Select the statutory deductions that apply to this employee. Unchecked items will be excluded from payroll salary calculations.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                   {displayTaxes.map((t) => {
                     const isChecked = t.groupIds.some((id) =>
                       (form.tax_mappings || []).includes(id),
                     );
+                    const isPaye =
+                      t.tax_type === "INCOME_TAX" ||
+                      String(t.tax_name || "").toUpperCase().includes("PAYE");
+                    const isSsf =
+                      t.tax_type === "SOCIAL_SECURITY" ||
+                      String(t.tax_name || "").toUpperCase().includes("SNITT") ||
+                      String(t.tax_name || "").toUpperCase().includes("SSF");
+                    const isTier3 =
+                      t.tax_type === "PROVIDENT_FUND" ||
+                      t.tax_type === "PROVIDENCE_FUND" ||
+                      String(t.tax_name || "").toUpperCase().includes("TIER 3") ||
+                      String(t.tax_name || "").toUpperCase().includes("TIER-3");
+
                     return (
                       <label
                         key={t.isGroup ? `group-${t.tax_name}` : t.id}
-                        className="flex items-center gap-3 p-2 hover:bg-white dark:hover:bg-slate-700 rounded transition-colors cursor-pointer"
+                        className={`flex flex-col justify-between p-4 rounded-lg border-2 transition-all cursor-pointer select-none ${
+                          isChecked
+                            ? "bg-white dark:bg-slate-800 border-brand shadow-sm ring-1 ring-brand/20"
+                            : "bg-slate-100/70 dark:bg-slate-900/40 border-slate-200 dark:border-slate-700 opacity-75 hover:opacity-100"
+                        }`}
                       >
-                        <input
-                          type="checkbox"
-                          className="checkbox"
-                          checked={isChecked}
-                          onChange={() =>
-                            toggleMapping("tax_mappings", t.groupIds)
-                          }
-                        />
-                        <div className="flex-1">
-                          <div className="text-sm font-medium">
-                            {t.tax_name}
+                        <div className="flex items-start justify-between gap-3 mb-2">
+                          <div className="flex items-center gap-2.5">
+                            <input
+                              type="checkbox"
+                              className="checkbox checkbox-primary"
+                              checked={isChecked}
+                              onChange={() =>
+                                toggleMapping("tax_mappings", t.groupIds)
+                              }
+                            />
+                            <div>
+                              <div className="text-sm font-bold text-slate-900 dark:text-white">
+                                {t.tax_name}
+                              </div>
+                              <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
+                                {isPaye
+                                  ? "Income Tax (PAYE)"
+                                  : isSsf
+                                    ? "SSNIT / SSF Contribution"
+                                    : isTier3
+                                      ? "Provident Fund (Tier 3)"
+                                      : t.tax_type}
+                              </span>
+                            </div>
                           </div>
-                          {/* <div className="text-xs text-slate-500">
-                            {t.tax_type === "INCOME_TAX" ? "PAYE" : t.tax_type}
-                            {t.isGroup && t.groupIds.length > 1
-                              ? ` — ${t.groupIds.length} brackets`
-                              : ` — ${t.tax_rate}%`
-                            }
-                          </div> */}
+                          {t.isGroup && t.groupIds.length > 1 && (
+                            <span className="text-[10px] font-bold bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 px-2 py-0.5 rounded-full uppercase tracking-wide whitespace-nowrap">
+                              {t.groupIds.length} brackets
+                            </span>
+                          )}
                         </div>
-                        {t.isGroup && t.groupIds.length > 1 && (
-                          <span className="text-[10px] font-bold bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 px-1.5 py-0.5 rounded-full uppercase tracking-wide">
-                            {t.groupIds.length} brackets
-                          </span>
-                        )}
+
+                        <div className="text-xs text-slate-500 dark:text-slate-400 mt-2 pt-2 border-t border-slate-100 dark:border-slate-700/50">
+                          {isChecked ? (
+                            <span className="text-emerald-600 dark:text-emerald-400 font-medium flex items-center gap-1">
+                              ✓ Active for payroll deductions
+                            </span>
+                          ) : (
+                            <span className="text-slate-400 italic">
+                              Excluded from salary calculations
+                            </span>
+                          )}
+                        </div>
                       </label>
                     );
                   })}
                   {displayTaxes.length === 0 && (
-                    <p className="text-xs text-slate-400">
-                      No tax configurations set.
-                    </p>
-                  )}
-                </div>
-              </section>
-
-              <section className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-lg">
-                <h3 className="font-semibold mb-4 border-b pb-2 flex items-center justify-between">
-                  Employee Allowances
-                  {/* <span className="text-[10px] uppercase font-bold text-brand">Affects Payslip</span> */}
-                </h3>
-                <div className="space-y-2 max-h-48 overflow-y-auto pr-2">
-                  {allowances.map((a) => (
-                    <label
-                      key={a.id}
-                      className="flex items-center gap-3 p-2 hover:bg-white dark:hover:bg-slate-700 rounded transition-colors cursor-pointer"
-                    >
-                      <input
-                        type="checkbox"
-                        className="checkbox"
-                        checked={form.allowance_mappings.includes(a.id)}
-                        onChange={() =>
-                          toggleMapping("allowance_mappings", a.id)
-                        }
-                      />
-                      <div className="flex-1">
-                        <div className="text-sm font-medium">
-                          {a.allowance_name}
-                        </div>
-                        {/* <div className="text-xs text-slate-500">{a.allowance_code} - {a.amount_type === 'FIXED' ? 'GHS' : ''} {a.amount}{a.amount_type === 'PERCENTAGE' ? '%' : ''}</div> */}
-                      </div>
-                    </label>
-                  ))}
-                  {allowances.length === 0 && (
-                    <p className="text-xs text-slate-400">
-                      No allowances defined.
+                    <p className="text-xs text-slate-400 col-span-3">
+                      No tax configurations set in HR Setup.
                     </p>
                   )}
                 </div>

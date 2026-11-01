@@ -217,7 +217,47 @@ export default function PayslipList() {
           document.body.removeChild(iframe);
           return;
         }
-        const printStyle = `<style>@media print { img, svg { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; } }</style>`;
+        const printStyle = `<style>
+          @page {
+            size: A4 portrait;
+            margin: 0;
+          }
+          @media print {
+            html, body {
+              width: 100% !important;
+              height: auto !important;
+              min-height: 0 !important;
+              margin: 0 !important;
+              padding: 0 !important;
+              background: #fff !important;
+              overflow: visible !important;
+            }
+            .page-wrap {
+              width: 100% !important;
+              height: auto !important;
+              min-height: 0 !important;
+              margin: 0 !important;
+              padding: 0 !important;
+              box-shadow: none !important;
+              page-break-after: avoid !important;
+              break-after: avoid !important;
+            }
+            .doc {
+              height: auto !important;
+              padding: 0.8cm 1cm !important;
+              page-break-after: avoid !important;
+              break-after: avoid !important;
+            }
+            img, svg {
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
+            }
+            * {
+              page-break-inside: avoid !important;
+              break-inside: avoid !important;
+            }
+          }
+        </style>`;
         doc.open();
         doc.write(printStyle + html);
         doc.close();
@@ -240,7 +280,15 @@ export default function PayslipList() {
           "-" +
           (r.emp_code || r.id) +
           ".pdf";
-        await renderHtmlToPdf(html, fname);
+        const pdfStyle = `<style>
+          html, body, .page-wrap, .doc {
+            height: auto !important;
+            min-height: 0 !important;
+            box-shadow: none !important;
+            margin: 0 auto !important;
+          }
+        </style>`;
+        await renderHtmlToPdf(pdfStyle + html, fname);
       }
     } catch (e) {
       toast.error(
@@ -267,9 +315,7 @@ export default function PayslipList() {
               </p>
             </div>
             <div className="flex gap-2">
-              <button onClick={() => window.history.back()} className="btn btn-secondary">
-                Back to Menu
-              </button>
+              <Link to="/human-resources" className="btn btn-secondary">Back to Menu</Link>
               <button
                 onClick={sendBulkEmails}
                 disabled={sendingBulk || !items.length}
@@ -377,6 +423,9 @@ export default function PayslipList() {
                   <th className="text-right bg-amber-50/50 dark:bg-amber-900/10">
                     Tier 3
                   </th>
+                  <th className="text-right bg-teal-50/50 dark:bg-teal-900/10 text-teal-800 dark:text-teal-300">
+                    Tax Relief
+                  </th>
                   <th className="text-right bg-red-50/50 dark:bg-red-900/10">
                     PAYE Tax
                   </th>
@@ -418,6 +467,13 @@ export default function PayslipList() {
                       </td>
                       <td className="text-right font-mono text-amber-700 dark:text-amber-400 bg-amber-50/30 dark:bg-amber-900/10">
                         {fmt(r.tier3_employee)}
+                      </td>
+                      <td className="text-right font-mono text-teal-700 dark:text-teal-400 bg-teal-50/20 dark:bg-teal-900/5">
+                        {Number(r.tax_relief || 0) > 0 ? (
+                          <span className="font-semibold">{fmt(r.tax_relief)}</span>
+                        ) : (
+                          <span className="text-slate-400">—</span>
+                        )}
                       </td>
                       <td className="text-right font-mono text-red-600 dark:text-red-400 bg-red-50/30 dark:bg-red-900/10">
                         {fmt(r.income_tax)}
@@ -476,13 +532,23 @@ export default function PayslipList() {
                           </button>
                         </div>
                       </td>
-                      <td>{p.created_by_name || "-"}</td>
-                      <td>{p.created_at ? new Date(p.created_at).toLocaleDateString() : "-"}</td>
+                      <td className="text-xs text-slate-700 dark:text-slate-300">
+                        {r.created_by_name || "System Admin"}
+                      </td>
+                      <td className="text-xs text-slate-500 dark:text-slate-400 whitespace-nowrap">
+                        {r.created_at
+                          ? new Date(r.created_at).toLocaleDateString("en-GB", {
+                              day: "2-digit",
+                              month: "short",
+                              year: "numeric",
+                            })
+                          : "-"}
+                      </td>
                     </tr>
                     {expandedLoans[r.id] && r.loan_items && (
                       <tr className="bg-slate-50/70 dark:bg-slate-700/40 animate-in fade-in slide-in-from-top-1">
                         <td
-                          colSpan={11}
+                          colSpan={14}
                           className="px-4 py-2 border-b border-slate-100 dark:border-slate-700"
                         >
                           <div className="flex flex-wrap gap-2 items-center">
@@ -513,7 +579,7 @@ export default function PayslipList() {
                 {!items.length && !loading && (
                   <tr>
                     <td
-                      colSpan={11}
+                      colSpan={14}
                       className="text-center py-12 text-slate-500 italic"
                     >
                       No payslips found for the current selection.

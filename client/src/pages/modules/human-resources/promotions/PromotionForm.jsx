@@ -28,6 +28,7 @@ export default function PromotionForm() {
   const [form, setForm] = useState({
     employee_id: "",
     promotion_date: new Date().toISOString().split("T")[0],
+    action_type: "PROMOTION",
     previous_pos_id: "",
     new_pos_id: "",
     previous_dept_id: "",
@@ -104,6 +105,17 @@ export default function PromotionForm() {
     setForm((p) => ({ ...p, [name]: value }));
   }
 
+  const handleSalaryChange = (newVal) => {
+    const val = Number(newVal || 0);
+    const prev = Number(form.previous_salary || 0);
+    setForm((p) => {
+      let action = p.action_type;
+      if (val < prev) action = "REASSIGNMENT";
+      else if (val > prev) action = "PROMOTION";
+      return { ...p, new_salary: newVal, action_type: action };
+    });
+  };
+
   async function submit(e) {
     e.preventDefault();
     if (!form.employee_id) return toast.error("Select employee");
@@ -134,9 +146,9 @@ export default function PromotionForm() {
       <form onSubmit={submit} className="space-y-6">
         <div className="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700">
           <h2 className="text-lg font-semibold border-b pb-2 mb-4 text-brand">
-            Employee Details
+            Employee Details & Action Type
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div>
               <label className="label font-semibold">Employee *</label>
               <select
@@ -155,6 +167,19 @@ export default function PromotionForm() {
               </select>
             </div>
             <div>
+              <label className="label font-semibold">Action / Movement Type *</label>
+              <select
+                className="input font-semibold text-slate-800 dark:text-slate-100"
+                value={form.action_type || "PROMOTION"}
+                onChange={(e) => update("action_type", e.target.value)}
+                required
+              >
+                <option value="PROMOTION">🚀 Promotion (Career Advancement)</option>
+                <option value="REASSIGNMENT">🔄 Role Reassignment</option>
+                <option value="TRANSFER">↔️ Lateral Transfer</option>
+              </select>
+            </div>
+            <div>
               <label className="label font-semibold">Effective Date *</label>
               <input
                 className="input"
@@ -162,11 +187,42 @@ export default function PromotionForm() {
                 value={form.promotion_date}
                 onChange={(e) => update("promotion_date", e.target.value)}
                 required
-              
                 disabled={isEdit && !hasExceptional("DOCUMENT.EDIT_DATE")}
               />
             </div>
           </div>
+        </div>
+
+        {/* Letter Notification Preview Banner */}
+        <div
+          className={`p-4 rounded-lg flex items-center justify-between gap-4 transition-all ${
+            form.action_type === "REASSIGNMENT" || form.action_type === "DEMOTION"
+              ? "bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 text-blue-900 dark:text-blue-200"
+              : "bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 text-emerald-900 dark:text-emerald-200"
+          }`}
+        >
+          <div className="flex items-center gap-3">
+            <span className="text-2xl">
+              {form.action_type === "REASSIGNMENT" || form.action_type === "DEMOTION" ? "🔄" : "🚀"}
+            </span>
+            <div>
+              <span className="font-bold text-sm">
+                {form.action_type === "REASSIGNMENT" || form.action_type === "DEMOTION"
+                  ? "Official Role Reassignment Notice"
+                  : "Official Promotion Letter"}
+              </span>
+              <p className="text-xs opacity-90 mt-0.5">
+                Upon submission, a formal{" "}
+                {form.action_type === "REASSIGNMENT" || form.action_type === "DEMOTION"
+                  ? "reassignment notification letter"
+                  : "letter of promotion"}{" "}
+                identifying previous vs newly assigned position will be sent automatically to the employee's email. (Compensation is excluded from reassignment notices).
+              </p>
+            </div>
+          </div>
+          <span className="text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-full bg-white/80 dark:bg-slate-800 shadow-xs whitespace-nowrap">
+            {form.action_type}
+          </span>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -275,7 +331,7 @@ export default function PromotionForm() {
                   type="number"
                   step="0.01"
                   value={form.new_salary}
-                  onChange={(e) => update("new_salary", e.target.value)}
+                  onChange={(e) => handleSalaryChange(e.target.value)}
                 />
               </div>
             </div>
@@ -285,10 +341,10 @@ export default function PromotionForm() {
         <div className="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700">
           <label className="label font-semibold">Remarks/Notes</label>
           <textarea
-            className="input h-56 w-full font-sans"
+            className="input h-36 w-full font-sans"
             value={form.remarks}
             onChange={(e) => update("remarks", e.target.value)}
-            placeholder="Reason for promotion, changes, etc."
+            placeholder="Reason for promotion/reassignment, administrative remarks, responsibilities..."
           />
         </div>
 
@@ -296,8 +352,12 @@ export default function PromotionForm() {
           <button onClick={() => window.history.back()} className="btn-secondary">
             Cancel
           </button>
-          <button className="btn-primary px-12" disabled={loading}>
-            {loading ? "Saving..." : "Process Assignment"}
+          <button className="btn-primary px-8" disabled={loading}>
+            {loading
+              ? "Processing..."
+              : (form.action_type === "REASSIGNMENT" || form.action_type === "DEMOTION")
+                ? "Process Reassignment & Send Letter"
+                : "Process Promotion & Send Letter"}
           </button>
         </div>
       </form>

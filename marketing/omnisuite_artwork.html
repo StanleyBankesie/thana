@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>OmniSuite ERP — Artwork</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&family=Syne:wght@700;800&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --navy: #0A1628;
+      --navy-mid: #0F2038;
+      --gold: #F5B927;
+      --gold-dim: rgba(245,185,39,0.12);
+      --gold-line: rgba(245,185,39,0.35);
+      --electric: #4FC3F7;
+      --white: #FFFFFF;
+      --w70: rgba(255,255,255,0.7);
+      --w40: rgba(255,255,255,0.4);
+      --w15: rgba(255,255,255,0.1);
+    }
+
+    html, body {
+      min-height: 100vh;
+      background: #07101E;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 20px;
+      font-family: 'Inter', system-ui, sans-serif;
+    }
+
+    /* ── POSTER CANVAS ── */
+    .poster {
+      position: relative;
+      width: min(900px, 100%);
+      aspect-ratio: 16 / 9;
+      background: linear-gradient(135deg, #0A1628 0%, #0F2038 40%, #0A1628 100%);
+      border-radius: 4px;
+      overflow: hidden;
+      box-shadow: 0 60px 120px rgba(0,0,0,0.8), 0 0 0 1px rgba(255,255,255,0.06);
+    }
+
+    /* ── KENTE GRID OVERLAY ── */
+    .kente-bg {
+      position: absolute; inset: 0;
+      opacity: 0.04;
+      background-image:
+        repeating-linear-gradient(0deg, var(--gold) 0, var(--gold) 1px, transparent 0, transparent 40px),
+        repeating-linear-gradient(90deg, var(--gold) 0, var(--gold) 1px, transparent 0, transparent 40px);
+      pointer-events: none;
+    }
+
+    /* ── RADIAL GLOW ── */
+    .glow-center {
+      position: absolute;
+      top: 50%; left: 60%;
+      transform: translate(-50%, -50%);
+      width: 70%; height: 90%;
+      background: radial-gradient(ellipse, rgba(245,185,39,0.06) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .glow-left {
+      position: absolute;
+      top: 50%; left: -5%;
+      transform: translateY(-50%);
+      width: 50%; height: 80%;
+      background: radial-gradient(ellipse, rgba(79,195,247,0.05) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    /* ── NETWORK ORBIT ── */
+    .orbit {
+      position: absolute;
+      top: -15%; right: -8%;
+      width: 55%; aspect-ratio: 1;
+      pointer-events: none;
+    }
+    .orbit svg { width: 100%; height: 100%; }
+
+    /* ── LEFT CONTENT COLUMN ── */
+    .content {
+      position: absolute;
+      top: 0; left: 0; bottom: 0;
+      width: 52%;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: clamp(24px, 5%, 60px);
+    }
+
+    .eyebrow {
+      display: flex; align-items: center; gap: 10px;
+      margin-bottom: clamp(12px, 2%, 20px);
+    }
+    .eyebrow-line {
+      width: 28px; height: 2px;
+      background: var(--gold);
+    }
+    .eyebrow-text {
+      font-size: clamp(0.55rem, 1vw, 0.72rem);
+      font-weight: 700;
+      color: var(--gold);
+      letter-spacing: 0.35em;
+      text-transform: uppercase;
+    }
+
+    .headline {
+      font-family: 'Syne', sans-serif;
+      font-size: clamp(1.6rem, 5vw, 4.5rem);
+      font-weight: 800;
+      letter-spacing: -0.04em;
+      line-height: 0.95;
+      color: var(--white);
+      margin-bottom: clamp(8px, 2%, 20px);
+    }
+    .headline .gold { color: var(--gold); }
+    .headline .block { display: block; }
+
+    .divider {
+      width: clamp(40px, 6%, 64px);
+      height: 3px;
+      background: linear-gradient(90deg, var(--gold), transparent);
+      margin-bottom: clamp(10px, 2%, 20px);
+      border-radius: 2px;
+    }
+
+    .body-text {
+      font-size: clamp(0.65rem, 1.3vw, 0.9rem);
+      color: var(--w70);
+      line-height: 1.7;
+      max-width: 340px;
+      margin-bottom: clamp(14px, 2.5%, 28px);
+    }
+
+    /* ── MODULE CHIPS ── */
+    .chips {
+      display: flex; flex-wrap: wrap; gap: 6px;
+      max-width: 360px;
+      margin-bottom: clamp(14px, 2.5%, 28px);
+    }
+    .chip {
+      padding: 5px 12px;
+      border: 1px solid var(--gold-line);
+      border-radius: 100px;
+      font-size: clamp(0.5rem, 0.9vw, 0.65rem);
+      font-weight: 600;
+      color: var(--gold);
+      background: var(--gold-dim);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    /* ── STAT ROW ── */
+    .stats {
+      display: flex; gap: clamp(16px, 3%, 32px);
+      margin-bottom: clamp(16px, 3%, 32px);
+    }
+    .stat-n {
+      font-family: 'Syne', sans-serif;
+      font-size: clamp(1.2rem, 2.5vw, 2rem);
+      font-weight: 800; color: var(--gold);
+      line-height: 1;
+    }
+    .stat-d {
+      font-size: clamp(0.5rem, 0.85vw, 0.62rem);
+      color: var(--w40);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-top: 3px;
+    }
+
+    /* ── LOGO LOCKUP ── */
+    .logo-lockup {
+      display: flex; align-items: center; gap: 10px;
+      margin-top: auto;
+      padding-top: clamp(10px, 2%, 16px);
+      border-top: 1px solid rgba(255,255,255,0.06);
+    }
+    .logo-lockup svg { width: clamp(24px, 3vw, 36px); height: auto; }
+    .logo-name {
+      font-family: 'Syne', sans-serif;
+      font-size: clamp(0.8rem, 1.6vw, 1.2rem);
+      font-weight: 800;
+      color: var(--white);
+    }
+    .logo-name em { color: var(--gold); font-style: normal; }
+    .logo-tagline {
+      margin-left: auto;
+      font-size: clamp(0.5rem, 0.85vw, 0.62rem);
+      color: var(--w40);
+      text-align: right;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+
+    /* ── RIGHT PANEL ── */
+    .right-panel {
+      position: absolute;
+      top: 0; right: 0; bottom: 0;
+      width: 52%;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      justify-content: center;
+      padding: clamp(20px, 4%, 48px);
+      padding-left: 0;
+    }
+
+    /* ── DASHBOARD CARD ── */
+    .dash-card {
+      width: 100%;
+      max-width: 380px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 12px;
+      overflow: hidden;
+      backdrop-filter: blur(20px);
+      box-shadow: 0 20px 60px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.08);
+    }
+    .dash-titlebar {
+      background: rgba(255,255,255,0.05);
+      padding: 10px 14px;
+      display: flex; align-items: center; gap: 6px;
+      border-bottom: 1px solid rgba(255,255,255,0.07);
+    }
+    .dtb-dot { width: 7px; height: 7px; border-radius: 50%; }
+    .dtb-r { background: #FF5F56; } .dtb-y { background: #FFBD2E; } .dtb-g { background: #27C93F; }
+    .dtb-title { font-size: clamp(0.5rem, 0.9vw, 0.65rem); color: var(--w40); margin-left: 4px; }
+    .dash-content { padding: 14px; }
+    .kpi-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+    .kpi {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 8px; padding: 10px;
+    }
+    .kpi-lbl { font-size: clamp(0.45rem, 0.8vw, 0.6rem); color: var(--w40); text-transform: uppercase; letter-spacing: 0.1em; }
+    .kpi-val { font-family: 'Syne', sans-serif; font-size: clamp(0.9rem, 1.8vw, 1.3rem); font-weight: 700; color: var(--white); margin-top: 3px; }
+    .kpi-chg { font-size: clamp(0.4rem, 0.7vw, 0.55rem); color: #4ADE80; margin-top: 2px; }
+    .chart-section-label { font-size: clamp(0.45rem, 0.8vw, 0.6rem); color: var(--w40); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 8px; }
+    .chart-bars { display: flex; align-items: flex-end; gap: 4px; height: 50px; }
+    .cbar { flex: 1; border-radius: 3px 3px 0 0; background: rgba(245,185,39,0.25); }
+    .cbar.hi { background: var(--gold); }
+
+    /* ── PERSON SILHOUETTE ── */
+    .person-wrap {
+      position: absolute;
+      bottom: 0;
+      right: 38%;
+      height: 88%;
+      pointer-events: none;
+      display: flex;
+      align-items: flex-end;
+    }
+    .person-svg { height: 100%; width: auto; }
+
+    /* ── FLOATING MODULE ICONS ── */
+    .float-icons {
+      position: absolute; inset: 0;
+      pointer-events: none;
+      overflow: hidden;
+    }
+    .float-icon {
+      position: absolute;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 8px;
+      padding: 8px 10px;
+      display: flex; flex-direction: column; align-items: center; gap: 3px;
+      backdrop-filter: blur(8px);
+      white-space: nowrap;
+    }
+    .float-icon-emoji { font-size: clamp(0.9rem, 1.5vw, 1.2rem); }
+    .float-icon-label { font-size: clamp(0.38rem, 0.65vw, 0.55rem); color: var(--w40); text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600; }
+
+    /* ── BOTTOM BAR ── */
+    .bottom-bar {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: clamp(3px, 0.5%, 4px);
+      background: linear-gradient(90deg, transparent, var(--gold) 30%, var(--electric) 70%, transparent);
+      opacity: 0.7;
+    }
+
+    /* ── CORNER MARKS ── */
+    .corner {
+      position: absolute;
+      width: 20px; height: 20px;
+      border-color: rgba(245,185,39,0.25);
+      border-style: solid;
+    }
+    .corner-tl { top: 14px; left: 14px; border-width: 1px 0 0 1px; }
+    .corner-tr { top: 14px; right: 14px; border-width: 1px 1px 0 0; }
+    .corner-bl { bottom: 14px; left: 14px; border-width: 0 0 1px 1px; }
+    .corner-br { bottom: 14px; right: 14px; border-width: 0 1px 1px 0; }
+  </style>
+</head>
+<body>
+<div class="poster" id="poster">
+
+  <!-- Texture layers -->
+  <div class="kente-bg"></div>
+  <div class="glow-center"></div>
+  <div class="glow-left"></div>
+
+  <!-- Corner registration marks -->
+  <div class="corner corner-tl"></div>
+  <div class="corner corner-tr"></div>
+  <div class="corner corner-bl"></div>
+  <div class="corner corner-br"></div>
+
+  <!-- Orbit network (top-right) -->
+  <div class="orbit">
+    <svg viewBox="0 0 500 500" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <!-- Outer ring arc -->
+      <path d="M 250 30 A 220 220 0 1 1 249 30" stroke="rgba(245,185,39,0.12)" stroke-width="1" fill="none"/>
+      <!-- Mid ring -->
+      <path d="M 250 90 A 160 160 0 1 1 249 90" stroke="rgba(245,185,39,0.08)" stroke-width="1" fill="none"/>
+      <!-- Nodes -->
+      <circle cx="250" cy="30"  r="10" fill="#F5B927" opacity="0.9"/>
+      <circle cx="440" cy="190" r="8"  fill="#F5B927" opacity="0.8"/>
+      <circle cx="440" cy="370" r="6"  fill="#F5B927" opacity="0.6"/>
+      <circle cx="250" cy="470" r="10" fill="#F5B927" opacity="0.9"/>
+      <circle cx="60"  cy="370" r="6"  fill="#F5B927" opacity="0.6"/>
+      <circle cx="60"  cy="190" r="8"  fill="#F5B927" opacity="0.8"/>
+      <!-- Spokes -->
+      <line x1="250" y1="30"  x2="440" y2="190" stroke="rgba(245,185,39,0.2)" stroke-width="1"/>
+      <line x1="440" y1="190" x2="440" y2="370" stroke="rgba(245,185,39,0.2)" stroke-width="1"/>
+      <line x1="440" y1="370" x2="250" y2="470" stroke="rgba(245,185,39,0.2)" stroke-width="1"/>
+      <line x1="250" y1="470" x2="60"  y2="370" stroke="rgba(245,185,39,0.2)" stroke-width="1"/>
+      <line x1="60"  y1="370" x2="60"  y2="190" stroke="rgba(245,185,39,0.2)" stroke-width="1"/>
+      <line x1="60"  y1="190" x2="250" y2="30"  stroke="rgba(245,185,39,0.2)" stroke-width="1"/>
+      <!-- Center hub -->
+      <circle cx="250" cy="250" r="16" fill="none" stroke="rgba(245,185,39,0.4)" stroke-width="1.5"/>
+      <circle cx="250" cy="250" r="6"  fill="#F5B927" opacity="0.8"/>
+      <!-- Cross connections -->
+      <line x1="250" y1="30"  x2="250" y2="470" stroke="rgba(245,185,39,0.06)" stroke-width="1"/>
+      <line x1="60"  y1="190" x2="440" y2="370" stroke="rgba(245,185,39,0.06)" stroke-width="1"/>
+      <line x1="440" y1="190" x2="60"  y2="370" stroke="rgba(245,185,39,0.06)" stroke-width="1"/>
+      <!-- Inner nodes -->
+      <circle cx="250" cy="90"  r="5" fill="#4FC3F7" opacity="0.5"/>
+      <circle cx="370" cy="170" r="4" fill="#4FC3F7" opacity="0.4"/>
+      <circle cx="130" cy="170" r="4" fill="#4FC3F7" opacity="0.4"/>
+      <line x1="250" y1="90"  x2="370" y2="170" stroke="rgba(79,195,247,0.15)" stroke-width="1"/>
+      <line x1="250" y1="90"  x2="130" y2="170" stroke="rgba(79,195,247,0.15)" stroke-width="1"/>
+      <line x1="250" y1="250" x2="250" y2="90"  stroke="rgba(79,195,247,0.1)"  stroke-width="1"/>
+    </svg>
+  </div>
+
+  <!-- ── LEFT CONTENT ── -->
+  <div class="content">
+    <div class="eyebrow">
+      <div class="eyebrow-line"></div>
+      <div class="eyebrow-text">Enterprise Resource Planning</div>
+    </div>
+
+    <div class="headline">
+      <span class="block">One Suite.</span>
+      <span class="block gold">Every</span>
+      <span class="block gold">Operation.</span>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="body-text">
+      OmniSuite connects your Finance, Sales, Inventory, HR, Production, and more — into a single, real-time intelligence platform built for the African enterprise.
+    </div>
+
+    <div class="chips">
+      <div class="chip">Finance</div>
+      <div class="chip">Sales</div>
+      <div class="chip">Inventory</div>
+      <div class="chip">HR</div>
+      <div class="chip">Production</div>
+      <div class="chip">POS</div>
+      <div class="chip">Transport</div>
+      <div class="chip">Intelligence</div>
+      <div class="chip">Assets</div>
+      <div class="chip">Projects</div>
+    </div>
+
+    <div class="stats">
+      <div>
+        <div class="stat-n">16+</div>
+        <div class="stat-d">Modules</div>
+      </div>
+      <div>
+        <div class="stat-n">∞</div>
+        <div class="stat-d">Branches</div>
+      </div>
+      <div>
+        <div class="stat-n">Real‑Time</div>
+        <div class="stat-d">Visibility</div>
+      </div>
+    </div>
+
+    <div class="logo-lockup">
+      <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="20" cy="6"  r="5.5" fill="#F5B927"/>
+        <circle cx="35" cy="30" r="5.5" fill="#F5B927"/>
+        <circle cx="5"  cy="30" r="5.5" fill="#F5B927"/>
+        <path d="M20 11.5 Q31 17 35 24" stroke="#F5B927" stroke-width="2" fill="none" stroke-linecap="round"/>
+        <path d="M5 24 Q9 17 20 11.5" stroke="#F5B927" stroke-width="2" fill="none" stroke-linecap="round"/>
+        <path d="M5 30 Q12 38 20 38 Q28 38 35 30" stroke="#F5B927" stroke-width="2" fill="none" stroke-linecap="round"/>
+      </svg>
+      <div class="logo-name">Omni<em>Suite</em></div>
+      <div class="logo-tagline">stannesstechnologies.com<br/>By Stanness Technologies</div>
+    </div>
+  </div>
+
+  <!-- ── RIGHT PANEL ── -->
+  <div class="right-panel">
+    <!-- Dashboard card -->
+    <div class="dash-card">
+      <div class="dash-titlebar">
+        <div class="dtb-dot dtb-r"></div>
+        <div class="dtb-dot dtb-y"></div>
+        <div class="dtb-dot dtb-g"></div>
+        <div class="dtb-title">Executive Dashboard · All Branches</div>
+      </div>
+      <div class="dash-content">
+        <div class="kpi-row">
+          <div class="kpi"><div class="kpi-lbl">Revenue MTD</div><div class="kpi-val">₵2.4M</div><div class="kpi-chg">↑ 18.4%</div></div>
+          <div class="kpi"><div class="kpi-lbl">Active Orders</div><div class="kpi-val">342</div><div class="kpi-chg">↑ 7.1%</div></div>
+          <div class="kpi"><div class="kpi-lbl">Staff Online</div><div class="kpi-val">148</div><div class="kpi-chg" style="color:#4FC3F7">Live</div></div>
+          <div class="kpi"><div class="kpi-lbl">Fleet Active</div><div class="kpi-val">24</div><div class="kpi-chg">6 in-transit</div></div>
+        </div>
+        <div class="chart-section-label">Sales Trend — 7 Days</div>
+        <div class="chart-bars">
+          <div class="cbar" style="height:38%"></div>
+          <div class="cbar" style="height:55%"></div>
+          <div class="cbar" style="height:47%"></div>
+          <div class="cbar hi" style="height:82%"></div>
+          <div class="cbar" style="height:65%"></div>
+          <div class="cbar" style="height:73%"></div>
+          <div class="cbar hi" style="height:92%"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Floating module icon accents -->
+  <div class="float-icons">
+    <!-- These are decorative elements scattered around the composition -->
+    <div class="float-icon" style="top:8%;left:52%;transform:rotate(-4deg)">
+      <div class="float-icon-emoji">💰</div>
+      <div class="float-icon-label">Finance</div>
+    </div>
+    <div class="float-icon" style="top:60%;left:50%;transform:rotate(2deg)">
+      <div class="float-icon-emoji">🚛</div>
+      <div class="float-icon-label">Transport</div>
+    </div>
+    <div class="float-icon" style="top:14%;left:76%;transform:rotate(3deg)">
+      <div class="float-icon-emoji">👥</div>
+      <div class="float-icon-label">HR</div>
+    </div>
+    <div class="float-icon" style="top:72%;left:68%;transform:rotate(-2deg)">
+      <div class="float-icon-emoji">📊</div>
+      <div class="float-icon-label">Intelligence</div>
+    </div>
+    <div class="float-icon" style="top:40%;left:54%;transform:rotate(1deg)">
+      <div class="float-icon-emoji">📦</div>
+      <div class="float-icon-label">Inventory</div>
+    </div>
+  </div>
+
+  <!-- Bottom gradient bar -->
+  <div class="bottom-bar"></div>
+</div>
+</body>
+</html>

@@ -31,6 +31,15 @@ const getSectionIcon = (section, sectionIndex) => {
   return fallbackIcons[sectionIndex % fallbackIcons.length];
 };
 
+const safeRenderIcon = (icon, className = "w-5 h-5") => {
+  if (!icon) return "📄";
+  if (typeof icon === "string") return icon;
+  if (typeof icon === "function" || (typeof icon === "object" && (icon.$typeof || icon.render))) {
+    return React.createElement(icon, { className });
+  }
+  return "📄";
+};
+
 import React, { useState, useMemo } from "react";
 import { useNavigate, useLocation, NavLink } from "react-router-dom";
 import { ArrowLeft, ChevronDown, ChevronRight, ArrowRight, Sparkles } from "lucide-react";
@@ -816,7 +825,7 @@ const ModuleDashboard = ({
                   onClick={() => handleNavigate(action.path)}
                 >
                   <div className="w-12 h-12 rounded-xl bg-brand-50/50 dark:bg-slate-700/50 flex items-center justify-center text-2xl mb-3 shadow-inner group-hover:scale-110 group-hover:rotate-3 group-hover:from-brand-100 group-hover:to-brand-200/50 dark:group-hover:from-slate-600 dark:group-hover:to-slate-700 transition-all duration-300">
-                    {action.icon}
+                    {safeRenderIcon(action.icon, "w-6 h-6")}
                   </div>
                   <span className="text-sm font-semibold text-slate-700 dark:text-slate-200 group-hover:text-brand-700 dark:group-hover:text-brand-300 transition-colors">
                     {action.label}
@@ -892,7 +901,7 @@ const ModuleDashboard = ({
                     <div>
                       <div className="flex items-start justify-between gap-3 mb-4">
                         <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-brand-600 to-brand-800 text-white text-xl flex items-center justify-center shadow-md group-hover:scale-110 group-hover:rotate-2 transition-transform duration-300 shrink-0">
-                          {sectionIcon}
+                          {safeRenderIcon(sectionIcon, "w-6 h-6")}
                         </div>
                         {section.badge ? (
                           <span className="bg-brand-50 text-brand-700 dark:bg-brand-950/40 dark:text-brand-300 text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider border border-brand-200/60 dark:border-brand-800/60 shrink-0">
@@ -994,7 +1003,7 @@ const ModuleDashboard = ({
                   <div className="flex items-center justify-between border-b border-slate-200/80 dark:border-slate-800/80 pb-3">
                     <div className="flex items-center gap-3 min-w-0">
                       <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-brand-600 to-brand-800 text-white text-lg flex items-center justify-center shadow-xs shrink-0">
-                        {sectionIcon}
+                        {safeRenderIcon(sectionIcon, "w-5 h-5")}
                       </div>
                       <div className="flex items-center gap-2.5 min-w-0 flex-wrap">
                         <h2 className="text-lg font-bold text-slate-900 dark:text-white tracking-tight truncate">

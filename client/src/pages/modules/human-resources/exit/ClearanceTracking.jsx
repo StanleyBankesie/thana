@@ -79,7 +79,7 @@ export default function ClearanceTracking() {
                   key={e.id}
                   onClick={() => loadClearance(e)}
                   className={`w-full text-left p-4 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors ${
-                    selectedExit?.id === e.id ? 'bg-brand/5 border-l-4 border-brand' : ''
+                    selectedExit?.id === e.id ? 'bg-brand/5 border-l-2 border-brand' : ''
                   }`}
                 >
                   <div className="font-medium text-sm">{e.first_name} {e.last_name}</div>

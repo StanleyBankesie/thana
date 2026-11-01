@@ -41,6 +41,9 @@ const OVERVIEW_EXCLUDED_PATHS = [
 ];
 
 function isOverviewExcludedPath(pathname = "") {
+  if (pathname.startsWith("/human-resources") || pathname.startsWith("/hr")) {
+    return true;
+  }
   if (
     OVERVIEW_EXCLUDED_PATHS.some(
       (basePath) =>

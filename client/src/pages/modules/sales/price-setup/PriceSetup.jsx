@@ -4,7 +4,8 @@
  */
 
 import React, { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import MultiSelectItemGroup from "./MultiSelectItemGroup.jsx";
 import * as XLSX from "xlsx";
 import { api } from "../../../../api/client";
 import { toast } from "react-toastify";
@@ -34,10 +35,18 @@ export default function PriceSetup() {
   const [showPriceTypeSelector, setShowPriceTypeSelector] = useState(false);
 
   // Bulk price % state
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  // Bulk price % state
   const [itemGroups, setItemGroups] = useState([]);
   const [customerModalSubType, setCustomerModalSubType] = useState("single");
   const [bulkCustomerId, setBulkCustomerId] = useState("");
-  const [bulkGroupId, setBulkGroupId] = useState("");
+  const [bulkGroupIds, setBulkGroupIds] = useState([]);
+  const [bulkActiveGroupId, setBulkActiveGroupId] = useState(null);
+  const [bulkItemSearch, setBulkItemSearch] = useState("");
+  const [customerFilterGroupIds, setCustomerFilterGroupIds] = useState([]);
+  const [singleFilterGroupIds, setSingleFilterGroupIds] = useState([]);
   const [bulkPriceTypeId, setBulkPriceTypeId] = useState("");
   const [bulkPercentage, setBulkPercentage] = useState("");
   const [bulkOperator, setBulkOperator] = useState("+");
@@ -72,6 +81,22 @@ export default function PriceSetup() {
   }, []);
 
   useEffect(() => {
+    const path = (location.pathname || "").toLowerCase();
+    if (path.includes("/price-setup/customer")) {
+      setSection("selling");
+      setSellingView("customer");
+      setActiveTab("customer");
+    } else if (path.includes("/price-setup/standard")) {
+      setSection("selling");
+      setSellingView("standard");
+      setActiveTab("standard");
+    } else if (path.includes("/price-setup/cost")) {
+      setSection("cost");
+    }
+  }, [location.pathname]);
+
+
+  useEffect(() => {
     loadTabData();
   }, [activeTab, filters]);
 
@@ -99,28 +124,51 @@ export default function PriceSetup() {
     if (section === "cost") loadCostData();
   }, [section]);
 
-  // Filter products by selected group for bulk tool
+  // Filter products by selected group(s) for bulk tool
   useEffect(() => {
-    const groupId = Number(bulkGroupId);
-    if (groupId) {
+    if (bulkGroupIds.length > 0) {
+      const selectedSet = new Set(bulkGroupIds.map(Number));
       setBulkFilteredItems(
-        products.filter((p) => Number(p.item_group_id) === groupId),
+        products.filter((p) => selectedSet.has(Number(p.item_group_id))),
       );
+      if (bulkActiveGroupId && !selectedSet.has(Number(bulkActiveGroupId))) {
+        setBulkActiveGroupId(null);
+      }
     } else {
       setBulkFilteredItems([]);
+      setBulkActiveGroupId(null);
     }
     setBulkSelectedItems([]);
     setBulkSelectAll(false);
-  }, [bulkGroupId, products]);
+  }, [bulkGroupIds, products]);
+
+  const displayedBulkItems = React.useMemo(() => {
+    let items = bulkFilteredItems;
+    if (bulkActiveGroupId) {
+      items = items.filter(
+        (p) => Number(p.item_group_id) === Number(bulkActiveGroupId)
+      );
+    }
+    if (bulkItemSearch.trim()) {
+      const q = bulkItemSearch.trim().toLowerCase();
+      items = items.filter(
+        (p) =>
+          p.item_name?.toLowerCase().includes(q) ||
+          p.item_code?.toLowerCase().includes(q) ||
+          p.barcode?.toLowerCase().includes(q),
+      );
+    }
+    return items;
+  }, [bulkFilteredItems, bulkActiveGroupId, bulkItemSearch]);
 
   // Sync bulkSelectAll
   useEffect(() => {
-    if (bulkSelectAll && bulkFilteredItems.length) {
-      setBulkSelectedItems(bulkFilteredItems.map((p) => p.id));
+    if (bulkSelectAll && displayedBulkItems.length) {
+      setBulkSelectedItems(displayedBulkItems.map((p) => p.id));
     } else if (!bulkSelectAll) {
       setBulkSelectedItems([]);
     }
-  }, [bulkSelectAll, bulkFilteredItems]);
+  }, [bulkSelectAll, displayedBulkItems]);
 
   const loadInitialData = async () => {
     try {
@@ -585,7 +633,10 @@ export default function PriceSetup() {
     setSelectedItem(item);
     setCustomerModalSubType("single");
     setBulkCustomerId("");
-    setBulkGroupId("");
+    setBulkGroupIds([]);
+    setBulkActiveGroupId(null);
+    setBulkItemSearch("");
+    setSingleFilterGroupIds([]);
     setBulkPriceTypeId("");
     setBulkPercentage("");
     setBulkOperator("+");
@@ -621,7 +672,10 @@ export default function PriceSetup() {
     setProductQuery("");
     setShowProductResults(false);
     setBulkCustomerId("");
-    setBulkGroupId("");
+    setBulkGroupIds([]);
+    setBulkActiveGroupId(null);
+    setBulkItemSearch("");
+    setSingleFilterGroupIds([]);
     setBulkPriceTypeId("");
     setBulkPercentage("");
     setBulkOperator("+");
@@ -1211,6 +1265,16 @@ export default function PriceSetup() {
               </select>
             </div>
             <div className="form-group">
+              <label>Filter by Item Group(s)</label>
+              <MultiSelectItemGroup
+                itemGroups={itemGroups}
+                selectedIds={singleFilterGroupIds}
+                onChange={setSingleFilterGroupIds}
+                products={products}
+                placeholder="All Item Groups"
+              />
+            </div>
+            <div className="form-group">
               <label className="required">Product</label>
               <div className="relative">
                 <input
@@ -1234,8 +1298,11 @@ export default function PriceSetup() {
                   onKeyDown={(e) => {
                     if (e.key === "Enter") {
                       const query = productQuery.trim();
+                      const candidateProds = singleFilterGroupIds.length > 0
+                        ? products.filter((p) => singleFilterGroupIds.map(Number).includes(Number(p.item_group_id)))
+                        : products;
                       const results = query
-                        ? filterByPrefix(products, {
+                        ? filterByPrefix(candidateProds, {
                             query,
                             searchFields: ["item_code", "item_name", "barcode"],
                           })
@@ -1349,8 +1416,8 @@ export default function PriceSetup() {
       } else {
         return (
           <div className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-              <div className="form-group">
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
+              <div className="form-group md:col-span-3">
                 <label className="required">Customer</label>
                 <select
                   value={bulkCustomerId}
@@ -1364,21 +1431,26 @@ export default function PriceSetup() {
                   ))}
                 </select>
               </div>
-              <div className="form-group">
-                <label>Item Group</label>
-                <select
-                  value={bulkGroupId}
-                  onChange={(e) => setBulkGroupId(e.target.value)}
-                >
-                  <option value="">All Groups</option>
-                  {itemGroups.map((g) => (
-                    <option key={g.id} value={g.id}>
-                      {g.group_name}
-                    </option>
-                  ))}
-                </select>
+              <div className="form-group md:col-span-4">
+                <label className="flex items-center justify-between">
+                  <span>Item Group(s)</span>
+                  {bulkGroupIds.length > 0 && (
+                    <span className="text-[11px] text-brand font-semibold">
+                      {bulkGroupIds.length} selected
+                    </span>
+                  )}
+                </label>
+                <MultiSelectItemGroup
+                  itemGroups={itemGroups}
+                  selectedIds={bulkGroupIds}
+                  onChange={setBulkGroupIds}
+                  products={products}
+                  placeholder="Click to select Item Groups..."
+                  activeGroupId={bulkActiveGroupId}
+                  onSelectGroup={setBulkActiveGroupId}
+                />
               </div>
-              <div className="form-group">
+              <div className="form-group md:col-span-2">
                 <label>Price Type</label>
                 <select
                   value={bulkPriceTypeId}
@@ -1392,8 +1464,8 @@ export default function PriceSetup() {
                   ))}
                 </select>
               </div>
-              <div className="form-group">
-                <label className="required">Percentage</label>
+              <div className="form-group md:col-span-3">
+                <label className="required">Percentage Adjustment</label>
                 <div className="flex gap-2">
                   <input
                     type="number"
@@ -1404,11 +1476,11 @@ export default function PriceSetup() {
                     className="flex-1"
                     placeholder="e.g. 10"
                   />
-                  <span className="text-sm text-gray-500 self-center">%</span>
+                  <span className="text-sm text-gray-500 self-center font-bold">%</span>
                   <select
                     value={bulkOperator}
                     onChange={(e) => setBulkOperator(e.target.value)}
-                    className="w-16"
+                    className="w-16 font-bold"
                   >
                     <option value="+">+</option>
                     <option value="-">-</option>
@@ -1417,65 +1489,156 @@ export default function PriceSetup() {
               </div>
             </div>
             {bulkFilteredItems.length > 0 && (
-              <div>
-                <div className="flex items-center gap-3 mb-2">
-                  <label className="text-sm font-medium text-gray-700">
-                    Select Items
-                  </label>
-                  <label className="flex items-center gap-1.5 text-sm text-gray-600">
-                    <input
-                      type="checkbox"
-                      checked={bulkSelectAll}
-                      onChange={(e) => setBulkSelectAll(e.target.checked)}
-                    />
-                    Select All ({bulkFilteredItems.length} items)
-                  </label>
-                  <span className="text-xs text-gray-400">
-                    {bulkSelectedItems.length} selected
-                  </span>
-                </div>
-                <div className="max-h-40 overflow-y-auto border border-gray-200 rounded-lg divide-y divide-gray-100">
-                  {bulkFilteredItems.map((item) => (
-                    <label
-                      key={item.id}
-                      className="flex items-center gap-2 px-3 py-1.5 text-sm hover:bg-gray-50 cursor-pointer"
-                    >
+              <div className="mt-3 pt-3 border-t border-slate-200">
+                <div className="flex flex-wrap items-center justify-between gap-3 mb-2">
+                  <div className="flex items-center gap-3">
+                    <label className="text-sm font-semibold text-gray-700 flex items-center gap-1.5 flex-wrap">
+                      <span>Select Items</span>
+                      {bulkActiveGroupId ? (
+                        <span className="text-xs font-normal text-brand bg-brand/10 border border-brand/20 px-2 py-0.5 rounded-full flex items-center gap-1">
+                          Group: <strong className="font-semibold">{itemGroups.find((g) => Number(g.id) === Number(bulkActiveGroupId))?.group_name || bulkActiveGroupId}</strong>
+                          <span className="opacity-75">({displayedBulkItems.length} items)</span>
+                          <button
+                            type="button"
+                            onClick={() => setBulkActiveGroupId(null)}
+                            className="ml-1 text-xs text-brand hover:text-slate-900 font-bold"
+                            title="Show all selected groups"
+                          >
+                            &times;
+                          </button>
+                        </span>
+                      ) : (
+                        <span className="text-xs font-normal text-gray-500">
+                          ({displayedBulkItems.length} items from {bulkGroupIds.length} groups)
+                        </span>
+                      )}
+                    </label>
+                    <label className="flex items-center gap-1.5 text-sm text-gray-600 cursor-pointer select-none">
                       <input
                         type="checkbox"
-                        checked={bulkSelectedItems.includes(item.id)}
-                        onChange={() => {
-                          setBulkSelectedItems((prev) =>
-                            prev.includes(item.id)
-                              ? prev.filter((id) => id !== item.id)
-                              : [...prev, item.id],
-                          );
-                          setBulkSelectAll(false);
+                        checked={
+                          displayedBulkItems.length > 0 &&
+                          displayedBulkItems.every((item) =>
+                            bulkSelectedItems.includes(item.id)
+                          )
+                        }
+                        onChange={(e) => {
+                          const checked = e.target.checked;
+                          if (checked) {
+                            const newIds = [
+                              ...new Set([
+                                ...bulkSelectedItems,
+                                ...displayedBulkItems.map((p) => p.id),
+                              ]),
+                            ];
+                            setBulkSelectedItems(newIds);
+                          } else {
+                            const toRemove = new Set(
+                              displayedBulkItems.map((p) => p.id)
+                            );
+                            setBulkSelectedItems(
+                              bulkSelectedItems.filter((id) => !toRemove.has(id))
+                            );
+                          }
                         }}
+                        className="rounded border-gray-300 text-brand focus:ring-brand"
                       />
-                      <span>{item.item_name}</span>
-                      <span className="text-gray-400 text-xs ml-auto">
-                        {item.item_code} | GHS {Number(item.selling_price || 0).toFixed(2)}
-                        {bulkPercentage && (
-                          <span className="ml-2 font-semibold text-gray-700">
-                            → GHS{" "}
-                            {(() => {
-                              const sp = Number(item.selling_price || 0);
-                              const pct = Number(bulkPercentage || 0);
-                              const adj = sp * (pct / 100);
-                              const np = bulkOperator === "-" ? sp - adj : sp + adj;
-                              return np.toFixed(2);
-                            })()}
-                          </span>
-                        )}
-                      </span>
+                      Select All Displayed
                     </label>
-                  ))}
+                    <span className="text-xs text-brand font-semibold px-2 py-0.5 bg-brand/10 rounded-full">
+                      {bulkSelectedItems.length} selected
+                    </span>
+                  </div>
+                  <input
+                    type="text"
+                    placeholder="Search items by code or name..."
+                    value={bulkItemSearch}
+                    onChange={(e) => setBulkItemSearch(e.target.value)}
+                    className="w-64 px-2.5 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-brand"
+                  />
+                </div>
+                <div className="max-h-60 overflow-y-auto border border-gray-200 rounded-lg divide-y divide-gray-100 bg-white">
+                  {displayedBulkItems.length === 0 ? (
+                    <div className="p-4 text-center text-xs text-gray-400">
+                      No items match your search "{bulkItemSearch}"
+                    </div>
+                  ) : (
+                    displayedBulkItems.map((item) => {
+                      const isSelected = bulkSelectedItems.includes(item.id);
+                      const grp = itemGroups.find(
+                        (g) => Number(g.id) === Number(item.item_group_id)
+                      );
+                      const sp = Number(item.selling_price || 0);
+                      const pct = Number(bulkPercentage || 0);
+                      const adj = sp * (pct / 100);
+                      const np = bulkOperator === "-" ? sp - adj : sp + adj;
+
+                      return (
+                        <label
+                          key={item.id}
+                          className={`flex items-center gap-2.5 px-3 py-2 text-sm hover:bg-slate-50 cursor-pointer select-none transition-colors ${
+                            isSelected ? "bg-amber-50/50" : ""
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={() => {
+                              setBulkSelectedItems((prev) =>
+                                prev.includes(item.id)
+                                  ? prev.filter((id) => id !== item.id)
+                                  : [...prev, item.id]
+                              );
+                            }}
+                            className="rounded border-gray-300 text-brand focus:ring-brand"
+                          />
+                          <span className="font-medium text-slate-800">
+                            {item.item_name}
+                          </span>
+                          {grp && (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                setBulkActiveGroupId(
+                                  Number(bulkActiveGroupId) === Number(grp.id)
+                                    ? null
+                                    : Number(grp.id)
+                                );
+                              }}
+                              className={`text-[10px] uppercase font-semibold tracking-wider px-1.5 py-0.5 rounded border transition-colors cursor-pointer select-none ${
+                                Number(bulkActiveGroupId) === Number(grp.id)
+                                  ? "bg-brand text-white border-brand shadow-2xs font-bold"
+                                  : "bg-slate-100 text-slate-600 border-slate-200 hover:bg-brand/10 hover:text-brand hover:border-brand"
+                              }`}
+                              title={`Click to show only items in ${grp.group_name}`}
+                            >
+                              {grp.group_name}
+                            </button>
+                          )}
+                          <span className="text-gray-400 text-xs ml-auto flex items-center gap-2">
+                            <span className="font-mono text-slate-500">
+                              {item.item_code}
+                            </span>
+                            <span>|</span>
+                            <span>GHS {sp.toFixed(2)}</span>
+                            {bulkPercentage && (
+                              <span className="font-semibold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
+                                → GHS {np.toFixed(2)}
+                              </span>
+                            )}
+                          </span>
+                        </label>
+                      );
+                    })
+                  )}
                 </div>
               </div>
             )}
-            {!bulkGroupId && (
-              <p className="text-xs text-gray-400 italic">
-                Select an Item Group to view and select items
+            {bulkGroupIds.length === 0 && (
+              <p className="text-xs text-gray-400 italic py-2">
+                Select one or more Item Groups above to view and select items
               </p>
             )}
           </div>
@@ -1706,8 +1869,10 @@ export default function PriceSetup() {
               onClick={() => {
                 if (section === "selling" && sellingView !== "picker") {
                   setSellingView("picker");
+                  navigate("/sales/price-setup");
                 } else {
                   setSection("selector");
+                  navigate("/sales/price-setup");
                 }
               }}
             >
@@ -1786,6 +1951,7 @@ export default function PriceSetup() {
                 onClick={() => {
                   setActiveTab("standard");
                   setSellingView("standard");
+                  navigate("/sales/price-setup/standard");
                 }}
                 className="group relative flex flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm hover:shadow-lg transition-all duration-200 hover:-translate-y-0.5 text-left"
               >
@@ -1823,6 +1989,7 @@ export default function PriceSetup() {
                 onClick={() => {
                   setActiveTab("customer");
                   setSellingView("customer");
+                  navigate("/sales/price-setup/customer");
                 }}
                 className="group relative flex flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm hover:shadow-lg transition-all duration-200 hover:-translate-y-0.5 text-left"
               >
@@ -1907,7 +2074,7 @@ export default function PriceSetup() {
           {sellingView === "customer" && (
             <div className="tab-content active">
               <div className="filter-section">
-                <div className="filter-grid">
+                <div className="filter-grid grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="form-group">
                     <label>Select Customer</label>
                     <select
@@ -1924,18 +2091,62 @@ export default function PriceSetup() {
                       ))}
                     </select>
                   </div>
+                  <div className="form-group">
+                    <label>Filter by Item Group(s)</label>
+                    <MultiSelectItemGroup
+                      itemGroups={itemGroups}
+                      selectedIds={customerFilterGroupIds}
+                      onChange={setCustomerFilterGroupIds}
+                      products={products}
+                      placeholder="All Item Groups"
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Search Product</label>
+                    <input
+                      type="text"
+                      placeholder="Search by code or name"
+                      value={filters.product}
+                      onChange={(e) =>
+                        setFilters({ ...filters, product: e.target.value })
+                      }
+                    />
+                  </div>
                 </div>
               </div>
 
               {loading ? (
                 <div className="text-center py-8 text-gray-500">Loading...</div>
-              ) : data.length === 0 ? (
-                <div className="text-center py-8 text-gray-500">
-                  No customer prices found. Click "New Price" to add one.
-                </div>
-              ) : (
-                renderCustomerPrices(getSortedData(data))
-              )}
+              ) : (() => {
+                let filteredData = data;
+                if (customerFilterGroupIds.length > 0) {
+                  const allowedSet = new Set(customerFilterGroupIds.map(Number));
+                  filteredData = filteredData.filter((item) => {
+                    const prod = products.find((p) => p.id === item.product_id);
+                    return prod && allowedSet.has(Number(prod.item_group_id));
+                  });
+                }
+                if (filters.product) {
+                  const q = filters.product.toLowerCase();
+                  filteredData = filteredData.filter((item) => {
+                    const prod = products.find((p) => p.id === item.product_id);
+                    if (!prod) return false;
+                    return (
+                      prod.item_name?.toLowerCase().includes(q) ||
+                      prod.item_code?.toLowerCase().includes(q) ||
+                      prod.barcode?.toLowerCase().includes(q)
+                    );
+                  });
+                }
+                const sorted = getSortedData(filteredData);
+                return sorted.length === 0 ? (
+                  <div className="text-center py-8 text-gray-500">
+                    No customer prices found matching the criteria. Click "New Price" to add one.
+                  </div>
+                ) : (
+                  renderCustomerPrices(sorted)
+                );
+              })()}
             </div>
           )}
         </div>
@@ -2050,7 +2261,9 @@ export default function PriceSetup() {
                     setCustomerModalSubType("bulk");
                     setModalType("customer");
                     setBulkCustomerId("");
-                    setBulkGroupId("");
+                    setBulkGroupIds([]);
+    setBulkItemSearch("");
+    setSingleFilterGroupIds([]);
                     setBulkPriceTypeId("");
                     setBulkPercentage("");
                     setBulkOperator("+");
