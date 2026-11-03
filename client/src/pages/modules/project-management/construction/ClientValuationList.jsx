@@ -34,6 +34,7 @@ import { api } from "../../../../api/client.js";
 import { toast } from "react-toastify";
 import { usePermission } from "../../../../auth/PermissionContext.jsx";
 import ProjectModal from "../components/ProjectModal.jsx";
+import { useUoms } from "@/hooks/useUoms";
 
 export default function ClientValuationList() {
   const navigate = useNavigate();
@@ -44,6 +45,7 @@ export default function ClientValuationList() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
+  const { uoms } = useUoms();
   const { canReverseApproval } = usePermission();
   const [showForwardModal, setShowForwardModal] = useState(false);
   const [selectedValuation, setSelectedValuation] = useState(null);
@@ -447,12 +449,19 @@ export default function ClientValuationList() {
     setFormData({ ...formData, items: updated });
   };
 
+  const handleItemUomChange = (index, val) => {
+    const updated = [...formData.items];
+    updated[index] = { ...updated[index], uom: val };
+    setFormData({ ...formData, items: updated });
+  };
+
   const handleAddNonBoqItem = () => {
+    const defaultUom = (Array.isArray(uoms) && uoms[0]?.uom_code) || "ITEM";
     const newItem = {
       boq_item_id: null,
       item_code: `VAR-${formData.items.length + 1}`,
       description: "Non-BOQ / Variation Extra Work",
-      uom: "ITEM",
+      uom: defaultUom,
       contract_qty: 1,
       contract_rate: 0,
       contract_amount: 0,
@@ -654,7 +663,7 @@ export default function ClientValuationList() {
           <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
             {activeProject ? "Contract Sum" : "Active Projects"}
           </span>
-          <p className="text-xl font-bold font-mono text-slate-900 dark:text-white">
+          <p className="text-xl font-medium text-slate-900 dark:text-white">
             {activeProject
               ? `GH₵ ${Number(activeProject.revised_contract_sum || activeProject.contract_sum || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}`
               : `${projects.length} Projects`}
@@ -662,7 +671,7 @@ export default function ClientValuationList() {
         </div>
         <div className="card p-4 space-y-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm">
           <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">Gross Assessed to Date</span>
-          <p className="text-xl font-bold font-mono text-brand-700 dark:text-brand-400">
+          <p className="text-xl font-medium text-brand-700 dark:text-brand-400">
             GH₵{" "}
             {valuations
               .reduce((a, c) => a + Number(c.gross_assessed_value ?? c.gross_claimed ?? 0), 0)
@@ -671,7 +680,7 @@ export default function ClientValuationList() {
         </div>
         <div className="card p-4 space-y-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm">
           <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">Retention Withheld</span>
-          <p className="text-xl font-bold font-mono text-rose-600">
+          <p className="text-xl font-medium text-rose-600">
             GH₵{" "}
             {valuations
               .reduce((a, c) => a + Number(c.retention_deducted || 0), 0)
@@ -680,7 +689,7 @@ export default function ClientValuationList() {
         </div>
         <div className="card p-4 space-y-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm">
           <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">Net Assessed (Due)</span>
-          <p className="text-xl font-bold font-mono text-emerald-600">
+          <p className="text-xl font-medium text-emerald-600">
             GH₵{" "}
             {valuations
               .reduce((a, c) => a + Number(c.current_assessed_amount ?? c.net_amount_due ?? 0), 0)
@@ -739,18 +748,18 @@ export default function ClientValuationList() {
                     <td className="py-3 px-4 font-mono text-slate-700 dark:text-slate-300">
                       {v.valuation_date ? String(v.valuation_date).split("T")[0] : "-"}
                     </td>
-                    <td className="py-3 px-4 text-right font-mono font-medium">
+                    <td className="py-3 px-4 text-right font-medium">
                       {Number(v.gross_assessed_value ?? v.gross_claimed ?? 0).toLocaleString(undefined, {
                         minimumFractionDigits: 2,
                       })}
                     </td>
-                    <td className="py-3 px-4 text-right font-mono text-rose-500">
+                    <td className="py-3 px-4 text-right font-normal text-rose-500">
                       -{Number(v.retention_deducted || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                     </td>
-                    <td className="py-3 px-4 text-right font-mono text-amber-500">
+                    <td className="py-3 px-4 text-right font-normal text-amber-500">
                       -{Number(v.advance_recovered || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                     </td>
-                    <td className="py-3 px-4 text-right font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                    <td className="py-3 px-4 text-right font-medium text-emerald-600 dark:text-emerald-400">
                       GH₵{" "}
                       {Number(v.current_assessed_amount ?? v.net_amount_due ?? 0).toLocaleString(undefined, {
                         minimumFractionDigits: 2,
@@ -1158,38 +1167,60 @@ export default function ClientValuationList() {
                           <td className="p-2 font-medium max-w-[200px] truncate" title={it.description}>
                             {it.description}
                           </td>
-                          <td className="p-2 text-center font-mono">{it.uom}</td>
-                          <td className="p-2 text-right font-mono">{Number(it.contract_qty).toFixed(2)}</td>
-                          <td className="p-2 text-right font-mono">{Number(it.contract_rate).toFixed(2)}</td>
-                          <td className="p-2 text-right font-mono text-slate-500">
+                          <td className="p-2 text-center font-mono">
+                            {modalMode !== "VIEW" && it.is_variation === 1 ? (
+                              <select
+                                className="input py-0.5 px-1 text-xs font-mono"
+                                value={it.uom}
+                                onChange={e => handleItemUomChange(idx, e.target.value)}
+                              >
+                                {Array.isArray(uoms) && uoms.length > 0 ? (
+                                  uoms
+                                    .filter(u => u.is_active !== 0 && u.is_active !== false)
+                                    .map(u => (
+                                      <option key={u.id || u.uom_code} value={u.uom_code || u.code}>
+                                        {u.uom_name ? `${u.uom_name} (${u.uom_code || u.code})` : (u.uom_code || u.code)}
+                                      </option>
+                                    ))
+                                ) : (
+                                  <option value={it.uom || "ITEM"}>{it.uom || "ITEM"}</option>
+                                )}
+                              </select>
+                            ) : (
+                              it.uom
+                            )}
+                          </td>
+                          <td className="p-2 text-right font-normal">{Number(it.contract_qty).toFixed(2)}</td>
+                          <td className="p-2 text-right font-normal">{Number(it.contract_rate).toFixed(2)}</td>
+                          <td className="p-2 text-right font-normal text-slate-500">
                             {Number(it.prev_cumulative_qty).toFixed(2)}
                           </td>
                           <td className="p-2 text-right bg-brand-50/30 dark:bg-brand-950/10">
                             {modalMode === "VIEW" ? (
-                              <span className="font-mono font-bold">{Number(it.current_period_qty).toFixed(2)}</span>
+                              <span className="font-medium">{Number(it.current_period_qty).toFixed(2)}</span>
                             ) : (
                               <input
                                 type="number"
                                 step="any"
                                 min="0"
-                                className="input py-1 px-1.5 text-right font-mono text-xs w-20"
+                                className="input py-1 px-1.5 text-right text-xs w-20 font-normal"
                                 value={it.current_period_qty}
                                 onChange={(e) => handleItemQtyChange(idx, e.target.value)}
                               />
                             )}
                           </td>
-                          <td className="p-2 text-right font-mono font-semibold">
+                          <td className="p-2 text-right font-medium">
                             {Number(it.cumulative_qty).toFixed(2)}
                           </td>
-                          <td className="p-2 text-right font-mono font-semibold text-brand-700 dark:text-brand-400">
+                          <td className="p-2 text-right font-medium text-brand-700 dark:text-brand-400">
                             {Number(it.percentage_complete).toFixed(1)}%
                           </td>
-                          <td className="p-2 text-right font-mono font-medium">
+                          <td className="p-2 text-right font-medium">
                             {Number(it.cumulative_value).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                           </td>
                           <td className="p-2 text-right bg-emerald-50/30 dark:bg-emerald-950/10">
                             {modalMode === "VIEW" ? (
-                              <span className="font-mono font-bold text-emerald-600">
+                              <span className="font-medium text-emerald-600">
                                 {Number(it.assessed_value).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                               </span>
                             ) : (
@@ -1197,7 +1228,7 @@ export default function ClientValuationList() {
                                 type="number"
                                 step="any"
                                 min="0"
-                                className="input py-1 px-1.5 text-right font-mono text-xs w-24 font-bold text-emerald-600"
+                                className="input py-1 px-1.5 text-right text-xs w-24 font-normal text-emerald-600"
                                 value={it.assessed_value}
                                 onChange={(e) => handleItemAssessedValueChange(idx, e.target.value)}
                               />
@@ -1422,25 +1453,25 @@ export default function ClientValuationList() {
             </h4>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs font-mono">
               <div>
-                <span className="text-slate-400 block text-[11px]">BOQ Work Done:</span>
+                <span className="text-slate-400 block text-xs">BOQ Work Done:</span>
                 <span className="font-bold text-sm">
                   GH₵ {totalBoqWorkCompleted.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                 </span>
               </div>
               <div>
-                <span className="text-slate-400 block text-[11px]">Approved Variations:</span>
+                <span className="text-slate-400 block text-xs">Approved Variations:</span>
                 <span className="font-bold text-sm text-brand-300">
                   +GH₵ {totalVariations.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                 </span>
               </div>
               <div>
-                <span className="text-slate-400 block text-[11px]">Materials On-Site & Dayworks:</span>
+                <span className="text-slate-400 block text-xs">Materials On-Site & Dayworks:</span>
                 <span className="font-bold text-sm text-brand-300">
                   +GH₵ {(totalMaterialsOnSite + totalDayworks).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                 </span>
               </div>
               <div>
-                <span className="text-slate-400 block text-[11px]">Gross Valuation:</span>
+                <span className="text-slate-400 block text-xs">Gross Valuation:</span>
                 <span className="font-bold text-sm text-cyan-400">
                   GH₵ {grossValuationAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                 </span>
@@ -1449,25 +1480,25 @@ export default function ClientValuationList() {
 
             <div className="border-t border-slate-800 pt-3 grid grid-cols-2 md:grid-cols-4 gap-4 text-xs font-mono">
               <div>
-                <span className="text-slate-400 block text-[11px]">Less Retention ({retentionPercent}%):</span>
+                <span className="text-slate-400 block text-xs">Less Retention ({retentionPercent}%):</span>
                 <span className="text-rose-400 font-bold">
                   -GH₵ {retentionDeducted.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                 </span>
               </div>
               <div>
-                <span className="text-slate-400 block text-[11px]">Less Advance Recovery ({advanceRecoveryPercent}%):</span>
+                <span className="text-slate-400 block text-xs">Less Advance Recovery ({advanceRecoveryPercent}%):</span>
                 <span className="text-amber-400 font-bold">
                   -GH₵ {advanceRecovered.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                 </span>
               </div>
               <div>
-                <span className="text-slate-400 block text-[11px]">Less Other Deductions:</span>
+                <span className="text-slate-400 block text-xs">Less Other Deductions:</span>
                 <span className="text-slate-300 font-bold">
                   -GH₵ {otherDeductions.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                 </span>
               </div>
               <div className="bg-emerald-950/50 border border-emerald-500/40 p-2.5 rounded-xl">
-                <span className="text-emerald-300 block text-[11px] font-semibold uppercase">
+                <span className="text-emerald-300 block text-xs font-semibold uppercase">
                   Net Period Assessed Value:
                 </span>
                 <span className="text-base font-extrabold text-emerald-400">

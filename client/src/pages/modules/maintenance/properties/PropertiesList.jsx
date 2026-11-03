@@ -498,21 +498,6 @@ export default function PropertiesList() {
       {/* ======================= TAB 2: ONBOARDING ======================= */}
       {activeTab === "onboarding" && (
         <>
-          {/* Summary Cards */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {[
-              { label: "Total Onboardings", value: onboardings.length, color: "slate" },
-              { label: "In Progress", value: onboardings.filter(o => o.stage === "IN_PROGRESS").length, color: "blue" },
-              { label: "Pending Review", value: onboardings.filter(o => o.stage === "PENDING_REVIEW").length, color: "amber" },
-              { label: "Operational", value: onboardings.filter(o => o.stage === "OPERATIONAL").length, color: "emerald" },
-            ].map((card) => (
-              <div key={card.label} className={`card p-4 border border-${card.color}-200 dark:border-${card.color}-800 bg-${card.color}-50 dark:bg-${card.color}-950/30`}>
-                <p className={`text-xs text-${card.color}-600 dark:text-${card.color}-400 font-medium`}>{card.label}</p>
-                <p className={`text-2xl font-bold text-${card.color}-700 dark:text-${card.color}-300 mt-1`}>{card.value}</p>
-              </div>
-            ))}
-          </div>
-
           {/* Filter Bar */}
           <div className="bg-white dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col md:flex-row gap-3 items-center justify-between">
             <div className="relative flex-1 w-full">

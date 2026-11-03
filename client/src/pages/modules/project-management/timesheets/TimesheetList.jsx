@@ -166,7 +166,7 @@ export default function TimesheetList() {
                     {/* Work Reference */}
                     <td className="py-3">
                       <div className="font-semibold text-sm text-slate-900 dark:text-slate-100">{item.task_title}</div>
-                      <div className="text-[10px] text-slate-400">{item.project_name}</div>
+                      <div className="text-xs text-slate-400">{item.project_name}</div>
                     </td>
 
                     {/* Description */}

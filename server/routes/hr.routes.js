@@ -34,6 +34,18 @@ router.get(
   hrController.getEmployeeById,
 );
 router.post(
+  "/employees/:id/face",
+  requireAuth,
+  requireCompanyScope,
+  hrController.registerEmployeeFace,
+);
+router.post(
+  "/employees/:id/fingerprint",
+  requireAuth,
+  requireCompanyScope,
+  hrController.registerEmployeeFingerprint,
+);
+router.post(
   "/employees",
   requireAuth,
   requireCompanyScope,
@@ -708,6 +720,36 @@ router.post(
   requireAuth,
   requireCompanyScope,
   hrController.closePayroll,
+);
+router.post(
+  "/payroll/submit",
+  requireAuth,
+  requireCompanyScope,
+  hrController.submitPayrollForApproval,
+);
+router.post(
+  "/payroll/forward",
+  requireAuth,
+  requireCompanyScope,
+  hrController.submitPayrollForApproval,
+);
+router.post(
+  "/payroll/approve",
+  requireAuth,
+  requireCompanyScope,
+  hrController.approvePayroll,
+);
+router.post(
+  "/payroll/reverse",
+  requireAuth,
+  requireCompanyScope,
+  hrController.reversePayrollApproval,
+);
+router.get(
+  "/payroll/approval-status",
+  requireAuth,
+  requireCompanyScope,
+  hrController.getPayrollApprovalStatus,
 );
 router.get(
   "/payroll/breakdown",

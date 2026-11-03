@@ -238,7 +238,7 @@ export default function AssetRegisterForm() {
                 <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
                   Asset Category *
                 </label>
-                <Link to="/assets/categories" className="text-[11px] text-slate-400 hover:text-brand-600">
+                <Link to="/assets/categories" className="text-xs text-slate-400 hover:text-brand-600">
                   Setup Categories
                 </Link>
               </div>
@@ -311,7 +311,7 @@ export default function AssetRegisterForm() {
                 <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
                   Manufacturer / Brand
                 </label>
-                <Link to="/assets/setup" className="text-[11px] text-slate-400 hover:text-brand-600">
+                <Link to="/assets/setup" className="text-xs text-slate-400 hover:text-brand-600">
                   Manage Brands
                 </Link>
               </div>
@@ -444,7 +444,7 @@ export default function AssetRegisterForm() {
                 <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
                   Property / Facility Site
                 </label>
-                <Link to="/assets/setup" className="text-[11px] text-slate-400 hover:text-brand-600">
+                <Link to="/assets/setup" className="text-xs text-slate-400 hover:text-brand-600">
                   Manage Sites
                 </Link>
               </div>

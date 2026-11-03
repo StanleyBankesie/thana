@@ -79,6 +79,8 @@ export async function listEmployees(req, res, next) {
     const items = await query(
       `SELECT e.id, e.emp_code, e.first_name, e.last_name, e.middle_name, e.email, e.phone, e.dept_id, e.pos_id, e.manager_id,
               e.employment_type, e.employment_type_id, e.category_id, e.location_id, e.status, e.base_salary, e.joining_date,
+              e.face_descriptor, e.face_photo, e.face_registered_at,
+              e.fingerprint_template, e.fingerprint_photo, e.fingerprint_registered_at,
               COALESCE(d.dept_name, ad.name) as dept_name, p.pos_name, m.first_name as manager_first_name, m.last_name as manager_last_name,
               CONCAT(e.first_name, ' ', COALESCE(e.middle_name, ''), ' ', e.last_name) as full_name,
               CASE WHEN e.status = 'ACTIVE' THEN 1 ELSE 0 END as is_active,
@@ -729,6 +731,72 @@ export async function saveTrainingRecord(req, res, next) {
  * @param {import('express').NextFunction} next - Express next middleware function.
  */
 // Main endpoint to fetch a single employee by ID
+export async function registerEmployeeFingerprint(req, res, next) {
+  try {
+    await ensureHRTables();
+    const { companyId = null } = req.scope || {};
+    const employeeId = toNumber(req.params.id || req.body.employee_id, null);
+    if (!employeeId) throw httpError(400, "BAD_REQUEST", "Employee ID required");
+
+    const { fingerprint_template = null, fingerprint_photo = null } = req.body;
+
+    await query(
+      `UPDATE hr_employees SET
+        fingerprint_template = :fingerprint_template,
+        fingerprint_photo = :fingerprint_photo,
+        fingerprint_registered_at = CASE WHEN :fingerprint_template IS NOT NULL THEN NOW() ELSE NULL END
+       WHERE id = :employeeId AND company_id = :companyId`,
+      {
+        employeeId,
+        companyId,
+        fingerprint_template: fingerprint_template || null,
+        fingerprint_photo: fingerprint_photo || null,
+      },
+    );
+
+    res.json({
+      success: true,
+      message: fingerprint_template
+        ? "Fingerprint credentials registered successfully"
+        : "Fingerprint credentials cleared",
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function registerEmployeeFace(req, res, next) {
+  try {
+    await ensureHRTables();
+    const { companyId = null } = req.scope || {};
+    const employeeId = toNumber(req.params.id || req.body.employee_id, null);
+    if (!employeeId) throw httpError(400, "BAD_REQUEST", "Employee ID required");
+
+    const { face_descriptor = null, face_photo = null } = req.body;
+
+    await query(
+      `UPDATE hr_employees SET
+        face_descriptor = :face_descriptor,
+        face_photo = :face_photo,
+        face_registered_at = CASE WHEN :face_descriptor IS NOT NULL THEN NOW() ELSE NULL END
+       WHERE id = :employeeId AND company_id = :companyId`,
+      {
+        employeeId,
+        companyId,
+        face_descriptor: face_descriptor || null,
+        face_photo: face_photo || null,
+      },
+    );
+
+    res.json({
+      success: true,
+      message: face_descriptor ? "Face credentials registered successfully" : "Face credentials cleared",
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
 export async function getEmployeeById(req, res, next) {
   try {
     const { companyId = null } = req.scope || {};
@@ -830,6 +898,12 @@ export async function saveEmployee(req, res, next) {
           picture_url = ?, national_id = ?, city = ?, state = ?, country = ?, emergency_contact_name = ?, emergency_contact_phone = ?, bank_name = ?, bank_account_number = ?, ssnit_number = ?,
           tax_mappings = ?, allowance_mappings = ?,
           has_paye = ?, has_ssnit = ?, has_tier3 = ?,
+          face_descriptor = COALESCE(?, face_descriptor),
+          face_photo = COALESCE(?, face_photo),
+          face_registered_at = CASE WHEN ? IS NOT NULL THEN NOW() ELSE face_registered_at END,
+          fingerprint_template = COALESCE(?, fingerprint_template),
+          fingerprint_photo = COALESCE(?, fingerprint_photo),
+          fingerprint_registered_at = CASE WHEN ? IS NOT NULL THEN NOW() ELSE fingerprint_registered_at END,
           updated_by = ?
          WHERE id = ? AND company_id = ?`,
         [
@@ -873,6 +947,12 @@ export async function saveEmployee(req, res, next) {
           hasPaye,
           hasSsnit,
           hasTier3,
+          body.face_descriptor !== undefined ? body.face_descriptor : null,
+          body.face_photo !== undefined ? body.face_photo : null,
+          body.face_descriptor || null,
+          body.fingerprint_template !== undefined ? body.fingerprint_template : null,
+          body.fingerprint_photo !== undefined ? body.fingerprint_photo : null,
+          body.fingerprint_template || null,
           userId,
           body.id,
           companyId,
@@ -917,8 +997,8 @@ export async function saveEmployee(req, res, next) {
           company_id, branch_id, emp_code, first_name, last_name, middle_name,
           gender, dob, joining_date, email, phone, dept_id, pos_id, manager_id, location_id,
           employment_type, employment_type_id, category_id, status, base_salary, address, picture_url, national_id, city, state, country, emergency_contact_name, emergency_contact_phone, bank_name, bank_account_number, ssnit_number, tax_mappings, allowance_mappings,
-          has_paye, has_ssnit, has_tier3, created_by
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          has_paye, has_ssnit, has_tier3, face_descriptor, face_photo, face_registered_at, fingerprint_template, fingerprint_photo, fingerprint_registered_at, created_by
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           companyId,
           branchId,
@@ -962,6 +1042,12 @@ export async function saveEmployee(req, res, next) {
           hasPaye,
           hasSsnit,
           hasTier3,
+          body.face_descriptor || null,
+          body.face_photo || null,
+          body.face_descriptor ? new Date() : null,
+          body.fingerprint_template || null,
+          body.fingerprint_photo || null,
+          body.fingerprint_template ? new Date() : null,
           userId,
         ],
       );
@@ -2342,6 +2428,285 @@ export async function saveShift(req, res, next) {
   }
 }
 
+function formatDateOnly(d) {
+  if (!d) return null;
+  if (typeof d === "string" && /^\d{4}-\d{2}-\d{2}/.test(d)) return d.slice(0, 10);
+  const dt = new Date(d);
+  if (isNaN(dt.getTime())) return String(d).slice(0, 10);
+  const year = dt.getFullYear();
+  const month = String(dt.getMonth() + 1).padStart(2, "0");
+  const day = String(dt.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+/**
+ * Synchronize an attendance record (clock-in, clock-out, manual attendance) into hr_timesheets.
+ */
+export async function syncAttendanceToTimesheet({
+  companyId = 1,
+  employeeId,
+  attendanceDate,
+  clockIn = null,
+  clockOut = null,
+  status = "PRESENT",
+  remarks = null,
+}) {
+  try {
+    if (!employeeId || !attendanceDate) return;
+    const dateStr = formatDateOnly(attendanceDate);
+
+    const existing = await query(
+      `SELECT * FROM hr_timesheets WHERE employee_id = :employeeId AND work_date = :dateStr LIMIT 1`,
+      { employeeId, dateStr },
+    );
+
+    let timeIn = null;
+    let timeOut = null;
+    if (clockIn) {
+      const dIn = new Date(clockIn);
+      timeIn = !isNaN(dIn) ? dIn.toTimeString().slice(0, 8) : String(clockIn).slice(11, 19) || null;
+    }
+    if (clockOut) {
+      const dOut = new Date(clockOut);
+      timeOut = !isNaN(dOut) ? dOut.toTimeString().slice(0, 8) : String(clockOut).slice(11, 19) || null;
+    }
+
+    const finalTimeIn = timeIn || (existing.length ? existing[0].time_in : null);
+    const finalTimeOut = timeOut || (existing.length ? existing[0].time_out : null);
+
+    let hoursWorked = existing.length ? Number(existing[0].hours_worked || 0) : 0;
+    let overtimeHours = existing.length ? Number(existing[0].overtime_hours || 0) : 0;
+    let shortHours = existing.length ? Number(existing[0].short_hours || 0) : 0;
+
+    if (finalTimeIn && finalTimeOut) {
+      const partsIn = String(finalTimeIn).split(":").map(Number);
+      const partsOut = String(finalTimeOut).split(":").map(Number);
+      const minsIn = partsIn[0] * 60 + (partsIn[1] || 0) + (partsIn[2] || 0) / 60;
+      const minsOut = partsOut[0] * 60 + (partsOut[1] || 0) + (partsOut[2] || 0) / 60;
+      let diffHours = (minsOut - minsIn) / 60;
+      if (diffHours < 0) diffHours += 24;
+      const regularHours = 8;
+      hoursWorked = Math.round(Math.min(diffHours, regularHours) * 100) / 100;
+      overtimeHours = Math.round(Math.max(0, diffHours - regularHours) * 100) / 100;
+      shortHours = Math.round(Math.max(0, regularHours - diffHours) * 100) / 100;
+    }
+
+    const finalRemarks = remarks || (status === "ON_LEAVE" ? "On Leave" : status === "ABSENT" ? "Absent" : (existing.length ? existing[0].remarks : null));
+
+    if (existing.length) {
+      await query(
+        `UPDATE hr_timesheets
+         SET time_in = COALESCE(:finalTimeIn, time_in),
+             time_out = COALESCE(:finalTimeOut, time_out),
+             hours_worked = :hoursWorked,
+             overtime_hours = :overtimeHours,
+             short_hours = :shortHours,
+             remarks = COALESCE(:finalRemarks, remarks)
+         WHERE id = :id`,
+        {
+          id: existing[0].id,
+          finalTimeIn,
+          finalTimeOut,
+          hoursWorked,
+          overtimeHours,
+          shortHours,
+          finalRemarks,
+        },
+      );
+    } else {
+      await query(
+        `INSERT INTO hr_timesheets (company_id, employee_id, work_date, time_in, time_out, hours_worked, overtime_hours, short_hours, remarks)
+         VALUES (:companyId, :employeeId, :dateStr, :finalTimeIn, :finalTimeOut, :hoursWorked, :overtimeHours, :shortHours, :finalRemarks)
+         ON DUPLICATE KEY UPDATE
+           time_in = COALESCE(VALUES(time_in), time_in),
+           time_out = COALESCE(VALUES(time_out), time_out),
+           hours_worked = VALUES(hours_worked),
+           overtime_hours = VALUES(overtime_hours),
+           short_hours = VALUES(short_hours),
+           remarks = COALESCE(VALUES(remarks), remarks)`,
+        {
+          companyId: companyId || 1,
+          employeeId,
+          dateStr,
+          finalTimeIn,
+          finalTimeOut,
+          hoursWorked,
+          overtimeHours,
+          shortHours,
+          finalRemarks,
+        },
+      );
+    }
+  } catch (err) {
+    console.error("[syncAttendanceToTimesheet] error:", err.message);
+  }
+}
+
+/**
+ * Synchronize a timesheet record into hr_attendance.
+ */
+export async function syncTimesheetToAttendance({
+  companyId = 1,
+  employeeId,
+  workDate,
+  timeIn = null,
+  timeOut = null,
+  hoursWorked = 0,
+  overtimeHours = 0,
+  shortHours = 0,
+  remarks = null,
+  locationGps = null,
+  faceVerified = null,
+  faceConfidence = null,
+  capturedFacePhoto = null,
+  fingerprintVerified = null,
+  fingerprintConfidence = null,
+  biometricType = null,
+}) {
+  try {
+    if (!employeeId || !workDate) return;
+    const dateStr = formatDateOnly(workDate);
+
+    const existing = await query(
+      `SELECT * FROM hr_attendance WHERE employee_id = :employeeId AND attendance_date = :dateStr LIMIT 1`,
+      { employeeId, dateStr },
+    );
+
+    let clockIn = null;
+    let clockOut = null;
+    if (timeIn) {
+      const cleanTime = String(timeIn).trim();
+      clockIn = `${dateStr} ${cleanTime.length === 5 ? cleanTime + ":00" : cleanTime}`;
+    }
+    if (timeOut) {
+      const cleanTime = String(timeOut).trim();
+      clockOut = `${dateStr} ${cleanTime.length === 5 ? cleanTime + ":00" : cleanTime}`;
+    }
+
+    const finalClockIn = clockIn || (existing.length ? existing[0].clock_in : null);
+    const finalClockOut = clockOut || (existing.length ? existing[0].clock_out : null);
+
+    let status = existing.length ? existing[0].status : "PRESENT";
+    if (remarks && remarks.toLowerCase().includes("leave")) {
+      status = "ON_LEAVE";
+    } else if (remarks && remarks.toLowerCase().includes("absent")) {
+      status = "ABSENT";
+    } else if (finalClockIn || Number(hoursWorked) > 0) {
+      status = "PRESENT";
+    }
+
+    const overtimeMinutes = Math.round(Number(overtimeHours || 0) * 60);
+    const finalRemarks = remarks || (existing.length ? existing[0].remarks : null);
+
+    if (existing.length) {
+      await query(
+        `UPDATE hr_attendance
+         SET clock_in = COALESCE(:finalClockIn, clock_in),
+             clock_out = COALESCE(:finalClockOut, clock_out),
+             status = :status,
+             overtime_minutes = :overtimeMinutes,
+             remarks = COALESCE(:finalRemarks, remarks)
+         WHERE id = :id`,
+        {
+          id: existing[0].id,
+          finalClockIn,
+          finalClockOut,
+          status,
+          overtimeMinutes,
+          finalRemarks,
+          faceVerified: faceVerified !== null ? (faceVerified ? 1 : 0) : null,
+          faceConfidence: faceConfidence !== null && faceConfidence !== undefined ? Number(faceConfidence) : null,
+          capturedFacePhoto: capturedFacePhoto || null,
+          fingerprintVerified: fingerprintVerified !== null ? (fingerprintVerified ? 1 : 0) : null,
+          fingerprintConfidence: fingerprintConfidence !== null && fingerprintConfidence !== undefined ? Number(fingerprintConfidence) : null,
+          biometricType: biometricType || null,
+        },
+      );
+    } else {
+      await query(
+        `INSERT INTO hr_attendance (company_id, employee_id, attendance_date, clock_in, clock_out, status, overtime_minutes, remarks, face_verified, face_confidence, captured_face_photo, fingerprint_verified, fingerprint_confidence, biometric_type)
+         VALUES (:companyId, :employeeId, :dateStr, :finalClockIn, :finalClockOut, :status, :overtimeMinutes, :finalRemarks, :faceVerified, :faceConfidence, :capturedFacePhoto, :fingerprintVerified, :fingerprintConfidence, :biometricType)
+         ON DUPLICATE KEY UPDATE
+           clock_in = COALESCE(VALUES(clock_in), clock_in),
+           clock_out = COALESCE(VALUES(clock_out), clock_out),
+           status = VALUES(status),
+           overtime_minutes = VALUES(overtime_minutes),
+           remarks = COALESCE(VALUES(remarks), remarks),
+           face_verified = COALESCE(VALUES(face_verified), face_verified),
+           face_confidence = COALESCE(VALUES(face_confidence), face_confidence),
+           captured_face_photo = COALESCE(VALUES(captured_face_photo), captured_face_photo),
+           fingerprint_verified = COALESCE(VALUES(fingerprint_verified), fingerprint_verified),
+           fingerprint_confidence = COALESCE(VALUES(fingerprint_confidence), fingerprint_confidence),
+           biometric_type = COALESCE(VALUES(biometric_type), biometric_type)`,
+        {
+          companyId: companyId || 1,
+          employeeId,
+          dateStr,
+          finalClockIn,
+          finalClockOut,
+          status,
+          overtimeMinutes,
+          finalRemarks,
+          faceVerified: faceVerified ? 1 : 0,
+          faceConfidence: faceConfidence !== null && faceConfidence !== undefined ? Number(faceConfidence) : null,
+          capturedFacePhoto: capturedFacePhoto || null,
+          fingerprintVerified: fingerprintVerified ? 1 : 0,
+          fingerprintConfidence: fingerprintConfidence !== null && fingerprintConfidence !== undefined ? Number(fingerprintConfidence) : null,
+          biometricType: biometricType || 'NONE',
+        },
+      );
+    }
+  } catch (err) {
+    console.error("[syncTimesheetToAttendance] error:", err.message);
+  }
+}
+
+/**
+ * Backfill bi-directional synchronization between hr_attendance and hr_timesheets.
+ */
+export async function syncAllAttendanceAndTimesheets() {
+  try {
+    const attendanceRecords = await query(`
+      SELECT a.* FROM hr_attendance a
+      LEFT JOIN hr_timesheets t ON a.employee_id = t.employee_id AND a.attendance_date = t.work_date
+      WHERE t.id IS NULL
+    `);
+    for (const a of attendanceRecords) {
+      await syncAttendanceToTimesheet({
+        companyId: a.company_id,
+        employeeId: a.employee_id,
+        attendanceDate: a.attendance_date,
+        clockIn: a.clock_in,
+        clockOut: a.clock_out,
+        status: a.status,
+        remarks: a.remarks,
+      });
+    }
+
+    const timesheetRecords = await query(`
+      SELECT t.* FROM hr_timesheets t
+      LEFT JOIN hr_attendance a ON t.employee_id = a.employee_id AND t.work_date = a.attendance_date
+      WHERE a.id IS NULL
+    `);
+    for (const t of timesheetRecords) {
+      await syncTimesheetToAttendance({
+        companyId: t.company_id,
+        employeeId: t.employee_id,
+        workDate: t.work_date,
+        timeIn: t.time_in,
+        timeOut: t.time_out,
+        hoursWorked: t.hours_worked,
+        overtimeHours: t.overtime_hours,
+        shortHours: t.short_hours,
+        remarks: t.remarks,
+        locationGps: t.location_gps,
+      });
+    }
+  } catch (err) {
+    console.error("[syncAllAttendanceAndTimesheets] error:", err.message);
+  }
+}
+
 export async function clockIn(req, res, next) {
   try {
     const { companyId = null } = req.scope || {};
@@ -2360,19 +2725,37 @@ export async function clockIn(req, res, next) {
     if (existing.length && existing[0].clock_in) {
       return res.json({ id: existing[0].id, message: "Already clocked in" });
     }
+    let attendanceId = null;
     if (existing.length) {
+      attendanceId = existing[0].id;
       await query(
         `UPDATE hr_attendance SET clock_in = NOW(), status = 'PRESENT' WHERE id = :id`,
         { id: existing[0].id },
       );
-      return res.json({ id: existing[0].id, message: "Clock-in updated" });
+    } else {
+      const result = await query(
+        `INSERT INTO hr_attendance (company_id, employee_id, attendance_date, clock_in, status)
+         VALUES (:companyId, :employee_id, :attendance_date, NOW(), 'PRESENT')`,
+        { companyId, employee_id, attendance_date },
+      );
+      attendanceId = result.insertId;
     }
-    const result = await query(
-      `INSERT INTO hr_attendance (company_id, employee_id, attendance_date, clock_in, status)
-       VALUES (:companyId, :employee_id, :attendance_date, NOW(), 'PRESENT')`,
-      { companyId, employee_id, attendance_date },
-    );
-    return res.status(201).json({ id: result.insertId, message: "Clocked in" });
+
+    // Sync to timesheets
+    const attRow = await query(`SELECT * FROM hr_attendance WHERE id = :id`, { id: attendanceId });
+    if (attRow.length) {
+      await syncAttendanceToTimesheet({
+        companyId: attRow[0].company_id || companyId,
+        employeeId: attRow[0].employee_id,
+        attendanceDate: attRow[0].attendance_date,
+        clockIn: attRow[0].clock_in,
+        clockOut: attRow[0].clock_out,
+        status: attRow[0].status,
+        remarks: attRow[0].remarks,
+      });
+    }
+
+    return res.status(existing.length ? 200 : 201).json({ id: attendanceId, message: existing.length ? "Clock-in updated" : "Clocked in" });
   } catch (err) {
     next(err);
   }
@@ -2395,6 +2778,21 @@ export async function clockOut(req, res, next) {
     await query(`UPDATE hr_attendance SET clock_out = NOW() WHERE id = :id`, {
       id: rows[0].id,
     });
+
+    // Sync to timesheets
+    const attRow = await query(`SELECT * FROM hr_attendance WHERE id = :id`, { id: rows[0].id });
+    if (attRow.length) {
+      await syncAttendanceToTimesheet({
+        companyId: attRow[0].company_id,
+        employeeId: attRow[0].employee_id,
+        attendanceDate: attRow[0].attendance_date,
+        clockIn: attRow[0].clock_in,
+        clockOut: attRow[0].clock_out,
+        status: attRow[0].status,
+        remarks: attRow[0].remarks,
+      });
+    }
+
     res.json({ id: rows[0].id, message: "Clocked out" });
   } catch (err) {
     next(err);
@@ -2484,14 +2882,14 @@ export async function saveAttendance(req, res, next) {
       remarks: remarks || null,
     };
 
+    let savedId = id ? toNumber(id, null) : null;
     if (id) {
       await query(
         `UPDATE hr_attendance SET employee_id = :employee_id, attendance_date = :attendance_date,
                 status = :status, clock_in = :clock_in, clock_out = :clock_out, remarks = :remarks
          WHERE id = :id`,
-        { ...params, id: toNumber(id, null) },
+        { ...params, id: savedId },
       );
-      res.json({ message: "Attendance updated" });
     } else {
       const result = await query(
         `INSERT INTO hr_attendance (company_id, employee_id, attendance_date, status, clock_in, clock_out, remarks)
@@ -2499,9 +2897,24 @@ export async function saveAttendance(req, res, next) {
          ON DUPLICATE KEY UPDATE status = VALUES(status), clock_in = VALUES(clock_in), clock_out = VALUES(clock_out), remarks = VALUES(remarks)`,
         params,
       );
-      res
-        .status(201)
-        .json({ id: result.insertId, message: "Attendance saved" });
+      savedId = result.insertId;
+    }
+
+    // Sync to timesheets
+    await syncAttendanceToTimesheet({
+      companyId: params.companyId,
+      employeeId: params.employee_id,
+      attendanceDate: params.attendance_date,
+      clockIn: params.clock_in,
+      clockOut: params.clock_out,
+      status: params.status,
+      remarks: params.remarks,
+    });
+
+    if (id) {
+      res.json({ message: "Attendance updated" });
+    } else {
+      res.status(201).json({ id: savedId, message: "Attendance saved" });
     }
   } catch (err) {
     next(err);
@@ -2532,6 +2945,15 @@ export async function saveBulkAttendance(req, res, next) {
           remarks: item.remarks || null,
         },
       );
+      await syncAttendanceToTimesheet({
+        companyId,
+        employeeId: item.employee_id,
+        attendanceDate: date,
+        clockIn: item.clock_in || null,
+        clockOut: item.clock_out || null,
+        status: item.status || "PRESENT",
+        remarks: item.remarks || null,
+      });
     }
 
     res.json({ message: "Bulk attendance saved successfully" });
@@ -2553,6 +2975,12 @@ export async function saveTimesheet(req, res, next) {
       time_in,
       time_out,
       location_gps,
+      face_verified = 0,
+      face_confidence = null,
+      captured_face_photo = null,
+      fingerprint_verified = 0,
+      fingerprint_confidence = null,
+      biometric_type = 'NONE',
     } = req.body;
     const existing = await query(
       `SELECT id,
@@ -2560,9 +2988,13 @@ export async function saveTimesheet(req, res, next) {
          WHERE employee_id = :employee_id AND work_date = :work_date`,
       { employee_id, work_date },
     );
+    let timesheetId = null;
     if (existing.length) {
+      timesheetId = existing[0].id;
       await query(
-        `UPDATE hr_timesheets SET hours_worked = :hours_worked, overtime_hours = :overtime_hours, short_hours = :short_hours, remarks = :remarks, time_in = :time_in, time_out = :time_out, location_gps = :location_gps
+        `UPDATE hr_timesheets SET hours_worked = :hours_worked, overtime_hours = :overtime_hours, short_hours = :short_hours, remarks = :remarks, time_in = :time_in, time_out = :time_out, location_gps = :location_gps,
+         face_verified = :face_verified, face_confidence = :face_confidence, captured_face_photo = COALESCE(:captured_face_photo, captured_face_photo),
+         fingerprint_verified = :fingerprint_verified, fingerprint_confidence = :fingerprint_confidence, biometric_type = :biometric_type
          WHERE id = :id`,
         {
           id: existing[0].id,
@@ -2573,27 +3005,64 @@ export async function saveTimesheet(req, res, next) {
           time_in: time_in || null,
           time_out: time_out || null,
           location_gps: location_gps || null,
+          face_verified: face_verified ? 1 : 0,
+          face_confidence: face_confidence !== null && face_confidence !== undefined ? Number(face_confidence) : null,
+          captured_face_photo: captured_face_photo || null,
+          fingerprint_verified: fingerprint_verified ? 1 : 0,
+          fingerprint_confidence: fingerprint_confidence !== null && fingerprint_confidence !== undefined ? Number(fingerprint_confidence) : null,
+          biometric_type: biometric_type || 'NONE',
         },
       );
-      return res.json({ id: existing[0].id, message: "Timesheet updated" });
+    } else {
+      const result = await query(
+        `INSERT INTO hr_timesheets (company_id, employee_id, work_date, hours_worked, overtime_hours, short_hours, remarks, time_in, time_out, location_gps, face_verified, face_confidence, captured_face_photo, fingerprint_verified, fingerprint_confidence, biometric_type)
+         VALUES (:companyId, :employee_id, :work_date, :hours_worked, :overtime_hours, :short_hours, :remarks, :time_in, :time_out, :location_gps, :face_verified, :face_confidence, :captured_face_photo, :fingerprint_verified, :fingerprint_confidence, :biometric_type)`,
+        {
+          companyId,
+          employee_id,
+          work_date,
+          hours_worked: toNumber(hours_worked, 0),
+          overtime_hours: toNumber(overtime_hours, 0),
+          short_hours: toNumber(short_hours, 0),
+          remarks: remarks || null,
+          time_in: time_in || null,
+          time_out: time_out || null,
+          location_gps: location_gps || null,
+          face_verified: face_verified ? 1 : 0,
+          face_confidence: face_confidence !== null && face_confidence !== undefined ? Number(face_confidence) : null,
+          captured_face_photo: captured_face_photo || null,
+          fingerprint_verified: fingerprint_verified ? 1 : 0,
+          fingerprint_confidence: fingerprint_confidence !== null && fingerprint_confidence !== undefined ? Number(fingerprint_confidence) : null,
+          biometric_type: biometric_type || 'NONE',
+        },
+      );
+      timesheetId = result.insertId;
     }
-    const result = await query(
-      `INSERT INTO hr_timesheets (company_id, employee_id, work_date, hours_worked, overtime_hours, short_hours, remarks, time_in, time_out, location_gps)
-       VALUES (:companyId, :employee_id, :work_date, :hours_worked, :overtime_hours, :short_hours, :remarks, :time_in, :time_out, :location_gps)`,
-      {
-        companyId,
-        employee_id,
-        work_date,
-        hours_worked: toNumber(hours_worked, 0),
-        overtime_hours: toNumber(overtime_hours, 0),
-        short_hours: toNumber(short_hours, 0),
-        remarks: remarks || null,
-        time_in: time_in || null,
-        time_out: time_out || null,
-        location_gps: location_gps || null,
-      },
-    );
-    res.status(201).json({ id: result.insertId, message: "Timesheet saved" });
+
+    // Sync to hr_attendance
+    await syncTimesheetToAttendance({
+      companyId,
+      employeeId: employee_id,
+      workDate: work_date,
+      timeIn: time_in,
+      timeOut: time_out,
+      hoursWorked: hours_worked,
+      overtimeHours: overtime_hours,
+      shortHours: short_hours,
+      remarks,
+      locationGps: location_gps,
+      faceVerified: face_verified ? 1 : 0,
+      faceConfidence: face_confidence,
+      capturedFacePhoto: captured_face_photo,
+      fingerprintVerified: fingerprint_verified ? 1 : 0,
+      fingerprintConfidence: fingerprint_confidence,
+      biometricType: biometric_type || (face_verified && fingerprint_verified ? 'BOTH' : face_verified ? 'FACE' : fingerprint_verified ? 'FINGERPRINT' : 'NONE'),
+    });
+
+    if (existing.length) {
+      return res.json({ id: timesheetId, message: "Timesheet updated" });
+    }
+    res.status(201).json({ id: timesheetId, message: "Timesheet saved" });
   } catch (err) {
     next(err);
   }
@@ -2699,6 +3168,23 @@ export async function biometricWebhook(req, res, next) {
         );
       }
     }
+
+    const attRec = await query(
+      `SELECT * FROM hr_attendance WHERE employee_id = :eid AND attendance_date = :d LIMIT 1`,
+      { eid: employee_id, d: dateStr },
+    );
+    if (attRec.length) {
+      await syncAttendanceToTimesheet({
+        companyId: attRec[0].company_id || req.scope?.companyId || 1,
+        employeeId: attRec[0].employee_id,
+        attendanceDate: attRec[0].attendance_date,
+        clockIn: attRec[0].clock_in,
+        clockOut: attRec[0].clock_out,
+        status: attRec[0].status,
+        remarks: attRec[0].remarks,
+      });
+    }
+
     res.json({ message: "Recorded" });
   } catch (err) {
     next(err);
@@ -4552,11 +5038,20 @@ export async function listPayslips(req, res, next) {
     const itemsRaw = await query(
       `SELECT ${selectCols}, e.first_name, e.last_name, e.emp_code, e.email, pr.period_name,
               COALESCE(p.created_at, NOW()) AS created_at,
-              COALESCE(u.full_name, u.username, 'System Admin') AS created_by_name
+              COALESCE(u.full_name, u.username, 'System Admin') AS created_by_name,
+              pay.status AS payroll_status,
+              pay.forwarded_to_username,
+              pay.approved_by_username,
+              pay.approved_at
            FROM hr_payslips p
        JOIN hr_employees e ON e.id = p.employee_id
        JOIN hr_payroll_periods pr ON pr.id = p.period_id
        LEFT JOIN adm_users u ON u.id = p.created_by
+       LEFT JOIN (
+         SELECT period_id, company_id, status, forwarded_to_username, approved_by_username, approved_at
+         FROM hr_payroll
+         WHERE id IN (SELECT MAX(id) FROM hr_payroll GROUP BY period_id, company_id)
+       ) pay ON pay.period_id = p.period_id AND pay.company_id = e.company_id
        ${where}
          ORDER BY pr.start_date DESC`,
       params,
@@ -4608,14 +5103,29 @@ export async function listPayslips(req, res, next) {
         }
       }
 
+      const pStatus = String(r.payroll_status || 'OPEN').toUpperCase();
+      const isApproved = ['APPROVED', 'CLOSED'].includes(pStatus);
       return {
         ...r,
+        payroll_status: pStatus,
+        is_approved: isApproved,
         loan_deductions_total: Number(r.loan_deductions_total || 0),
         loan_items: loans,
       };
     });
 
-    res.json({ items });
+    const allApproved = items.length > 0 ? items.every((it) => it.is_approved) : false;
+    const periodStatus = items.length > 0 ? items[0].payroll_status : 'OPEN';
+    const forwardedTo = items.length > 0 ? items[0].forwarded_to_username : null;
+    const approvedBy = items.length > 0 ? items[0].approved_by_username : null;
+
+    res.json({
+      items,
+      is_approved: allApproved,
+      payroll_status: periodStatus,
+      forwarded_to_username: forwardedTo,
+      approved_by_username: approvedBy,
+    });
   } catch (err) {
     next(err);
   }
@@ -4636,6 +5146,16 @@ export async function sendPayslipEmail(req, res, next) {
     if (!rows.length) throw httpError(404, "NOT_FOUND", "Payslip not found");
     const p = rows[0];
     if (!p.email) throw httpError(400, "BAD_REQUEST", "Employee email not set");
+
+    // Check that payroll is approved before emailing payslip
+    const [checkPr] = await query(
+      "SELECT status FROM hr_payroll WHERE period_id = :periodId AND company_id = :companyId ORDER BY id DESC LIMIT 1",
+      { periodId: p.period_id, companyId }
+    ).catch(() => []);
+    const prStat = String(checkPr?.status || '').toUpperCase();
+    if (!['APPROVED', 'CLOSED'].includes(prStat)) {
+      throw httpError(403, "FORBIDDEN", "Cannot send payslip: Processed salary for this period has not been approved yet.");
+    }
 
     const htmlBody = `
       <div style="font-family: sans-serif; padding: 20px; border: 1px solid #ddd; max-width: 600px;">
@@ -4976,9 +5496,21 @@ export async function getPayrollBreakdown(req, res, next) {
       }
       return out;
     });
+    const [prRow] = await query(
+      "SELECT id, status, forwarded_to_username, approved_by_username, approved_at FROM hr_payroll WHERE id = :pid",
+      { pid }
+    ).catch(() => []);
+    const pStatus = prRow ? prRow.status : 'OPEN';
+    const isApproved = ['APPROVED', 'CLOSED'].includes(String(pStatus || '').toUpperCase());
+
     res.json({
       payroll_id: pid,
       period_id: period_id || null,
+      payroll_status: pStatus,
+      forwarded_to_username: prRow?.forwarded_to_username || null,
+      approved_by_username: prRow?.approved_by_username || null,
+      approved_at: prRow?.approved_at || null,
+      is_approved: isApproved,
       items,
       loan_summary: Object.values(loanSummaryMap),
     });
@@ -9418,6 +9950,14 @@ export async function sendEmailBulk(req, res, next) {
       );
 
       if (rows.length > 0 && rows[0].email) {
+        const [bulkCheckPr] = await query(
+          "SELECT status FROM hr_payroll WHERE period_id = :periodId AND company_id = :companyId ORDER BY id DESC LIMIT 1",
+          { periodId: rows[0].period_id, companyId }
+        ).catch(() => []);
+        const bPrStat = String(bulkCheckPr?.status || '').toUpperCase();
+        if (!['APPROVED', 'CLOSED'].includes(bPrStat)) {
+          throw httpError(403, "FORBIDDEN", "Cannot send payslips: Processed salary for this period has not been approved yet.");
+        }
         const p = rows[0];
         const html = `
           <div style="font-family: sans-serif; padding: 20px; border: 1px solid #ddd; max-width: 600px;">
@@ -10904,4 +11444,235 @@ export async function sendPromotionLetter(req, res, next) {
   } catch (err) {
     next(err);
   }
+}
+
+
+/**
+ * ─────────────────────────────────────────────────────────────────────────────
+ * PAYROLL APPROVAL WORKFLOW CONTROLLERS
+ * ─────────────────────────────────────────────────────────────────────────────
+ */
+
+export async function submitPayrollForApproval(req, res, next) {
+  try {
+    const { companyId = null } = req.scope || {};
+    const userId = req.user?.sub || req.user?.id || 1;
+    const { period_id, workflow_id, target_user_id, comments } = req.body || {};
+
+    if (!period_id) throw httpError(400, "BAD_REQUEST", "period_id required");
+
+    const payrollRows = await query(
+      `SELECT * FROM hr_payroll WHERE period_id = :period_id AND company_id = :companyId ORDER BY id DESC LIMIT 1`,
+      { period_id, companyId }
+    );
+    if (!payrollRows || !payrollRows.length) {
+      throw httpError(404, "NOT_FOUND", "No payroll record found for this period. Generate payroll first.");
+    }
+    const payroll = payrollRows[0];
+
+    // Calculate total net amount
+    const sumRows = await query(
+      `SELECT COALESCE(SUM(net_salary), 0) AS total_net FROM hr_payroll_items WHERE payroll_id = :id`,
+      { id: payroll.id }
+    ).catch(() => [{ total_net: 0 }]);
+    const totalNet = Number(sumRows?.[0]?.total_net || 0);
+
+    // Look for active workflow
+    let chosenWorkflow = null;
+    if (workflow_id) {
+      const wfRows = await query(
+        "SELECT * FROM adm_workflows WHERE id = :id AND company_id = :companyId AND is_active = 1",
+        { id: workflow_id, companyId }
+      );
+      if (wfRows && wfRows.length) chosenWorkflow = wfRows[0];
+    }
+    if (!chosenWorkflow) {
+      const allWfs = await query(
+        "SELECT * FROM adm_workflows WHERE company_id = :companyId AND is_active = 1",
+        { companyId }
+      );
+      const synonyms = ["PAYROLL", "SALARY_PROCESSING", "HR_PAYROLL", "Payroll", "Salary Processing"];
+      const normalize = (s) => String(s || "").trim().toUpperCase().replace(/\s+/g, "_");
+      chosenWorkflow = allWfs.find(
+        (w) => String(w.document_route || "") === "/human-resources/payroll/salary-processing" ||
+               synonyms.some((syn) => normalize(w.document_type) === normalize(syn))
+      ) || null;
+    }
+
+    if (chosenWorkflow) {
+      const steps = await query(
+        "SELECT * FROM adm_workflow_steps WHERE workflow_id = :wf ORDER BY step_order ASC LIMIT 1",
+        { wf: chosenWorkflow.id }
+      );
+      if (!steps || !steps.length) {
+        throw httpError(400, "BAD_REQUEST", "Workflow has no steps configured");
+      }
+      const firstStep = steps[0];
+      const allowedUsers = await query(
+        "SELECT approver_user_id FROM adm_workflow_step_approvers WHERE workflow_id = :wf AND step_order = :ord",
+        { wf: chosenWorkflow.id, ord: firstStep.step_order }
+      );
+      const allowedSet = new Set(allowedUsers.map((r) => Number(r.approver_user_id)));
+      let assignedUserId = Number(firstStep.approver_user_id);
+      if (target_user_id) {
+        assignedUserId = Number(target_user_id);
+      } else if (allowedUsers.length > 0) {
+        assignedUserId = Number(allowedUsers[0].approver_user_id);
+      }
+
+      const uRows = await query("SELECT username FROM adm_users WHERE id = :id", { id: assignedUserId });
+      const approverName = uRows.length ? uRows[0].username : "Approver";
+
+      const dwRes = await query(
+        `INSERT INTO adm_document_workflows 
+           (company_id, workflow_id, document_id, document_type, amount, current_step_order, status, assigned_to_user_id)
+         VALUES (:companyId, :wfId, :docId, 'PAYROLL', :amount, :step, 'PENDING', :assignedTo)`,
+        {
+          companyId,
+          wfId: chosenWorkflow.id,
+          docId: payroll.id,
+          amount: totalNet,
+          step: firstStep.step_order,
+          assignedTo: assignedUserId
+        }
+      );
+
+      await query(
+        `INSERT INTO adm_workflow_logs (document_workflow_id, step_order, action, actor_user_id, comments)
+         VALUES (:dwId, :step, 'SUBMIT', :userId, :comments)`,
+        {
+          dwId: dwRes.insertId,
+          step: firstStep.step_order,
+          userId,
+          comments: comments || "Salary processing forwarded for approval"
+        }
+      );
+
+      await query(
+        `UPDATE hr_payroll SET status = 'PENDING_APPROVAL', forwarded_to_username = :approverName WHERE id = :id`,
+        { approverName, id: payroll.id }
+      );
+
+      return res.json({
+        success: true,
+        status: "PENDING_APPROVAL",
+        forwarded_to_username: approverName,
+        message: `Processed salary forwarded to ${approverName} for approval`
+      });
+    } else {
+      // Auto-approve if no workflow configured
+      const uRows = await query("SELECT username FROM adm_users WHERE id = :id", { id: userId });
+      const approverName = uRows.length ? uRows[0].username : "Authorized User";
+
+      await query(
+        `UPDATE hr_payroll SET status = 'APPROVED', approved_by_username = :approverName, approved_at = NOW(), forwarded_to_username = NULL WHERE id = :id`,
+        { approverName, id: payroll.id }
+      );
+
+      return res.json({
+        success: true,
+        status: "APPROVED",
+        forwarded_to_username: null,
+        message: "Payroll approved (auto-approved)"
+      });
+    }
+  } catch (err) { next(err); }
+}
+
+export async function approvePayroll(req, res, next) {
+  try {
+    const { companyId = null } = req.scope || {};
+    const userId = req.user?.sub || req.user?.id || 1;
+    const { period_id, payroll_id } = req.body || {};
+
+    let pid = payroll_id ? Number(payroll_id) : null;
+    if (!pid && period_id) {
+      const p = await query(
+        `SELECT id FROM hr_payroll WHERE period_id = :period_id AND company_id = :companyId ORDER BY id DESC LIMIT 1`,
+        { period_id, companyId }
+      );
+      if (p.length) pid = Number(p[0].id);
+    }
+    if (!pid) throw httpError(404, "NOT_FOUND", "Payroll not found");
+
+    const uRows = await query("SELECT username FROM adm_users WHERE id = :id", { id: userId });
+    const approverName = uRows.length ? uRows[0].username : "Authorized User";
+
+    await query(
+      `UPDATE hr_payroll SET status = 'APPROVED', approved_by_username = :approverName, approved_at = NOW(), forwarded_to_username = NULL WHERE id = :id AND company_id = :companyId`,
+      { approverName, id: pid, companyId }
+    );
+
+    await query(
+      `UPDATE adm_document_workflows SET status = 'APPROVED', assigned_to_user_id = NULL WHERE document_id = :id AND company_id = :companyId AND document_type IN ('PAYROLL', 'SALARY_PROCESSING', 'HR_PAYROLL') AND status = 'PENDING'`,
+      { id: pid, companyId }
+    ).catch(() => {});
+
+    res.json({ success: true, status: "APPROVED", message: "Payroll approved successfully" });
+  } catch (err) { next(err); }
+}
+
+export async function reversePayrollApproval(req, res, next) {
+  try {
+    const { companyId = null } = req.scope || {};
+    const { period_id, payroll_id } = req.body || {};
+
+    let pid = payroll_id ? Number(payroll_id) : null;
+    if (!pid && period_id) {
+      const p = await query(
+        `SELECT id FROM hr_payroll WHERE period_id = :period_id AND company_id = :companyId ORDER BY id DESC LIMIT 1`,
+        { period_id, companyId }
+      );
+      if (p.length) pid = Number(p[0].id);
+    }
+    if (!pid) throw httpError(404, "NOT_FOUND", "Payroll not found");
+
+    await query(
+      `UPDATE hr_payroll SET status = 'RETURNED', forwarded_to_username = NULL, approved_by_username = NULL, approved_at = NULL WHERE id = :id AND company_id = :companyId`,
+      { id: pid, companyId }
+    );
+
+    await query(
+      `UPDATE adm_document_workflows SET status = 'RETURNED', assigned_to_user_id = NULL WHERE document_id = :id AND company_id = :companyId AND document_type IN ('PAYROLL', 'SALARY_PROCESSING', 'HR_PAYROLL')`,
+      { id: pid, companyId }
+    ).catch(() => {});
+
+    res.json({ success: true, status: "RETURNED", message: "Payroll approval reversed and returned" });
+  } catch (err) { next(err); }
+}
+
+export async function getPayrollApprovalStatus(req, res, next) {
+  try {
+    const { companyId = null } = req.scope || {};
+    const { period_id } = req.query;
+    if (!period_id) throw httpError(400, "BAD_REQUEST", "period_id required");
+
+    const rows = await query(
+      `SELECT id, status, forwarded_to_username, approved_by_username, approved_at, generated_at FROM hr_payroll WHERE period_id = :period_id AND company_id = :companyId ORDER BY id DESC LIMIT 1`,
+      { period_id, companyId }
+    );
+
+    if (!rows.length) {
+      return res.json({
+        payroll_id: null,
+        period_id: Number(period_id),
+        status: "NOT_GENERATED",
+        is_approved: false
+      });
+    }
+
+    const pr = rows[0];
+    const isApproved = ['APPROVED', 'CLOSED'].includes(String(pr.status || '').toUpperCase());
+
+    res.json({
+      payroll_id: pr.id,
+      period_id: Number(period_id),
+      status: pr.status,
+      forwarded_to_username: pr.forwarded_to_username || null,
+      approved_by_username: pr.approved_by_username || null,
+      approved_at: pr.approved_at || null,
+      generated_at: pr.generated_at || null,
+      is_approved: isApproved
+    });
+  } catch (err) { next(err); }
 }

@@ -7,6 +7,7 @@ import { query, pool } from "../db/pool.js";
 import { httpError } from "../utils/httpError.js";
 import { isBranchSharingEnabled } from "../utils/branchSharing.js";
 import { cacheGet, cacheSet, cacheDelPattern } from "../utils/redis.js";
+import { syncAsset } from "../services/assetSyncService.js";
 
 async function hasColumn(tableName, columnName) {
   const rows = await query(
@@ -700,6 +701,18 @@ export const createItem = async (req, res, next) => {
       },
     );
     res.status(201).json({ id: result.insertId });
+
+    if (itemTypeUpper === 'FIXED_ASSET') {
+      syncAsset({
+        source: 'INVENTORY',
+        companyId,
+        branchId: targetBranchId,
+        asset_code: itemCode,
+        asset_name: itemName,
+        purchase_cost: costPrice,
+        status: isActive ? 'ACTIVE' : 'INACTIVE'
+      }).catch(e => console.error('Inventory createItem sync error:', e.message));
+    }
   } catch (err) {
     next(err);
   }
@@ -833,6 +846,18 @@ export const updateItem = async (req, res, next) => {
     );
     if (!upd.affectedRows) throw httpError(404, "NOT_FOUND", "Item not found");
     res.json({ ok: true });
+
+    if (itemTypeUpper === 'FIXED_ASSET') {
+      syncAsset({
+        source: 'INVENTORY',
+        companyId,
+        branchId: body.branch_id !== undefined ? (Number(body.branch_id) || null) : null,
+        asset_code: itemCode,
+        asset_name: itemName,
+        purchase_cost: costPrice,
+        status: isActive ? 'ACTIVE' : 'INACTIVE'
+      }).catch(e => console.error('Inventory updateItem sync error:', e.message));
+    }
   } catch (err) {
     next(err);
   }

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import api from "../../../../api/client";
-import { Plus, Trash2, Save, ArrowLeft } from "lucide-react";
+import { Plus, Trash2, Save, ArrowLeft, Users, UserCheck, Search, X, Check, ChevronDown } from "lucide-react";
 import { getAllFeatures as getAllModuleFeatures } from "../../../../data/modulesRegistry";
 
 function toTitle(s) {
@@ -72,6 +72,213 @@ function normalizeDocLabel(label) {
   return s;
 }
 
+
+function ApproverMultiSelect({
+  selectedUserIds = [],
+  allUsers = [],
+  onChange,
+}) {
+  const [searchTerm, setSearchTerm] = useState("");
+  const [isOpen, setIsOpen] = useState(false);
+  const containerRef = React.useRef(null);
+
+  useEffect(() => {
+    function handleClickOutside(e) {
+      if (containerRef.current && !containerRef.current.contains(e.target)) {
+        setIsOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const selectedIds = (Array.isArray(selectedUserIds) ? selectedUserIds : [])
+    .map((id) => Number(id));
+
+  const filteredUsers = allUsers.filter((u) => {
+    if (!searchTerm.trim()) return true;
+    const term = searchTerm.toLowerCase();
+    const uname = String(u.username || "").toLowerCase();
+    const fname = String(u.full_name || "").toLowerCase();
+    const email = String(u.email || "").toLowerCase();
+    return uname.includes(term) || fname.includes(term) || email.includes(term);
+  });
+
+  const toggleUser = (userId) => {
+    const id = Number(userId);
+    let next;
+    if (selectedIds.includes(id)) {
+      next = selectedIds.filter((x) => x !== id);
+    } else {
+      next = [...selectedIds, id];
+    }
+    onChange(next);
+  };
+
+  const removeUser = (userId, e) => {
+    e.stopPropagation();
+    const id = Number(userId);
+    onChange(selectedIds.filter((x) => x !== id));
+  };
+
+  const selectAll = () => {
+    const allIds = Array.from(new Set([...selectedIds, ...filteredUsers.map((u) => Number(u.id))]));
+    onChange(allIds);
+  };
+
+  const clearAll = () => {
+    onChange([]);
+  };
+
+  return (
+    <div className="relative w-full" ref={containerRef}>
+      <div
+        onClick={() => setIsOpen(true)}
+        className={`min-h-[40px] p-2 border rounded-md shadow-sm bg-white cursor-pointer transition-colors flex flex-wrap items-center gap-1.5 ${
+          isOpen ? "border-blue-500 ring-1 ring-blue-500" : "border-gray-300 hover:border-gray-400"
+        }`}
+      >
+        {selectedIds.length === 0 ? (
+          <span className="text-xs text-gray-400 px-1 flex items-center gap-1.5">
+            <Users size={14} /> Select one or more approvers...
+          </span>
+        ) : (
+          selectedIds.map((id) => {
+            const u = allUsers.find((user) => Number(user.id) === id);
+            const label = u ? (u.full_name ? `${u.username} (${u.full_name})` : u.username) : `User #${id}`;
+            return (
+              <span
+                key={id}
+                className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-blue-50 border border-blue-200 text-blue-700 text-xs font-medium"
+              >
+                <span>{label}</span>
+                <button
+                  type="button"
+                  onClick={(e) => removeUser(id, e)}
+                  className="w-3.5 h-3.5 rounded-full hover:bg-blue-200 flex items-center justify-center text-blue-600 transition-colors"
+                  title="Remove user"
+                >
+                  <X size={10} />
+                </button>
+              </span>
+            );
+          })
+        )}
+        <div className="ml-auto pr-1 text-gray-400">
+          <ChevronDown size={14} className={`transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`} />
+        </div>
+      </div>
+
+      {isOpen && (
+        <div className="absolute z-30 left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-xl overflow-hidden animate-fadeIn">
+          <div className="p-2 border-b border-gray-100 bg-gray-50 flex items-center gap-2">
+            <Search size={14} className="text-gray-400 shrink-0" />
+            <input
+              type="text"
+              autoFocus
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Search by username, full name or email..."
+              className="w-full text-xs bg-transparent border-none outline-none focus:ring-0 p-0"
+              onClick={(e) => e.stopPropagation()}
+            />
+            {searchTerm && (
+              <button
+                type="button"
+                onClick={() => setSearchTerm("")}
+                className="text-gray-400 hover:text-gray-600 text-xs"
+              >
+                Clear
+              </button>
+            )}
+          </div>
+
+          <div className="px-3 py-1.5 bg-gray-50/70 border-b border-gray-100 flex items-center justify-between text-[11px] text-gray-500">
+            <span>
+              {selectedIds.length} of {allUsers.length} selected
+            </span>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={selectAll}
+                className="text-blue-600 hover:text-blue-800 font-medium"
+              >
+                Select All
+              </button>
+              <span>•</span>
+              <button
+                type="button"
+                onClick={clearAll}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                Clear
+              </button>
+            </div>
+          </div>
+
+          <div className="max-h-56 overflow-y-auto divide-y divide-gray-50 p-1">
+            {filteredUsers.length === 0 ? (
+              <div className="p-4 text-center text-xs text-gray-400">
+                No users found matching "{searchTerm}"
+              </div>
+            ) : (
+              filteredUsers.map((u) => {
+                const id = Number(u.id);
+                const isSelected = selectedIds.includes(id);
+                return (
+                  <div
+                    key={id}
+                    onClick={() => toggleUser(id)}
+                    className={`flex items-center gap-3 px-3 py-2 rounded-md cursor-pointer transition-colors text-xs ${
+                      isSelected
+                        ? "bg-blue-50 text-blue-900 font-medium"
+                        : "hover:bg-gray-50 text-gray-700"
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={isSelected}
+                      onChange={() => {}}
+                      className="rounded text-blue-600 focus:ring-blue-500 h-4 w-4 pointer-events-none"
+                    />
+                    <div className="w-6 h-6 rounded-full bg-slate-200 text-slate-700 flex items-center justify-center font-bold text-[10px] uppercase shrink-0">
+                      {(u.username || "U").slice(0, 2)}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="font-semibold text-gray-800 truncate">{u.username}</span>
+                        {u.full_name && (
+                          <span className="text-gray-500 truncate text-[11px]">({u.full_name})</span>
+                        )}
+                      </div>
+                      {u.email && (
+                        <div className="text-[11px] text-gray-400 truncate">{u.email}</div>
+                      )}
+                    </div>
+                    {isSelected && (
+                      <Check size={14} className="text-blue-600 shrink-0" />
+                    )}
+                  </div>
+                );
+              })
+            )}
+          </div>
+
+          <div className="p-2 border-t border-gray-100 bg-gray-50 flex justify-end">
+            <button
+              type="button"
+              onClick={() => setIsOpen(false)}
+              className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-xs font-semibold"
+            >
+              Done
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 const WorkflowForm = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -95,6 +302,7 @@ const WorkflowForm = () => {
   });
 
   useEffect(() => {
+    fetchUsers();
     fetchTransactionDocTypes();
     if (isEdit) {
       fetchWorkflow();
@@ -104,10 +312,11 @@ const WorkflowForm = () => {
 
   const fetchUsers = async () => {
     try {
-      setUsers([]);
+      const res = await api.get("/workflows/users", { params: { active: 1, limit: 100 } });
+      const items = Array.isArray(res.data?.items) ? res.data.items : [];
+      setUsers(items);
     } catch (error) {
       console.error("Failed to fetch users", error);
-      alert("Error loading users");
     }
   };
   const [stepUserOptions, setStepUserOptions] = useState({});
@@ -612,88 +821,28 @@ const WorkflowForm = () => {
                 </div>
 
                 <div className="flex-1 w-full">
-                  <label className="block text-xs font-medium text-gray-500">
-                    Approvers (Users)
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="Type to search users (min 2 chars)"
-                    onChange={(e) =>
-                      searchUsersForStep(index, e.target.value || "")
-                    }
-                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 text-sm"
-                  />
-                  <select className="hidden" />
-                  <div className="mt-1 grid grid-cols-1 md:grid-cols-2 gap-2">
-                    {(stepUserOptions[index] || []).map((u) => {
-                      const id = Number(u.id);
-                      const selected = Array.isArray(step.approver_user_ids)
-                        ? step.approver_user_ids
-                            .map((x) => Number(x))
-                            .includes(id)
-                        : false;
-                      return (
-                        <label
-                          key={id}
-                          className="flex items-center gap-2 border rounded p-2 text-sm cursor-pointer hover:bg-gray-50"
-                        >
-                          <input
-                            type="checkbox"
-                            value={id}
-                            checked={selected}
-                            onChange={(e) => {
-                              const val = Number(e.target.value);
-                              const prev = Array.isArray(step.approver_user_ids)
-                                ? step.approver_user_ids.map((x) => Number(x))
-                                : [];
-                              const next = e.target.checked
-                                ? Array.from(new Set([...prev, val]))
-                                : prev.filter((x) => x !== val);
-                              handleStepChange(
-                                index,
-                                "approver_user_ids",
-                                next,
-                              );
-                            }}
-                          />
-                          <span>
-                            {u.username ||
-                              u.full_name ||
-                              u.email ||
-                              `User #${id}`}
-                          </span>
-                        </label>
-                      );
-                    })}
-                  </div>
-                  {Array.isArray(step.approver_user_ids) &&
-                    step.approver_user_ids.length > 0 && (
-                      <div className="mt-2 flex flex-wrap gap-2">
-                        {step.approver_user_ids.map((sid) => {
-                          const id = Number(sid);
-                          const u =
-                            (stepUserOptions[index] || []).find(
-                              (uu) => Number(uu.id) === id,
-                            ) ||
-                            (Array.isArray(step.approvers)
-                              ? step.approvers.find(
-                                  (aa) => Number(aa.id) === id,
-                                )
-                              : null);
-                          const label =
-                            (u && (u.username || u.full_name || u.email)) ||
-                            `User #${id}`;
-                          return (
-                            <span
-                              key={`sel-${id}`}
-                              className="inline-flex items-center px-2 py-1 rounded-full bg-blue-50 text-blue-700 text-xs"
-                            >
-                              {label}
-                            </span>
-                          );
-                        })}
-                      </div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-xs font-medium text-gray-500">
+                      Approvers (Users) <span className="text-red-500">*</span>
+                    </label>
+                    {Array.isArray(step.approver_user_ids) && step.approver_user_ids.length > 0 && (
+                      <span className="text-[11px] text-blue-600 font-medium">
+                        {step.approver_user_ids.length} selected
+                      </span>
                     )}
+                  </div>
+                  <ApproverMultiSelect
+                    selectedUserIds={step.approver_user_ids}
+                    allUsers={users}
+                    onChange={(nextIds) => {
+                      handleStepChange(index, "approver_user_ids", nextIds);
+                    }}
+                  />
+                  {(!step.approver_user_ids || step.approver_user_ids.length === 0) && (
+                    <p className="text-[11px] text-amber-600 mt-1">
+                      ⚠️ Select one or more users who can approve this step
+                    </p>
+                  )}
                 </div>
 
                 <div className="w-full md:w-32">

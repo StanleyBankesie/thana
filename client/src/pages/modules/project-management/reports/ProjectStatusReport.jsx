@@ -175,9 +175,9 @@ export default function ProjectStatusReport() {
                   <tr key={p.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/50 transition-colors">
                     <td className="px-6 py-4">
                       <div className="font-bold text-sm text-slate-900 dark:text-white">{p.project_name}</div>
-                      <div className="text-[10px] text-slate-400 dark:text-slate-500 font-semibold uppercase">{p.project_code} {p.manager_name ? <span className="text-slate-300">· {p.manager_name}</span> : ""}</div>
+                      <div className="text-xs text-slate-400 dark:text-slate-500 font-semibold uppercase">{p.project_code} {p.manager_name ? <span className="text-slate-300">· {p.manager_name}</span> : ""}</div>
                     </td>
-                    <td className="px-6 py-4"><span className={`px-2.5 py-1 rounded-lg text-[10px] font-bold border ${statusStyles[p.project_status] || statusStyles.PLANNING}`}>{p.project_status}</span></td>
+                    <td className="px-6 py-4"><span className={`px-2.5 py-1 rounded-lg text-xs font-bold border ${statusStyles[p.project_status] || statusStyles.PLANNING}`}>{p.project_status}</span></td>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2 justify-center">
                         <div className="w-16 h-2.5 bg-slate-100 dark:bg-slate-900 rounded-full overflow-hidden shadow-inner">
@@ -197,8 +197,8 @@ export default function ProjectStatusReport() {
                         <AlertTriangle size={12} /> {p.blocked_tasks || 0}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-right font-mono text-sm text-slate-700 dark:text-slate-300">{Number(p.total_estimated_hours || 0).toFixed(1)}h</td>
-                    <td className="px-6 py-4 text-right font-mono text-sm text-slate-700 dark:text-slate-300">{Number(p.total_actual_hours || 0).toFixed(1)}h</td>
+                    <td className="px-6 py-4 text-right text-sm font-normal text-slate-700 dark:text-slate-300">{Number(p.total_estimated_hours || 0).toFixed(1)}h</td>
+                    <td className="px-6 py-4 text-right text-sm font-normal text-slate-700 dark:text-slate-300">{Number(p.total_actual_hours || 0).toFixed(1)}h</td>
                   </tr>
                 );
               }) : (

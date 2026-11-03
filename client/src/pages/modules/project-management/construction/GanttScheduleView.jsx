@@ -417,7 +417,7 @@ export default function GanttScheduleView() {
             <p className="text-2xl font-bold font-mono text-slate-900 dark:text-white">
               {cpm?.projectDurationDays || 0} Days
             </p>
-            <p className="text-[10px] text-slate-400">Critical network length</p>
+            <p className="text-xs text-slate-400">Critical network length</p>
           </div>
         </div>
 
@@ -430,7 +430,7 @@ export default function GanttScheduleView() {
             <p className="text-2xl font-bold font-mono text-rose-600 dark:text-rose-400">
               {criticalCount} Activities
             </p>
-            <p className="text-[10px] text-slate-400">Zero Total Float (Must not delay)</p>
+            <p className="text-xs text-slate-400">Zero Total Float (Must not delay)</p>
           </div>
         </div>
 
@@ -443,7 +443,7 @@ export default function GanttScheduleView() {
             <p className="text-2xl font-bold font-mono text-blue-600 dark:text-blue-400">
               {variance?.actualProgress || 0}%
             </p>
-            <p className="text-[10px] text-slate-400">Planned: {variance?.plannedProgress || 0}% (SPI: {variance?.spi || 1.0})</p>
+            <p className="text-xs text-slate-400">Planned: {variance?.plannedProgress || 0}% (SPI: {variance?.spi || 1.0})</p>
           </div>
         </div>
 
@@ -456,7 +456,7 @@ export default function GanttScheduleView() {
             <p className={`text-2xl font-bold font-mono ${(variance?.scheduleVarianceDays || 0) < 0 ? "text-amber-600" : "text-emerald-600"}`}>
               {(variance?.scheduleVarianceDays || 0) < 0 ? `${Math.abs(variance.scheduleVarianceDays)}d Late` : `${variance?.scheduleVarianceDays || 0}d Buffer`}
             </p>
-            <p className="text-[10px] text-slate-400">Forecast: {cpm?.forecastCompletionDate || "-"}</p>
+            <p className="text-xs text-slate-400">Forecast: {cpm?.forecastCompletionDate || "-"}</p>
           </div>
         </div>
       </div>
@@ -515,7 +515,7 @@ export default function GanttScheduleView() {
                 </div>
                 <div>
                   <span className="text-slate-400 block mb-0.5">Working Calendar</span>
-                  <span className="badge badge-secondary font-mono text-[11px]">6-Day (Mon - Sat)</span>
+                  <span className="badge badge-secondary font-mono text-xs">6-Day (Mon - Sat)</span>
                 </div>
                 <div>
                   <span className="text-slate-400 block mb-0.5">Planned Start Date</span>
@@ -535,7 +535,7 @@ export default function GanttScheduleView() {
                 </div>
                 <div>
                   <span className="text-slate-400 block mb-0.5">Baseline Status</span>
-                  <span className="badge badge-success text-[10px]">BASELINED</span>
+                  <span className="badge badge-success text-xs">BASELINED</span>
                 </div>
               </div>
 
@@ -583,7 +583,7 @@ export default function GanttScheduleView() {
                           <td className="font-mono font-bold">{wp.package_code || "WP"}</td>
                           <td>{wp.package_name}</td>
                           <td>
-                            <span className="badge badge-secondary text-[10px]">{wp.status || "ACTIVE"}</span>
+                            <span className="badge badge-secondary text-xs">{wp.status || "ACTIVE"}</span>
                           </td>
                         </tr>
                       ))
@@ -664,7 +664,7 @@ export default function GanttScheduleView() {
                           <div className="flex items-center gap-1.5">
                             {t.task_title}
                             {t.is_critical ? (
-                              <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-rose-100 text-rose-700 dark:bg-rose-900 dark:text-rose-200">
+                              <span className="px-1.5 py-0.5 rounded text-xs font-bold bg-rose-100 text-rose-700 dark:bg-rose-900 dark:text-rose-200">
                                 CRITICAL
                               </span>
                             ) : null}
@@ -676,7 +676,7 @@ export default function GanttScheduleView() {
                           {t.predecessors?.length > 0 ? (
                             <div className="flex flex-wrap gap-1">
                               {t.predecessors.map(p => (
-                                <span key={p.id} className="font-mono px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 rounded text-[10px]">
+                                <span key={p.id} className="font-mono px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 rounded text-xs">
                                   {p.predecessor_wbs || `ID:${p.predecessor_id}`} ({p.dependency_type}{p.lag_days ? `${p.lag_days > 0 ? `+${p.lag_days}` : p.lag_days}d` : ""})
                                 </span>
                               ))}
@@ -686,7 +686,7 @@ export default function GanttScheduleView() {
                           )}
                         </td>
                         <td>{t.assigned_to_name || "Unassigned"}</td>
-                        <td className="font-mono text-[11px]">
+                        <td className="font-mono text-xs">
                           {t.start_date ? t.start_date.split("T")[0] : "-"} → {t.end_date ? t.end_date.split("T")[0] : "-"}
                         </td>
                         <td className="text-center">
@@ -695,7 +695,7 @@ export default function GanttScheduleView() {
                           </span>
                         </td>
                         <td>
-                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
+                          <span className={`px-2 py-0.5 rounded-full text-xs font-bold uppercase ${
                             t.status === "COMPLETED" ? "bg-emerald-100 text-emerald-700" :
                             t.status === "IN_PROGRESS" ? "bg-blue-100 text-blue-700" :
                             t.status === "DELAYED" ? "bg-rose-100 text-rose-700" :
@@ -770,7 +770,7 @@ export default function GanttScheduleView() {
                 {/* Header Row */}
                 <div className="grid grid-cols-12 bg-slate-100 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 text-xs font-bold p-3 text-slate-700 dark:text-slate-300">
                   <div className="col-span-4">Activity / WBS</div>
-                  <div className="col-span-8 flex justify-between font-mono text-[11px]">
+                  <div className="col-span-8 flex justify-between font-mono text-xs">
                     <span>Project Start ({project?.start_date ? project.start_date.split("T")[0] : "Day 0"})</span>
                     <span>Midpoint</span>
                     <span>Forecast Completion ({cpm?.forecastCompletionDate || "End"})</span>
@@ -799,11 +799,11 @@ export default function GanttScheduleView() {
                               <span className="font-bold truncate text-slate-900 dark:text-white" title={t.task_title}>
                                 {t.wbs_code ? `${t.wbs_code} - ` : ""}{t.task_title}
                               </span>
-                              <span className="font-mono text-slate-400 text-[10px] ml-2 flex-shrink-0">
+                              <span className="font-mono text-slate-400 text-xs ml-2 flex-shrink-0">
                                 {t.duration_days}d
                               </span>
                             </div>
-                            <div className="text-[10px] text-slate-400 font-mono">
+                            <div className="text-xs text-slate-400 font-mono">
                               Float: {t.total_float ?? 0}d | Free: {t.free_float ?? 0}d
                             </div>
                           </div>
@@ -831,7 +831,7 @@ export default function GanttScheduleView() {
                                 className="absolute left-0 top-0 bottom-0 bg-black/20 rounded-l-md pointer-events-none"
                                 style={{ width: `${Math.min(100, Math.max(0, t.completion_percent || 0))}%` }}
                               />
-                              <span className="relative z-10 text-[10px] font-mono truncate">
+                              <span className="relative z-10 text-xs font-mono truncate">
                                 {t.completion_percent > 0 ? `${t.completion_percent}%` : `${t.duration_days}d`}
                               </span>
                             </div>
@@ -876,15 +876,15 @@ export default function GanttScheduleView() {
                     <React.Fragment key={task.id}>
                       <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-xs min-w-[170px] shadow-sm">
                         <div className="flex justify-between items-center mb-1">
-                          <span className="font-mono font-bold text-rose-700 dark:text-rose-400 text-[11px]">
+                          <span className="font-mono font-bold text-rose-700 dark:text-rose-400 text-xs">
                             {task.wbs_code || `A-${task.id}`}
                           </span>
-                          <span className="badge badge-error text-[9px] px-1.5 py-0.2">TF: 0d</span>
+                          <span className="badge badge-error text-xs px-1.5 py-0.2">TF: 0d</span>
                         </div>
                         <p className="font-bold text-slate-900 dark:text-white truncate" title={task.task_title}>
                           {task.task_title}
                         </p>
-                        <div className="mt-2 text-[10px] text-slate-500 font-mono flex justify-between">
+                        <div className="mt-2 text-xs text-slate-500 font-mono flex justify-between">
                           <span>{task.duration_days} days</span>
                           <span>{task.early_finish}</span>
                         </div>
@@ -916,7 +916,7 @@ export default function GanttScheduleView() {
                       <span className="font-mono text-slate-400">{t.completion_percent || 0}% Done</span>
                     </div>
                     <p className="font-bold text-slate-800 dark:text-slate-200 truncate">{t.task_title}</p>
-                    <p className="text-[10px] text-slate-400 mt-1">
+                    <p className="text-xs text-slate-400 mt-1">
                       Assigned: {t.assigned_to_name || "Unassigned"} | Finish: {t.early_finish}
                     </p>
                   </div>
@@ -974,9 +974,9 @@ export default function GanttScheduleView() {
                         <td className="text-center font-mono text-slate-500">{t.free_float ?? 0} days</td>
                         <td className="text-center">
                           {t.is_critical ? (
-                            <span className="badge badge-error text-[10px]">CRITICAL</span>
+                            <span className="badge badge-error text-xs">CRITICAL</span>
                           ) : (
-                            <span className="badge badge-secondary text-[10px]">FLOAT ({t.total_float}d)</span>
+                            <span className="badge badge-secondary text-xs">FLOAT ({t.total_float}d)</span>
                           )}
                         </td>
                       </tr>
@@ -1043,7 +1043,7 @@ export default function GanttScheduleView() {
                         <AlertCircle size={14} className={plan.severity === "HIGH" ? "text-rose-500" : "text-amber-500"} />
                         {plan.title}
                       </span>
-                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                      <span className={`px-2 py-0.5 rounded text-xs font-bold ${
                         plan.severity === "HIGH" ? "bg-rose-100 text-rose-700 dark:bg-rose-900 dark:text-rose-200" : "bg-amber-100 text-amber-700"
                       }`}>
                         {plan.severity} PRIORITY
@@ -1096,14 +1096,14 @@ export default function GanttScheduleView() {
                         </td>
                         <td className="font-bold text-slate-900 dark:text-white">{eot.delay_cause || eot.reason}</td>
                         <td>
-                          <span className="badge badge-secondary text-[10px]">{eot.delay_category || "CLIENT_EVENT"}</span>
+                          <span className="badge badge-secondary text-xs">{eot.delay_category || "CLIENT_EVENT"}</span>
                         </td>
                         <td className="text-right font-mono font-bold">{eot.days_requested} days</td>
                         <td className="text-right font-mono">
                           {Number(eot.financial_claim_amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                         </td>
                         <td>
-                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
+                          <span className={`px-2 py-0.5 rounded-full text-xs font-bold uppercase ${
                             eot.status === "APPROVED" ? "bg-emerald-100 text-emerald-700" :
                             eot.status === "REJECTED" ? "bg-rose-100 text-rose-700" :
                             "bg-amber-100 text-amber-700"
@@ -1259,7 +1259,7 @@ export default function GanttScheduleView() {
                     <div key={idx} className="flex items-center justify-between p-2 bg-white dark:bg-slate-800 rounded-lg text-xs font-mono border">
                       <span>
                         <span className="font-bold text-brand-600">{predTask?.wbs_code || `ID:${p.predecessor_id}`}</span> - {predTask?.task_title || "Predecessor"}
-                        <span className="ml-2 badge badge-secondary text-[10px]">{p.dependency_type} {p.lag_days ? `(${p.lag_days > 0 ? `+${p.lag_days}` : p.lag_days}d)` : ""}</span>
+                        <span className="ml-2 badge badge-secondary text-xs">{p.dependency_type} {p.lag_days ? `(${p.lag_days > 0 ? `+${p.lag_days}` : p.lag_days}d)` : ""}</span>
                       </span>
                       <button
                         type="button"
@@ -1277,7 +1277,7 @@ export default function GanttScheduleView() {
             {/* Add Predecessor Row */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-2 pt-1 items-end">
               <div className="md:col-span-2">
-                <label className="text-[10px] text-slate-500 block mb-0.5">Select Predecessor</label>
+                <label className="text-xs text-slate-500 block mb-0.5">Select Predecessor</label>
                 <select
                   className="input text-xs w-full"
                   value={newPredId}
@@ -1294,7 +1294,7 @@ export default function GanttScheduleView() {
                 </select>
               </div>
               <div>
-                <label className="text-[10px] text-slate-500 block mb-0.5">Type</label>
+                <label className="text-xs text-slate-500 block mb-0.5">Type</label>
                 <select
                   className="input text-xs w-full font-mono"
                   value={newPredType}

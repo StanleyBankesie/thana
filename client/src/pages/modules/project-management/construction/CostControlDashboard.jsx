@@ -211,7 +211,7 @@ export default function CostControlDashboard() {
               <span className="text-xs font-bold text-brand-600 dark:text-brand-400 flex items-center gap-1.5">
                 <FileSpreadsheet size={15} /> 1. Budget Baseline
               </span>
-              <p className="text-[11px] text-slate-500 dark:text-slate-400">
+              <p className="text-xs text-slate-500 dark:text-slate-400">
                 Establish approved budgets from the BOQ, labour estimates, and procurement targets.
               </p>
             </div>
@@ -220,7 +220,7 @@ export default function CostControlDashboard() {
               <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
                 <Activity size={15} /> 2. Cost Tracking
               </span>
-              <p className="text-[11px] text-slate-500 dark:text-slate-400">
+              <p className="text-xs text-slate-500 dark:text-slate-400">
                 Record actuals from invoices, inventory issues, payroll, and subcontractors.
               </p>
             </div>
@@ -229,7 +229,7 @@ export default function CostControlDashboard() {
               <span className="text-xs font-bold text-blue-600 dark:text-blue-400 flex items-center gap-1.5">
                 <ShoppingBag size={15} /> 3. Commitments
               </span>
-              <p className="text-[11px] text-slate-500 dark:text-slate-400">
+              <p className="text-xs text-slate-500 dark:text-slate-400">
                 Track purchase orders separately from incurred costs to prevent misleading reports.
               </p>
             </div>
@@ -238,7 +238,7 @@ export default function CostControlDashboard() {
               <span className="text-xs font-bold text-purple-600 dark:text-purple-400 flex items-center gap-1.5">
                 <Sliders size={15} /> 4. Forecast & Control
               </span>
-              <p className="text-[11px] text-slate-500 dark:text-slate-400">
+              <p className="text-xs text-slate-500 dark:text-slate-400">
                 Predict final costs, identify cost overruns, and take corrective action early.
               </p>
             </div>
@@ -288,10 +288,10 @@ export default function CostControlDashboard() {
               <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
                 <div className="space-y-2">
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="px-2.5 py-0.5 rounded-full text-[11px] font-mono font-bold bg-brand-50 dark:bg-brand-900/40 text-brand-700 dark:text-brand-300 border border-brand-200 dark:border-brand-800">
+                    <span className="px-2.5 py-0.5 rounded-full text-xs font-mono font-bold bg-brand-50 dark:bg-brand-900/40 text-brand-700 dark:text-brand-300 border border-brand-200 dark:border-brand-800">
                       {proj.project_code || "PRJ"}
                     </span>
-                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+                    <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
                       {proj.completion_percent || 0}% Completed
                     </span>
                     {activeBOQ && (
@@ -346,26 +346,26 @@ export default function CostControlDashboard() {
             {/* Commercial Contract Sum Reconciliation Row */}
             <div className="p-4 grid grid-cols-2 sm:grid-cols-4 gap-3 bg-white dark:bg-slate-900 text-xs">
               <div className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200/80 dark:border-slate-800 space-y-1">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Original Contract Sum</span>
-                <p className="font-mono font-bold text-sm text-slate-900 dark:text-white">
+                <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Original Contract Sum</span>
+                <p className="text-sm font-medium text-slate-900 dark:text-white">
                   {currency} {Number(cs.original_contract_sum || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                 </p>
               </div>
               <div className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200/80 dark:border-slate-800 space-y-1">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400">Approved Revised Sum</span>
-                <p className="font-mono font-bold text-sm text-blue-600 dark:text-blue-400">
+                <span className="text-xs font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400">Approved Revised Sum</span>
+                <p className="text-sm font-medium text-blue-600 dark:text-blue-400">
                   {currency} {Number(cs.revised_contract_sum || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                 </p>
               </div>
               <div className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200/80 dark:border-slate-800 space-y-1">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-brand-600 dark:text-brand-400">Approved Budget (BAC)</span>
-                <p className="font-mono font-bold text-sm text-brand-600 dark:text-brand-400">
+                <span className="text-xs font-bold uppercase tracking-wider text-brand-600 dark:text-brand-400">Approved Budget (BAC)</span>
+                <p className="text-sm font-medium text-brand-600 dark:text-brand-400">
                   {currency} {approvedBudget.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                 </p>
               </div>
               <div className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200/80 dark:border-slate-800 space-y-1">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-purple-600 dark:text-purple-400">Purchase Commitments (PO)</span>
-                <p className="font-mono font-bold text-sm text-purple-600 dark:text-purple-400">
+                <span className="text-xs font-bold uppercase tracking-wider text-purple-600 dark:text-purple-400">Purchase Commitments (PO)</span>
+                <p className="text-sm font-medium text-purple-600 dark:text-purple-400">
                   {currency} {committedCost.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                 </p>
               </div>
@@ -377,73 +377,73 @@ export default function CostControlDashboard() {
             {/* 1. Approved Budget */}
             <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-2">
               <div className="flex justify-between items-center text-slate-400">
-                <span className="text-[11px] font-bold uppercase tracking-wider">Approved Budget</span>
+                <span className="text-xs font-bold uppercase tracking-wider">Approved Budget</span>
                 <DollarSign size={18} className="text-blue-500" />
               </div>
-              <p className="text-xl font-black font-mono text-slate-900 dark:text-white">
+              <p className="text-xl font-medium text-slate-900 dark:text-white">
                 {currency} {approvedBudget.toLocaleString(undefined, { minimumFractionDigits: 2 })}
               </p>
-              <p className="text-[10px] text-slate-500">Total authorized baseline spending</p>
+              <p className="text-xs text-slate-500">Total authorized baseline spending</p>
             </div>
 
             {/* 2. Actual Cost Incurred */}
             <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-2">
               <div className="flex justify-between items-center text-slate-400">
-                <span className="text-[11px] font-bold uppercase tracking-wider">Actual Cost (AC)</span>
+                <span className="text-xs font-bold uppercase tracking-wider">Actual Cost (AC)</span>
                 <Activity size={18} className="text-rose-500" />
               </div>
-              <p className="text-xl font-black font-mono text-rose-600 dark:text-rose-400">
+              <p className="text-xl font-medium text-rose-600 dark:text-rose-400">
                 {currency} {actualCost.toLocaleString(undefined, { minimumFractionDigits: 2 })}
               </p>
-              <p className="text-[10px] text-slate-500">Expenses + Labour + Subcontracts + Materials</p>
+              <p className="text-xs text-slate-500">Expenses + Labour + Subcontracts + Materials</p>
             </div>
 
             {/* 3. Committed Costs */}
             <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-2">
               <div className="flex justify-between items-center text-slate-400">
-                <span className="text-[11px] font-bold uppercase tracking-wider">Committed (POs)</span>
+                <span className="text-xs font-bold uppercase tracking-wider">Committed (POs)</span>
                 <ShoppingBag size={18} className="text-blue-600" />
               </div>
-              <p className="text-xl font-black font-mono text-blue-600 dark:text-blue-400">
+              <p className="text-xl font-medium text-blue-600 dark:text-blue-400">
                 {currency} {committedCost.toLocaleString(undefined, { minimumFractionDigits: 2 })}
               </p>
-              <p className="text-[10px] text-slate-500">{purchaseOrders.length} Open purchase commitment(s)</p>
+              <p className="text-xs text-slate-500">{purchaseOrders.length} Open purchase commitment(s)</p>
             </div>
 
             {/* 4. Remaining Budget */}
             <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-2">
               <div className="flex justify-between items-center text-slate-400">
-                <span className="text-[11px] font-bold uppercase tracking-wider">Remaining Budget</span>
+                <span className="text-xs font-bold uppercase tracking-wider">Remaining Budget</span>
                 <Clock size={18} className={remainingBudget >= 0 ? "text-emerald-500" : "text-rose-500"} />
               </div>
-              <p className={`text-xl font-black font-mono ${remainingBudget >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}`}>
+              <p className={`text-xl font-medium ${remainingBudget >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}`}>
                 {currency} {remainingBudget.toLocaleString(undefined, { minimumFractionDigits: 2 })}
               </p>
-              <p className="text-[10px] text-slate-500">Approved Budget − Actual Cost</p>
+              <p className="text-xs text-slate-500">Approved Budget − Actual Cost</p>
             </div>
 
             {/* 5. Available after Commitments */}
             <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-2">
               <div className="flex justify-between items-center text-slate-400">
-                <span className="text-[11px] font-bold uppercase tracking-wider">Available Budget</span>
+                <span className="text-xs font-bold uppercase tracking-wider">Available Budget</span>
                 <CheckCircle size={18} className={availableBudget >= 0 ? "text-emerald-500" : "text-rose-500"} />
               </div>
-              <p className={`text-xl font-black font-mono ${availableBudget >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}`}>
+              <p className={`text-xl font-medium ${availableBudget >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}`}>
                 {currency} {availableBudget.toLocaleString(undefined, { minimumFractionDigits: 2 })}
               </p>
-              <p className="text-[10px] text-slate-500">Remaining − Committed POs</p>
+              <p className="text-xs text-slate-500">Remaining − Committed POs</p>
             </div>
 
             {/* 6. Forecast Final Cost */}
             <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-2">
               <div className="flex justify-between items-center text-slate-400">
-                <span className="text-[11px] font-bold uppercase tracking-wider">Forecast Final Cost</span>
+                <span className="text-xs font-bold uppercase tracking-wider">Forecast Final Cost</span>
                 <TrendingUp size={18} className="text-purple-500" />
               </div>
-              <p className="text-xl font-black font-mono text-purple-600 dark:text-purple-400">
+              <p className="text-xl font-medium text-purple-600 dark:text-purple-400">
                 {currency} {forecastFinalCost.toLocaleString(undefined, { minimumFractionDigits: 2 })}
               </p>
-              <p className="text-[10px] font-semibold text-slate-500">
+              <p className="text-xs font-semibold text-slate-500">
                 {projectedOverrun > 0 ? (
                   <span className="text-rose-600 font-bold">Overrun: +{currency} {projectedOverrun.toLocaleString()}</span>
                 ) : (
@@ -467,10 +467,10 @@ export default function CostControlDashboard() {
                   </p>
                 </div>
                 <div className="text-right">
-                  <span className={`text-base font-black font-mono ${budgetUtilization > 100 ? "text-rose-600" : budgetUtilization >= 80 ? "text-amber-600" : "text-emerald-600"}`}>
+                  <span className={`text-base font-medium ${budgetUtilization > 100 ? "text-rose-600" : budgetUtilization >= 80 ? "text-amber-600" : "text-emerald-600"}`}>
                     {budgetUtilization.toFixed(1)}%
                   </span>
-                  <span className="text-[10px] text-slate-400 block font-medium">Actual Spent</span>
+                  <span className="text-xs text-slate-400 block font-medium">Actual Spent</span>
                 </div>
               </div>
 
@@ -513,7 +513,7 @@ export default function CostControlDashboard() {
                       Available ({Math.max(0, 100 - totalUtilization).toFixed(1)}%)
                     </span>
                   </div>
-                  <span className="font-mono font-bold text-slate-700 dark:text-slate-300">
+                  <span className="font-medium text-slate-700 dark:text-slate-300">
                     Total Committed & Spent: {totalUtilization.toFixed(1)}%
                   </span>
                 </div>
@@ -523,33 +523,33 @@ export default function CostControlDashboard() {
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2 text-xs">
                 {/* Cost Variance (Budget - Actual) */}
                 <div className="p-3.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/70 dark:border-slate-800 space-y-1">
-                  <span className="text-slate-400 font-bold uppercase text-[10px]">Cost Variance (Budget − Actual)</span>
-                  <p className={`text-base font-black font-mono ${cv >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}`}>
+                  <span className="text-slate-400 font-bold uppercase text-xs">Cost Variance (Budget − Actual)</span>
+                  <p className={`text-base font-medium ${cv >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}`}>
                     {cv >= 0 ? "+" : ""}{currency} {cv.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                   </p>
-                  <p className="text-[10px] text-slate-500 font-medium">
+                  <p className="text-xs text-slate-500 font-medium">
                     {cv >= 0 ? "Under budget (Positive savings)" : "Over budget (Expenditure overrun)"}
                   </p>
                 </div>
 
                 {/* Cost Variance % */}
                 <div className="p-3.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/70 dark:border-slate-800 space-y-1">
-                  <span className="text-slate-400 font-bold uppercase text-[10px]">Cost Variance %</span>
-                  <p className={`text-base font-black font-mono ${Number(cs.cost_variance_percent || 0) >= 0 ? "text-emerald-600" : "text-rose-600"}`}>
+                  <span className="text-slate-400 font-bold uppercase text-xs">Cost Variance %</span>
+                  <p className={`text-base font-medium ${Number(cs.cost_variance_percent || 0) >= 0 ? "text-emerald-600" : "text-rose-600"}`}>
                     {Number(cs.cost_variance_percent || 0) >= 0 ? "+" : ""}{Number(cs.cost_variance_percent || 0).toFixed(2)}%
                   </p>
-                  <p className="text-[10px] text-slate-500 font-medium">
+                  <p className="text-xs text-slate-500 font-medium">
                     (Budget − Actual) ÷ Budget × 100
                   </p>
                 </div>
 
                 {/* Cost Performance Index (CPI) */}
                 <div className="p-3.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/70 dark:border-slate-800 space-y-1">
-                  <span className="text-slate-400 font-bold uppercase text-[10px]">Cost Performance Index (CPI)</span>
-                  <p className={`text-base font-black font-mono ${cpi >= 1.0 ? "text-emerald-600" : "text-rose-600"}`}>
+                  <span className="text-slate-400 font-bold uppercase text-xs">Cost Performance Index (CPI)</span>
+                  <p className={`text-base font-medium ${cpi >= 1.0 ? "text-emerald-600" : "text-rose-600"}`}>
                     {cpi.toFixed(2)}
                   </p>
-                  <p className="text-[10px] text-slate-500 font-medium">
+                  <p className="text-xs text-slate-500 font-medium">
                     {cpi >= 1.0 ? "Favorable cost efficiency" : "Unfavorable cost efficiency"}
                   </p>
                 </div>
@@ -568,28 +568,28 @@ export default function CostControlDashboard() {
               <div className="space-y-3 pt-1 text-xs">
                 <div className="flex justify-between items-center py-2 border-b border-slate-100 dark:border-slate-800">
                   <span className="text-slate-500 font-medium">Allocated in BOQ ({activeBOQ?.contingency_percent || 5}%):</span>
-                  <span className="font-mono font-bold text-slate-800 dark:text-slate-200">
+                  <span className="font-medium text-slate-800 dark:text-slate-200">
                     {currency} {Number(cs.contingency_allocated || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                   </span>
                 </div>
 
                 <div className="flex justify-between items-center py-2 border-b border-slate-100 dark:border-slate-800">
                   <span className="text-slate-500 font-medium">Contingency Absorbed / Used:</span>
-                  <span className="font-mono font-bold text-rose-600">
+                  <span className="font-medium text-rose-600">
                     {currency} {Number(cs.contingency_used || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                   </span>
                 </div>
 
                 <div className="flex justify-between items-center py-2">
                   <span className="text-slate-700 dark:text-slate-300 font-bold">Remaining Contingency:</span>
-                  <span className="font-mono font-black text-emerald-600 dark:text-emerald-400 text-sm">
+                  <span className="font-medium text-emerald-600 dark:text-emerald-400 text-sm">
                     {currency} {Number(cs.contingency_remaining || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                   </span>
                 </div>
               </div>
 
               {Number(cs.contingency_remaining || 0) <= 0 && Number(cs.contingency_allocated || 0) > 0 && (
-                <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900 text-rose-700 dark:text-rose-300 text-[11px] leading-relaxed">
+                <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900 text-rose-700 dark:text-rose-300 text-xs leading-relaxed">
                   Contingency reserve fully consumed. Any further expenditure requires formal approval workflow and revised budget authorization.
                 </div>
               )}
@@ -636,36 +636,36 @@ export default function CostControlDashboard() {
                           {getCategoryIcon(c.category)}
                           <div>
                             <span className="font-bold text-slate-800 dark:text-slate-200 block">{c.label}</span>
-                            <span className="text-[10px] text-slate-400 font-mono uppercase">{c.category}</span>
+                            <span className="text-xs text-slate-400 font-mono uppercase">{c.category}</span>
                           </div>
                         </td>
-                        <td className="p-3.5 text-right font-mono font-bold text-slate-700 dark:text-slate-300">
+                        <td className="p-3.5 text-right font-medium text-slate-700 dark:text-slate-300">
                           {Number(c.budget || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                         </td>
-                        <td className="p-3.5 text-right font-mono font-bold text-slate-900 dark:text-white">
+                        <td className="p-3.5 text-right font-medium text-slate-900 dark:text-white">
                           {Number(c.actual || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                         </td>
-                        <td className={`p-3.5 text-right font-mono font-bold ${c.variance >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}`}>
+                        <td className={`p-3.5 text-right font-medium ${c.variance >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}`}>
                           {c.variance >= 0 ? "+" : ""}{Number(c.variance || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                         </td>
-                        <td className={`p-3.5 text-right font-mono font-semibold ${c.variance >= 0 ? "text-emerald-600" : "text-rose-600"}`}>
+                        <td className={`p-3.5 text-right font-medium ${c.variance >= 0 ? "text-emerald-600" : "text-rose-600"}`}>
                           {c.budget > 0 ? `${c.variance >= 0 ? "+" : ""}${c.variance_percent.toFixed(1)}%` : "—"}
                         </td>
                         <td className="p-3.5 text-center">
                           {isOverrun ? (
-                            <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 dark:bg-rose-950/50 dark:text-rose-300 border border-rose-200 dark:border-rose-900">
+                            <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-rose-50 text-rose-700 dark:bg-rose-950/50 dark:text-rose-300 border border-rose-200 dark:border-rose-900">
                               Overrun (+{currency} {c.overrun.toLocaleString()})
                             </span>
                           ) : isWarning ? (
-                            <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 dark:bg-amber-950/50 dark:text-amber-300 border border-amber-200 dark:border-amber-900">
+                            <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-700 dark:bg-amber-950/50 dark:text-amber-300 border border-amber-200 dark:border-amber-900">
                               High Utilization ({c.utilization_percent}%)
                             </span>
                           ) : isUnbudgeted ? (
-                            <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-orange-50 text-orange-700 dark:bg-orange-950/50 dark:text-orange-300 border border-orange-200 dark:border-orange-900">
+                            <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-orange-50 text-orange-700 dark:bg-orange-950/50 dark:text-orange-300 border border-orange-200 dark:border-orange-900">
                               Unbudgeted Direct Cost
                             </span>
                           ) : (
-                            <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-900">
+                            <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-900">
                               Under Budget
                             </span>
                           )}
@@ -677,20 +677,20 @@ export default function CostControlDashboard() {
                 <tfoot className="bg-white dark:bg-slate-900 font-black border-t-2 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white">
                   <tr>
                     <td className="p-3.5 uppercase tracking-wider">Total</td>
-                    <td className="p-3.5 text-right font-mono">
+                    <td className="p-3.5 text-right font-normal">
                       {approvedBudget.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                     </td>
-                    <td className="p-3.5 text-right font-mono text-rose-600 dark:text-rose-400">
+                    <td className="p-3.5 text-right font-normal text-rose-600 dark:text-rose-400">
                       {actualCost.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                     </td>
-                    <td className={`p-3.5 text-right font-mono ${cv >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}`}>
+                    <td className={`p-3.5 text-right font-normal ${cv >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}`}>
                       {cv >= 0 ? "+" : ""}{cv.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                     </td>
-                    <td className={`p-3.5 text-right font-mono ${Number(cs.cost_variance_percent || 0) >= 0 ? "text-emerald-600" : "text-rose-600"}`}>
+                    <td className={`p-3.5 text-right font-normal ${Number(cs.cost_variance_percent || 0) >= 0 ? "text-emerald-600" : "text-rose-600"}`}>
                       {Number(cs.cost_variance_percent || 0) >= 0 ? "+" : ""}{Number(cs.cost_variance_percent || 0).toFixed(2)}%
                     </td>
                     <td className="p-3.5 text-center">
-                      <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold ${actualCost > approvedBudget ? "bg-rose-100 text-rose-700" : "bg-emerald-100 text-emerald-700"}`}>
+                      <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${actualCost > approvedBudget ? "bg-rose-100 text-rose-700" : "bg-emerald-100 text-emerald-700"}`}>
                         {actualCost > approvedBudget ? "OVER BUDGET" : "HEALTHY"}
                       </span>
                     </td>
@@ -715,66 +715,66 @@ export default function CostControlDashboard() {
               {/* 1. Project Management (BOQ) */}
               <div className="p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 space-y-2">
                 <div className="flex justify-between items-center text-slate-400">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-brand-600 flex items-center gap-1.5">
+                  <span className="text-xs font-bold uppercase tracking-wider text-brand-600 flex items-center gap-1.5">
                     <FileSpreadsheet size={14} /> Project BOQ Baseline
                   </span>
                 </div>
-                <p className="text-base font-bold font-mono text-slate-800 dark:text-slate-100">
+                <p className="text-base font-medium text-slate-800 dark:text-slate-100">
                   {currency} {Number(cs.boq_estimated_cost || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                 </p>
-                <p className="text-[10px] text-slate-500">Bill of quantities line item estimates</p>
+                <p className="text-xs text-slate-500">Bill of quantities line item estimates</p>
               </div>
 
               {/* 2. Procurement (Commitments) */}
               <div className="p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 space-y-2">
                 <div className="flex justify-between items-center text-slate-400">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-blue-600 flex items-center gap-1.5">
+                  <span className="text-xs font-bold uppercase tracking-wider text-blue-600 flex items-center gap-1.5">
                     <ShoppingBag size={14} /> Purchase Commitments
                   </span>
                 </div>
-                <p className="text-base font-bold font-mono text-blue-600">
+                <p className="text-base font-medium text-blue-600">
                   {currency} {committedCost.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                 </p>
-                <p className="text-[10px] text-slate-500">Committed project purchase orders</p>
+                <p className="text-xs text-slate-500">Committed project purchase orders</p>
               </div>
 
               {/* 3. Inventory (Materials Consumed) */}
               <div className="p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 space-y-2">
                 <div className="flex justify-between items-center text-slate-400">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-600 flex items-center gap-1.5">
+                  <span className="text-xs font-bold uppercase tracking-wider text-emerald-600 flex items-center gap-1.5">
                     <Boxes size={14} /> Materials Consumed
                   </span>
                 </div>
-                <p className="text-base font-bold font-mono text-emerald-600">
+                <p className="text-base font-medium text-emerald-600">
                   {currency} {Number(cs.materials_consumed || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                 </p>
-                <p className="text-[10px] text-slate-500">Physical stock issues & requisitions</p>
+                <p className="text-xs text-slate-500">Physical stock issues & requisitions</p>
               </div>
 
               {/* 4. HR & Payroll (Labour) */}
               <div className="p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 space-y-2">
                 <div className="flex justify-between items-center text-slate-400">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-amber-600 flex items-center gap-1.5">
+                  <span className="text-xs font-bold uppercase tracking-wider text-amber-600 flex items-center gap-1.5">
                     <Users size={14} /> Project Labour Costs
                   </span>
                 </div>
-                <p className="text-base font-bold font-mono text-amber-600">
+                <p className="text-base font-medium text-amber-600">
                   {currency} {Number(cs.labour_costs || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                 </p>
-                <p className="text-[10px] text-slate-500">Timesheets & verified labor hours</p>
+                <p className="text-xs text-slate-500">Timesheets & verified labor hours</p>
               </div>
 
               {/* 5. Finance & Invoices (Direct Expenses) */}
               <div className="p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 space-y-2">
                 <div className="flex justify-between items-center text-slate-400">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-purple-600 flex items-center gap-1.5">
+                  <span className="text-xs font-bold uppercase tracking-wider text-purple-600 flex items-center gap-1.5">
                     <FileText size={14} /> Finance Direct Expenses
                   </span>
                 </div>
-                <p className="text-base font-bold font-mono text-purple-600">
+                <p className="text-base font-medium text-purple-600">
                   {currency} {Number(cs.direct_expenses || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                 </p>
-                <p className="text-[10px] text-slate-500">Expense vouchers & supplier bills</p>
+                <p className="text-xs text-slate-500">Expense vouchers & supplier bills</p>
               </div>
             </div>
           </div>
@@ -813,11 +813,11 @@ export default function CostControlDashboard() {
                         <td className="p-3 font-mono font-bold text-brand-600">{po.order_no}</td>
                         <td className="p-3 font-mono text-slate-500">{po.order_date ? String(po.order_date).split("T")[0] : "—"}</td>
                         <td className="p-3 text-slate-700 dark:text-slate-300">{po.remarks || "Project Procurement Order"}</td>
-                        <td className="p-3 text-right font-mono font-bold text-slate-900 dark:text-white">
+                        <td className="p-3 text-right font-medium text-slate-900 dark:text-white">
                           {Number(po.total_amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                         </td>
                         <td className="p-3 text-center">
-                          <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
+                          <span className="px-2 py-0.5 rounded-full text-xs font-black uppercase tracking-wider bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
                             {po.status}
                           </span>
                         </td>
@@ -837,21 +837,21 @@ export default function CostControlDashboard() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
               <div className="p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 space-y-1">
                 <span className="font-bold text-brand-600 dark:text-brand-400 block text-xs">1. Cost Estimation</span>
-                <p className="text-slate-500 leading-relaxed text-[11px]">
+                <p className="text-slate-500 leading-relaxed text-xs">
                   Predicts how much the project will cost before or during tender/planning phases using historical rates and quantity takeoff.
                 </p>
               </div>
 
               <div className="p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 space-y-1">
                 <span className="font-bold text-blue-600 dark:text-blue-400 block text-xs">2. Cost Budgeting</span>
-                <p className="text-slate-500 leading-relaxed text-[11px]">
+                <p className="text-slate-500 leading-relaxed text-xs">
                   Allocates the estimated costs into an approved, time-phased project baseline and cost codes for execution.
                 </p>
               </div>
 
               <div className="p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 space-y-1">
                 <span className="font-bold text-emerald-600 dark:text-emerald-400 block text-xs">3. Cost Control</span>
-                <p className="text-slate-500 leading-relaxed text-[11px]">
+                <p className="text-slate-500 leading-relaxed text-xs">
                   Monitors real-time expenditure against the approved budget, tracks open purchase commitments, flags variances, and enforces corrective action.
                 </p>
               </div>

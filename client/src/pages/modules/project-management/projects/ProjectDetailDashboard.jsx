@@ -11,7 +11,7 @@ import { toast } from "react-toastify";
 
 const statusBadge = (status) => {
   const m = { PLANNING: "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300", IN_PROGRESS: "bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300 border border-blue-200 dark:border-blue-800", ON_HOLD: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300", COMPLETED: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300", CANCELLED: "bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300" };
-  return <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${m[status] || m.PLANNING}`}>{status}</span>;
+  return <span className={`px-3 py-1 rounded-full text-xs font-black uppercase tracking-widest ${m[status] || m.PLANNING}`}>{status}</span>;
 };
 
 const BudgetBar = ({ budget, spent }) => {
@@ -125,15 +125,15 @@ export default function ProjectDetailDashboard() {
           <BudgetBar budget={Number(project.budget || 0)} spent={totalSpent} />
           <div className="grid grid-cols-3 gap-4 pt-2">
             <div className="p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-center shadow-sm">
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Expenses</p>
+              <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Expenses</p>
               <p className="text-lg font-bold text-slate-900 dark:text-white">GHS {Number(totalExpenses).toLocaleString()}</p>
             </div>
             <div className="p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-center shadow-sm">
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Labor (@50/hr)</p>
+              <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Labor (@50/hr)</p>
               <p className="text-lg font-bold text-slate-900 dark:text-white">GHS {Number(totalLaborCost).toLocaleString()}</p>
             </div>
             <div className="p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-center shadow-sm">
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Remaining</p>
+              <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Remaining</p>
               <p className={`text-lg font-bold ${remaining > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>GHS {Number(remaining).toLocaleString()}</p>
             </div>
           </div>
@@ -177,10 +177,10 @@ export default function ProjectDetailDashboard() {
             <table className="w-full text-left">
               <thead>
                 <tr className="bg-slate-50/50 dark:bg-slate-900/30">
-                  <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-500">Task</th>
-                  <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-500 text-center">Status</th>
-                  <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-500 text-center">Completion</th>
-                  <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-500 text-right">Hours</th>
+                  <th className="px-4 py-3 text-xs font-bold uppercase tracking-wider text-slate-500">Task</th>
+                  <th className="px-4 py-3 text-xs font-bold uppercase tracking-wider text-slate-500 text-center">Status</th>
+                  <th className="px-4 py-3 text-xs font-bold uppercase tracking-wider text-slate-500 text-center">Completion</th>
+                  <th className="px-4 py-3 text-xs font-bold uppercase tracking-wider text-slate-500 text-right">Hours</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50 dark:divide-slate-700/50">
@@ -192,16 +192,16 @@ export default function ProjectDetailDashboard() {
                         <span className="font-medium text-sm text-slate-900 dark:text-white">{t.task_title}</span>
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-center"><span className="text-[10px] font-bold text-slate-500 uppercase">{t.status?.replace('_', ' ')}</span></td>
+                    <td className="px-4 py-3 text-center"><span className="text-xs font-bold text-slate-500 uppercase">{t.status?.replace('_', ' ')}</span></td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2 justify-center">
                         <div className="w-16 h-1.5 bg-slate-100 dark:bg-slate-900 rounded-full overflow-hidden">
                           <div className={`h-full rounded-full ${t.completion_percent >= 100 ? 'bg-emerald-500' : t.completion_percent >= 50 ? 'bg-blue-500' : 'bg-amber-500'}`} style={{ width: `${t.completion_percent || 0}%` }} />
                         </div>
-                        <span className="text-[10px] font-bold text-slate-500">{t.completion_percent || 0}%</span>
+                        <span className="text-xs font-bold text-slate-500">{t.completion_percent || 0}%</span>
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-right text-sm font-mono text-slate-700 dark:text-slate-300">{Number(t.actual_hours || 0).toFixed(1)}h / {Number(t.estimated_hours || 0).toFixed(1)}h</td>
+                    <td className="px-4 py-3 text-right text-sm font-normal text-slate-700 dark:text-slate-300">{Number(t.actual_hours || 0).toFixed(1)}h / {Number(t.estimated_hours || 0).toFixed(1)}h</td>
                   </tr>
                 ))}
               </tbody>

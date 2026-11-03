@@ -471,7 +471,7 @@ export default function PaymentApplicationList() {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="card p-4 space-y-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm">
           <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">Total Requested</span>
-          <p className="text-xl font-bold font-mono text-slate-900 dark:text-white">
+          <p className="text-xl font-medium text-slate-900 dark:text-white">
             GH₵{" "}
             {applications
               .reduce((a, c) => a + Number(c.net_amount_requested || 0), 0)
@@ -480,7 +480,7 @@ export default function PaymentApplicationList() {
         </div>
         <div className="card p-4 space-y-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm">
           <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">Total Certified (IPCs)</span>
-          <p className="text-xl font-bold font-mono text-brand-700 dark:text-brand-400">
+          <p className="text-xl font-medium text-brand-700 dark:text-brand-400">
             GH₵{" "}
             {applications
               .reduce((a, c) => a + Number(c.certified_amount || 0), 0)
@@ -489,7 +489,7 @@ export default function PaymentApplicationList() {
         </div>
         <div className="card p-4 space-y-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm">
           <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">Total Paid by Client</span>
-          <p className="text-xl font-bold font-mono text-emerald-600">
+          <p className="text-xl font-medium text-emerald-600">
             GH₵{" "}
             {applications
               .reduce((a, c) => a + Number(c.amount_paid || 0), 0)
@@ -498,7 +498,7 @@ export default function PaymentApplicationList() {
         </div>
         <div className="card p-4 space-y-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm">
           <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">Outstanding Balance</span>
-          <p className="text-xl font-bold font-mono text-rose-600">
+          <p className="text-xl font-medium text-rose-600">
             GH₵{" "}
             {applications
               .reduce((a, c) => a + Number(c.outstanding_balance || 0), 0)
@@ -557,20 +557,20 @@ export default function PaymentApplicationList() {
                     <td className="py-3 px-4 font-mono text-slate-700 dark:text-slate-300">
                       {app.application_date ? String(app.application_date).split("T")[0] : "-"}
                     </td>
-                    <td className="py-3 px-4 text-right font-mono">
+                    <td className="py-3 px-4 text-right font-normal">
                       {Number(app.gross_amount_assessed || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                     </td>
-                    <td className="py-3 px-4 text-right font-mono font-bold text-brand-800 dark:text-brand-300">
+                    <td className="py-3 px-4 text-right font-medium text-brand-800 dark:text-brand-300">
                       GH₵{" "}
                       {Number(app.net_amount_requested || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                     </td>
-                    <td className="py-3 px-4 text-right font-mono font-semibold text-emerald-600 dark:text-emerald-400">
+                    <td className="py-3 px-4 text-right font-medium text-emerald-600 dark:text-emerald-400">
                       {Number(app.certified_amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                     </td>
-                    <td className="py-3 px-4 text-right font-mono text-blue-600">
+                    <td className="py-3 px-4 text-right font-normal text-blue-600">
                       {Number(app.amount_paid || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                     </td>
-                    <td className="py-3 px-4 text-right font-mono font-bold text-rose-600">
+                    <td className="py-3 px-4 text-right font-medium text-rose-600">
                       GH₵{" "}
                       {Number(app.outstanding_balance || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                     </td>
@@ -984,7 +984,7 @@ export default function PaymentApplicationList() {
                   </h4>
                   <p className="text-xs text-slate-500">Gross assessed value less statutory and advance deductions</p>
                 </div>
-                <div className="text-2xl font-bold font-mono text-brand-900 dark:text-brand-200">
+                <div className="text-2xl font-medium text-brand-900 dark:text-brand-200">
                   GH₵ {netRequested.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                 </div>
               </div>
@@ -1013,20 +1013,20 @@ export default function PaymentApplicationList() {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800">
                     <span className="text-xs text-slate-400 block">Certificate Document / IPC #</span>
-                    <span className="text-sm font-mono font-bold text-slate-800 dark:text-slate-200">
+                    <span className="text-sm font-medium text-slate-800 dark:text-slate-200">
                       {formData.certification_doc_no || "Pending Certification"}
                     </span>
                   </div>
                   <div className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800">
                     <span className="text-xs text-slate-400 block">Certified Amount</span>
-                    <span className="text-base font-mono font-bold text-emerald-600">
+                    <span className="text-base font-medium text-emerald-600">
                       GH₵{" "}
                       {Number(formData.certified_amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                     </span>
                   </div>
                   <div className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800">
                     <span className="text-xs text-slate-400 block">Under-assessment / Rejected</span>
-                    <span className="text-base font-mono font-bold text-rose-500">
+                    <span className="text-base font-medium text-rose-500">
                       GH₵{" "}
                       {Number(formData.rejected_amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                     </span>
@@ -1085,21 +1085,21 @@ export default function PaymentApplicationList() {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800">
                     <span className="text-xs text-slate-400 block">Total Certified</span>
-                    <span className="text-base font-mono font-bold text-slate-800 dark:text-slate-200">
+                    <span className="text-base font-medium text-slate-800 dark:text-slate-200">
                       GH₵{" "}
                       {Number(formData.certified_amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                     </span>
                   </div>
                   <div className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800">
                     <span className="text-xs text-slate-400 block">Total Paid by Client</span>
-                    <span className="text-base font-mono font-bold text-emerald-600">
+                    <span className="text-base font-medium text-emerald-600">
                       GH₵{" "}
                       {Number(formData.amount_paid || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                     </span>
                   </div>
                   <div className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800">
                     <span className="text-xs text-slate-400 block">Outstanding Due</span>
-                    <span className="text-base font-mono font-bold text-rose-600">
+                    <span className="text-base font-medium text-rose-600">
                       GH₵{" "}
                       {Number(formData.outstanding_balance || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                     </span>
@@ -1224,7 +1224,7 @@ export default function PaymentApplicationList() {
                 type="number"
                 step="any"
                 required
-                className="input text-sm font-mono font-bold text-emerald-600 w-full"
+                className="input text-sm font-normal text-emerald-600 w-full"
                 value={certifyForm.certified_amount}
                 onChange={(e) => {
                   const cert = Number(e.target.value) || 0;
@@ -1300,7 +1300,7 @@ export default function PaymentApplicationList() {
                 type="number"
                 step="any"
                 required
-                className="input text-sm font-mono font-bold text-emerald-600 w-full"
+                className="input text-sm font-normal text-emerald-600 w-full"
                 value={paymentForm.payment_amount}
                 onChange={(e) => setPaymentForm({ ...paymentForm, payment_amount: Number(e.target.value) || 0 })}
               />

@@ -558,41 +558,33 @@ export default function ProjectManagementHome() {
   return (
     <div className="pm-module-scope w-full">
       <style>{`
-        /* Scoped strictly to the Project Management module */
-        .pm-module-scope div[class*="bg-slate-50"],
-        .pm-module-scope div[class*="bg-slate-100"],
-        .pm-module-scope div[class*="bg-gray-50"],
-        .pm-module-scope div[class*="bg-gray-100"],
-        .pm-module-scope section[class*="bg-slate-50"],
-        .pm-module-scope section[class*="bg-slate-100"],
-        .pm-module-scope form[class*="bg-slate-50"],
-        .pm-module-scope form[class*="bg-slate-100"],
-        .pm-module-scope [class*="bg-slate-850"] {
-          background-color: #ffffff;
+        /* Canonical Omnisuite Project Management Module Styling */
+        .pm-module-scope {
+          --pm-brand: #0E3646;
+          --pm-brand-hover: #215876;
         }
 
-        :is(.dark) .pm-module-scope div[class*="bg-slate-50"],
-        :is(.dark) .pm-module-scope div[class*="bg-slate-100"],
-        :is(.dark) .pm-module-scope div[class*="bg-gray-50"],
-        :is(.dark) .pm-module-scope div[class*="bg-gray-100"],
-        :is(.dark) .pm-module-scope section[class*="bg-slate-50"],
-        :is(.dark) .pm-module-scope section[class*="bg-slate-100"],
-        :is(.dark) .pm-module-scope form[class*="bg-slate-50"],
-        :is(.dark) .pm-module-scope form[class*="bg-slate-100"],
-        :is(.dark) .pm-module-scope [class*="bg-slate-850"] {
-          background-color: #0f172a;
-        }
-
-        /* Strictly ensure table headings preserve their distinct background across the module */
-        .pm-module-scope thead,
-        .pm-module-scope thead tr,
+        /* Ensure table header styling matches enterprise design standard */
         .pm-module-scope thead th {
-          background-color: #f8fafc !important;
+          font-size: 0.75rem;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          font-weight: 700;
+          color: #64748b;
+          border-bottom: 1px solid #e2e8f0;
+          background-color: #f8fafc;
         }
-        :is(.dark) .pm-module-scope thead,
-        :is(.dark) .pm-module-scope thead tr,
         :is(.dark) .pm-module-scope thead th {
-          background-color: rgba(30, 41, 59, 0.7) !important;
+          color: #94a3b8;
+          border-bottom-color: #334155;
+          background-color: rgba(30, 41, 59, 0.8);
+        }
+
+        /* Standardize input and select surfaces across all PM pages */
+        .pm-module-scope .input,
+        .pm-module-scope select.input,
+        .pm-module-scope input.input {
+          transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
         }
       `}</style>
       <ModuleLayout

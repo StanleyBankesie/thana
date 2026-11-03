@@ -187,6 +187,10 @@ router.get("/helpdesk/dashboard", ...auth, exp.getHelpdeskDashboard);
 router.get("/helpdesk/tickets", ...auth, exp.listHelpdeskTickets);
 router.post("/helpdesk/tickets", ...auth, exp.createHelpdeskTicket);
 router.put("/helpdesk/tickets/:id", ...auth, exp.updateHelpdeskTicket);
+router.post("/helpdesk/tickets/:id/submit", ...auth, exp.submitHelpdeskTicketForApproval);
+router.post("/helpdesk/tickets/:id/forward", ...auth, exp.submitHelpdeskTicketForApproval);
+router.post("/helpdesk/tickets/:id/reverse", ...auth, exp.reverseHelpdeskTicketApproval);
+router.post("/helpdesk/tickets/:id/approve", ...auth, exp.approveHelpdeskTicket);
 router.get("/helpdesk/tickets/:id/notes", ...auth, exp.getTicketNotes);
 router.post("/helpdesk/tickets/:id/notes", ...auth, exp.addTicketNote);
 

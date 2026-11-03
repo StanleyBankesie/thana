@@ -6,6 +6,7 @@ import {
   ChevronDown, Search, Eye, Edit, X
 } from "lucide-react";
 import { api } from "../../../../api/client.js";
+import ReverseApprovalButton from "../../../../components/ReverseApprovalButton.jsx";
 import { toast } from "react-toastify";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -19,6 +20,9 @@ const SLA_COLORS = {
 
 const STATUS_COLORS = {
   NEW:         "bg-slate-100  text-slate-700  dark:bg-slate-800 dark:text-slate-300",
+  PENDING_APPROVAL: "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-200",
+  APPROVED:    "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200",
+  RETURNED:    "bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-200",
   TRIAGED:     "bg-violet-100 text-violet-700 dark:bg-violet-950 dark:text-violet-300",
   ASSIGNED:    "bg-blue-100   text-blue-700   dark:bg-blue-950   dark:text-blue-300",
   IN_PROGRESS: "bg-amber-100  text-amber-700  dark:bg-amber-950  dark:text-amber-300",
@@ -113,6 +117,197 @@ export default function FMHelpdeskPage() {
   const [statusForm, setStatusForm] = useState(getInitialStatusForm());
   const [noteForm, setNoteForm] = useState(getInitialNoteForm());
   const [addingNote, setAddingNote] = useState(false);
+
+  // ── Approval Workflow State ───────────────────────────────────────────────
+  const [showForwardModal, setShowForwardModal] = useState(false);
+  const [selectedTicket, setSelectedTicket] = useState(null);
+  const [forwardComments, setForwardComments] = useState("");
+  const [submittingForward, setSubmittingForward] = useState(false);
+  const [companyUsers, setCompanyUsers] = useState([]);
+  const [workflowsCache, setWorkflowsCache] = useState(null);
+  const [candidateWorkflow, setCandidateWorkflow] = useState(null);
+  const [firstApprover, setFirstApprover] = useState(null);
+  const [targetApproverId, setTargetApproverId] = useState(null);
+  const [workflowSteps, setWorkflowSteps] = useState([]);
+  const [wfLoading, setWfLoading] = useState(false);
+  const [wfError, setWfError] = useState("");
+
+  const openForwardModal = async (ticket) => {
+    setSelectedTicket(ticket);
+    setShowForwardModal(true);
+    setWfError("");
+    setForwardComments("");
+    if (!workflowsCache) {
+      try {
+        setWfLoading(true);
+        const res = await api.get("/workflows");
+        const items = Array.isArray(res.data?.items) ? res.data.items : [];
+        setWorkflowsCache(items);
+        await computeCandidateFromList(items);
+      } catch (e) {
+        setWfError(e?.response?.data?.message || "Failed to load workflows");
+      } finally {
+        setWfLoading(false);
+      }
+    } else {
+      await computeCandidate();
+    }
+  };
+
+  const computeCandidate = async () => {
+    if (!workflowsCache || !workflowsCache.length) {
+      setCandidateWorkflow(null);
+      setFirstApprover(null);
+      setWorkflowSteps([]);
+      return;
+    }
+    const synonyms = [
+      "FM_HELPDESK_TICKET", "HELPDESK_TICKET", "FM_HELPDESK", "SERVICE_REQUEST", "Helpdesk Ticket",
+      "FM Helpdesk", "Facilities Command Center", "FM Helpdesk & Service Requests"
+    ];
+    const normalize = (s) => String(s || "").trim().toUpperCase().replace(/\s+/g, "_");
+    const chosen =
+      workflowsCache.find(
+        (w) => Number(w.is_active) === 1 && String(w.document_route || "").startsWith("/facilities")
+      ) ||
+      workflowsCache.find(
+        (w) => Number(w.is_active) === 1 && (
+          (synonyms.some(syn => normalize(w.document_type) === normalize(syn)) || synonyms.some(syn => normalize(w.workflow_name) === normalize(syn))) ||
+          synonyms.some(syn => normalize(w.workflow_name) === normalize(syn))
+        )
+      ) || null;
+
+    setCandidateWorkflow(chosen || null);
+    setFirstApprover(null);
+    setTargetApproverId(null);
+    setWorkflowSteps([]);
+    if (!chosen) return;
+
+    try {
+      setWfLoading(true);
+      const res = await api.get(`/workflows/${chosen.id}`);
+      const item = res?.data?.item || {};
+      const steps = Array.isArray(item?.steps) ? item.steps : [];
+      setWorkflowSteps(steps);
+      const first = steps[0] || null;
+      setFirstApprover(
+        first ? {
+          userId: first.approver_user_id,
+          name: first.approver_name,
+          stepName: first.step_name,
+          stepOrder: first.step_order,
+          approvalLimit: first.approval_limit,
+        } : null
+      );
+      if (first) {
+        const defaultTarget = (Array.isArray(first.approvers) && first.approvers.length ? first.approvers[0].id : first.approver_user_id) || null;
+        setTargetApproverId(defaultTarget || (companyUsers.length > 0 ? companyUsers[0].id : null));
+      }
+    } catch (e) {
+      setWfError(e?.response?.data?.message || "Failed to load workflow details");
+    } finally {
+      setWfLoading(false);
+    }
+  };
+
+  const computeCandidateFromList = async (items) => {
+    if (!items || !items.length) {
+      setCandidateWorkflow(null);
+      setFirstApprover(null);
+      setWorkflowSteps([]);
+      return;
+    }
+    const synonyms = [
+      "FM_HELPDESK_TICKET", "HELPDESK_TICKET", "FM_HELPDESK", "SERVICE_REQUEST", "Helpdesk Ticket",
+      "FM Helpdesk", "Facilities Command Center", "FM Helpdesk & Service Requests"
+    ];
+    const normalize = (s) => String(s || "").trim().toUpperCase().replace(/\s+/g, "_");
+    const chosen =
+      items.find(
+        (w) => Number(w.is_active) === 1 && String(w.document_route || "").startsWith("/facilities")
+      ) ||
+      items.find(
+        (w) => Number(w.is_active) === 1 && (
+          (synonyms.some(syn => normalize(w.document_type) === normalize(syn)) || synonyms.some(syn => normalize(w.workflow_name) === normalize(syn))) ||
+          synonyms.some(syn => normalize(w.workflow_name) === normalize(syn))
+        )
+      ) || null;
+
+    setCandidateWorkflow(chosen || null);
+    if (!chosen) return;
+
+    try {
+      setWfLoading(true);
+      const res = await api.get(`/workflows/${chosen.id}`);
+      const item = res?.data?.item || {};
+      const steps = Array.isArray(item?.steps) ? item.steps : [];
+      setWorkflowSteps(steps);
+      const first = steps[0] || null;
+      setFirstApprover(
+        first ? {
+          userId: first.approver_user_id,
+          name: first.approver_name,
+          stepName: first.step_name,
+          stepOrder: first.step_order,
+          approvalLimit: first.approval_limit,
+        } : null
+      );
+      if (first) {
+        const defaultTarget = (Array.isArray(first.approvers) && first.approvers.length ? first.approvers[0].id : first.approver_user_id) || null;
+        setTargetApproverId(defaultTarget || (companyUsers.length > 0 ? companyUsers[0].id : null));
+      }
+    } catch (e) {
+      setWfError(e?.response?.data?.message || "Failed to load workflow details");
+    } finally {
+      setWfLoading(false);
+    }
+  };
+
+  const forwardDocument = async () => {
+    if (!selectedTicket) return;
+    setSubmittingForward(true);
+    setWfError("");
+    let optimisticApprover = null;
+    try {
+      const first = Array.isArray(workflowSteps) && workflowSteps.length ? workflowSteps[0] : null;
+      const opts = first ? (Array.isArray(first.approvers) && first.approvers.length ? first.approvers.map(u => ({ id: u.id, name: u.username })) : (first.approver_user_id ? [{ id: first.approver_user_id, name: first.approver_name || String(first.approver_user_id) }] : [])) : [];
+      if (targetApproverId && opts.length) {
+        const hit = opts.find(u => Number(u.id) === Number(targetApproverId));
+        optimisticApprover = hit ? hit.name : null;
+      }
+    } catch {}
+
+    setTickets(prev => prev.map(t => t.id === selectedTicket.id ? { ...t, status: "PENDING_APPROVAL", forwarded_to_username: optimisticApprover || "Approver" } : t));
+    setShowForwardModal(false);
+
+    try {
+      const first = Array.isArray(workflowSteps) && workflowSteps.length ? workflowSteps[0] : null;
+      let effectiveTargetId = targetApproverId;
+      if (!effectiveTargetId) {
+        if (first && Array.isArray(first.approvers) && first.approvers.length > 0) {
+          effectiveTargetId = Number(first.approvers[0].id);
+        } else if (first && first.approver_user_id) {
+          effectiveTargetId = Number(first.approver_user_id);
+        }
+      }
+
+      const res = await api.post(`/facilities/helpdesk/tickets/${selectedTicket.id}/submit`, {
+        workflow_id: candidateWorkflow ? candidateWorkflow.id : null,
+        target_user_id: effectiveTargetId || null,
+        comments: forwardComments,
+      });
+      const newStatus = res?.data?.status || "PENDING_APPROVAL";
+      const approverName = res?.data?.forwarded_to_username || optimisticApprover || "Approver";
+      setTickets(prev => prev.map(t => t.id === selectedTicket.id ? { ...t, status: newStatus, forwarded_to_username: approverName } : t));
+      toast.success(res?.data?.message || "Ticket forwarded for approval");
+    } catch (e) {
+      toast.error(e?.response?.data?.message || "Failed to forward ticket for approval");
+      loadData();
+    } finally {
+      setSubmittingForward(false);
+      setSelectedTicket(null);
+    }
+  };
   const [showNoteSection, setShowNoteSection] = useState(false);
 
   // ── Data fetching ──────────────────────────────────────────────────────────
@@ -240,6 +435,10 @@ export default function FMHelpdeskPage() {
   };
 
   const openStatusModal = (ticket) => {
+    if (ticket?.status === "APPROVED") {
+      toast.info("This ticket has been approved and cannot be edited.");
+      return;
+    }
     setActiveTicket(ticket);
     setStatusForm({ status: ticket.status || "", resolution_notes: "" });
     setNoteForm(getInitialNoteForm());
@@ -286,34 +485,6 @@ export default function FMHelpdeskPage() {
         >
           <Plus size={15} /> Raise Ticket
         </button>
-      </div>
-
-      {/* Summary Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 shadow-sm">
-          <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 text-xs font-semibold mb-2">
-            <TicketCheck size={15} className="text-indigo-500" /> Total Tickets
-          </div>
-          <p className="text-3xl font-bold text-slate-900 dark:text-white">{summary.total_tickets ?? "—"}</p>
-        </div>
-        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 shadow-sm">
-          <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 text-xs font-semibold mb-2">
-            <Clock size={15} className="text-amber-500" /> Open Tickets
-          </div>
-          <p className="text-3xl font-bold text-amber-600 dark:text-amber-400">{summary.open_tickets ?? "—"}</p>
-        </div>
-        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 shadow-sm">
-          <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 text-xs font-semibold mb-2">
-            <AlertCircle size={15} className="text-rose-500" /> Critical Open
-          </div>
-          <p className="text-3xl font-bold text-rose-600 dark:text-rose-400">{summary.critical_open ?? "—"}</p>
-        </div>
-        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 shadow-sm">
-          <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 text-xs font-semibold mb-2">
-            <ShieldOff size={15} className="text-rose-500" /> SLA Breached
-          </div>
-          <p className="text-3xl font-bold text-rose-600 dark:text-rose-400">{summary.sla_breached ?? "—"}</p>
-        </div>
       </div>
 
       {/* Tabs */}
@@ -413,46 +584,88 @@ export default function FMHelpdeskPage() {
                   <th className="px-3 py-3">SLA Status</th>
                   <th className="px-3 py-3">SLA Due</th>
                   <th className="px-3 py-3">Created</th>
+                  <th className="px-3 py-3 text-center">Workflow</th>
                   <th className="px-4 py-3 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                 {tickets.map((ticket) => (
                   <tr key={ticket.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors">
-                    <td className="px-4 py-3 font-mono font-bold text-slate-800 dark:text-white whitespace-nowrap">
+                    <td className="px-4 py-3 font-medium text-slate-800 dark:text-white whitespace-nowrap">
                       {ticket.ticket_no}
                     </td>
                     <td className="px-3 py-3 max-w-[180px]">
                       <span className="font-semibold text-slate-800 dark:text-slate-100 block truncate">{ticket.subject}</span>
-                      <span className="text-[10px] text-slate-400 block">{ticket.service_category?.replace(/_/g, " ")}</span>
+                      <span className="text-xs text-slate-400 block">{ticket.service_category?.replace(/_/g, " ")}</span>
                     </td>
                     <td className="px-3 py-3">
-                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${PRIORITY_COLORS[ticket.priority] || "bg-slate-100 text-slate-600"}`}>
+                      <span className={`px-2 py-0.5 rounded text-xs font-bold ${PRIORITY_COLORS[ticket.priority] || "bg-slate-100 text-slate-600"}`}>
                         {ticket.priority}
                       </span>
                     </td>
                     <td className="px-3 py-3 text-slate-600 dark:text-slate-300">{ticket.property_name || "—"}</td>
                     <td className="px-3 py-3">
                       <span className="font-medium text-slate-700 dark:text-slate-200 block">{ticket.requester_name}</span>
-                      <span className="text-[10px] text-slate-400">{ticket.requester_phone}</span>
+                      <span className="text-xs text-slate-400">{ticket.requester_phone}</span>
                     </td>
                     <td className="px-3 py-3">
-                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${STATUS_COLORS[ticket.status] || "bg-slate-100 text-slate-600"}`}>
+                      <span className={`px-2 py-0.5 rounded text-xs font-bold ${STATUS_COLORS[ticket.status] || "bg-slate-100 text-slate-600"}`}>
                         {ticket.status?.replace(/_/g, " ")}
                       </span>
                     </td>
                     <td className="px-3 py-3">
-                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${SLA_COLORS[ticket.computed_sla_status] || "bg-slate-100 text-slate-600"}`}>
+                      <span className={`px-2 py-0.5 rounded text-xs font-bold ${SLA_COLORS[ticket.computed_sla_status] || "bg-slate-100 text-slate-600"}`}>
                         {ticket.computed_sla_status?.replace(/_/g, " ") || "—"}
                       </span>
                     </td>
-                    <td className={`px-3 py-3 font-mono text-[11px] whitespace-nowrap ${
-                      ticket.computed_sla_status === "BREACHED" ? "text-rose-600 font-bold" : "text-slate-500"
+                    <td className={`px-3 py-3 text-xs whitespace-nowrap ${
+                      ticket.computed_sla_status === "BREACHED" ? "text-rose-600 font-semibold" : "text-slate-500"
                     }`}>
                       {ticket.sla_due_at ? String(ticket.sla_due_at).slice(0, 16) : "—"}
                     </td>
-                    <td className="px-3 py-3 font-mono text-[11px] text-slate-400 whitespace-nowrap">
+                    <td className="px-3 py-3 text-xs text-slate-400 whitespace-nowrap">
                       {ticket.created_at ? String(ticket.created_at).slice(0, 10) : "—"}
+                    </td>
+                    {/* Workflow / Approval Slot */}
+                    <td className="px-3 py-3 whitespace-nowrap">
+                      <div className="list-approval-slot min-w-[160px]">
+                        {["APPROVED", "RESOLVED", "CLOSED"].includes(String(ticket.status || "").toUpperCase()) ? (
+                          <div className="flex items-center gap-2">
+                            <span className="list-approval-approved-pill">
+                              Approved
+                            </span>
+                            <ReverseApprovalButton
+                              docType="FM_HELPDESK_TICKET"
+                              docId={ticket.id}
+                              className="list-approval-reverse-btn"
+                              onDone={() => {
+                                setTickets((prev) =>
+                                  prev.map((t) =>
+                                    t.id === ticket.id
+                                      ? { ...t, status: "RETURNED", forwarded_to_username: null }
+                                      : t
+                                  )
+                                );
+                              }}
+                            >
+                              Reverse Approval
+                            </ReverseApprovalButton>
+                          </div>
+                        ) : ticket.forwarded_to_username && !["RETURNED", "NEW", "DRAFT"].includes(String(ticket.status || "").toUpperCase()) ? (
+                          <span className="list-approval-forwarded-pill">
+                            Forwarded to {ticket.forwarded_to_username}
+                          </span>
+                        ) : (
+                          <button
+                            type="button"
+                            className="list-approval-forward-btn"
+                            onClick={() => openForwardModal(ticket)}
+                            disabled={submittingForward}
+                          >
+                            Forward for Approval
+                          </button>
+                        )}
+                      </div>
                     </td>
                     <td className="px-4 py-3 text-right">
                       <div className="flex items-center justify-end gap-1.5 whitespace-nowrap">
@@ -464,14 +677,16 @@ export default function FMHelpdeskPage() {
                           <Eye size={12} />
                           View
                         </button>
-                        <button
-                          onClick={() => openStatusModal(ticket)}
-                          className="px-2.5 py-1 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-semibold shadow-sm transition-all inline-flex items-center gap-1"
-                          title="Update Status & Notes"
-                        >
-                          <Edit size={12} />
-                          Edit / Status
-                        </button>
+                        {ticket.status !== "APPROVED" && (
+                          <button
+                            onClick={() => openStatusModal(ticket)}
+                            className="px-2.5 py-1 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-semibold shadow-sm transition-all inline-flex items-center gap-1"
+                            title="Update Status & Notes"
+                          >
+                            <Edit size={12} />
+                            Edit / Status
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -669,7 +884,7 @@ export default function FMHelpdeskPage() {
                     <option value="DAYS">Days</option>
                   </select>
                 </div>
-                <p className="text-[10px] text-slate-400 mt-1">
+                <p className="text-xs text-slate-400 mt-1">
                   Total duration: <span className="font-semibold text-indigo-600 dark:text-indigo-400 font-mono">{ticketForm.sla_target_hours || 0} hours</span> {slaValue !== "" ? (slaUnit === "DAYS" ? `(${slaValue} days)` : `(${(!isNaN(Number(slaValue)) ? (Number(slaValue) / 24).toFixed(1) : 0)} days)`) : ""}
                 </p>
               </div>
@@ -715,16 +930,16 @@ export default function FMHelpdeskPage() {
               </button>
             </div>
 
-            <div className="p-6 space-y-4 text-xs">
+            <div className="p-6 space-y-4 text-xs overflow-y-auto flex-1">
               {/* Ticket info strip */}
               <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-3 space-y-1">
                 <p className="font-bold text-slate-800 dark:text-white">{activeTicket.subject}</p>
                 <p className="text-slate-500 dark:text-slate-400">{activeTicket.property_name} · {activeTicket.requester_name}</p>
                 <div className="flex gap-2 pt-1">
-                  <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${PRIORITY_COLORS[activeTicket.priority] || ""}`}>
+                  <span className={`px-2 py-0.5 rounded text-xs font-bold ${PRIORITY_COLORS[activeTicket.priority] || ""}`}>
                     {activeTicket.priority}
                   </span>
-                  <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${SLA_COLORS[activeTicket.computed_sla_status] || ""}`}>
+                  <span className={`px-2 py-0.5 rounded text-xs font-bold ${SLA_COLORS[activeTicket.computed_sla_status] || ""}`}>
                     SLA: {activeTicket.computed_sla_status?.replace(/_/g, " ") || "—"}
                   </span>
                 </div>
@@ -851,44 +1066,44 @@ export default function FMHelpdeskPage() {
             <div className="p-6 space-y-4 text-xs">
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl">
                 <div>
-                  <span className="text-slate-400 block text-[11px]">Property</span>
+                  <span className="text-slate-400 block text-xs">Property</span>
                   <span className="font-semibold text-slate-800 dark:text-slate-200">{activeTicket.property_name || "—"}</span>
                 </div>
                 <div>
-                  <span className="text-slate-400 block text-[11px]">Service Category</span>
+                  <span className="text-slate-400 block text-xs">Service Category</span>
                   <span className="font-semibold text-slate-800 dark:text-slate-200">{activeTicket.service_category?.replace(/_/g, " ")}</span>
                 </div>
                 <div>
-                  <span className="text-slate-400 block text-[11px]">Status</span>
-                  <span className={`px-2 py-0.5 rounded text-[10px] font-bold inline-block mt-0.5 ${STATUS_COLORS[activeTicket.status] || ""}`}>
+                  <span className="text-slate-400 block text-xs">Status</span>
+                  <span className={`px-2 py-0.5 rounded text-xs font-bold inline-block mt-0.5 ${STATUS_COLORS[activeTicket.status] || ""}`}>
                     {activeTicket.status?.replace(/_/g, " ")}
                   </span>
                 </div>
                 <div>
-                  <span className="text-slate-400 block text-[11px]">Priority</span>
-                  <span className={`px-2 py-0.5 rounded text-[10px] font-bold inline-block mt-0.5 ${PRIORITY_COLORS[activeTicket.priority] || ""}`}>
+                  <span className="text-slate-400 block text-xs">Priority</span>
+                  <span className={`px-2 py-0.5 rounded text-xs font-bold inline-block mt-0.5 ${PRIORITY_COLORS[activeTicket.priority] || ""}`}>
                     {activeTicket.priority}
                   </span>
                 </div>
                 <div>
-                  <span className="text-slate-400 block text-[11px]">SLA Status</span>
-                  <span className={`px-2 py-0.5 rounded text-[10px] font-bold inline-block mt-0.5 ${SLA_COLORS[activeTicket.computed_sla_status] || ""}`}>
+                  <span className="text-slate-400 block text-xs">SLA Status</span>
+                  <span className={`px-2 py-0.5 rounded text-xs font-bold inline-block mt-0.5 ${SLA_COLORS[activeTicket.computed_sla_status] || ""}`}>
                     {activeTicket.computed_sla_status?.replace(/_/g, " ") || "—"}
                   </span>
                 </div>
                 <div>
-                  <span className="text-slate-400 block text-[11px]">SLA Target Due</span>
+                  <span className="text-slate-400 block text-xs">SLA Target Due</span>
                   <span className="font-mono text-slate-800 dark:text-slate-200">{activeTicket.sla_due_at ? String(activeTicket.sla_due_at).slice(0, 16) : "—"}</span>
                 </div>
               </div>
 
               <div>
-                <span className="text-slate-400 block text-[11px] font-semibold uppercase mb-1">Subject</span>
+                <span className="text-slate-400 block text-xs font-semibold uppercase mb-1">Subject</span>
                 <p className="text-sm font-bold text-slate-900 dark:text-white">{activeTicket.subject}</p>
               </div>
 
               <div>
-                <span className="text-slate-400 block text-[11px] font-semibold uppercase mb-1">Description</span>
+                <span className="text-slate-400 block text-xs font-semibold uppercase mb-1">Description</span>
                 <div className="p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-700 dark:text-slate-300 leading-relaxed whitespace-pre-wrap">
                   {activeTicket.description || "No description provided."}
                 </div>
@@ -896,26 +1111,26 @@ export default function FMHelpdeskPage() {
 
               <div className="grid grid-cols-2 gap-3 pt-2 border-t border-slate-100 dark:border-slate-800">
                 <div>
-                  <span className="text-slate-400 block text-[11px]">Requester Name</span>
+                  <span className="text-slate-400 block text-xs">Requester Name</span>
                   <span className="font-semibold text-slate-800 dark:text-slate-200">{activeTicket.requester_name}</span>
                 </div>
                 <div>
-                  <span className="text-slate-400 block text-[11px]">Requester Phone</span>
+                  <span className="text-slate-400 block text-xs">Requester Phone</span>
                   <span className="font-mono text-slate-800 dark:text-slate-200">{activeTicket.requester_phone || "—"}</span>
                 </div>
                 <div>
-                  <span className="text-slate-400 block text-[11px]">Source Channel</span>
+                  <span className="text-slate-400 block text-xs">Source Channel</span>
                   <span className="font-semibold text-slate-800 dark:text-slate-200">{activeTicket.source_channel || "—"}</span>
                 </div>
                 <div>
-                  <span className="text-slate-400 block text-[11px]">Created At</span>
+                  <span className="text-slate-400 block text-xs">Created At</span>
                   <span className="font-mono text-slate-800 dark:text-slate-200">{activeTicket.created_at ? String(activeTicket.created_at).slice(0, 16) : "—"}</span>
                 </div>
               </div>
 
               {activeTicket.resolution_notes && (
                 <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
-                  <span className="text-slate-400 block text-[11px] font-semibold uppercase mb-1">Resolution / Work Notes</span>
+                  <span className="text-slate-400 block text-xs font-semibold uppercase mb-1">Resolution / Work Notes</span>
                   <p className="p-3 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-800 dark:text-emerald-300 rounded-xl leading-relaxed">
                     {activeTicket.resolution_notes}
                   </p>
@@ -923,16 +1138,18 @@ export default function FMHelpdeskPage() {
               )}
 
               <div className="flex justify-end gap-2 pt-4 border-t border-slate-200 dark:border-slate-700">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowViewModal(false);
-                    openStatusModal(activeTicket);
-                  }}
-                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-semibold shadow-sm"
-                >
-                  Update Status / Add Note
-                </button>
+                {activeTicket?.status !== "APPROVED" && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowViewModal(false);
+                      openStatusModal(activeTicket);
+                    }}
+                    className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-semibold shadow-sm"
+                  >
+                    Update Status / Add Note
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={() => setShowViewModal(false)}
@@ -941,6 +1158,155 @@ export default function FMHelpdeskPage() {
                   Close
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* ── Forward for Approval Modal (Payment Voucher Workflow Pattern) ── */}
+      {showForwardModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex justify-center items-start p-4 sm:p-6 md:p-8 z-50 animate-fadeIn overflow-y-auto">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden my-auto sm:my-8 transition-all flex flex-col max-h-[90vh]">
+            <div className="shrink-0 px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-white dark:bg-slate-900">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-brand-50 dark:bg-brand-900/30 text-brand-900 dark:text-brand-400 flex items-center justify-center font-bold flex-shrink-0 border border-brand-200/50 dark:border-brand-800/50">
+                  <Headphones size={20} />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-900 dark:text-white">Forward for Approval</h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Submit ticket #{selectedTicket?.ticket_no} into the approval workflow</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => { setShowForwardModal(false); setSelectedTicket(null); setForwardComments(""); }}
+                className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4">
+              {wfLoading && (
+                <div className="flex items-center gap-2 text-xs text-slate-500">
+                  <RefreshCw className="w-4 h-4 animate-spin text-brand" />
+                  Loading workflow routing details...
+                </div>
+              )}
+              {wfError && (
+                <div className="p-3 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900 rounded-xl text-xs text-red-600 dark:text-red-400">
+                  {wfError}
+                </div>
+              )}
+
+              {candidateWorkflow ? (
+                <div className="bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/60 rounded-xl p-3.5 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                      Workflow: <span className="text-brand-600 dark:text-brand-400 font-bold">{candidateWorkflow.name}</span>
+                    </span>
+                    <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300">
+                      Active
+                    </span>
+                  </div>
+                  {firstApprover && (
+                    <div className="text-xs text-slate-600 dark:text-slate-400">
+                      First Step: <strong className="text-slate-800 dark:text-slate-200">{firstApprover.stepName || "Step 1"}</strong>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                !wfLoading && (
+                  <div className="p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900 rounded-xl text-xs text-amber-700 dark:text-amber-300">
+                    ℹ️ No specific multi-level workflow assigned for FM Helpdesk. Forwarding will apply direct supervisor approval.
+                  </div>
+                )
+              )}
+
+              {/* Approver / User Selection */}
+              {(() => {
+                const firstStep = Array.isArray(workflowSteps) && workflowSteps.length ? workflowSteps[0] : null;
+                let opts = [];
+                if (firstStep && Array.isArray(firstStep.approvers) && firstStep.approvers.length > 0) {
+                  opts = firstStep.approvers.map(u => ({ id: Number(u.id), name: u.username || u.name, email: u.email || "", fullName: u.full_name || "" }));
+                } else if (firstStep && firstStep.approver_user_id) {
+                  opts = [{ id: Number(firstStep.approver_user_id), name: firstStep.approver_name || `User #${firstStep.approver_user_id}`, email: "", fullName: "" }];
+                }
+                // ONLY fallback to companyUsers if the workflow step has zero approvers configured
+                if (opts.length === 0 && companyUsers.length > 0) {
+                  opts = companyUsers.map(u => ({ id: Number(u.id), name: u.username, email: u.email || "", fullName: u.full_name || "" }));
+                }
+                return (
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                      Select Approver / User <span className="text-rose-500">*</span>
+                    </label>
+                    {opts.length > 0 ? (
+                      <select
+                        className="input w-full text-xs h-9 bg-white dark:bg-slate-800 font-medium"
+                        value={targetApproverId || (opts[0] ? opts[0].id : "")}
+                        onChange={(e) => setTargetApproverId(e.target.value ? Number(e.target.value) : null)}
+                        required
+                      >
+                        {opts.length > 1 && <option value="">-- Choose Approver / User --</option>}
+                        {opts.map((u) => (
+                          <option key={u.id} value={u.id}>
+                            {u.name} {u.fullName ? `(${u.fullName})` : ""} {u.email ? `• ${u.email}` : ""}
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      <div className="text-xs text-slate-500 p-2 bg-slate-100 dark:bg-slate-800 rounded">
+                        Loading available approvers...
+                      </div>
+                    )}
+                    {firstApprover && (
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
+                        Routing to Step {firstApprover.stepOrder || 1}: <span className="font-medium text-slate-700 dark:text-slate-300">{firstApprover.stepName}</span>
+                        {firstApprover.approvalLimit != null && ` • Limit: ${firstApprover.approvalLimit}`}
+                      </p>
+                    )}
+                  </div>
+                );
+              })()}
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                  Comments / Notes for Approver (Optional)
+                </label>
+                <textarea
+                  rows={3}
+                  className="input w-full text-xs p-2.5 resize-none"
+                  placeholder="Enter any justification, urgency, or notes for the approver..."
+                  value={forwardComments}
+                  onChange={(e) => setForwardComments(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div className="shrink-0 px-6 py-3.5 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-200 dark:border-slate-800 flex justify-end gap-2.5">
+              <button
+                type="button"
+                className="btn-secondary px-4 py-2 text-xs font-semibold"
+                onClick={() => { setShowForwardModal(false); setSelectedTicket(null); setForwardComments(""); }}
+                disabled={submittingForward}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="btn-primary px-5 py-2 text-xs font-semibold flex items-center gap-1.5"
+                onClick={forwardDocument}
+                disabled={submittingForward}
+              >
+                {submittingForward ? (
+                  <>
+                    <RefreshCw size={14} className="animate-spin" />
+                    Forwarding...
+                  </>
+                ) : (
+                  "Forward for Approval"
+                )}
+              </button>
             </div>
           </div>
         </div>

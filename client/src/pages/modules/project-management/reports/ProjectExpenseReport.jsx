@@ -183,10 +183,10 @@ export default function ProjectExpenseReport() {
                   <td className="px-6 py-4">
                     <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-700/50 px-2.5 py-1 rounded-lg">{v.voucher_type_name || "-"}</span>
                   </td>
-                  <td className="px-6 py-4 text-xs font-mono text-slate-500 dark:text-slate-400">{v.currency_code || "GHS"}</td>
-                  <td className="px-6 py-4 text-right font-mono font-bold text-rose-600 dark:text-rose-400">{Number(v.amount || 0).toFixed(2)}</td>
+                  <td className="px-6 py-4 text-xs text-slate-500 dark:text-slate-400">{v.currency_code || "GHS"}</td>
+                  <td className="px-6 py-4 text-right font-medium text-rose-600 dark:text-rose-400">{Number(v.amount || 0).toFixed(2)}</td>
                   <td className="px-6 py-4 text-center">
-                    <span className={`px-2.5 py-1 rounded-lg text-[10px] font-bold border ${statusStyles[v.status] || "bg-slate-100 text-slate-700"}`}>{v.status}</span>
+                    <span className={`px-2.5 py-1 rounded-lg text-xs font-bold border ${statusStyles[v.status] || "bg-slate-100 text-slate-700"}`}>{v.status}</span>
                   </td>
                 </tr>
               )) : (

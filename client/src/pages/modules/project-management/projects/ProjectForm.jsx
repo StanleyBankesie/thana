@@ -694,7 +694,7 @@ export default function ProjectForm() {
               </h2>
             </div>
             <div className="space-y-1">
-              <label className="text-[10px] font-bold text-brand-100 uppercase tracking-wider">
+              <label className="text-xs font-bold text-brand-100 uppercase tracking-wider">
                 Estimated (GHS)
               </label>
               <input
@@ -712,7 +712,7 @@ export default function ProjectForm() {
               <div className="p-1.5 bg-rose-100 dark:bg-rose-900/50 rounded-lg text-rose-600">
                 <AlertCircle size={16} />
               </div>
-              <p className="text-[10px] text-rose-700 dark:text-rose-400/80 font-medium">
+              <p className="text-xs text-rose-700 dark:text-rose-400/80 font-medium">
                 Updating project parameters will reflect across all linked tasks
                 and financial reports.
               </p>

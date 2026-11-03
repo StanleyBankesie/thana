@@ -320,19 +320,19 @@ export default function FMInspectionsPage() {
           {/* Summary */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 shadow-sm">
-              <p className="text-[11px] uppercase font-semibold text-slate-400 tracking-wider">Total Scheduled</p>
+              <p className="text-xs uppercase font-semibold text-slate-400 tracking-wider">Total Scheduled</p>
               <p className="text-2xl font-bold text-slate-800 dark:text-slate-100 mt-1">{totalScheduled}</p>
             </div>
             <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 shadow-sm">
-              <p className="text-[11px] uppercase font-semibold text-slate-400 tracking-wider">Completed</p>
+              <p className="text-xs uppercase font-semibold text-slate-400 tracking-wider">Completed</p>
               <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400 mt-1">{completedRuns}</p>
             </div>
             <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 shadow-sm">
-              <p className="text-[11px] uppercase font-semibold text-slate-400 tracking-wider">Flagged Defects</p>
+              <p className="text-xs uppercase font-semibold text-slate-400 tracking-wider">Flagged Defects</p>
               <p className="text-2xl font-bold text-rose-600 dark:text-rose-400 mt-1">{flaggedDefects}</p>
             </div>
             <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 shadow-sm">
-              <p className="text-[11px] uppercase font-semibold text-slate-400 tracking-wider">Overdue</p>
+              <p className="text-xs uppercase font-semibold text-slate-400 tracking-wider">Overdue</p>
               <p className="text-2xl font-bold text-amber-600 dark:text-amber-400 mt-1">{overdueRuns}</p>
             </div>
           </div>
@@ -425,13 +425,13 @@ export default function FMInspectionsPage() {
                         <td className="px-3 py-3">{r.property_name || "—"}</td>
                         <td className="px-3 py-3">{r.inspector_name}</td>
                         <td className="px-3 py-3">
-                          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-teal-50 text-teal-800 dark:bg-teal-950 dark:text-teal-300">
+                          <span className="px-2 py-0.5 rounded text-xs font-bold bg-teal-50 text-teal-800 dark:bg-teal-950 dark:text-teal-300">
                             {r.inspection_type?.replace(/_/g, " ")}
                           </span>
                         </td>
-                        <td className="px-3 py-3 font-mono text-[11px]">{r.scheduled_date ? String(r.scheduled_date).slice(0, 10) : "—"}</td>
+                        <td className="px-3 py-3 font-mono text-xs">{r.scheduled_date ? String(r.scheduled_date).slice(0, 10) : "—"}</td>
                         <td className="px-3 py-3">
-                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${runStatusBadge(r.status)}`}>
+                          <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${runStatusBadge(r.status)}`}>
                             {r.status?.replace(/_/g, " ")}
                           </span>
                         </td>
@@ -440,7 +440,7 @@ export default function FMInspectionsPage() {
                         </td>
                         <td className="px-3 py-3">
                           {r.pass_fail_result ? (
-                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${passBadge(r.pass_fail_result)}`}>
+                            <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${passBadge(r.pass_fail_result)}`}>
                               {r.pass_fail_result?.replace(/_/g, " ")}
                             </span>
                           ) : "—"}
@@ -454,7 +454,7 @@ export default function FMInspectionsPage() {
                           <div className="flex items-center gap-1.5 whitespace-nowrap">
                             <button
                               onClick={() => setViewingRun(r)}
-                              className="inline-flex items-center gap-1 px-2 py-1 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg text-[10px] font-semibold transition-all"
+                              className="inline-flex items-center gap-1 px-2 py-1 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg text-xs font-semibold transition-all"
                               title="View Inspection Run Details"
                             >
                               <Eye size={11} /> View
@@ -462,7 +462,7 @@ export default function FMInspectionsPage() {
                             {(r.status === "SCHEDULED" || r.status === "IN_PROGRESS") && (
                               <button
                                 onClick={() => { setSelectedRun(r); setCompleteForm(getInitialCompleteForm()); setShowCompleteModal(true); }}
-                                className="inline-flex items-center gap-1 px-2.5 py-1 bg-teal-600 hover:bg-teal-500 text-white rounded-lg text-[10px] font-semibold"
+                                className="inline-flex items-center gap-1 px-2.5 py-1 bg-teal-600 hover:bg-teal-500 text-white rounded-lg text-xs font-semibold"
                               >
                                 <CheckCircle size={11} /> Complete / Edit
                               </button>
@@ -485,19 +485,19 @@ export default function FMInspectionsPage() {
           {/* Summary */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 shadow-sm">
-              <p className="text-[11px] uppercase font-semibold text-slate-400 tracking-wider">Open</p>
+              <p className="text-xs uppercase font-semibold text-slate-400 tracking-wider">Open</p>
               <p className="text-2xl font-bold text-rose-600 dark:text-rose-400 mt-1">{openActions}</p>
             </div>
             <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 shadow-sm">
-              <p className="text-[11px] uppercase font-semibold text-slate-400 tracking-wider">In Progress</p>
+              <p className="text-xs uppercase font-semibold text-slate-400 tracking-wider">In Progress</p>
               <p className="text-2xl font-bold text-amber-600 dark:text-amber-400 mt-1">{inProgressActions}</p>
             </div>
             <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 shadow-sm">
-              <p className="text-[11px] uppercase font-semibold text-slate-400 tracking-wider">Pending Verification</p>
+              <p className="text-xs uppercase font-semibold text-slate-400 tracking-wider">Pending Verification</p>
               <p className="text-2xl font-bold text-blue-600 dark:text-blue-400 mt-1">{pendingVerification}</p>
             </div>
             <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 shadow-sm">
-              <p className="text-[11px] uppercase font-semibold text-slate-400 tracking-wider">Overdue</p>
+              <p className="text-xs uppercase font-semibold text-slate-400 tracking-wider">Overdue</p>
               <p className="text-2xl font-bold text-rose-700 dark:text-rose-400 mt-1">{overdueActions}</p>
             </div>
           </div>
@@ -574,17 +574,17 @@ export default function FMInspectionsPage() {
                           <td className="px-3 py-3 font-semibold text-slate-900 dark:text-slate-100 max-w-[200px] truncate">{a.title}</td>
                           <td className="px-3 py-3">{a.property_name || "—"}</td>
                           <td className="px-3 py-3">
-                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${severityBadge(a.severity)}`}>
+                            <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${severityBadge(a.severity)}`}>
                               {a.severity}
                             </span>
                           </td>
                           <td className="px-3 py-3">{a.assigned_to}</td>
-                          <td className={`px-3 py-3 font-mono text-[11px] ${isOverdue ? "text-rose-600 font-bold" : ""}`}>
+                          <td className={`px-3 py-3 font-mono text-xs ${isOverdue ? "text-rose-600 font-bold" : ""}`}>
                             {a.deadline_date ? String(a.deadline_date).slice(0, 10) : "—"}
-                            {isOverdue && <span className="ml-1 text-[9px] text-rose-500 font-bold">OVERDUE</span>}
+                            {isOverdue && <span className="ml-1 text-xs text-rose-500 font-bold">OVERDUE</span>}
                           </td>
                           <td className="px-3 py-3">
-                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${actionStatusBadge(a.status)}`}>
+                            <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${actionStatusBadge(a.status)}`}>
                               {a.status?.replace(/_/g, " ")}
                             </span>
                           </td>
@@ -592,7 +592,7 @@ export default function FMInspectionsPage() {
                             <div className="flex items-center gap-1.5 whitespace-nowrap">
                               <button
                                 onClick={() => setViewingAction(a)}
-                                className="inline-flex items-center gap-1 px-2 py-1 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg text-[10px] font-semibold transition-all"
+                                className="inline-flex items-center gap-1 px-2 py-1 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg text-xs font-semibold transition-all"
                                 title="View Corrective Action Details"
                               >
                                 <Eye size={11} /> View
@@ -604,7 +604,7 @@ export default function FMInspectionsPage() {
                                     setUpdateActionForm({ status: a.status, corrective_action_taken: a.corrective_action_taken || "", verification_notes: a.verification_notes || "" });
                                     setShowUpdateActionModal(true);
                                   }}
-                                  className="inline-flex items-center gap-1 px-2.5 py-1 bg-teal-600 hover:bg-teal-500 text-white rounded-lg text-[10px] font-semibold"
+                                  className="inline-flex items-center gap-1 px-2.5 py-1 bg-teal-600 hover:bg-teal-500 text-white rounded-lg text-xs font-semibold"
                                 >
                                   <Wrench size={11} /> Edit / Update
                                 </button>
@@ -852,29 +852,29 @@ export default function FMInspectionsPage() {
             <div className="p-6 space-y-4 text-xs">
               <div className="grid grid-cols-2 gap-3 p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl">
                 <div>
-                  <span className="text-slate-400 block text-[11px]">Template</span>
+                  <span className="text-slate-400 block text-xs">Template</span>
                   <span className="font-bold text-slate-800 dark:text-slate-200">{viewingRun.template_name || "Standard Site Inspection"}</span>
                 </div>
                 <div>
-                  <span className="text-slate-400 block text-[11px]">Property</span>
+                  <span className="text-slate-400 block text-xs">Property</span>
                   <span className="font-semibold text-slate-800 dark:text-slate-200">{viewingRun.property_name || "—"}</span>
                 </div>
                 <div>
-                  <span className="text-slate-400 block text-[11px]">Inspector</span>
+                  <span className="text-slate-400 block text-xs">Inspector</span>
                   <span className="font-semibold text-slate-800 dark:text-slate-200">{viewingRun.inspector_name}</span>
                 </div>
                 <div>
-                  <span className="text-slate-400 block text-[11px]">Scheduled Date</span>
+                  <span className="text-slate-400 block text-xs">Scheduled Date</span>
                   <span className="font-mono text-slate-800 dark:text-slate-200">{viewingRun.scheduled_date ? String(viewingRun.scheduled_date).slice(0, 10) : "—"}</span>
                 </div>
                 <div>
-                  <span className="text-slate-400 block text-[11px]">Status</span>
-                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold inline-block mt-0.5 ${runStatusBadge(viewingRun.status)}`}>
+                  <span className="text-slate-400 block text-xs">Status</span>
+                  <span className={`px-2 py-0.5 rounded-full text-xs font-bold inline-block mt-0.5 ${runStatusBadge(viewingRun.status)}`}>
                     {viewingRun.status?.replace(/_/g, " ")}
                   </span>
                 </div>
                 <div>
-                  <span className="text-slate-400 block text-[11px]">Score & Result</span>
+                  <span className="text-slate-400 block text-xs">Score & Result</span>
                   <span className="font-bold text-teal-600 dark:text-teal-400">
                     {viewingRun.overall_score_pct != null ? `${viewingRun.overall_score_pct}%` : "—"} ({viewingRun.pass_fail_result || "PENDING"})
                   </span>
@@ -883,7 +883,7 @@ export default function FMInspectionsPage() {
 
               {viewingRun.findings_summary && (
                 <div>
-                  <span className="text-slate-400 block text-[11px] font-semibold uppercase mb-1">Findings Summary</span>
+                  <span className="text-slate-400 block text-xs font-semibold uppercase mb-1">Findings Summary</span>
                   <p className="p-3 bg-slate-50 dark:bg-slate-800 rounded-xl text-slate-700 dark:text-slate-300 leading-relaxed whitespace-pre-wrap">
                     {viewingRun.findings_summary}
                   </p>
@@ -916,28 +916,28 @@ export default function FMInspectionsPage() {
             <div className="p-6 space-y-4 text-xs">
               <div className="grid grid-cols-2 gap-3 p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl">
                 <div>
-                  <span className="text-slate-400 block text-[11px]">Title</span>
+                  <span className="text-slate-400 block text-xs">Title</span>
                   <span className="font-bold text-slate-800 dark:text-slate-200">{viewingAction.title}</span>
                 </div>
                 <div>
-                  <span className="text-slate-400 block text-[11px]">Property</span>
+                  <span className="text-slate-400 block text-xs">Property</span>
                   <span className="font-semibold text-slate-800 dark:text-slate-200">{viewingAction.property_name || "—"}</span>
                 </div>
                 <div>
-                  <span className="text-slate-400 block text-[11px]">Severity</span>
+                  <span className="text-slate-400 block text-xs">Severity</span>
                   <span className="font-bold text-rose-600 dark:text-rose-400">{viewingAction.severity}</span>
                 </div>
                 <div>
-                  <span className="text-slate-400 block text-[11px]">Assigned To</span>
+                  <span className="text-slate-400 block text-xs">Assigned To</span>
                   <span className="font-semibold text-slate-800 dark:text-slate-200">{viewingAction.assigned_to}</span>
                 </div>
                 <div>
-                  <span className="text-slate-400 block text-[11px]">Deadline Date</span>
+                  <span className="text-slate-400 block text-xs">Deadline Date</span>
                   <span className="font-mono text-slate-800 dark:text-slate-200">{viewingAction.deadline_date ? String(viewingAction.deadline_date).slice(0, 10) : "—"}</span>
                 </div>
                 <div>
-                  <span className="text-slate-400 block text-[11px]">Status</span>
-                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold inline-block mt-0.5 ${actionStatusBadge(viewingAction.status)}`}>
+                  <span className="text-slate-400 block text-xs">Status</span>
+                  <span className={`px-2 py-0.5 rounded-full text-xs font-bold inline-block mt-0.5 ${actionStatusBadge(viewingAction.status)}`}>
                     {viewingAction.status?.replace(/_/g, " ")}
                   </span>
                 </div>
@@ -945,7 +945,7 @@ export default function FMInspectionsPage() {
 
               {viewingAction.description && (
                 <div>
-                  <span className="text-slate-400 block text-[11px] font-semibold uppercase mb-1">Issue Description</span>
+                  <span className="text-slate-400 block text-xs font-semibold uppercase mb-1">Issue Description</span>
                   <p className="p-3 bg-slate-50 dark:bg-slate-800 rounded-xl text-slate-700 dark:text-slate-300 leading-relaxed whitespace-pre-wrap">
                     {viewingAction.description}
                   </p>
@@ -954,7 +954,7 @@ export default function FMInspectionsPage() {
 
               {viewingAction.corrective_action_taken && (
                 <div>
-                  <span className="text-slate-400 block text-[11px] font-semibold uppercase mb-1">Action Taken</span>
+                  <span className="text-slate-400 block text-xs font-semibold uppercase mb-1">Action Taken</span>
                   <p className="p-3 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-800 dark:text-emerald-300 rounded-xl leading-relaxed whitespace-pre-wrap">
                     {viewingAction.corrective_action_taken}
                   </p>

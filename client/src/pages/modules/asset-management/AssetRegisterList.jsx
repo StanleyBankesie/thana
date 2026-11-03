@@ -337,7 +337,7 @@ export default function AssetRegisterList() {
                 </div>
 
                 <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
-                  <span className="text-[11px] text-slate-400">
+                  <span className="text-xs text-slate-400">
                     {asset.capitalization_date ? new Date(asset.capitalization_date).toLocaleDateString() : "—"}
                   </span>
                   <div className="flex items-center gap-1">

@@ -7,6 +7,7 @@ import { httpError } from "../utils/httpError.js";
 import { recordMovementTx } from "../services/stock.service.js";
 import { sendMail, isMailerConfigured } from "../utils/mailer.js";
 import { cacheGet, cacheSet, cacheDelPattern } from "../utils/redis.js";
+import { syncAsset } from "../services/assetSyncService.js";
 
 // Utility: safely parse a value to a finite number
 function toNumber(v, fallback = null) {
@@ -1006,6 +1007,25 @@ export const createAsset = async (req, res, next) => {
     );
     await cacheDelPattern(`maint_assets:company:${companyId}:*`);
     res.status(201).json({ id: r.insertId });
+
+    syncAsset({
+      source: 'MAINT_ASSET',
+      companyId,
+      branchId,
+      asset_code: cleanText(b.asset_no),
+      asset_name: cleanText(b.asset_name),
+      property_id: toNumber(b.property_id),
+      building_id: toNumber(b.building_id),
+      space_id: toNumber(b.space_id),
+      location: cleanText(b.location),
+      category_name: cleanText(b.category),
+      make: cleanText(b.make),
+      model: cleanText(b.model),
+      serial_number: cleanText(b.serial_number),
+      warranty_expiry: toDateOnly(b.warranty_expiry_date),
+      status: cleanText(b.status) || 'ACTIVE',
+      notes: cleanText(b.notes)
+    }).catch(e => console.error('Maint createAsset sync error:', e.message));
   } catch (err) {
     next(err);
   }
@@ -1066,6 +1086,25 @@ export const updateAsset = async (req, res, next) => {
     );
     await cacheDelPattern(`maint_assets:company:${companyId}:*`);
     res.json({ ok: true });
+
+    syncAsset({
+      source: 'MAINT_ASSET',
+      companyId,
+      branchId,
+      asset_code: cleanText(b.asset_no),
+      asset_name: cleanText(b.asset_name),
+      property_id: toNumber(b.property_id),
+      building_id: toNumber(b.building_id),
+      space_id: toNumber(b.space_id),
+      location: cleanText(b.location),
+      category_name: cleanText(b.category),
+      make: cleanText(b.make),
+      model: cleanText(b.model),
+      serial_number: cleanText(b.serial_number),
+      warranty_expiry: toDateOnly(b.warranty_expiry_date),
+      status: cleanText(b.status) || 'ACTIVE',
+      notes: cleanText(b.notes)
+    }).catch(e => console.error('Maint updateAsset sync error:', e.message));
   } catch (err) {
     next(err);
   }
@@ -2544,6 +2583,23 @@ export const createEquipment = async (req, res, next) => {
       },
     );
     res.status(201).json({ id: r.insertId });
+
+    syncAsset({
+      source: 'MAINT_EQUIP',
+      companyId,
+      branchId,
+      asset_code: b.equipment_code || null,
+      asset_name: b.equipment_name || null,
+      category_name: b.category || null,
+      location: b.location || null,
+      brand: b.brand || b.manufacturer || null,
+      model: b.model || null,
+      serial_number: b.serial_number || null,
+      purchase_date: b.purchase_date || null,
+      warranty_expiry: b.warranty_expiry || null,
+      status: b.status || 'ACTIVE',
+      notes: b.notes || null
+    }).catch(e => console.error('Maint createEquipment sync error:', e.message));
   } catch (err) {
     next(err);
   }
@@ -2578,6 +2634,23 @@ export const updateEquipment = async (req, res, next) => {
     );
     await cacheDelPattern(`maint_equipment:company:${companyId}:*`);
     res.json({ ok: true });
+
+    syncAsset({
+      source: 'MAINT_EQUIP',
+      companyId,
+      branchId,
+      asset_code: b.equipment_code || null,
+      asset_name: b.equipment_name || null,
+      category_name: b.category || null,
+      location: b.location || null,
+      brand: b.brand || b.manufacturer || null,
+      model: b.model || null,
+      serial_number: b.serial_number || null,
+      purchase_date: b.purchase_date || null,
+      warranty_expiry: b.warranty_expiry || null,
+      status: b.status || 'ACTIVE',
+      notes: b.notes || null
+    }).catch(e => console.error('Maint updateEquipment sync error:', e.message));
   } catch (err) {
     next(err);
   }

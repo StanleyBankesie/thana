@@ -13,7 +13,7 @@ import { toast } from "react-toastify";
 import { getModuleDashboards } from "../../data/modulesRegistry.js";
 import { DASHBOARD_CARDS } from "../../data/dashboardCards.js";
 import { getAssignedPagesForModule } from "../../data/modulePagesRegistry.js";
-import { ArrowRight, ChevronRight } from "lucide-react";
+import { ArrowRight, ChevronRight, CheckCircle, X } from "lucide-react";
 
 /**
  * HomePage component
@@ -379,6 +379,8 @@ export default function HomePage() {
       .replace(/\s+/g, "_");
   const displayType = (s) => {
     const t = normalizeType(s);
+    if (t === "PAYROLL" || t === "SALARY_PROCESSING" || t === "HR_PAYROLL") return "Payroll";
+    if (t === "FM_HELPDESK_TICKET" || t === "FM_HELPDESK" || t === "HELPDESK_TICKET") return "FM Helpdesk";
     if (t === "MATERIAL_REQUISITION") return "Material Requisition";
     if (t === "RETURN_TO_STORES") return "Return to Stores";
     if (t === "SALES_ORDER") return "Sales Order";
@@ -442,21 +444,8 @@ export default function HomePage() {
     return Array.from(m.values());
   }, [pendingItems]);
   const filteredPending = useMemo(() => {
-    const uid = Number(user?.sub || user?.id);
-    return uniquePending.filter((it) => {
-      const candidates = [
-        Number(it.approver_user_id),
-        Number(it.assigned_user_id),
-        Number(it.target_user_id),
-        Number(it.approver_id),
-        Number(it.user_id),
-      ];
-      const aid = candidates.find((x) => Number.isFinite(x) && x > 0) ?? null;
-      if (!Number.isFinite(uid) || uid <= 0) return true;
-      // Exclude documents where current user is an authorized approver
-      return aid == null || aid !== uid;
-    });
-  }, [uniquePending, user?.sub, user?.id]);
+    return uniquePending;
+  }, [uniquePending]);
   const groupedPending = useMemo(() => {
     const out = {};
     for (const it of filteredPending) {
@@ -478,9 +467,10 @@ export default function HomePage() {
     return [...head, ...tail];
   }, [groupedPending]);
   const docLabel = (it) => {
+    if (it.doc_title) return it.doc_title;
     const t = displayType(typeKey(it));
     const ref = it.doc_ref ? String(it.doc_ref) : `#${it.document_id}`;
-    return `${t} ${ref}`;
+    return `${t} — ${ref}`;
   };
 
   const openApprovalModal = async (id) => {
@@ -1730,44 +1720,60 @@ export default function HomePage() {
         )}
       </div>
       {showApprovalModal && (
-        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-erp w/full max-w-lg overflow-hidden">
-            <div className="p-4 bg-brand text-white flex justify-between items-center">
-              <h2 className="text-lg font-bold">Approval</h2>
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-sm flex justify-center items-start p-4 sm:p-6 md:p-8 animate-fadeIn">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden my-auto sm:my-8 transition-all flex flex-col max-h-[calc(100vh-4rem)]">
+            <div className="shrink-0 px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-white dark:bg-slate-900">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-10 h-10 rounded-xl bg-brand-50 dark:bg-brand-900/30 text-brand-900 dark:text-brand-400 flex items-center justify-center font-bold flex-shrink-0 border border-brand-200/50 dark:border-brand-800/50">
+                  <CheckCircle size={20} className="text-brand-600 dark:text-brand-400" />
+                </div>
+                <div className="min-w-0">
+                  <h2 className="text-base font-bold text-slate-900 dark:text-white leading-tight">Approval</h2>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Review and take action on this workflow request</p>
+                </div>
+              </div>
               <button
+                type="button"
                 onClick={closeApprovalModal}
-                className="text-white hover:text-slate-200 text-xl font-bold"
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                title="Close"
               >
-                &times;
+                <X size={18} />
               </button>
             </div>
-            <div className="p-4 space-y-3">
+            <div className="p-4 sm:p-6 space-y-4 overflow-y-auto flex-1 text-slate-800 dark:text-slate-100">
               {modalLoading ? (
-                <div className="text-sm">Loading...</div>
+                <div className="text-xs text-slate-500 py-4 text-center">Loading approval details...</div>
               ) : modalData ? (
                 <>
-                  <div className="text-sm text-slate-700">
-                    Document:{" "}
-                    <span className="font-semibold">
-                      {modalData.document_type} #{modalData.document_id}
-                    </span>
-                  </div>
-                  <div className="text-sm text-slate-700">
-                    Current Step:{" "}
-                    <span className="font-semibold">{modalData.step_name}</span>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1 text-slate-500">
-                      Amount
-                    </label>
-                    <span className="font-semibold text-lg text-slate-800">
-                      {modalData.amount != null
-                        ? Number(modalData.amount).toLocaleString("en-US", {
-                            minimumFractionDigits: 2,
-                            maximumFractionDigits: 2,
-                          })
-                        : "N/A"}
-                    </span>
+                  <div className="bg-slate-50 dark:bg-slate-800/60 p-3.5 rounded-xl border border-slate-200/80 dark:border-slate-700/80 space-y-2.5 text-xs">
+                    <div className="flex justify-between items-center">
+                      <span className="text-slate-500 dark:text-slate-400 font-medium">Document:</span>
+                      <span className="font-semibold text-slate-800 dark:text-slate-100">
+                        {modalData.doc_title || (
+                          modalData.doc_ref
+                            ? `${displayType(modalData.document_type)} — ${modalData.doc_ref}`
+                            : `${displayType(modalData.document_type)} #${modalData.document_id}`
+                        )}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-slate-500 dark:text-slate-400">Current Step:</span>
+                      <span className="font-semibold text-brand-600 dark:text-brand-400">
+                        {modalData.step_name}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center pt-1 border-t border-slate-200/60 dark:border-slate-700/60">
+                      <span className="text-slate-500 dark:text-slate-400">Amount:</span>
+                      <span className="font-medium text-sm text-slate-900 dark:text-white">
+                        {modalData.amount != null
+                          ? Number(modalData.amount).toLocaleString("en-US", {
+                              minimumFractionDigits: 2,
+                              maximumFractionDigits: 2,
+                            })
+                          : "0.00"}
+                      </span>
+                    </div>
                   </div>
 
                   {(() => {
@@ -1776,11 +1782,11 @@ export default function HomePage() {
                       .reverse()
                       .find(log => log.comments && log.comments.trim() !== "" && log.comments !== "Workflow started");
                     return previousCommentLog ? (
-                      <div className="mb-2">
-                        <label className="block text-sm font-medium mb-1">
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">
                           Previous Comment (from {previousCommentLog.actor_name || "Unknown"})
                         </label>
-                        <div className="p-3 bg-amber-50 text-amber-800 rounded border border-amber-200 text-sm">
+                        <div className="p-3 bg-amber-50 dark:bg-amber-950/30 text-amber-900 dark:text-amber-200 rounded-xl border border-amber-200 dark:border-amber-800/60 text-xs leading-relaxed">
                           "{previousCommentLog.comments}"
                         </div>
                       </div>
@@ -1788,12 +1794,12 @@ export default function HomePage() {
                   })()}
 
                   <div>
-                    <label className="block text-sm font-medium mb-1">
-                      Comments
+                    <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">
+                      Comments / Remarks
                     </label>
                     <textarea
-                      className="input w-full h-24"
-                      placeholder="Enter comments..."
+                      className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3 text-xs text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-brand-500 h-24"
+                      placeholder="Enter comments or reason for your decision..."
                       value={modalComment}
                       onChange={(e) => setModalComment(e.target.value)}
                     />
@@ -1801,17 +1807,17 @@ export default function HomePage() {
                   {!modalData.is_last_step &&
                     Array.isArray(modalData.next_step_approvers) && (
                       <div>
-                        <label className="block text-sm font-medium mb-1">
-                          Forward To
+                        <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">
+                          Forward To Approver
                         </label>
                         <select
-                          className="input w-full"
+                          className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 text-xs text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-brand-500"
                           value={modalNextUser || ""}
                           onChange={(e) =>
                             setModalNextUser(Number(e.target.value))
                           }
                         >
-                          <option value="">Select user</option>
+                          <option value="">Select user...</option>
                           {modalData.next_step_approvers.map((u) => (
                             <option key={u.id} value={u.id}>
                               {u.username}
@@ -1822,22 +1828,22 @@ export default function HomePage() {
                     )}
                 </>
               ) : (
-                <div className="text-sm text-red-600">
-                  Failed to load approval
+                <div className="text-xs text-rose-600 p-3 bg-rose-50 rounded-xl border border-rose-200">
+                  Failed to load approval details.
                 </div>
               )}
             </div>
-            <div className="p-4 border-t flex justify-end gap-2 bg-gray-50">
+            <div className="px-6 py-3.5 border-t border-slate-200 dark:border-slate-800 flex justify-end gap-2 bg-slate-50 dark:bg-slate-800/50 shrink-0">
               <button
                 type="button"
-                className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600"
+                className="px-4 py-2 text-xs font-semibold rounded-xl border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                 onClick={closeApprovalModal}
               >
                 Cancel
               </button>
               <button
                 type="button"
-                className="px-4 py-2 bg-brand text-white rounded hover:bg-brand-700 disabled:opacity-50"
+                className="px-4 py-2 text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl shadow-sm transition-colors disabled:opacity-50"
                 onClick={() => handleModalAction("APPROVE")}
                 disabled={modalProcessing}
               >
@@ -1845,10 +1851,9 @@ export default function HomePage() {
                   ? "Final Approve"
                   : "Forward"}
               </button>
-              {/* Reverse Approval intentionally removed per requirements */}
               <button
                 type="button"
-                className="px-4 py-2 bg-yellow-600 text-white rounded hover:bg-yellow-700 disabled:opacity-50"
+                className="px-4 py-2 text-xs font-semibold bg-amber-600 hover:bg-amber-500 text-white rounded-xl shadow-sm transition-colors disabled:opacity-50"
                 onClick={() => handleModalAction("RETURN")}
                 disabled={modalProcessing}
               >
@@ -1856,7 +1861,7 @@ export default function HomePage() {
               </button>
               <button
                 type="button"
-                className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50"
+                className="px-4 py-2 text-xs font-semibold bg-rose-600 hover:bg-rose-500 text-white rounded-xl shadow-sm transition-colors disabled:opacity-50"
                 onClick={() => handleModalAction("REJECT")}
                 disabled={modalProcessing}
               >

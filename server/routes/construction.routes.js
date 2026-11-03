@@ -72,6 +72,9 @@ router.get("/daily-reports/:id", cc.getDailyReportById);
 router.post("/daily-reports", cc.createDailyReport);
 router.put("/daily-reports/:id", cc.updateDailyReport);
 router.delete("/daily-reports/:id", cc.deleteDailyReport);
+router.post("/daily-reports/:id/submit", cc.submitDailyReport);
+router.post("/daily-reports/:id/approve", cc.approveDailyReport);
+router.post("/daily-reports/:id/reverse", cc.reverseDailyReport);
 
 // 6. Subcontracts & Valuations (IPCs)
 router.get("/subcontracts", cc.listSubcontracts);

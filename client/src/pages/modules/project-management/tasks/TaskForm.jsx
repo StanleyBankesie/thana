@@ -49,11 +49,13 @@ export default function TaskForm() {
   useEffect(() => {
     let mounted = true;
     api
-      .get("/projects?active=all")
+      .get("/projects/projects", { params: { active: "all" } })
+      .catch(() => api.get("/projects?active=all"))
       .then((res) => {
         if (!mounted) return;
         const list =
           res.data?.items ||
+          res.data?.projects ||
           res.data?.data?.items ||
           res.data?.data ||
           (Array.isArray(res.data) ? res.data : []);
@@ -560,7 +562,7 @@ export default function TaskForm() {
                 <div className="pt-3 border-t border-slate-200/60 dark:border-slate-700/60">
                   <label className="label font-semibold text-xs text-slate-700 dark:text-slate-300 mb-1.5 flex items-center justify-between">
                     <span>Reason for Delay</span>
-                    <span className="text-[11px] font-normal text-slate-400 flex items-center gap-1">
+                    <span className="text-xs font-normal text-slate-400 flex items-center gap-1">
                       <Info size={12} /> Read-only (Fetched from table)
                     </span>
                   </label>

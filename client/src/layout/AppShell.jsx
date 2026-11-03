@@ -2247,7 +2247,7 @@ export default function AppShell() {
               className={({ isActive }) =>
                 `flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 group border-l-4 ` +
                 (isActive
-                  ? "bg-brand-900 text-white shadow-apple-xs dark:bg-white/15 dark:text-white border-orange-500"
+                  ? "bg-brand-900 text-white shadow-apple-xs dark:bg-white/15 dark:text-white border-[#F57C00]"
                   : "text-slate-300 dark:text-slate-400 hover:bg-white/10 hover:text-white border-transparent")
               }
             >
@@ -2275,10 +2275,10 @@ export default function AppShell() {
                     if (window.innerWidth < 768) setSidebarOpen(false);
                   }}
                   className={({ isActive }) =>
-                    `flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 group ` +
+                    `flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 group border-l-4 ` +
                     (isActive
-                      ? "bg-brand-900 text-white shadow-apple-xs dark:bg-white/15 dark:text-white"
-                      : "text-slate-300 dark:text-slate-400 hover:bg-white/10 hover:text-white")
+                      ? "bg-brand-900 text-white shadow-apple-xs dark:bg-white/15 dark:text-white border-[#F57C00]"
+                      : "text-slate-300 dark:text-slate-400 hover:bg-white/10 hover:text-white border-transparent")
                   }
                 >
                   <span
@@ -2358,10 +2358,6 @@ export default function AppShell() {
                 </div>
               </div>
             ) : null}
-            <ListPageOverview
-              contentRef={listPageContentRef}
-              pathname={location.pathname}
-            />
             <React.Suspense fallback={<div>Loading...</div>}>
               <AppRoutes user={user} />
             </React.Suspense>

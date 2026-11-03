@@ -204,25 +204,25 @@ export default function EquipmentLogsPage() {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="card p-4 space-y-1">
           <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Total Operating Hours</span>
-          <p className="text-2xl font-bold font-mono text-slate-900 dark:text-white">{totalHoursWorked} Hours</p>
-          <p className="text-[10px] text-slate-400">Recorded machine runtime</p>
+          <p className="text-2xl font-medium text-slate-900 dark:text-white">{totalHoursWorked} Hours</p>
+          <p className="text-xs text-slate-400">Recorded machine runtime</p>
         </div>
         <div className="card p-4 space-y-1">
           <span className="text-xs font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider">Total Fuel Consumed</span>
-          <p className="text-2xl font-bold font-mono text-amber-600">{totalFuel} Litres</p>
-          <p className="text-[10px] text-slate-400">Diesel / Petrol dispensed</p>
+          <p className="text-2xl font-medium text-amber-600">{totalFuel} Litres</p>
+          <p className="text-xs text-slate-400">Diesel / Petrol dispensed</p>
         </div>
         <div className="card p-4 space-y-1">
           <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">Operating Plant Cost</span>
-          <p className="text-2xl font-bold font-mono text-emerald-600">
+          <p className="text-2xl font-medium text-emerald-600">
             GHS {totalCost.toLocaleString(undefined, { minimumFractionDigits: 2 })}
           </p>
-          <p className="text-[10px] text-slate-400">Hours * hourly charge rate</p>
+          <p className="text-xs text-slate-400">Hours * hourly charge rate</p>
         </div>
         <div className="card p-4 space-y-1">
           <span className="text-xs font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider">Total Log Entries</span>
-          <p className="text-2xl font-bold font-mono text-blue-600">{logs.length} Entries</p>
-          <p className="text-[10px] text-slate-400">Daily machine sheets</p>
+          <p className="text-2xl font-medium text-blue-600">{logs.length} Entries</p>
+          <p className="text-xs text-slate-400">Daily machine sheets</p>
         </div>
       </div>
 
@@ -263,12 +263,12 @@ export default function EquipmentLogsPage() {
                     <td className="font-mono">{l.log_date ? l.log_date.split("T")[0] : "-"}</td>
                     <td className="font-bold text-slate-900 dark:text-white">{l.equipment_name || "Heavy Plant"}</td>
                     <td>{l.operator_name || "-"}</td>
-                    <td className="text-right font-mono font-bold text-brand-600 dark:text-brand-400">{l.hours_worked}</td>
-                    <td className="text-right font-mono text-slate-400">{l.hours_idle}</td>
-                    <td className="text-right font-mono text-rose-500">{l.hours_breakdown}</td>
-                    <td className="text-right font-mono text-amber-600">{l.fuel_consumed_litres}</td>
-                    <td className="text-right font-mono">{Number(l.hourly_rate || 0).toFixed(2)}</td>
-                    <td className="text-right font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                    <td className="text-right font-normal font-bold text-brand-600 dark:text-brand-400">{l.hours_worked}</td>
+                    <td className="text-right font-normal text-slate-400">{l.hours_idle}</td>
+                    <td className="text-right font-normal text-rose-500">{l.hours_breakdown}</td>
+                    <td className="text-right font-normal text-amber-600">{l.fuel_consumed_litres}</td>
+                    <td className="text-right font-normal">{Number(l.hourly_rate || 0).toFixed(2)}</td>
+                    <td className="text-right font-normal font-bold text-emerald-600 dark:text-emerald-400">
                       GHS {Number(l.total_cost || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                     </td>
                   </tr>

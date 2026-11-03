@@ -1,5 +1,6 @@
 import { pool, query } from "../db/pool.js";
 import { httpError } from "../utils/httpError.js";
+import { syncProperty } from "../services/assetSyncService.js";
 
 // Helper to sanitize numeric values
 function toNum(val, defaultVal = 0) {
@@ -279,6 +280,20 @@ export async function createProperty(req, res, next) {
       ]
     );
 
+    // Sync with Asset Management
+    syncProperty({
+      source: 'FM',
+      sourceId: result.insertId,
+      companyId,
+      branchId: branchId || 1,
+      property_code: finalCode,
+      property_name: property_name.trim(),
+      property_type,
+      address,
+      city,
+      action: 'UPSERT'
+    }).catch(e => console.error("FM createProperty sync error:", e.message));
+
     res.status(201).json({
       success: true,
       message: "Property created successfully",
@@ -326,6 +341,26 @@ export async function updateProperty(req, res, next) {
       `UPDATE fm_properties SET ${setClauses.join(", ")} WHERE id = ? AND company_id = ?`,
       params
     );
+
+    // Sync updated property to Asset Management
+    const [currentRows] = await pool.query(
+      "SELECT property_code, property_name, property_type, address, city, status FROM fm_properties WHERE id = ? AND company_id = ?",
+      [id, companyId]
+    ).catch(() => [[]]);
+    if (currentRows && currentRows.length > 0) {
+      const p = currentRows[0];
+      syncProperty({
+        source: 'FM',
+        sourceId: id,
+        companyId,
+        property_code: p.property_code,
+        property_name: p.property_name,
+        property_type: p.property_type,
+        address: p.address,
+        city: p.city,
+        action: p.status === 'INACTIVE' ? 'DEACTIVATE' : 'UPSERT'
+      }).catch(e => console.error("FM updateProperty sync error:", e.message));
+    }
 
     res.json({ success: true, message: "Property updated successfully" });
   } catch (err) {

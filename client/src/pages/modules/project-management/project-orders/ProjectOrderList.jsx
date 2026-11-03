@@ -49,7 +49,7 @@ function StatusBadge({ status }) {
   const s = String(status || "").toUpperCase();
   const cls = STATUS_CONFIG[s] || "bg-slate-100 text-slate-500";
   return (
-    <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${cls}`}>
+    <span className={`px-3 py-1 rounded-full text-xs font-black uppercase tracking-widest ${cls}`}>
       {s}
     </span>
   );

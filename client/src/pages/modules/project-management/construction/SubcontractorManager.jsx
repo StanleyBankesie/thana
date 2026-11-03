@@ -252,30 +252,6 @@ export default function SubcontractorManager() {
         </div>
       </div>
 
-      {/* KPI Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="card p-4 space-y-1">
-          <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Total Subcontracts</p>
-          <p className="text-2xl font-bold font-mono text-slate-900 dark:text-white">{subcontracts.length}</p>
-        </div>
-        <div className="card p-4 space-y-1">
-          <p className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">Active Agreements</p>
-          <p className="text-2xl font-bold font-mono text-slate-900 dark:text-white">{activeCount}</p>
-        </div>
-        <div className="card p-4 space-y-1">
-          <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Total Committed Value</p>
-          <p className="text-xl font-bold font-mono text-slate-900 dark:text-white">
-            GHS {totalContractValue.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-          </p>
-        </div>
-        <div className="card p-4 space-y-1">
-          <p className="text-xs font-semibold text-brand-700 dark:text-brand-400 uppercase tracking-wider">Total Certified IPCs</p>
-          <p className="text-xl font-bold font-mono text-brand-900 dark:text-brand-400">
-            GHS {totalValuationsCertified.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-          </p>
-        </div>
-      </div>
-
       {/* Subcontracts Table */}
       <div className="card overflow-hidden">
         <div className="p-4 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center">
@@ -310,7 +286,7 @@ export default function SubcontractorManager() {
               ) : (
                 filteredSubcontracts.map(sc => (
                   <tr key={sc.id}>
-                    <td className="font-mono font-bold text-brand-900 dark:text-brand-400">
+                    <td className="font-medium text-brand-900 dark:text-brand-400">
                       {sc.subcontract_number || sc.contract_no}
                     </td>
                     <td>
@@ -323,7 +299,7 @@ export default function SubcontractorManager() {
                     <td className="uppercase text-xs font-semibold text-slate-500 dark:text-slate-400">
                       {sc.trade || sc.trade_category}
                     </td>
-                    <td className="text-right font-mono font-bold text-slate-900 dark:text-slate-100">
+                    <td className="text-right font-medium text-slate-900 dark:text-slate-100">
                       {Number(sc.contract_sum ?? sc.contract_value ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                     </td>
                     <td className="text-center font-mono">{sc.retention_percent}%</td>
@@ -375,7 +351,7 @@ export default function SubcontractorManager() {
               <tbody>
                 {valuations.map(v => (
                   <tr key={v.id}>
-                    <td className="font-mono font-bold text-brand-900 dark:text-brand-400">
+                    <td className="font-medium text-brand-900 dark:text-brand-400">
                       {v.valuation_number || v.valuation_no}
                     </td>
                     <td className="font-semibold text-slate-900 dark:text-white">{v.supplier_name}</td>
@@ -385,7 +361,7 @@ export default function SubcontractorManager() {
                     <td className="text-right font-mono">
                       {Number(v.previous_certified || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                     </td>
-                    <td className="text-right font-mono font-bold">
+                    <td className="text-right font-medium">
                       {Number(v.current_work_done ?? v.current_certified ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                     </td>
                     <td className="text-right font-mono text-rose-500">
@@ -394,7 +370,7 @@ export default function SubcontractorManager() {
                     <td className="text-right font-mono text-amber-500">
                       -{Number(v.advance_recovered || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                     </td>
-                    <td className="text-right font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                    <td className="text-right font-medium text-emerald-600 dark:text-emerald-400">
                       GHS {Number(v.net_payable ?? v.net_certified_amount ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                     </td>
                     <td className="text-center">
@@ -453,7 +429,7 @@ export default function SubcontractorManager() {
               ))}
             </select>
             {suppliers.length === 0 && (
-              <p className="text-[11px] text-amber-600 dark:text-amber-400 mt-1">
+              <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
                 No contractors found. You can register them in Operations Setup.
               </p>
             )}
@@ -483,7 +459,7 @@ export default function SubcontractorManager() {
               type="number"
               step="0.01"
               required
-              className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 text-sm text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500 font-mono font-bold"
+              className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 text-sm text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500 font-medium"
               value={contractForm.contract_sum}
               onChange={e => setContractForm({ ...contractForm, contract_sum: Number(e.target.value) })}
             />
@@ -588,7 +564,7 @@ export default function SubcontractorManager() {
               type="number"
               step="0.01"
               required
-              className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 text-sm text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500 font-mono font-bold"
+              className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 text-sm text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500 font-medium"
               value={valuationForm.cumulative_work_done}
               onChange={e => setValuationForm({ ...valuationForm, cumulative_work_done: Number(e.target.value) })}
             />
@@ -611,18 +587,18 @@ export default function SubcontractorManager() {
         <div className="p-3 bg-white dark:bg-slate-900 rounded-xl space-y-2 text-sm border border-slate-200 dark:border-slate-700">
           <div className="flex justify-between items-center text-slate-600 dark:text-slate-300">
             <span>Current Period Gross Work:</span>
-            <span className="font-mono font-bold text-slate-900 dark:text-white">
+            <span className="font-medium text-slate-900 dark:text-white">
               GHS {currentWork.toLocaleString(undefined, { minimumFractionDigits: 2 })}
             </span>
           </div>
           <div className="flex justify-between items-center text-rose-600 dark:text-rose-400">
             <span>Less Retention ({selectedContract?.retention_percent ?? 5}%):</span>
-            <span className="font-mono font-bold">-GHS {retentionDeducted.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+            <span className="font-medium">-GHS {retentionDeducted.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
           </div>
           {advanceRecovered > 0 && (
             <div className="flex justify-between items-center text-amber-600 dark:text-amber-400">
               <span>Less Advance Recovery ({selectedContract?.advance_recovery_percent ?? selectedContract?.advance_percent ?? 10}%):</span>
-              <span className="font-mono font-bold">-GHS {advanceRecovered.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+              <span className="font-medium">-GHS {advanceRecovered.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
             </div>
           )}
         </div>

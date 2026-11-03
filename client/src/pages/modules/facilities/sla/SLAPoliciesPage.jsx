@@ -243,7 +243,7 @@ export default function SLAPoliciesPage() {
                       {pol.service_category?.replace(/_/g, " ") || "—"}
                     </td>
                     <td className="px-3 py-3">
-                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${PRIORITY_COLORS[pol.priority] || "bg-slate-100 text-slate-700"}`}>
+                      <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${PRIORITY_COLORS[pol.priority] || "bg-slate-100 text-slate-700"}`}>
                         {pol.priority}
                       </span>
                     </td>
@@ -258,7 +258,7 @@ export default function SLAPoliciesPage() {
                     </td>
                     <td className="px-3 py-3 text-slate-500">{pol.operating_hours || "—"}</td>
                     <td className="px-3 py-3">
-                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${pol.is_active !== false ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300" : "bg-slate-100 text-slate-500 dark:bg-slate-800"}`}>
+                      <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${pol.is_active !== false ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300" : "bg-slate-100 text-slate-500 dark:bg-slate-800"}`}>
                         {pol.is_active !== false ? "Active" : "Inactive"}
                       </span>
                     </td>
@@ -305,7 +305,7 @@ export default function SLAPoliciesPage() {
           </h3>
           <div className="flex flex-wrap items-center gap-3">
             <div className="flex items-center gap-2">
-              <label className="text-[11px] font-semibold text-slate-500 whitespace-nowrap">From</label>
+              <label className="text-xs font-semibold text-slate-500 whitespace-nowrap">From</label>
               <input
                 type="date"
                 value={startDate}
@@ -314,7 +314,7 @@ export default function SLAPoliciesPage() {
               />
             </div>
             <div className="flex items-center gap-2">
-              <label className="text-[11px] font-semibold text-slate-500 whitespace-nowrap">To</label>
+              <label className="text-xs font-semibold text-slate-500 whitespace-nowrap">To</label>
               <input
                 type="date"
                 value={endDate}
@@ -334,25 +334,25 @@ export default function SLAPoliciesPage() {
         {/* Stat cards */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
-            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">Total Requests</span>
+            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Total Requests</span>
             <div className="text-2xl font-bold font-mono text-slate-900 dark:text-white mt-1">
               {slaLoading ? "—" : (summary.total ?? tickets.length)}
             </div>
           </div>
           <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
-            <span className="text-[11px] font-bold text-blue-600 uppercase tracking-wider block">Open Requests</span>
+            <span className="text-xs font-bold text-blue-600 uppercase tracking-wider block">Open Requests</span>
             <div className="text-2xl font-bold font-mono text-blue-600 mt-1">
               {slaLoading ? "—" : (summary.open ?? tickets.filter((t) => t.sla_status === "ON_TRACK" || t.sla_status === "AT_RISK").length)}
             </div>
           </div>
           <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
-            <span className="text-[11px] font-bold text-emerald-600 uppercase tracking-wider block">SLA Compliance</span>
+            <span className="text-xs font-bold text-emerald-600 uppercase tracking-wider block">SLA Compliance</span>
             <div className="text-2xl font-bold font-mono text-emerald-600 mt-1">
               {slaLoading ? "—" : `${compliancePct}%`}
             </div>
           </div>
           <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
-            <span className="text-[11px] font-bold text-rose-600 uppercase tracking-wider block">Breached</span>
+            <span className="text-xs font-bold text-rose-600 uppercase tracking-wider block">Breached</span>
             <div className="text-2xl font-bold font-mono text-rose-600 mt-1">
               {slaLoading ? "—" : (summary.breached ?? tickets.filter((t) => t.sla_status === "BREACHED").length)}
             </div>
@@ -407,7 +407,7 @@ export default function SLAPoliciesPage() {
                         {t.service_category?.replace(/_/g, " ") || t.category?.replace(/_/g, " ") || "—"}
                       </td>
                       <td className="px-3 py-3">
-                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${PRIORITY_COLORS[t.priority] || "bg-slate-100 text-slate-700"}`}>
+                        <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${PRIORITY_COLORS[t.priority] || "bg-slate-100 text-slate-700"}`}>
                           {t.priority || "—"}
                         </span>
                       </td>
@@ -416,7 +416,7 @@ export default function SLAPoliciesPage() {
                       </td>
                       <td className="px-3 py-3 text-slate-500">{t.sla_policy_name || "—"}</td>
                       <td className="px-3 py-3">
-                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${SLA_STATUS_COLORS[t.sla_status] || "bg-slate-100 text-slate-700"}`}>
+                        <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${SLA_STATUS_COLORS[t.sla_status] || "bg-slate-100 text-slate-700"}`}>
                           {t.sla_status?.replace(/_/g, " ") || "—"}
                         </span>
                       </td>
@@ -611,22 +611,22 @@ export default function SLAPoliciesPage() {
             <div className="p-6 space-y-4 text-xs">
               <div className="grid grid-cols-2 gap-3 p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl">
                 <div>
-                  <span className="text-slate-400 block text-[11px]">Policy Name</span>
+                  <span className="text-slate-400 block text-xs">Policy Name</span>
                   <span className="font-bold text-slate-800 dark:text-slate-200">{viewingPolicy.policy_name}</span>
                 </div>
                 <div>
-                  <span className="text-slate-400 block text-[11px]">Service Category</span>
+                  <span className="text-slate-400 block text-xs">Service Category</span>
                   <span className="font-semibold text-slate-700 dark:text-slate-300">{viewingPolicy.service_category?.replace(/_/g, " ") || "All Categories"}</span>
                 </div>
                 <div>
-                  <span className="text-slate-400 block text-[11px]">Priority Tier</span>
-                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold inline-block mt-0.5 ${PRIORITY_COLORS[viewingPolicy.priority] || ""}`}>
+                  <span className="text-slate-400 block text-xs">Priority Tier</span>
+                  <span className={`px-2 py-0.5 rounded-full text-xs font-bold inline-block mt-0.5 ${PRIORITY_COLORS[viewingPolicy.priority] || ""}`}>
                     {viewingPolicy.priority}
                   </span>
                 </div>
                 <div>
-                  <span className="text-slate-400 block text-[11px]">Status</span>
-                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold inline-block mt-0.5 ${viewingPolicy.is_active !== false ? "bg-emerald-100 text-emerald-800" : "bg-slate-100 text-slate-500"}`}>
+                  <span className="text-slate-400 block text-xs">Status</span>
+                  <span className={`px-2 py-0.5 rounded-full text-xs font-bold inline-block mt-0.5 ${viewingPolicy.is_active !== false ? "bg-emerald-100 text-emerald-800" : "bg-slate-100 text-slate-500"}`}>
                     {viewingPolicy.is_active !== false ? "Active" : "Inactive"}
                   </span>
                 </div>
@@ -634,25 +634,25 @@ export default function SLAPoliciesPage() {
 
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 p-3 border border-slate-100 dark:border-slate-800 rounded-xl">
                 <div>
-                  <span className="text-slate-400 block text-[11px]">Ack Target</span>
+                  <span className="text-slate-400 block text-xs">Ack Target</span>
                   <span className="font-mono font-bold text-slate-800 dark:text-slate-200">{viewingPolicy.ack_target_minutes != null ? `${viewingPolicy.ack_target_minutes} min` : "—"}</span>
                 </div>
                 <div>
-                  <span className="text-slate-400 block text-[11px]">Response Target</span>
+                  <span className="text-slate-400 block text-xs">Response Target</span>
                   <span className="font-mono font-bold text-blue-600">{viewingPolicy.response_time_minutes != null ? `${viewingPolicy.response_time_minutes} min` : "—"}</span>
                 </div>
                 <div>
-                  <span className="text-slate-400 block text-[11px]">Attendance Target</span>
+                  <span className="text-slate-400 block text-xs">Attendance Target</span>
                   <span className="font-mono font-bold text-amber-600">{viewingPolicy.attendance_target_hours != null ? `${viewingPolicy.attendance_target_hours} hrs` : "—"}</span>
                 </div>
                 <div>
-                  <span className="text-slate-400 block text-[11px]">Resolution Target</span>
+                  <span className="text-slate-400 block text-xs">Resolution Target</span>
                   <span className="font-mono font-bold text-emerald-600">{viewingPolicy.resolution_time_hours != null ? `${viewingPolicy.resolution_time_hours} hrs` : "—"}</span>
                 </div>
               </div>
 
               <div>
-                <span className="text-slate-400 block text-[11px] font-semibold uppercase mb-1">Operating Hours Schedule</span>
+                <span className="text-slate-400 block text-xs font-semibold uppercase mb-1">Operating Hours Schedule</span>
                 <span className="font-medium text-slate-800 dark:text-slate-200">{viewingPolicy.operating_hours || "24/7 (Continuous)"}</span>
               </div>
 

@@ -2959,6 +2959,96 @@ export async function ensureHRTables() {
       column: "tax_relief",
       sql: "ALTER TABLE hr_payslips ADD COLUMN tax_relief DECIMAL(18,4) NOT NULL DEFAULT 0",
     },
+    {
+      table: "hr_employees",
+      column: "face_descriptor",
+      sql: "ALTER TABLE hr_employees ADD COLUMN face_descriptor LONGTEXT NULL",
+    },
+    {
+      table: "hr_employees",
+      column: "face_photo",
+      sql: "ALTER TABLE hr_employees ADD COLUMN face_photo MEDIUMTEXT NULL",
+    },
+    {
+      table: "hr_employees",
+      column: "face_registered_at",
+      sql: "ALTER TABLE hr_employees ADD COLUMN face_registered_at DATETIME NULL",
+    },
+    {
+      table: "hr_timesheets",
+      column: "face_verified",
+      sql: "ALTER TABLE hr_timesheets ADD COLUMN face_verified TINYINT(1) DEFAULT 0",
+    },
+    {
+      table: "hr_timesheets",
+      column: "face_confidence",
+      sql: "ALTER TABLE hr_timesheets ADD COLUMN face_confidence DECIMAL(5,2) NULL",
+    },
+    {
+      table: "hr_timesheets",
+      column: "captured_face_photo",
+      sql: "ALTER TABLE hr_timesheets ADD COLUMN captured_face_photo MEDIUMTEXT NULL",
+    },
+    {
+      table: "hr_attendance",
+      column: "face_verified",
+      sql: "ALTER TABLE hr_attendance ADD COLUMN face_verified TINYINT(1) DEFAULT 0",
+    },
+    {
+      table: "hr_attendance",
+      column: "face_confidence",
+      sql: "ALTER TABLE hr_attendance ADD COLUMN face_confidence DECIMAL(5,2) NULL",
+    },
+    {
+      table: "hr_attendance",
+      column: "captured_face_photo",
+      sql: "ALTER TABLE hr_attendance ADD COLUMN captured_face_photo MEDIUMTEXT NULL",
+    },
+    {
+      table: "hr_employees",
+      column: "fingerprint_template",
+      sql: "ALTER TABLE hr_employees ADD COLUMN fingerprint_template LONGTEXT NULL",
+    },
+    {
+      table: "hr_employees",
+      column: "fingerprint_photo",
+      sql: "ALTER TABLE hr_employees ADD COLUMN fingerprint_photo MEDIUMTEXT NULL",
+    },
+    {
+      table: "hr_employees",
+      column: "fingerprint_registered_at",
+      sql: "ALTER TABLE hr_employees ADD COLUMN fingerprint_registered_at DATETIME NULL",
+    },
+    {
+      table: "hr_timesheets",
+      column: "fingerprint_verified",
+      sql: "ALTER TABLE hr_timesheets ADD COLUMN fingerprint_verified TINYINT(1) DEFAULT 0",
+    },
+    {
+      table: "hr_timesheets",
+      column: "fingerprint_confidence",
+      sql: "ALTER TABLE hr_timesheets ADD COLUMN fingerprint_confidence DECIMAL(5,2) NULL",
+    },
+    {
+      table: "hr_timesheets",
+      column: "biometric_type",
+      sql: "ALTER TABLE hr_timesheets ADD COLUMN biometric_type VARCHAR(30) DEFAULT 'NONE'",
+    },
+    {
+      table: "hr_attendance",
+      column: "fingerprint_verified",
+      sql: "ALTER TABLE hr_attendance ADD COLUMN fingerprint_verified TINYINT(1) DEFAULT 0",
+    },
+    {
+      table: "hr_attendance",
+      column: "fingerprint_confidence",
+      sql: "ALTER TABLE hr_attendance ADD COLUMN fingerprint_confidence DECIMAL(5,2) NULL",
+    },
+    {
+      table: "hr_attendance",
+      column: "biometric_type",
+      sql: "ALTER TABLE hr_attendance ADD COLUMN biometric_type VARCHAR(30) DEFAULT 'NONE'",
+    },
   ];
 
   const salaryComponentValueExisted = await hasColumn(

@@ -38,7 +38,7 @@ import {
 // ===== PROJECTS =====
 
 router.get(
-  "/projects",
+  ["/projects", "/"],
   requireAuth,
   requireCompanyScope,
   requireBranchScope,
@@ -47,7 +47,7 @@ router.get(
 );
 
 router.get(
-  "/projects/:id",
+  ["/projects/:id", "/:id"],
   requireAuth,
   requireCompanyScope,
   requireBranchScope,
@@ -151,6 +151,13 @@ router.put(
   requireCompanyScope,
   requireBranchScope,
   projectsController.updatePmResource
+);
+router.patch(
+  "/resources/:id/status",
+  requireAuth,
+  requireCompanyScope,
+  requireBranchScope,
+  projectsController.togglePmResourceStatus
 );
 router.delete(
   "/resources/:id",

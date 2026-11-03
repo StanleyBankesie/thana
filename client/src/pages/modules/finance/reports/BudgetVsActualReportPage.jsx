@@ -337,15 +337,17 @@ export default function BudgetVsActualReportPage() {
         </div>
       </div>
 
-      {/* Filter Controls Bar */}
-      <div className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm flex flex-wrap items-center justify-between gap-4 print:hidden">
-        <div className="flex flex-wrap items-center gap-3">
+      {/* Filter Controls Bar - Standard Application Filters */}
+      <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4 print:hidden">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
           <div>
-            <label className="text-xs font-semibold text-gray-500 uppercase block mb-1">Fiscal Year</label>
+            <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
+              Fiscal Year
+            </label>
             <select
               value={selectedFy}
               onChange={(e) => setSelectedFy(e.target.value)}
-              className="select select-bordered select-sm w-44 font-medium"
+              className="w-full h-10 px-3 text-sm bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-800 dark:text-slate-100 font-medium shadow-sm focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition-all"
             >
               {fiscalYears.map((fy) => (
                 <option key={fy.id} value={fy.id}>
@@ -356,11 +358,13 @@ export default function BudgetVsActualReportPage() {
           </div>
 
           <div>
-            <label className="text-xs font-semibold text-gray-500 uppercase block mb-1">Budget Allocation</label>
+            <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
+              Budget Allocation
+            </label>
             <select
               value={selectedBudget}
               onChange={(e) => setSelectedBudget(e.target.value)}
-              className="select select-bordered select-sm w-52 font-medium"
+              className="w-full h-10 px-3 text-sm bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-800 dark:text-slate-100 font-medium shadow-sm focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition-all"
             >
               <option value="">Active Fiscal Year Budget</option>
               {budgets.map((b) => (
@@ -372,11 +376,13 @@ export default function BudgetVsActualReportPage() {
           </div>
 
           <div>
-            <label className="text-xs font-semibold text-gray-500 uppercase block mb-1">Project</label>
+            <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
+              Project
+            </label>
             <select
               value={selectedProject}
               onChange={(e) => setSelectedProject(e.target.value)}
-              className="select select-bordered select-sm w-48 font-medium"
+              className="w-full h-10 px-3 text-sm bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-800 dark:text-slate-100 font-medium shadow-sm focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition-all"
             >
               <option value="">All Projects</option>
               {projects.map((p) => (
@@ -388,11 +394,13 @@ export default function BudgetVsActualReportPage() {
           </div>
 
           <div>
-            <label className="text-xs font-semibold text-gray-500 uppercase block mb-1">Cost Center</label>
+            <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
+              Cost Center
+            </label>
             <select
               value={selectedCostCenter}
               onChange={(e) => setSelectedCostCenter(e.target.value)}
-              className="select select-bordered select-sm w-44 font-medium"
+              className="w-full h-10 px-3 text-sm bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-800 dark:text-slate-100 font-medium shadow-sm focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition-all"
             >
               <option value="">All Cost Centers</option>
               {costCenters.map((cc) => (
@@ -404,11 +412,13 @@ export default function BudgetVsActualReportPage() {
           </div>
 
           <div>
-            <label className="text-xs font-semibold text-gray-500 uppercase block mb-1">Nature</label>
+            <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
+              Nature
+            </label>
             <select
               value={selectedNature}
               onChange={(e) => setSelectedNature(e.target.value)}
-              className="select select-bordered select-sm w-36 font-medium"
+              className="w-full h-10 px-3 text-sm bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-800 dark:text-slate-100 font-medium shadow-sm focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition-all"
             >
               <option value="ALL">All Accounts</option>
               <option value="EXPENSE">Expenses Only</option>
@@ -417,18 +427,51 @@ export default function BudgetVsActualReportPage() {
           </div>
         </div>
 
-        <div className="w-full md:w-64">
-          <label className="text-xs font-semibold text-gray-500 uppercase block mb-1">Search Account</label>
-          <div className="relative">
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search code, name, category..."
-              className="input input-bordered input-sm w-full pl-8"
-            />
-            <Search className="w-4 h-4 text-gray-400 absolute left-2.5 top-2" />
+        {/* Search & Actions Row */}
+        <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="w-full sm:max-w-md">
+            <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
+              Search Account
+            </label>
+            <div className="relative">
+              <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search code, name, category..."
+                className="w-full h-10 pl-10 pr-10 text-sm bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-800 dark:text-slate-100 shadow-sm focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition-all"
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery("")}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-sm p-1"
+                  title="Clear search"
+                >
+                  &times;
+                </button>
+              )}
+            </div>
           </div>
+
+          {(selectedProject || selectedCostCenter || selectedNature !== "ALL" || searchQuery || selectedBudget) && (
+            <div className="self-end sm:self-center">
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedBudget("");
+                  setSelectedProject("");
+                  setSelectedCostCenter("");
+                  setSelectedNature("ALL");
+                  setSearchQuery("");
+                }}
+                className="btn btn-secondary text-xs px-3 py-2 inline-flex items-center gap-1.5"
+              >
+                Reset Filters
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -878,13 +921,13 @@ export default function BudgetVsActualReportPage() {
 
             <form onSubmit={handleSaveControls} className="space-y-4">
               <div>
-                <label className="text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase block mb-1">
+                <label className="label">
                   Policy Enforcement Mode
                 </label>
                 <select
                   value={controlPolicy.policy_type}
                   onChange={(e) => setControlPolicy({ ...controlPolicy, policy_type: e.target.value })}
-                  className="select select-bordered select-sm w-full"
+                  className="input w-full font-medium"
                 >
                   <option value="WARN_ONLY">Warn Only (Allow transaction with alert)</option>
                   <option value="REQUIRE_APPROVAL">Require Exceptional Approval</option>
@@ -894,25 +937,25 @@ export default function BudgetVsActualReportPage() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase block mb-1">
+                  <label className="label">
                     Warning Threshold (%)
                   </label>
                   <input
                     type="number"
                     value={controlPolicy.warning_threshold_pct}
                     onChange={(e) => setControlPolicy({ ...controlPolicy, warning_threshold_pct: Number(e.target.value) })}
-                    className="input input-bordered input-sm w-full"
+                    className="input w-full"
                   />
                 </div>
                 <div>
-                  <label className="text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase block mb-1">
+                  <label className="label">
                     Block Threshold (%)
                   </label>
                   <input
                     type="number"
                     value={controlPolicy.block_threshold_pct}
                     onChange={(e) => setControlPolicy({ ...controlPolicy, block_threshold_pct: Number(e.target.value) })}
-                    className="input input-bordered input-sm w-full"
+                    className="input w-full"
                   />
                 </div>
               </div>

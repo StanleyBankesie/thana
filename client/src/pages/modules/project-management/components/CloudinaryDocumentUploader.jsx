@@ -169,7 +169,7 @@ export default function CloudinaryDocumentUploader({
         <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block">
           {label}
         </label>
-        <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-sky-50 dark:bg-sky-950/40 text-sky-700 dark:text-sky-300 border border-sky-200 dark:border-sky-800 text-[10px] font-semibold">
+        <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-sky-50 dark:bg-sky-950/40 text-sky-700 dark:text-sky-300 border border-sky-200 dark:border-sky-800 text-xs font-semibold">
           <Cloud size={12} className="text-sky-500 animate-pulse" />
           <span>Cloudinary Storage</span>
         </div>
@@ -209,7 +209,7 @@ export default function CloudinaryDocumentUploader({
               <p className="text-xs font-bold text-slate-800 dark:text-slate-200">
                 Click to upload document or drawing
               </p>
-              <p className="text-[11px] text-slate-400 mt-0.5">{description}</p>
+              <p className="text-xs text-slate-400 mt-0.5">{description}</p>
             </div>
           </div>
         )}
@@ -219,13 +219,13 @@ export default function CloudinaryDocumentUploader({
       {filesList.length > 0 && (
         <div className="space-y-2 pt-1">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
               Uploaded Documents ({filesList.length})
             </span>
             <button
               type="button"
               onClick={() => !uploading && fileInputRef.current?.click()}
-              className="text-[11px] text-brand-900 dark:text-brand-400 font-semibold hover:underline inline-flex items-center gap-1"
+              className="text-xs text-brand-900 dark:text-brand-400 font-semibold hover:underline inline-flex items-center gap-1"
             >
               <Plus size={12} /> Add Another File
             </button>
@@ -255,7 +255,7 @@ export default function CloudinaryDocumentUploader({
                       <p className="font-semibold text-slate-900 dark:text-slate-100 truncate" title={file.filename}>
                         {file.filename || "Uploaded Document"}
                       </p>
-                      <p className="text-[10px] text-slate-400 flex items-center gap-1.5">
+                      <p className="text-xs text-slate-400 flex items-center gap-1.5">
                         {file.size ? `${(file.size / 1024).toFixed(0)} KB • ` : ""}
                         {isCloudinary ? "Cloudinary Cloud" : "Stored File"}
                       </p>
@@ -304,14 +304,14 @@ export default function CloudinaryDocumentUploader({
         <div className="space-y-4 text-xs">
           {/* List of Previous Files */}
           <div>
-            <span className="text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider block mb-1.5">
+            <span className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider block mb-1.5">
               Previous / Old Uploaded Files ({filesList.length}):
             </span>
             <div className="space-y-1.5 max-h-40 overflow-y-auto p-1 bg-slate-50 dark:bg-slate-800/40 rounded-xl border border-slate-200 dark:border-slate-700">
               {filesList.map((oldFile, i) => (
                 <div
                   key={i}
-                  className="flex items-center justify-between p-2 bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 text-[11px]"
+                  className="flex items-center justify-between p-2 bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 text-xs"
                 >
                   <div className="flex items-center gap-2 truncate pr-2">
                     <Cloud size={14} className="text-sky-500 flex-shrink-0" />
@@ -335,13 +335,13 @@ export default function CloudinaryDocumentUploader({
           {/* Pending new file */}
           {pendingFiles.length > 0 && (
             <div className="p-3 bg-blue-50 dark:bg-blue-950/30 rounded-xl border border-blue-200 dark:border-blue-900/40">
-              <span className="text-[11px] font-bold text-blue-900 dark:text-blue-300 block mb-1">
+              <span className="text-xs font-bold text-blue-900 dark:text-blue-300 block mb-1">
                 New File To Upload:
               </span>
               <p className="font-semibold text-slate-900 dark:text-white truncate">
                 {pendingFiles.map((f) => f.name).join(", ")}
               </p>
-              <p className="text-[10px] text-blue-600 dark:text-blue-400 mt-0.5">
+              <p className="text-xs text-blue-600 dark:text-blue-400 mt-0.5">
                 {(pendingFiles.reduce((acc, f) => acc + f.size, 0) / 1024).toFixed(0)} KB ready for upload
               </p>
             </div>
@@ -352,7 +352,7 @@ export default function CloudinaryDocumentUploader({
             <p className="font-bold text-amber-900 dark:text-amber-200 text-xs">
               How would you like to handle your previous files?
             </p>
-            <p className="text-[11px] text-amber-800 dark:text-amber-300 mt-1">
+            <p className="text-xs text-amber-800 dark:text-amber-300 mt-1">
               • <strong>Keep</strong>: Saves the new file in addition to the previous files.
               <br />
               • <strong>Discard</strong>: Deletes the old files from Cloudinary storage before uploading the new file.

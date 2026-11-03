@@ -1,5 +1,6 @@
 import { pool, query } from "../db/pool.js";
 import { httpError } from "../utils/httpError.js";
+import { syncProperty, syncAsset } from "../services/assetSyncService.js";
 
 function toNum(v, fb = 0) {
   const n = Number(v);
@@ -247,6 +248,26 @@ export async function createAsset(req, res, next) {
       asset_code: assetCode,
       message: "Asset created successfully",
     });
+
+    syncAsset({
+      source: 'ASSET',
+      companyId: companyId || 1,
+      branchId: branchId || 1,
+      asset_code: assetCode,
+      asset_name: body.asset_name,
+      property_id: body.property_id || null,
+      building_id: body.building_id || null,
+      space_id: body.space_id || null,
+      location: body.location || null,
+      serial_number: body.serial_number || null,
+      make: body.make || null,
+      model: body.model || null,
+      purchase_date: body.purchase_date || null,
+      purchase_cost: purchaseCost,
+      warranty_expiry: body.warranty_expiry_date || null,
+      status: body.status || 'ACTIVE',
+      notes: body.notes || null
+    }).catch(e => console.error("Asset create sync error:", e.message));
   } catch (err) {
     next(err);
   }
@@ -321,6 +342,34 @@ export async function updateAsset(req, res, next) {
     );
 
     res.json({ success: true, message: "Asset updated successfully" });
+
+    // Fetch asset details for sync
+    const [existing] = await pool.query(
+      "SELECT * FROM ast_assets WHERE id = ? AND company_id = ?",
+      [id, companyId || 1]
+    ).catch(() => [[]]);
+    if (existing && existing.length > 0) {
+      const a = existing[0];
+      syncAsset({
+        source: 'ASSET',
+        companyId: companyId || 1,
+        branchId: a.branch_id || 1,
+        asset_code: a.asset_code,
+        asset_name: a.asset_name,
+        property_id: a.property_id || null,
+        building_id: a.building_id || null,
+        space_id: a.space_id || null,
+        location: a.location || null,
+        serial_number: a.serial_number || null,
+        make: a.make || null,
+        model: a.model || null,
+        purchase_date: a.purchase_date || null,
+        purchase_cost: a.purchase_cost,
+        warranty_expiry: a.warranty_expiry_date || null,
+        status: a.status || 'ACTIVE',
+        notes: a.notes || null
+      }).catch(e => console.error("Asset update sync error:", e.message));
+    }
   } catch (err) {
     next(err);
   }
@@ -1444,6 +1493,18 @@ export async function createProperty(req, res, next) {
       ]
     );
     res.status(201).json({ success: true, id: resIns.insertId, message: "Property / Site created successfully" });
+
+    syncProperty({
+      source: 'ASSET',
+      sourceId: resIns.insertId,
+      companyId: companyId || 1,
+      property_code: propCode,
+      property_name: body.property_name.trim(),
+      property_type: body.property_type || "SITE",
+      address: body.address || null,
+      city: body.city || null,
+      action: 'UPSERT'
+    }).catch(e => console.error("Asset createProperty sync error:", e.message));
   } catch (err) {
     next(err);
   }
@@ -1467,6 +1528,25 @@ export async function updateProperty(req, res, next) {
       [body.property_name, body.property_code, body.property_type, body.address, body.city, body.is_active, id, companyId || 1]
     );
     res.json({ success: true, message: "Property / Site updated successfully" });
+
+    const [propRows] = await pool.query(
+      "SELECT property_code, property_name, property_type, address, city, is_active FROM ast_properties WHERE id = ? AND (company_id = ? OR company_id = 1)",
+      [id, companyId || 1]
+    ).catch(() => [[]]);
+    if (propRows && propRows.length > 0) {
+      const p = propRows[0];
+      syncProperty({
+        source: 'ASSET',
+        sourceId: id,
+        companyId: companyId || 1,
+        property_code: p.property_code,
+        property_name: p.property_name,
+        property_type: p.property_type,
+        address: p.address,
+        city: p.city,
+        action: p.is_active === 0 ? 'DEACTIVATE' : 'UPSERT'
+      }).catch(e => console.error("Asset updateProperty sync error:", e.message));
+    }
   } catch (err) {
     next(err);
   }
@@ -1476,10 +1556,27 @@ export async function deleteProperty(req, res, next) {
   try {
     const { companyId } = req.scope || {};
     const { id } = req.params;
+    const [delRow] = await pool.query(
+      "SELECT property_code, property_name FROM ast_properties WHERE id = ? AND (company_id = ? OR company_id = 1)",
+      [id, companyId || 1]
+    ).catch(() => [[]]);
+
     await pool.query(
       "UPDATE ast_properties SET is_active = 0 WHERE id = ? AND (company_id = ? OR company_id = 1)",
       [id, companyId || 1]
     );
+
+    if (delRow && delRow.length > 0) {
+      syncProperty({
+        source: 'ASSET',
+        sourceId: id,
+        companyId: companyId || 1,
+        property_code: delRow[0].property_code,
+        property_name: delRow[0].property_name,
+        action: 'DEACTIVATE'
+      }).catch(e => console.error("Asset deleteProperty sync error:", e.message));
+    }
+
     res.json({ success: true, message: "Property / Site removed successfully" });
   } catch (err) {
     next(err);

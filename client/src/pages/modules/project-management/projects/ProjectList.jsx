@@ -282,7 +282,7 @@ export default function ProjectList() {
                           </div>
                           {item.project_priority === "HIGH" && (
                             <div className="mt-1">
-                              <span className="bg-rose-50 text-rose-600 border border-rose-200 px-1.5 py-0.5 rounded text-[9px] font-bold uppercase">
+                              <span className="bg-rose-50 text-rose-600 border border-rose-200 px-1.5 py-0.5 rounded text-xs font-bold uppercase">
                                 HIGH PRIORITY
                               </span>
                             </div>

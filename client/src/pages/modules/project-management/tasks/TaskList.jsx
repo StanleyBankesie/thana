@@ -24,7 +24,7 @@ const StatusBadge = ({ status }) => {
     BLOCKED:     "bg-rose-50 text-rose-600 border-rose-100 dark:bg-rose-900/30 dark:text-rose-400",
   };
   return (
-    <span className={`px-2.5 py-1 rounded-lg text-[10px] font-bold border uppercase tracking-wider ${styles[status] || styles.PENDING}`}>
+    <span className={`px-2.5 py-1 rounded-lg text-xs font-bold border uppercase tracking-wider ${styles[status] || styles.PENDING}`}>
       {status?.replace("_", " ")}
     </span>
   );
@@ -41,7 +41,7 @@ const DueBadge = ({ status, label }) => {
   };
 
   return (
-    <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] border ${styles[status] || styles.ON_SCHEDULE}`}>
+    <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs border ${styles[status] || styles.ON_SCHEDULE}`}>
       {status === "OVERDUE" && "🚨 "}
       {status === "DUE_TODAY" && "⚠️ "}
       {status === "ON_SCHEDULE" && "📅 "}
@@ -61,7 +61,7 @@ const PriorityBadge = ({ priority }) => {
   return (
     <div className="flex items-center gap-1">
       <div className={`w-1.5 h-1.5 rounded-full bg-current ${colors[priority] || colors.LOW}`} />
-      <span className={`text-[10px] font-bold uppercase tracking-tight ${colors[priority] || colors.LOW}`}>{priority}</span>
+      <span className={`text-xs font-bold uppercase tracking-tight ${colors[priority] || colors.LOW}`}>{priority}</span>
     </div>
   );
 };
@@ -428,40 +428,40 @@ export default function TaskList() {
           <div className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200/80 dark:border-slate-700/60">
-                <span className="text-slate-400 block text-[11px] font-semibold mb-1 uppercase tracking-wider">Project</span>
+                <span className="text-slate-400 block text-xs font-semibold mb-1 uppercase tracking-wider">Project</span>
                 <span className="font-bold text-sm text-slate-900 dark:text-slate-100">{viewModalTask.project_name || "—"}</span>
               </div>
               <div className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200/80 dark:border-slate-700/60">
-                <span className="text-slate-400 block text-[11px] font-semibold mb-1 uppercase tracking-wider">Assignee</span>
+                <span className="text-slate-400 block text-xs font-semibold mb-1 uppercase tracking-wider">Assignee</span>
                 <span className="font-bold text-sm text-slate-900 dark:text-slate-100">{viewModalTask.assigned_to_name || "—"}</span>
               </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200/80 dark:border-slate-700/60 flex items-center justify-between">
-                <span className="text-slate-400 text-[11px] font-semibold uppercase tracking-wider">Status</span>
+                <span className="text-slate-400 text-xs font-semibold uppercase tracking-wider">Status</span>
                 <StatusBadge status={viewModalTask.status} />
               </div>
               <div className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200/80 dark:border-slate-700/60 flex items-center justify-between">
-                <span className="text-slate-400 text-[11px] font-semibold uppercase tracking-wider">Priority</span>
+                <span className="text-slate-400 text-xs font-semibold uppercase tracking-wider">Priority</span>
                 <PriorityBadge priority={viewModalTask.priority} />
               </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200/80 dark:border-slate-700/60">
-                <span className="text-slate-400 block text-[11px] font-semibold mb-1 uppercase tracking-wider">Start Date</span>
+                <span className="text-slate-400 block text-xs font-semibold mb-1 uppercase tracking-wider">Start Date</span>
                 <span className="font-mono text-slate-800 dark:text-slate-200 font-semibold">{fmtDate(viewModalTask.start_date || viewModalTask.startDate)}</span>
               </div>
               <div className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200/80 dark:border-slate-700/60">
-                <span className="text-slate-400 block text-[11px] font-semibold mb-1 uppercase tracking-wider">Due Date</span>
+                <span className="text-slate-400 block text-xs font-semibold mb-1 uppercase tracking-wider">Due Date</span>
                 <span className="font-mono text-slate-800 dark:text-slate-200 font-semibold">{fmtDate(viewModalTask.end_date || viewModalTask.endDate || viewModalTask.due_date)}</span>
               </div>
             </div>
 
             {viewModalTask.reason_for_delay && (
               <div className="p-3.5 bg-amber-50 dark:bg-amber-950/30 text-amber-900 dark:text-amber-200 rounded-xl border border-amber-200 dark:border-amber-800/60 space-y-1">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-amber-700 dark:text-amber-400">Reason for Delay</span>
+                <span className="text-xs font-bold uppercase tracking-wider text-amber-700 dark:text-amber-400">Reason for Delay</span>
                 <p className="text-xs leading-relaxed">{viewModalTask.reason_for_delay}</p>
               </div>
             )}

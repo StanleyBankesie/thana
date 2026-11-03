@@ -238,25 +238,25 @@ export default function IncidentRegisterPage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
         <div className="card p-4 space-y-1">
           <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Total Recorded Incidents</span>
-          <p className="text-2xl font-bold font-mono text-slate-900 dark:text-white">{totalIncidents}</p>
-          <p className="text-[10px] text-slate-400">Total reported site incidents</p>
+          <p className="text-2xl font-medium text-slate-900 dark:text-white">{totalIncidents}</p>
+          <p className="text-xs text-slate-400">Total reported site incidents</p>
         </div>
         <div className="card p-4 space-y-1">
           <span className="text-xs font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider">Near Miss Events</span>
-          <p className="text-2xl font-bold font-mono text-amber-600">{nearMissCount}</p>
-          <p className="text-[10px] text-slate-400">Hazard proactive detections</p>
+          <p className="text-2xl font-medium text-amber-600">{nearMissCount}</p>
+          <p className="text-xs text-slate-400">Hazard proactive detections</p>
         </div>
         <div className="card p-4 space-y-1">
           <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Lost Time Injuries (LTI)</span>
-          <p className={`text-2xl font-bold font-mono ${lostTimeCount > 0 ? "text-rose-600" : "text-emerald-600"}`}>
+          <p className={`text-2xl font-medium ${lostTimeCount > 0 ? "text-rose-600" : "text-emerald-600"}`}>
             {lostTimeCount}
           </p>
-          <p className="text-[10px] text-slate-400">Target zero goal</p>
+          <p className="text-xs text-slate-400">Target zero goal</p>
         </div>
         <div className="card p-4 space-y-1">
           <span className="text-xs font-bold text-rose-600 dark:text-rose-400 uppercase tracking-wider">Total Days Lost</span>
-          <p className="text-2xl font-bold font-mono text-rose-600">{totalDaysLost} Man-Days</p>
-          <p className="text-[10px] text-slate-400">Workforce impact</p>
+          <p className="text-2xl font-medium text-rose-600">{totalDaysLost} Man-Days</p>
+          <p className="text-xs text-slate-400">Workforce impact</p>
         </div>
       </div>
 
@@ -362,12 +362,12 @@ export default function IncidentRegisterPage() {
                       {i.project_name || "-"}
                     </td>
                     <td>
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold border ${getClassificationBadge(i.incident_type)}`}>
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold border ${getClassificationBadge(i.incident_type)}`}>
                         {i.incident_type}
                       </span>
                     </td>
                     <td>
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold border ${getSeverityBadge(i.severity)}`}>
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold border ${getSeverityBadge(i.severity)}`}>
                         {i.severity || "LOW"}
                       </span>
                     </td>
@@ -382,7 +382,7 @@ export default function IncidentRegisterPage() {
                       {Number(i.days_lost || i.lost_workdays || 0)}
                     </td>
                     <td className="text-center">
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300">
                         {i.status || "REPORTED"}
                       </span>
                     </td>
@@ -618,29 +618,29 @@ export default function IncidentRegisterPage() {
           <div className="space-y-3 text-xs">
             <div className="grid grid-cols-2 gap-2 bg-slate-50 dark:bg-slate-800/50 p-3 rounded-xl border border-slate-200 dark:border-slate-700">
               <div>
-                <span className="text-slate-400 block text-[10px] uppercase font-bold">Project</span>
+                <span className="text-slate-400 block text-xs uppercase font-bold">Project</span>
                 <span className="font-semibold text-slate-800 dark:text-slate-200">{selectedIncident.project_name || "-"}</span>
               </div>
               <div>
-                <span className="text-slate-400 block text-[10px] uppercase font-bold">Classification</span>
-                <span className={`inline-flex px-1.5 py-0.5 rounded text-[11px] font-semibold border ${getClassificationBadge(selectedIncident.incident_type)}`}>
+                <span className="text-slate-400 block text-xs uppercase font-bold">Classification</span>
+                <span className={`inline-flex px-1.5 py-0.5 rounded text-xs font-semibold border ${getClassificationBadge(selectedIncident.incident_type)}`}>
                   {selectedIncident.incident_type}
                 </span>
               </div>
               <div>
-                <span className="text-slate-400 block text-[10px] uppercase font-bold">Severity</span>
+                <span className="text-slate-400 block text-xs uppercase font-bold">Severity</span>
                 <span className="font-semibold text-slate-800 dark:text-slate-200">{selectedIncident.severity || "LOW"}</span>
               </div>
               <div>
-                <span className="text-slate-400 block text-[10px] uppercase font-bold">Location</span>
+                <span className="text-slate-400 block text-xs uppercase font-bold">Location</span>
                 <span className="font-semibold text-slate-800 dark:text-slate-200">{selectedIncident.location || "-"}</span>
               </div>
               <div>
-                <span className="text-slate-400 block text-[10px] uppercase font-bold">Injured Person</span>
+                <span className="text-slate-400 block text-xs uppercase font-bold">Injured Person</span>
                 <span className="font-semibold text-slate-800 dark:text-slate-200">{selectedIncident.injured_person_name || selectedIncident.persons_involved || "-"}</span>
               </div>
               <div>
-                <span className="text-slate-400 block text-[10px] uppercase font-bold">Days Lost</span>
+                <span className="text-slate-400 block text-xs uppercase font-bold">Days Lost</span>
                 <span className="font-semibold text-rose-600 font-mono">{selectedIncident.days_lost || selectedIncident.lost_workdays || 0} Man-Days</span>
               </div>
             </div>

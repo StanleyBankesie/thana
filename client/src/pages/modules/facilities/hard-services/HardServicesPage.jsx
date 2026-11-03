@@ -235,34 +235,6 @@ export default function HardServicesPage() {
         </button>
       </div>
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 shadow-sm">
-          <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 text-xs font-semibold mb-2">
-            <Server size={15} className="text-cyan-500" /> Total Systems
-          </div>
-          <p className="text-3xl font-bold text-slate-900 dark:text-white">{totalSystems}</p>
-        </div>
-        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 shadow-sm">
-          <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 text-xs font-semibold mb-2">
-            <AlertTriangle size={15} className="text-rose-500" /> Mission Critical
-          </div>
-          <p className="text-3xl font-bold text-rose-600 dark:text-rose-400">{missionCritical}</p>
-        </div>
-        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 shadow-sm">
-          <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 text-xs font-semibold mb-2">
-            <CalendarClock size={15} className="text-amber-500" /> Overdue Service
-          </div>
-          <p className="text-3xl font-bold text-amber-600 dark:text-amber-400">{overdueService}</p>
-        </div>
-        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 shadow-sm">
-          <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 text-xs font-semibold mb-2">
-            <WifiOff size={15} className="text-rose-500" /> Offline Systems
-          </div>
-          <p className="text-3xl font-bold text-rose-600 dark:text-rose-400">{offlineSystems}</p>
-        </div>
-      </div>
-
       {/* Filter Bar */}
       <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-3 flex items-center justify-between gap-3 flex-wrap text-xs shadow-sm">
         <div className="flex items-center gap-2 flex-wrap">
@@ -359,11 +331,11 @@ export default function HardServicesPage() {
                     <td className="px-3 py-3">
                       <span className="font-semibold text-slate-800 dark:text-slate-100 block">{system.system_name}</span>
                       {system.manufacturer && (
-                        <span className="text-[10px] text-slate-400">{system.manufacturer}</span>
+                        <span className="text-xs text-slate-400">{system.manufacturer}</span>
                       )}
                     </td>
                     <td className="px-3 py-3">
-                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${CATEGORY_COLORS[system.system_category] || "bg-slate-100 text-slate-600"}`}>
+                      <span className={`px-2 py-0.5 rounded text-xs font-bold ${CATEGORY_COLORS[system.system_category] || "bg-slate-100 text-slate-600"}`}>
                         {system.system_category?.replace(/_/g, " ")}
                       </span>
                     </td>
@@ -371,26 +343,26 @@ export default function HardServicesPage() {
                       {system.property_name || "—"}
                     </td>
                     <td className="px-3 py-3">
-                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${CRITICALITY_COLORS[system.criticality] || "bg-slate-100 text-slate-600"}`}>
+                      <span className={`px-2 py-0.5 rounded text-xs font-bold ${CRITICALITY_COLORS[system.criticality] || "bg-slate-100 text-slate-600"}`}>
                         {system.criticality?.replace(/_/g, " ")}
                       </span>
                     </td>
                     <td className="px-3 py-3">
-                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${OP_STATUS_COLORS[system.operational_status] || "bg-slate-100 text-slate-600"}`}>
+                      <span className={`px-2 py-0.5 rounded text-xs font-bold ${OP_STATUS_COLORS[system.operational_status] || "bg-slate-100 text-slate-600"}`}>
                         {system.operational_status?.replace(/_/g, " ")}
                       </span>
                     </td>
                     <td className="px-3 py-3 text-slate-600 dark:text-slate-300">
                       {system.responsible_technician || "—"}
                     </td>
-                    <td className={`px-3 py-3 font-mono text-[11px] whitespace-nowrap font-semibold ${
+                    <td className={`px-3 py-3 font-mono text-xs whitespace-nowrap font-semibold ${
                       isOverdue(system.next_service_due)
                         ? "text-rose-600 dark:text-rose-400"
                         : "text-slate-500 dark:text-slate-400"
                     }`}>
                       {system.next_service_due ? String(system.next_service_due).slice(0, 10) : "—"}
                       {isOverdue(system.next_service_due) && (
-                        <span className="ml-1 text-[9px] bg-rose-100 dark:bg-rose-950 text-rose-700 dark:text-rose-300 px-1 py-0.5 rounded font-bold">
+                        <span className="ml-1 text-xs bg-rose-100 dark:bg-rose-950 text-rose-700 dark:text-rose-300 px-1 py-0.5 rounded font-bold">
                           OVERDUE
                         </span>
                       )}
@@ -658,10 +630,10 @@ export default function HardServicesPage() {
                   {activeSystem.property_name} · {activeSystem.system_category?.replace(/_/g, " ")}
                 </p>
                 <div className="flex gap-2 pt-1">
-                  <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${CRITICALITY_COLORS[activeSystem.criticality] || ""}`}>
+                  <span className={`px-2 py-0.5 rounded text-xs font-bold ${CRITICALITY_COLORS[activeSystem.criticality] || ""}`}>
                     {activeSystem.criticality?.replace(/_/g, " ")}
                   </span>
-                  <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${OP_STATUS_COLORS[activeSystem.operational_status] || ""}`}>
+                  <span className={`px-2 py-0.5 rounded text-xs font-bold ${OP_STATUS_COLORS[activeSystem.operational_status] || ""}`}>
                     {activeSystem.operational_status?.replace(/_/g, " ")}
                   </span>
                 </div>
@@ -763,28 +735,28 @@ export default function HardServicesPage() {
             <div className="p-6 space-y-4 text-xs">
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl">
                 <div>
-                  <span className="text-slate-400 block text-[11px]">System Name</span>
+                  <span className="text-slate-400 block text-xs">System Name</span>
                   <span className="font-semibold text-slate-800 dark:text-slate-200">{viewingSystem.system_name}</span>
                 </div>
                 <div>
-                  <span className="text-slate-400 block text-[11px]">Category</span>
+                  <span className="text-slate-400 block text-xs">Category</span>
                   <span className="font-semibold text-slate-800 dark:text-slate-200">{viewingSystem.system_category?.replace(/_/g, " ")}</span>
                 </div>
                 <div>
-                  <span className="text-slate-400 block text-[11px]">Property</span>
+                  <span className="text-slate-400 block text-xs">Property</span>
                   <span className="font-semibold text-slate-800 dark:text-slate-200">{viewingSystem.property_name || "—"}</span>
                 </div>
                 <div>
-                  <span className="text-slate-400 block text-[11px]">Manufacturer</span>
+                  <span className="text-slate-400 block text-xs">Manufacturer</span>
                   <span className="font-semibold text-slate-800 dark:text-slate-200">{viewingSystem.manufacturer || "—"}</span>
                 </div>
                 <div>
-                  <span className="text-slate-400 block text-[11px]">Model / Serial</span>
+                  <span className="text-slate-400 block text-xs">Model / Serial</span>
                   <span className="font-mono text-slate-800 dark:text-slate-200">{viewingSystem.model_no || "—"} / {viewingSystem.serial_no || "—"}</span>
                 </div>
                 <div>
-                  <span className="text-slate-400 block text-[11px]">Criticality</span>
-                  <span className={`px-2 py-0.5 rounded text-[10px] font-bold inline-block mt-0.5 ${CRITICALITY_COLORS[viewingSystem.criticality] || ""}`}>
+                  <span className="text-slate-400 block text-xs">Criticality</span>
+                  <span className={`px-2 py-0.5 rounded text-xs font-bold inline-block mt-0.5 ${CRITICALITY_COLORS[viewingSystem.criticality] || ""}`}>
                     {viewingSystem.criticality?.replace(/_/g, " ")}
                   </span>
                 </div>
@@ -792,26 +764,26 @@ export default function HardServicesPage() {
 
               <div className="grid grid-cols-2 gap-3 p-4 border border-slate-100 dark:border-slate-800 rounded-xl">
                 <div>
-                  <span className="text-slate-400 block text-[11px]">Responsible Technician</span>
+                  <span className="text-slate-400 block text-xs">Responsible Technician</span>
                   <span className="font-semibold text-slate-800 dark:text-slate-200">{viewingSystem.responsible_technician || "—"}</span>
                 </div>
                 <div>
-                  <span className="text-slate-400 block text-[11px]">Service Interval</span>
+                  <span className="text-slate-400 block text-xs">Service Interval</span>
                   <span className="font-semibold text-slate-800 dark:text-slate-200">{viewingSystem.service_interval_days} days</span>
                 </div>
                 <div>
-                  <span className="text-slate-400 block text-[11px]">Last Serviced</span>
+                  <span className="text-slate-400 block text-xs">Last Serviced</span>
                   <span className="font-mono text-slate-800 dark:text-slate-200">{viewingSystem.last_serviced_date ? String(viewingSystem.last_serviced_date).slice(0, 10) : "—"}</span>
                 </div>
                 <div>
-                  <span className="text-slate-400 block text-[11px]">Next Service Due</span>
+                  <span className="text-slate-400 block text-xs">Next Service Due</span>
                   <span className="font-mono text-slate-800 dark:text-slate-200">{viewingSystem.next_service_due ? String(viewingSystem.next_service_due).slice(0, 10) : "—"}</span>
                 </div>
               </div>
 
               {viewingSystem.notes && (
                 <div>
-                  <span className="text-slate-400 block text-[11px] font-semibold uppercase mb-1">Maintenance & Operating Notes</span>
+                  <span className="text-slate-400 block text-xs font-semibold uppercase mb-1">Maintenance & Operating Notes</span>
                   <p className="p-3 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-xl leading-relaxed whitespace-pre-wrap">
                     {viewingSystem.notes}
                   </p>

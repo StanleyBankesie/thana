@@ -2349,6 +2349,157 @@ export const deleteDailyReport = async (req, res, next) => {
   }
 };
 
+export const submitDailyReport = async (req, res, next) => {
+  try {
+    const { companyId } = req.scope || {};
+    const id = toNumber(req.params.id);
+    const { workflow_id, target_user_id, comments } = req.body || {};
+
+    const repRows = await query(`SELECT * FROM pm_daily_site_reports WHERE id = :id AND (company_id = :companyId OR :companyId IS NULL)`, { id, companyId: companyId || null });
+    if (!repRows.length) throw httpError(404, "NOT_FOUND", "Daily site report not found");
+    const report = repRows[0];
+
+    let targetUserName = null;
+    if (target_user_id) {
+      const uRows = await query(`SELECT username FROM adm_users WHERE id = :uid LIMIT 1`, { uid: target_user_id });
+      if (uRows.length) targetUserName = uRows[0].username;
+    }
+
+    await query(
+      `UPDATE pm_daily_site_reports SET 
+         status = 'PENDING_APPROVAL', 
+         forwarded_to_username = :targetUserName,
+         reviewer_comments = COALESCE(:comments, reviewer_comments)
+       WHERE id = :id`,
+      {
+        targetUserName,
+        comments: comments || null,
+        id
+      }
+    );
+
+    try {
+      if (workflow_id) {
+        const dwRes = await query(
+          `INSERT INTO adm_document_workflows 
+             (company_id, workflow_id, document_id, document_type, amount, current_step_order, status, assigned_to_user_id)
+           VALUES 
+             (:companyId, :workflow_id, :id, 'DAILY_SITE_REPORT', 0, 1, 'PENDING', :assignedTo)`,
+          {
+            companyId: companyId || 1,
+            workflow_id,
+            id,
+            assignedTo: target_user_id || null,
+          }
+        );
+        const dwId = dwRes.insertId;
+        await query(
+          `INSERT INTO adm_workflow_tasks
+             (company_id, workflow_id, document_workflow_id, document_id, document_type, step_order, assigned_to_user_id, action)
+           VALUES
+             (:companyId, :workflow_id, :dwId, :id, 'DAILY_SITE_REPORT', 1, :assignedTo, 'PENDING')`,
+          {
+            companyId: companyId || 1,
+            workflow_id,
+            dwId,
+            id,
+            assignedTo: target_user_id || null,
+          }
+        );
+        await query(
+          `INSERT INTO adm_workflow_logs
+             (document_workflow_id, step_order, action, actor_user_id, comments)
+           VALUES
+             (:dwId, 1, 'SUBMIT', :actor, :comments)`,
+          {
+            dwId,
+            actor: req.user?.id || req.user?.sub || null,
+            comments: comments || "Submitted into workflow",
+          }
+        );
+      }
+    } catch (e) {}
+
+    res.json({
+      ok: true,
+      status: "PENDING_APPROVAL",
+      forwarded_to_username: targetUserName,
+      message: "Daily site report forwarded for approval"
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const approveDailyReport = async (req, res, next) => {
+  try {
+    const { companyId } = req.scope || {};
+    const id = toNumber(req.params.id);
+    const { comments, approved_by_name } = req.body || {};
+
+    const repRows = await query(`SELECT * FROM pm_daily_site_reports WHERE id = :id AND (company_id = :companyId OR :companyId IS NULL)`, { id, companyId: companyId || null });
+    if (!repRows.length) throw httpError(404, "NOT_FOUND", "Daily site report not found");
+
+    const approver = approved_by_name || req.user?.username || req.user?.name || "Site Reviewer";
+
+    await query(
+      `UPDATE pm_daily_site_reports SET 
+         status = 'APPROVED', 
+         approved_by_name = :approver, 
+         approved_at = NOW(), 
+         reviewer_comments = COALESCE(:comments, reviewer_comments) 
+       WHERE id = :id`,
+      {
+        approver,
+        comments: comments || null,
+        id
+      }
+    );
+
+    res.json({
+      ok: true,
+      status: "APPROVED",
+      approved_by_name: approver,
+      message: "Daily site report approved successfully"
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const reverseDailyReport = async (req, res, next) => {
+  try {
+    const { companyId } = req.scope || {};
+    const id = toNumber(req.params.id);
+    const { desired_status = "DRAFT", reason } = req.body || {};
+
+    const repRows = await query(`SELECT * FROM pm_daily_site_reports WHERE id = :id AND (company_id = :companyId OR :companyId IS NULL)`, { id, companyId: companyId || null });
+    if (!repRows.length) throw httpError(404, "NOT_FOUND", "Daily site report not found");
+
+    await query(
+      `UPDATE pm_daily_site_reports SET 
+         status = :desired_status, 
+         forwarded_to_username = NULL,
+         approved_by_name = NULL,
+         reversal_remarks = :reason
+       WHERE id = :id`,
+      {
+        desired_status,
+        reason: reason || `Reversed by ${req.user?.username || 'user'}`,
+        id
+      }
+    );
+
+    res.json({
+      ok: true,
+      status: desired_status,
+      message: "Daily site report reversed"
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
 // ==========================================
 // 6. SUBCONTRACTS & VALUATIONS (IPCs)
 // ==========================================
@@ -2688,8 +2839,8 @@ export const getClientValuationBaseline = async (req, res, next) => {
 
     // Approved variations for this project
     const approvedVariations = await query(
-      `SELECT v.id, v.variation_no, v.title, v.scope_of_work, v.net_amount, v.status,
-              vi.id AS item_id, vi.item_code, vi.description AS item_desc, vi.uom, vi.revised_qty, vi.proposed_rate, vi.cost_difference
+      `SELECT v.id, v.variation_no, v.title, v.description AS scope_of_work, v.cost_impact AS net_amount, v.status,
+              vi.id AS item_id, vi.item_code, vi.item_description AS item_desc, vi.uom, vi.revised_qty, vi.proposed_rate, vi.cost_diff AS cost_difference
        FROM pm_variations v
        LEFT JOIN pm_variation_items vi ON vi.variation_id = v.id
        WHERE v.project_id = :projectId AND (v.company_id = :companyId OR :companyId IS NULL)
@@ -3804,14 +3955,14 @@ export const createVariation = async (req, res, next) => {
 
     const result = await query(
       `INSERT INTO pm_variations 
-        (company_id, branch_id, project_id, variation_no, document_stage, title, description, reason,
+        (company_id, branch_id, project_id, variation_no, currency, exchange_rate, document_stage, title, description, reason,
          change_type, priority, originator, contract_ref, client_name, contractor_name, subcontractor_id,
          date_raised, effective_date, cost_impact, contractor_proposed_amount, assessed_amount, amount_approved,
          schedule_impact_days, original_completion_date, revised_completion_date, affected_tasks,
          risk_assessment, hsq_implications, funding_source, contingency_impact, direct_cost, overhead_cost,
          markup_percent, tax_amount, supporting_documents, status, workflow_stage, remarks, created_by)
        VALUES 
-        (:companyId, :branchId, :project_id, :variation_no, :document_stage, :title, :description, :reason,
+        (:companyId, :branchId, :project_id, :variation_no, :currency, :exchange_rate, :document_stage, :title, :description, :reason,
          :change_type, :priority, :originator, :contract_ref, :client_name, :contractor_name, :subcontractor_id,
          :date_raised, :effective_date, :cost_impact, :contractor_proposed_amount, :assessed_amount, :amount_approved,
          :schedule_impact_days, :original_completion_date, :revised_completion_date, :affected_tasks,
@@ -3822,6 +3973,8 @@ export const createVariation = async (req, res, next) => {
         branchId: branchId || null,
         project_id: toNumber(b.project_id),
         variation_no: variationNo,
+        currency: b.currency || "GHS",
+        exchange_rate: Number(b.exchange_rate || 1),
         document_stage: b.document_stage || "VARIATION_REQUEST",
         title: b.title,
         description: b.description || "",
@@ -3944,6 +4097,8 @@ export const updateVariation = async (req, res, next) => {
     await query(
       `UPDATE pm_variations SET
         title = :title,
+        currency = :currency,
+        exchange_rate = :exchange_rate,
         document_stage = :document_stage,
         description = :description,
         reason = :reason,
@@ -3977,6 +4132,8 @@ export const updateVariation = async (req, res, next) => {
       {
         id,
         title: b.title || v.title,
+        currency: b.currency || v.currency || "GHS",
+        exchange_rate: Number(b.exchange_rate !== undefined ? b.exchange_rate : (v.exchange_rate || 1)),
         document_stage: b.document_stage || v.document_stage,
         description: b.description !== undefined ? b.description : v.description,
         reason: b.reason || v.reason,

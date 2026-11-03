@@ -308,11 +308,11 @@ export default function DocumentRegisterPage() {
                         {d.document_number || d.doc_number}
                       </td>
                       <td className="font-bold text-xs text-slate-900 dark:text-white">{d.title}</td>
-                      <td className="uppercase text-[10px] font-bold text-slate-500">{d.discipline || d.doc_category}</td>
-                      <td className="uppercase text-[10px] text-slate-500">{d.category || d.doc_category}</td>
+                      <td className="uppercase text-xs font-bold text-slate-500">{d.discipline || d.doc_category}</td>
+                      <td className="uppercase text-xs text-slate-500">{d.category || d.doc_category}</td>
                       <td className="text-center font-mono font-bold text-xs">Rev {d.current_revision}</td>
                       <td className="text-center">
-                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                        <span className={`px-2 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider ${
                           d.status === "APPROVED_FOR_CONSTRUCTION"
                             ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300"
                             : "bg-blue-100 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300"
@@ -381,7 +381,7 @@ export default function DocumentRegisterPage() {
                       <td className="text-xs max-w-[260px]">
                         <div className="text-slate-700 dark:text-slate-300 line-clamp-2">{r.question}</div>
                         {r.answer && (
-                          <div className="mt-1 p-2 bg-emerald-50 dark:bg-emerald-950/30 rounded text-[11px] text-emerald-800 dark:text-emerald-300 border-l-2 border-emerald-500">
+                          <div className="mt-1 p-2 bg-emerald-50 dark:bg-emerald-950/30 rounded text-xs text-emerald-800 dark:text-emerald-300 border-l-2 border-emerald-500">
                             <span className="font-bold">Consultant Response: </span>{r.answer}
                           </div>
                         )}
@@ -393,7 +393,7 @@ export default function DocumentRegisterPage() {
                             href={r.file_url}
                             target="_blank"
                             rel="noreferrer"
-                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-sky-50 dark:bg-sky-950/40 text-sky-700 dark:text-sky-300 border border-sky-200 dark:border-sky-800 hover:underline"
+                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold bg-sky-50 dark:bg-sky-950/40 text-sky-700 dark:text-sky-300 border border-sky-200 dark:border-sky-800 hover:underline"
                             title="View Cloudinary document"
                           >
                             <Cloud size={11} className="text-sky-500" />
@@ -404,14 +404,14 @@ export default function DocumentRegisterPage() {
                           <span className="text-slate-400 text-xs">-</span>
                         )}
                       </td>
-                      <td className="text-center font-bold text-[10px]">
+                      <td className="text-center font-bold text-xs">
                         {r.cost_impact === "Y" ? (
                           <span className="text-rose-600 bg-rose-50 dark:bg-rose-950/40 px-1.5 py-0.5 rounded border border-rose-200 dark:border-rose-800">YES</span>
                         ) : (
                           <span className="text-slate-400">NO</span>
                         )}
                       </td>
-                      <td className="text-center font-bold text-[10px]">
+                      <td className="text-center font-bold text-xs">
                         {r.schedule_impact === "Y" ? (
                           <span className="text-rose-600 bg-rose-50 dark:bg-rose-950/40 px-1.5 py-0.5 rounded border border-rose-200 dark:border-rose-800">YES</span>
                         ) : (
@@ -419,7 +419,7 @@ export default function DocumentRegisterPage() {
                         )}
                       </td>
                       <td className="text-center">
-                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${
+                        <span className={`px-2 py-0.5 rounded-full text-xs font-black uppercase tracking-wider ${
                           r.status === "CLOSED"
                             ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300"
                             : "bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300"
@@ -434,7 +434,7 @@ export default function DocumentRegisterPage() {
                               setActiveRFIForAnswer(r);
                               setAnswerText(r.answer || "");
                             }}
-                            className="btn btn-secondary text-[11px] py-1 px-2.5 rounded font-bold"
+                            className="btn btn-secondary text-xs py-1 px-2.5 rounded font-bold"
                           >
                             Respond
                           </button>
@@ -676,7 +676,7 @@ export default function DocumentRegisterPage() {
 
               {activeRFIForAnswer.file_url && (
                 <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
-                  <span className="text-[11px] font-bold text-slate-500">Supporting Document:</span>
+                  <span className="text-xs font-bold text-slate-500">Supporting Document:</span>
                   <a
                     href={activeRFIForAnswer.file_url}
                     target="_blank"

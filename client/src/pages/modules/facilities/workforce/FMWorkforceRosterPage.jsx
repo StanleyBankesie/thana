@@ -189,26 +189,6 @@ export default function FMWorkforceRosterPage() {
         </button>
       </div>
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 shadow-sm">
-          <p className="text-[11px] uppercase font-semibold text-slate-400 tracking-wider">Total Assignments</p>
-          <p className="text-2xl font-bold text-slate-800 dark:text-slate-100 mt-1">{totalAssignments}</p>
-        </div>
-        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 shadow-sm">
-          <p className="text-[11px] uppercase font-semibold text-slate-400 tracking-wider">Active Today</p>
-          <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400 mt-1">{activeToday}</p>
-        </div>
-        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 shadow-sm">
-          <p className="text-[11px] uppercase font-semibold text-slate-400 tracking-wider">Absent Today</p>
-          <p className="text-2xl font-bold text-rose-600 dark:text-rose-400 mt-1">{absentToday}</p>
-        </div>
-        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 shadow-sm">
-          <p className="text-[11px] uppercase font-semibold text-slate-400 tracking-wider">Total Overtime Hrs</p>
-          <p className="text-2xl font-bold text-violet-600 dark:text-violet-400 mt-1">{totalOvertime.toFixed(1)}</p>
-        </div>
-      </div>
-
       {/* Filters */}
       <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 shadow-sm">
         <div className="flex flex-wrap gap-3 items-end">
@@ -292,10 +272,10 @@ export default function FMWorkforceRosterPage() {
                     <td className="px-3 py-3 text-slate-600 dark:text-slate-300">{r.role_required}</td>
                     <td className="px-3 py-3">{r.property_name || "—"}</td>
                     <td className="px-3 py-3 font-medium">{r.shift_name}</td>
-                    <td className="px-3 py-3 font-mono text-[11px]">{r.start_date ? String(r.start_date).slice(0, 10) : "—"}</td>
-                    <td className="px-3 py-3 font-mono text-[11px]">{r.end_date ? String(r.end_date).slice(0, 10) : "—"}</td>
+                    <td className="px-3 py-3 font-mono text-xs">{r.start_date ? String(r.start_date).slice(0, 10) : "—"}</td>
+                    <td className="px-3 py-3 font-mono text-xs">{r.end_date ? String(r.end_date).slice(0, 10) : "—"}</td>
                     <td className="px-3 py-3">
-                      <span className="font-mono text-[10px] text-slate-500 dark:text-slate-400">
+                      <span className="font-mono text-xs text-slate-500 dark:text-slate-400">
                         {Array.isArray(r.days_of_week)
                           ? r.days_of_week.join(", ")
                           : (r.days_of_week || "—")}
@@ -303,16 +283,16 @@ export default function FMWorkforceRosterPage() {
                     </td>
                     <td className="px-3 py-3 font-mono text-center">{r.hours_per_shift ?? "—"}</td>
                     <td className="px-3 py-3">
-                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${rosterStatusBadge(r.status)}`}>
+                      <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${rosterStatusBadge(r.status)}`}>
                         {r.status?.replace(/_/g, " ")}
                       </span>
                     </td>
                     <td className="px-3 py-3">
                       {r.attendance_status ? (
-                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${attendanceBadge(r.attendance_status)}`}>
+                        <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${attendanceBadge(r.attendance_status)}`}>
                           {r.attendance_status}
                         </span>
-                      ) : <span className="text-slate-400 text-[11px]">—</span>}
+                      ) : <span className="text-slate-400 text-xs">—</span>}
                     </td>
                     <td className="px-3 py-3 font-mono text-center">
                       {r.overtime_hours != null ? (
@@ -325,7 +305,7 @@ export default function FMWorkforceRosterPage() {
                       <div className="flex items-center gap-1.5 whitespace-nowrap">
                         <button
                           onClick={() => setViewingRoster(r)}
-                          className="inline-flex items-center gap-1 px-2 py-1 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg text-[10px] font-semibold transition-all"
+                          className="inline-flex items-center gap-1 px-2 py-1 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg text-xs font-semibold transition-all"
                           title="View Deployment Details"
                         >
                           <Eye size={11} /> View
@@ -340,7 +320,7 @@ export default function FMWorkforceRosterPage() {
                               });
                               setShowAttendanceModal(true);
                             }}
-                            className="inline-flex items-center gap-1 px-2.5 py-1 bg-violet-600 hover:bg-violet-500 text-white rounded-lg text-[10px] font-semibold"
+                            className="inline-flex items-center gap-1 px-2.5 py-1 bg-violet-600 hover:bg-violet-500 text-white rounded-lg text-xs font-semibold"
                           >
                             <UserCog size={11} /> Edit / Attendance
                           </button>
@@ -414,7 +394,7 @@ export default function FMWorkforceRosterPage() {
                         key={day}
                         type="button"
                         onClick={() => toggleDay(day)}
-                        className={`px-3 py-1.5 rounded-lg text-[11px] font-bold border transition-all ${
+                        className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all ${
                           checked
                             ? "bg-violet-600 text-white border-violet-600"
                             : "bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:border-violet-400"
@@ -481,7 +461,7 @@ export default function FMWorkforceRosterPage() {
               <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-3 text-slate-600 dark:text-slate-300">
                 <span className="font-bold">{selectedRoster.employee_name}</span>
                 <span className="text-slate-400 ml-2">— {selectedRoster.role_required}</span>
-                <span className="block text-[11px] text-slate-400 mt-0.5">{selectedRoster.shift_name} · {selectedRoster.property_name || "—"}</span>
+                <span className="block text-xs text-slate-400 mt-0.5">{selectedRoster.shift_name} · {selectedRoster.property_name || "—"}</span>
               </div>
               <div>
                 <label className="block font-semibold mb-1">Attendance Status *</label>
@@ -530,40 +510,40 @@ export default function FMWorkforceRosterPage() {
             <div className="p-6 space-y-4 text-xs">
               <div className="grid grid-cols-2 gap-3 p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl">
                 <div>
-                  <span className="text-slate-400 block text-[11px]">Employee Name</span>
+                  <span className="text-slate-400 block text-xs">Employee Name</span>
                   <span className="font-bold text-slate-800 dark:text-slate-200">{viewingRoster.employee_name}</span>
                 </div>
                 <div>
-                  <span className="text-slate-400 block text-[11px]">Role Required</span>
+                  <span className="text-slate-400 block text-xs">Role Required</span>
                   <span className="font-semibold text-slate-800 dark:text-slate-200">{viewingRoster.role_required}</span>
                 </div>
                 <div>
-                  <span className="text-slate-400 block text-[11px]">Property</span>
+                  <span className="text-slate-400 block text-xs">Property</span>
                   <span className="font-semibold text-slate-800 dark:text-slate-200">{viewingRoster.property_name || "—"}</span>
                 </div>
                 <div>
-                  <span className="text-slate-400 block text-[11px]">Shift</span>
+                  <span className="text-slate-400 block text-xs">Shift</span>
                   <span className="font-semibold text-slate-800 dark:text-slate-200">{viewingRoster.shift_name}</span>
                 </div>
                 <div>
-                  <span className="text-slate-400 block text-[11px]">Schedule Window</span>
+                  <span className="text-slate-400 block text-xs">Schedule Window</span>
                   <span className="font-mono text-slate-800 dark:text-slate-200">
                     {viewingRoster.start_date ? String(viewingRoster.start_date).slice(0, 10) : "—"} to {viewingRoster.end_date ? String(viewingRoster.end_date).slice(0, 10) : "—"}
                   </span>
                 </div>
                 <div>
-                  <span className="text-slate-400 block text-[11px]">Shift Hours</span>
+                  <span className="text-slate-400 block text-xs">Shift Hours</span>
                   <span className="font-mono text-slate-800 dark:text-slate-200">{viewingRoster.hours_per_shift} hrs / shift</span>
                 </div>
                 <div>
-                  <span className="text-slate-400 block text-[11px]">Status</span>
-                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold inline-block mt-0.5 ${rosterStatusBadge(viewingRoster.status)}`}>
+                  <span className="text-slate-400 block text-xs">Status</span>
+                  <span className={`px-2 py-0.5 rounded-full text-xs font-bold inline-block mt-0.5 ${rosterStatusBadge(viewingRoster.status)}`}>
                     {viewingRoster.status}
                   </span>
                 </div>
                 <div>
-                  <span className="text-slate-400 block text-[11px]">Attendance Record</span>
-                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold inline-block mt-0.5 ${attendanceBadge(viewingRoster.attendance_status)}`}>
+                  <span className="text-slate-400 block text-xs">Attendance Record</span>
+                  <span className={`px-2 py-0.5 rounded-full text-xs font-bold inline-block mt-0.5 ${attendanceBadge(viewingRoster.attendance_status)}`}>
                     {viewingRoster.attendance_status || "PENDING"} (OT: {viewingRoster.overtime_hours || 0} hrs)
                   </span>
                 </div>

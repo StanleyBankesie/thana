@@ -23,7 +23,7 @@ async function ensureProjectTables(companyId, branchId) {
   await query(`CREATE TABLE IF NOT EXISTS pm_resources (
     id INT AUTO_INCREMENT PRIMARY KEY,
     company_id INT NOT NULL, branch_id INT NOT NULL,
-    project_id INT NOT NULL,
+    project_id INT NULL,
     task_id INT NULL,
     resource_type VARCHAR(50) DEFAULT 'EQUIPMENT', 
     pm_equipment_id INT NULL, 
@@ -36,8 +36,12 @@ async function ensureProjectTables(companyId, branchId) {
     start_date DATE,
     end_date DATE,
     remarks TEXT,
+    is_active TINYINT(1) DEFAULT 1,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`);
+
+  await query(`ALTER TABLE pm_resources MODIFY project_id INT NULL`).catch(() => {});
+  await query(`ALTER TABLE pm_resources ADD COLUMN IF NOT EXISTS is_active TINYINT(1) DEFAULT 1`).catch(() => {});
 
   await query(`CREATE TABLE IF NOT EXISTS pm_projects (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -129,7 +133,8 @@ export const listProjects = async (req, res, next) => {
   try {
     const { companyId, branchId = null, branchIdsStr = "" } = req.scope || {};
     await ensureProjectTables(companyId, branchId);
-    const activeFilter = req.query.active !== 'all' ? " AND (p.is_active IS NULL OR p.is_active = 'Y' OR p.is_active = '1' OR p.is_active = 1)" : "";
+    const isAll = req.query.active === 'all' || req.query.all === '1' || req.query.all === 'true' || req.query.status === 'ALL';
+    const activeFilter = isAll ? "" : " AND (p.is_active IS NULL OR p.is_active = 'Y' OR p.is_active = '1' OR p.is_active = 1)";
     const items = await query(`SELECT p.*,
           u.username AS created_by_name,
           COALESCE(e.expense_total,0) AS expense_total
@@ -2336,30 +2341,42 @@ export const createPmResource = async (req, res, next) => {
     const branchId = req.scope?.branchId || req.user?.branchId || req.user?.branch_id || 1;
     await ensureProjectTables(companyId, branchId);
     
-    const { 
-      project_id, task_id, resource_type, pm_equipment_id, hr_employee_id, 
-      resource_name, allocated_qty, status, accountable_user_id, accountable_user_name,
-      start_date, end_date, remarks 
-    } = req.body;
+    // Support single resource allocation or batch of multiple resource types linked to project
+    const rawItems = Array.isArray(req.body.items) ? req.body.items : [req.body];
+    if (!rawItems.length) return res.status(400).json({ message: "No resource data provided" });
 
-    if (!project_id) return res.status(400).json({ message: "Project is required" });
-    if (!resource_name) return res.status(400).json({ message: "Resource name is required" });
+    const createdIds = [];
+    for (const item of rawItems) {
+      const {
+        project_id, task_id, resource_type, pm_equipment_id, hr_employee_id,
+        resource_name, allocated_qty, status, accountable_user_id, accountable_user_name,
+        start_date, end_date, remarks, is_active
+      } = item;
 
-    const result = await query(
-      `INSERT INTO pm_resources (
-        company_id, branch_id, project_id, task_id, resource_type,
-        pm_equipment_id, hr_employee_id, resource_name, allocated_qty,
-        status, accountable_user_id, accountable_user_name, start_date, end_date, remarks
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [
-        companyId, branchId, project_id, task_id || null, resource_type || 'EQUIPMENT',
-        pm_equipment_id || null, hr_employee_id || null, resource_name, 
-        allocated_qty || 1, status || 'ALLOCATED', accountable_user_id || null, accountable_user_name || null,
-        start_date || null, end_date || null, remarks || null
-      ]
-    );
+      if (!resource_name || !String(resource_name).trim()) continue;
 
-    res.status(201).json({ id: result.insertId, message: "Resource allocated successfully" });
+      const result = await query(
+        `INSERT INTO pm_resources (
+          company_id, branch_id, project_id, task_id, resource_type,
+          pm_equipment_id, hr_employee_id, resource_name, allocated_qty,
+          status, accountable_user_id, accountable_user_name, start_date, end_date, remarks, is_active
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          companyId, branchId, project_id ? Number(project_id) : null, task_id ? Number(task_id) : null, resource_type || 'EQUIPMENT',
+          pm_equipment_id ? Number(pm_equipment_id) : null, hr_employee_id ? Number(hr_employee_id) : null, String(resource_name).trim(), 
+          Number(allocated_qty) || 1, status || 'ALLOCATED', accountable_user_id ? Number(accountable_user_id) : null, accountable_user_name || null,
+          start_date || null, end_date || null, remarks || null,
+          is_active !== undefined ? (is_active ? 1 : 0) : 1
+        ]
+      );
+      createdIds.push(result.insertId);
+    }
+
+    if (!createdIds.length) {
+      return res.status(400).json({ message: "Resource name is required for all allocated items" });
+    }
+
+    res.status(201).json({ id: createdIds[0], ids: createdIds, message: "Resource(s) allocated successfully" });
   } catch (err) {
     next(err);
   }
@@ -2373,26 +2390,68 @@ export const updatePmResource = async (req, res, next) => {
     const { 
       project_id, task_id, resource_type, pm_equipment_id, hr_employee_id, 
       resource_name, allocated_qty, status, accountable_user_id, accountable_user_name,
-      start_date, end_date, remarks 
+      start_date, end_date, remarks, is_active
     } = req.body;
+
+    const current = await query(`SELECT * FROM pm_resources WHERE id = ? AND company_id = ?`, [id, companyId]);
+    if (!current.length) return res.status(404).json({ message: "Resource not found" });
+
+    // Business rule: User must unallocate resource type from project before they can set to inactive
+    const targetIsActive = is_active !== undefined ? (is_active === 0 || is_active === false || is_active === '0' || is_active === 'inactive' ? 0 : 1) : (current[0].is_active !== null ? current[0].is_active : 1);
+    const targetProjectId = project_id !== undefined ? (project_id ? Number(project_id) : null) : current[0].project_id;
+
+    if (targetIsActive === 0 && targetProjectId) {
+      return res.status(400).json({
+        message: "Cannot set resource to inactive while allocated to a project. Please unallocate the resource from the project first."
+      });
+    }
 
     await query(
       `UPDATE pm_resources SET
-        project_id = COALESCE(?, project_id),
+        project_id = ?,
         task_id = ?, resource_type = ?, pm_equipment_id = ?, hr_employee_id = ?,
         resource_name = ?, allocated_qty = ?, status = ?, accountable_user_id = ?, 
-        accountable_user_name = ?, start_date = ?, end_date = ?, remarks = ?
+        accountable_user_name = ?, start_date = ?, end_date = ?, remarks = ?, is_active = ?
        WHERE id = ? AND company_id = ?`,
       [
-        project_id || null,
-        task_id || null, resource_type || 'EQUIPMENT', pm_equipment_id || null, hr_employee_id || null,
-        resource_name, allocated_qty || 1, status || 'ALLOCATED', accountable_user_id || null,
-        accountable_user_name || null, start_date || null, end_date || null, remarks || null,
+        targetProjectId,
+        task_id ? Number(task_id) : null, resource_type || 'EQUIPMENT', pm_equipment_id ? Number(pm_equipment_id) : null, hr_employee_id ? Number(hr_employee_id) : null,
+        resource_name, Number(allocated_qty) || 1, status || 'ALLOCATED', accountable_user_id ? Number(accountable_user_id) : null,
+        accountable_user_name || null, start_date || null, end_date || null, remarks || null, targetIsActive,
         id, companyId
       ]
     );
 
     res.json({ success: true, message: "Resource updated successfully" });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const togglePmResourceStatus = async (req, res, next) => {
+  try {
+    const companyId = req.scope?.companyId || req.user?.companyId || req.user?.company_id || 1;
+    const { id } = req.params;
+    const { is_active } = req.body;
+
+    const current = await query(`SELECT * FROM pm_resources WHERE id = ? AND company_id = ?`, [id, companyId]);
+    if (!current.length) return res.status(404).json({ message: "Resource not found" });
+
+    const newActiveState = (is_active === 0 || is_active === false || is_active === '0' || is_active === 'inactive') ? 0 : 1;
+
+    // Enforce business rule: must unallocate from project before inactivating
+    if (newActiveState === 0 && current[0].project_id) {
+      return res.status(400).json({
+        message: "Cannot set resource to inactive while allocated to a project. Please unallocate the resource from the project first."
+      });
+    }
+
+    await query(`UPDATE pm_resources SET is_active = ? WHERE id = ? AND company_id = ?`, [newActiveState, id, companyId]);
+    res.json({ 
+      success: true, 
+      is_active: newActiveState, 
+      message: `Resource status changed to ${newActiveState === 1 ? 'Active' : 'Inactive'}` 
+    });
   } catch (err) {
     next(err);
   }

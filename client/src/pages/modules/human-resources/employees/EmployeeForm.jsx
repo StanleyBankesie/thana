@@ -11,6 +11,9 @@ import * as XLSX from "xlsx";
 import { usePermission } from "@/auth/PermissionContext.jsx";
 import { useGhanaCities } from "@/hooks/useGhanaCities";
 import { resolveImageUrl } from "@/utils/imageUrl";
+import FaceCaptureModal from "@/components/common/FaceCaptureModal";
+import FingerprintCaptureModal from "@/components/common/FingerprintCaptureModal";
+import { Camera, ShieldCheck, CheckCircle2, UserCheck, Trash2, RefreshCw, Fingerprint } from "lucide-react";
 
 const GHANA_REGIONS = [
   "Ahafo",
@@ -275,7 +278,17 @@ export default function EmployeeForm() {
     ssnit_number: "",
     tax_mappings: [],
     allowance_mappings: [],
+    face_descriptor: "",
+    face_photo: "",
+    face_registered_at: "",
+    fingerprint_template: "",
+    fingerprint_photo: "",
+    fingerprint_registered_at: "",
   });
+  const [showFaceModal, setShowFaceModal] = useState(false);
+  const [clearingFace, setClearingFace] = useState(false);
+  const [showFingerprintModal, setShowFingerprintModal] = useState(false);
+  const [clearingFingerprint, setClearingFingerprint] = useState(false);
   const [departments, setDepartments] = useState([]);
   const [positions, setPositions] = useState([]);
   const [employmentTypes, setEmploymentTypes] = useState([]);
@@ -371,6 +384,12 @@ export default function EmployeeForm() {
           country: item.country || "Ghana",
           tax_mappings: Array.isArray(item.tax_mappings) ? item.tax_mappings : [],
           allowance_mappings: Array.isArray(item.allowance_mappings) ? item.allowance_mappings : [],
+          face_descriptor: item.face_descriptor || "",
+          face_photo: item.face_photo || "",
+          face_registered_at: item.face_registered_at || "",
+          fingerprint_template: item.fingerprint_template || "",
+          fingerprint_photo: item.fingerprint_photo || "",
+          fingerprint_registered_at: item.fingerprint_registered_at || "",
         });
       }
     } catch (err) {
@@ -583,6 +602,105 @@ export default function EmployeeForm() {
       setLoading(false);
     }
   }
+
+  const handleFaceRegistered = async ({ descriptor, photoBase64 }) => {
+    const descStr = JSON.stringify(descriptor);
+    setForm((prev) => ({
+      ...prev,
+      face_descriptor: descStr,
+      face_photo: photoBase64,
+      face_registered_at: new Date().toISOString(),
+    }));
+
+    if (isEdit && id) {
+      try {
+        await api.post(`/hr/employees/${id}/face`, {
+          face_descriptor: descStr,
+          face_photo: photoBase64,
+        });
+        toast.success("Facial credentials registered and saved to employee record");
+      } catch (err) {
+        toast.info("Face credentials captured (will be saved when form is submitted)");
+      }
+    } else {
+      toast.success("Face credentials captured (will be saved with employee)");
+    }
+  };
+
+  const handleClearFace = async () => {
+    if (!window.confirm("Are you sure you want to remove the registered facial credentials for this employee?")) {
+      return;
+    }
+    setClearingFace(true);
+    try {
+      if (isEdit && id) {
+        await api.post(`/hr/employees/${id}/face`, {
+          face_descriptor: null,
+          face_photo: null,
+        });
+      }
+      setForm((prev) => ({
+        ...prev,
+        face_descriptor: null,
+        face_photo: null,
+        face_registered_at: null,
+      }));
+      toast.success("Facial credentials cleared");
+    } catch (err) {
+      toast.error("Failed to clear face credentials");
+    } finally {
+      setClearingFace(false);
+    }
+  };
+
+  const handleFingerprintRegistered = async ({ template, photoBase64 }) => {
+    setForm((prev) => ({
+      ...prev,
+      fingerprint_template: template,
+      fingerprint_photo: photoBase64,
+      fingerprint_registered_at: new Date().toISOString(),
+    }));
+
+    if (isEdit && id) {
+      try {
+        await api.post(`/hr/employees/${id}/fingerprint`, {
+          fingerprint_template: template,
+          fingerprint_photo: photoBase64,
+        });
+        toast.success("Fingerprint credentials registered and saved to employee record");
+      } catch (err) {
+        toast.info("Fingerprint captured (will be saved when form is submitted)");
+      }
+    } else {
+      toast.success("Fingerprint captured (will be saved with employee)");
+    }
+  };
+
+  const handleClearFingerprint = async () => {
+    if (!window.confirm("Are you sure you want to remove the registered fingerprint credentials for this employee?")) {
+      return;
+    }
+    setClearingFingerprint(true);
+    try {
+      if (isEdit && id) {
+        await api.post(`/hr/employees/${id}/fingerprint`, {
+          fingerprint_template: null,
+          fingerprint_photo: null,
+        });
+      }
+      setForm((prev) => ({
+        ...prev,
+        fingerprint_template: null,
+        fingerprint_photo: null,
+        fingerprint_registered_at: null,
+      }));
+      toast.success("Fingerprint credentials cleared");
+    } catch (err) {
+      toast.error("Failed to clear fingerprint credentials");
+    } finally {
+      setClearingFingerprint(false);
+    }
+  };
 
   return (
     <div className="space-y-4">
@@ -1071,6 +1189,204 @@ export default function EmployeeForm() {
                   )}
                 </div>
               </section>
+
+              {/* Biometric Credentials (Facial & Fingerprint Recognition) Section */}
+              <section className="border-t pt-8 mt-8">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2.5">
+                    <div className="p-2 bg-brand/10 text-brand rounded-xl">
+                      <ShieldCheck className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-slate-800 dark:text-slate-100 text-base flex items-center gap-2">
+                        Biometric Credentials & Identity Enrollment
+                        <span className="text-xs font-normal text-slate-400">
+                          (Facial &amp; Fingerprint Recognition)
+                        </span>
+                      </h3>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                        Register employee facial descriptor and fingerprint biometric templates directly into the hr_employees table.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  {/* Card 1: Facial Recognition */}
+                  <div className="bg-slate-50/80 dark:bg-slate-800/40 rounded-2xl border border-slate-200 dark:border-slate-700/60 p-5 flex flex-col justify-between">
+                    <div>
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-2">
+                          <div className="p-1.5 bg-brand/10 text-brand rounded-lg">
+                            <Camera className="w-4 h-4" />
+                          </div>
+                          <span className="text-sm font-bold text-slate-800 dark:text-slate-100">
+                            Facial Recognition
+                          </span>
+                        </div>
+                        {form.face_descriptor ? (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">
+                            <CheckCircle2 className="w-3.5 h-3.5" /> Enrolled
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-400">
+                            Not Enrolled
+                          </span>
+                        )}
+                      </div>
+
+                      {form.face_descriptor ? (
+                        <div className="flex items-center gap-3.5">
+                          <div className="relative shrink-0">
+                            <img
+                              src={form.face_photo || form.picture_url}
+                              alt="Registered face"
+                              className="w-16 h-16 rounded-xl object-cover border-2 border-emerald-500 shadow-sm"
+                            />
+                            <div className="absolute -bottom-1 -right-1 bg-emerald-600 text-white rounded-full p-0.5 shadow-sm">
+                              <CheckCircle2 className="w-3 h-3" />
+                            </div>
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 block">
+                              128-pt Biometric Vector Active
+                            </span>
+                            <span className="text-[11px] text-slate-400 block mt-0.5">
+                              {form.face_registered_at
+                                ? `Enrolled: ${new Date(form.face_registered_at).toLocaleDateString()}`
+                                : "Active in system"}
+                            </span>
+                          </div>
+                        </div>
+                      ) : (
+                        <p className="text-xs text-slate-500 dark:text-slate-400 my-2">
+                          No face credentials on file. Launch camera scanner to record facial biometric descriptor.
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="flex items-center justify-end gap-2 pt-4 border-t border-slate-200 dark:border-slate-700/60 mt-4">
+                      {form.face_descriptor ? (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => setShowFaceModal(true)}
+                            className="btn-secondary text-xs flex items-center gap-1.5"
+                          >
+                            <RefreshCw className="w-3.5 h-3.5" />
+                            Re-scan Face
+                          </button>
+                          <button
+                            type="button"
+                            onClick={handleClearFace}
+                            disabled={clearingFace}
+                            className="px-2.5 py-1.5 rounded-lg text-xs font-medium text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 border border-rose-200 dark:border-rose-800 transition-colors flex items-center gap-1"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                            Remove
+                          </button>
+                        </>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setShowFaceModal(true)}
+                          className="btn-primary text-xs flex items-center gap-1.5 px-3.5 py-1.5 shadow-sm"
+                        >
+                          <Camera className="w-3.5 h-3.5" />
+                          Enroll Face Credentials
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Card 2: Fingerprint Recognition */}
+                  <div className="bg-slate-50/80 dark:bg-slate-800/40 rounded-2xl border border-slate-200 dark:border-slate-700/60 p-5 flex flex-col justify-between">
+                    <div>
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-2">
+                          <div className="p-1.5 bg-brand/10 text-brand rounded-lg">
+                            <Fingerprint className="w-4 h-4" />
+                          </div>
+                          <span className="text-sm font-bold text-slate-800 dark:text-slate-100">
+                            Fingerprint Recognition
+                          </span>
+                        </div>
+                        {form.fingerprint_template ? (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">
+                            <CheckCircle2 className="w-3.5 h-3.5" /> Enrolled
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-400">
+                            Not Enrolled
+                          </span>
+                        )}
+                      </div>
+
+                      {form.fingerprint_template ? (
+                        <div className="flex items-center gap-3.5">
+                          <div className="relative shrink-0">
+                            <img
+                              src={form.fingerprint_photo || "/assets/fingerprint-placeholder.png"}
+                              alt="Registered fingerprint"
+                              className="w-16 h-16 rounded-xl object-contain bg-slate-900 border-2 border-emerald-500 shadow-sm p-1"
+                            />
+                            <div className="absolute -bottom-1 -right-1 bg-emerald-600 text-white rounded-full p-0.5 shadow-sm">
+                              <CheckCircle2 className="w-3 h-3" />
+                            </div>
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 block">
+                              Minutiae Pattern Template Active
+                            </span>
+                            <span className="text-[11px] text-slate-400 block mt-0.5">
+                              {form.fingerprint_registered_at
+                                ? `Enrolled: ${new Date(form.fingerprint_registered_at).toLocaleDateString()}`
+                                : "Active in system"}
+                            </span>
+                          </div>
+                        </div>
+                      ) : (
+                        <p className="text-xs text-slate-500 dark:text-slate-400 my-2">
+                          No fingerprint on file. Launch scanner to enroll hardware fingerprint (Windows Hello, Touch ID) or optical touch minutiae.
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="flex items-center justify-end gap-2 pt-4 border-t border-slate-200 dark:border-slate-700/60 mt-4">
+                      {form.fingerprint_template ? (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => setShowFingerprintModal(true)}
+                            className="btn-secondary text-xs flex items-center gap-1.5"
+                          >
+                            <RefreshCw className="w-3.5 h-3.5" />
+                            Re-scan Fingerprint
+                          </button>
+                          <button
+                            type="button"
+                            onClick={handleClearFingerprint}
+                            disabled={clearingFingerprint}
+                            className="px-2.5 py-1.5 rounded-lg text-xs font-medium text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 border border-rose-200 dark:border-rose-800 transition-colors flex items-center gap-1"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                            Remove
+                          </button>
+                        </>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setShowFingerprintModal(true)}
+                          className="btn-primary text-xs flex items-center gap-1.5 px-3.5 py-1.5 shadow-sm"
+                        >
+                          <Fingerprint className="w-3.5 h-3.5" />
+                          Enroll Fingerprint
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </section>
             </div>
 
             <div className="flex justify-end gap-3 border-t pt-4 mt-8">
@@ -1084,6 +1400,27 @@ export default function EmployeeForm() {
           </div>
         </div>
       </form>
+
+      {showFaceModal && (
+        <FaceCaptureModal
+          open={showFaceModal}
+          onClose={() => setShowFaceModal(false)}
+          onCapture={handleFaceRegistered}
+          mode="register"
+          employeeName={`${form.first_name || ""} ${form.last_name || ""}`.trim() || "Employee"}
+        />
+      )}
+
+      {showFingerprintModal && (
+        <FingerprintCaptureModal
+          open={showFingerprintModal}
+          onClose={() => setShowFingerprintModal(false)}
+          onCapture={handleFingerprintRegistered}
+          mode="register"
+          employeeName={`${form.first_name || ""} ${form.last_name || ""}`.trim() || "Employee"}
+          employeeId={id || form.emp_code}
+        />
+      )}
     </div>
   );
 }

@@ -295,15 +295,15 @@ export default function SecurityAccessPage() {
           {/* Summary Stats */}
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
             <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 shadow-sm">
-              <p className="text-[11px] uppercase font-semibold text-slate-400 tracking-wider">Checked In Today</p>
+              <p className="text-xs uppercase font-semibold text-slate-400 tracking-wider">Checked In Today</p>
               <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400 mt-1">{checkedInToday}</p>
             </div>
             <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 shadow-sm">
-              <p className="text-[11px] uppercase font-semibold text-slate-400 tracking-wider">Expected</p>
+              <p className="text-xs uppercase font-semibold text-slate-400 tracking-wider">Expected</p>
               <p className="text-2xl font-bold text-blue-600 dark:text-blue-400 mt-1">{expectedToday}</p>
             </div>
             <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 shadow-sm">
-              <p className="text-[11px] uppercase font-semibold text-slate-400 tracking-wider">Checked Out</p>
+              <p className="text-xs uppercase font-semibold text-slate-400 tracking-wider">Checked Out</p>
               <p className="text-2xl font-bold text-slate-600 dark:text-slate-400 mt-1">{checkedOut}</p>
             </div>
           </div>
@@ -395,12 +395,12 @@ export default function SecurityAccessPage() {
                         <td className="px-3 py-3">{v.host_employee_name}</td>
                         <td className="px-3 py-3 text-slate-500 dark:text-slate-400 max-w-[140px] truncate">{v.visit_purpose}</td>
                         <td className="px-3 py-3">
-                          <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-indigo-50 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300">
+                          <span className="px-2 py-0.5 rounded text-xs font-semibold bg-indigo-50 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300">
                             {v.access_zone?.replace(/_/g, " ")}
                           </span>
                         </td>
-                        <td className="px-3 py-3 font-mono text-[11px]">{v.check_in_time ? String(v.check_in_time).slice(0, 16) : "—"}</td>
-                        <td className="px-3 py-3 font-mono text-[11px]">
+                        <td className="px-3 py-3 font-mono text-xs">{v.check_in_time ? String(v.check_in_time).slice(0, 16) : "—"}</td>
+                        <td className="px-3 py-3 font-mono text-xs">
                           {v.check_out_time
                             ? String(v.check_out_time).slice(0, 16)
                             : v.status === "CHECKED_IN"
@@ -408,7 +408,7 @@ export default function SecurityAccessPage() {
                               : "—"}
                         </td>
                         <td className="px-3 py-3">
-                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${visitorStatusBadge(v.status)}`}>
+                          <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${visitorStatusBadge(v.status)}`}>
                             {v.status?.replace(/_/g, " ")}
                           </span>
                         </td>
@@ -416,7 +416,7 @@ export default function SecurityAccessPage() {
                           <div className="flex items-center gap-1.5 whitespace-nowrap">
                             <button
                               onClick={() => setViewingVisitor(v)}
-                              className="inline-flex items-center gap-1 px-2 py-1 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg text-[10px] font-semibold transition-all"
+                              className="inline-flex items-center gap-1 px-2 py-1 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg text-xs font-semibold transition-all"
                               title="View Visitor Log Details"
                             >
                               <Eye size={11} /> View
@@ -424,7 +424,7 @@ export default function SecurityAccessPage() {
                             {v.status === "CHECKED_IN" && (
                               <button
                                 onClick={() => handleCheckout(v)}
-                                className="inline-flex items-center gap-1 px-2.5 py-1 bg-slate-800 hover:bg-slate-700 dark:bg-slate-700 dark:hover:bg-slate-600 text-white rounded-lg text-[10px] font-semibold transition-all"
+                                className="inline-flex items-center gap-1 px-2.5 py-1 bg-slate-800 hover:bg-slate-700 dark:bg-slate-700 dark:hover:bg-slate-600 text-white rounded-lg text-xs font-semibold transition-all"
                               >
                                 <LogOut size={11} /> Checkout
                               </button>
@@ -447,19 +447,19 @@ export default function SecurityAccessPage() {
           {/* Summary Stats */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 shadow-sm">
-              <p className="text-[11px] uppercase font-semibold text-slate-400 tracking-wider">Total Keys</p>
+              <p className="text-xs uppercase font-semibold text-slate-400 tracking-wider">Total Keys</p>
               <p className="text-2xl font-bold text-slate-800 dark:text-slate-100 mt-1">{totalKeys}</p>
             </div>
             <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 shadow-sm">
-              <p className="text-[11px] uppercase font-semibold text-slate-400 tracking-wider">Issued</p>
+              <p className="text-xs uppercase font-semibold text-slate-400 tracking-wider">Issued</p>
               <p className="text-2xl font-bold text-amber-600 dark:text-amber-400 mt-1">{issuedKeys}</p>
             </div>
             <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 shadow-sm">
-              <p className="text-[11px] uppercase font-semibold text-slate-400 tracking-wider">Available</p>
+              <p className="text-xs uppercase font-semibold text-slate-400 tracking-wider">Available</p>
               <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400 mt-1">{availableKeys}</p>
             </div>
             <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 shadow-sm">
-              <p className="text-[11px] uppercase font-semibold text-slate-400 tracking-wider">Lost</p>
+              <p className="text-xs uppercase font-semibold text-slate-400 tracking-wider">Lost</p>
               <p className="text-2xl font-bold text-rose-600 dark:text-rose-400 mt-1">{lostKeys}</p>
             </div>
           </div>
@@ -541,18 +541,18 @@ export default function SecurityAccessPage() {
                         <td className="px-3 py-3 font-medium text-slate-700 dark:text-slate-200">{k.space_or_door_name}</td>
                         <td className="px-3 py-3 text-slate-500 dark:text-slate-400">{k.key_type?.replace(/_/g, " ")}</td>
                         <td className="px-3 py-3">
-                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${keyStatusBadge(k.status)}`}>
+                          <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${keyStatusBadge(k.status)}`}>
                             {k.status}
                           </span>
                         </td>
                         <td className="px-3 py-3">{k.issued_to_name || "—"}</td>
-                        <td className="px-3 py-3 font-mono text-[11px]">{k.issued_date ? String(k.issued_date).slice(0, 10) : "—"}</td>
-                        <td className="px-3 py-3 font-mono text-[11px]">{k.expected_return_date ? String(k.expected_return_date).slice(0, 10) : "—"}</td>
+                        <td className="px-3 py-3 font-mono text-xs">{k.issued_date ? String(k.issued_date).slice(0, 10) : "—"}</td>
+                        <td className="px-3 py-3 font-mono text-xs">{k.expected_return_date ? String(k.expected_return_date).slice(0, 10) : "—"}</td>
                         <td className="px-3 py-3">
                           <div className="flex items-center gap-1.5 whitespace-nowrap">
                             <button
                               onClick={() => setViewingKey(k)}
-                              className="inline-flex items-center gap-1 px-2 py-1 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg text-[10px] font-semibold transition-all"
+                              className="inline-flex items-center gap-1 px-2 py-1 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg text-xs font-semibold transition-all"
                               title="View Key Details"
                             >
                               <Eye size={11} /> View
@@ -560,7 +560,7 @@ export default function SecurityAccessPage() {
                             {k.status === "AVAILABLE" && (
                               <button
                                 onClick={() => { setSelectedKey(k); setIssueForm(getInitialIssueForm()); setShowIssueModal(true); }}
-                                className="inline-flex items-center gap-1 px-2.5 py-1 bg-amber-600 hover:bg-amber-500 text-white rounded-lg text-[10px] font-semibold transition-all"
+                                className="inline-flex items-center gap-1 px-2.5 py-1 bg-amber-600 hover:bg-amber-500 text-white rounded-lg text-xs font-semibold transition-all"
                               >
                                 <LogIn size={11} /> Issue
                               </button>
@@ -568,7 +568,7 @@ export default function SecurityAccessPage() {
                             {k.status === "ISSUED" && (
                               <button
                                 onClick={() => handleReturnKey(k)}
-                                className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-[10px] font-semibold transition-all"
+                                className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-semibold transition-all"
                               >
                                 <LogOut size={11} /> Return
                               </button>
@@ -796,42 +796,42 @@ export default function SecurityAccessPage() {
             <div className="p-6 space-y-4 text-xs">
               <div className="grid grid-cols-2 gap-3 p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl">
                 <div>
-                  <span className="text-slate-400 block text-[11px]">Visitor Name</span>
+                  <span className="text-slate-400 block text-xs">Visitor Name</span>
                   <span className="font-bold text-slate-800 dark:text-slate-200">{viewingVisitor.full_name}</span>
                 </div>
                 <div>
-                  <span className="text-slate-400 block text-[11px]">Company</span>
+                  <span className="text-slate-400 block text-xs">Company</span>
                   <span className="font-semibold text-slate-700 dark:text-slate-300">{viewingVisitor.company_name || "—"}</span>
                 </div>
                 <div>
-                  <span className="text-slate-400 block text-[11px]">Phone</span>
+                  <span className="text-slate-400 block text-xs">Phone</span>
                   <span className="font-mono text-slate-700 dark:text-slate-300">{viewingVisitor.phone || "—"}</span>
                 </div>
                 <div>
-                  <span className="text-slate-400 block text-[11px]">Badge Number</span>
+                  <span className="text-slate-400 block text-xs">Badge Number</span>
                   <span className="font-mono font-bold text-emerald-600">{viewingVisitor.visitor_badge_no || "—"}</span>
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-3 p-3 border border-slate-100 dark:border-slate-800 rounded-xl">
                 <div>
-                  <span className="text-slate-400 block text-[11px]">Host Employee</span>
+                  <span className="text-slate-400 block text-xs">Host Employee</span>
                   <span className="font-semibold text-slate-800 dark:text-slate-200">{viewingVisitor.host_employee_name} ({viewingVisitor.host_department || "General"})</span>
                 </div>
                 <div>
-                  <span className="text-slate-400 block text-[11px]">Access Zone</span>
+                  <span className="text-slate-400 block text-xs">Access Zone</span>
                   <span className="font-semibold text-slate-800 dark:text-slate-200">{viewingVisitor.access_zone?.replace(/_/g, " ")}</span>
                 </div>
                 <div>
-                  <span className="text-slate-400 block text-[11px]">Check-in Time</span>
+                  <span className="text-slate-400 block text-xs">Check-in Time</span>
                   <span className="font-mono text-slate-700 dark:text-slate-300">{viewingVisitor.check_in_time ? String(viewingVisitor.check_in_time).slice(0, 16) : "—"}</span>
                 </div>
                 <div>
-                  <span className="text-slate-400 block text-[11px]">Check-out Time</span>
+                  <span className="text-slate-400 block text-xs">Check-out Time</span>
                   <span className="font-mono text-slate-700 dark:text-slate-300">{viewingVisitor.check_out_time ? String(viewingVisitor.check_out_time).slice(0, 16) : "Still In"}</span>
                 </div>
               </div>
               <div>
-                <span className="text-slate-400 block text-[11px] font-semibold uppercase mb-1">Visit Purpose</span>
+                <span className="text-slate-400 block text-xs font-semibold uppercase mb-1">Visit Purpose</span>
                 <p className="p-3 bg-slate-50 dark:bg-slate-800 rounded-xl text-slate-700 dark:text-slate-300">
                   {viewingVisitor.visit_purpose}
                 </p>
@@ -862,20 +862,20 @@ export default function SecurityAccessPage() {
             <div className="p-6 space-y-4 text-xs">
               <div className="grid grid-cols-2 gap-3 p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl">
                 <div>
-                  <span className="text-slate-400 block text-[11px]">Key / Card Code</span>
+                  <span className="text-slate-400 block text-xs">Key / Card Code</span>
                   <span className="font-mono font-bold text-slate-800 dark:text-slate-200">{viewingKey.key_or_card_code}</span>
                 </div>
                 <div>
-                  <span className="text-slate-400 block text-[11px]">Type</span>
+                  <span className="text-slate-400 block text-xs">Type</span>
                   <span className="font-semibold text-slate-700 dark:text-slate-300">{viewingKey.key_type?.replace(/_/g, " ")}</span>
                 </div>
                 <div>
-                  <span className="text-slate-400 block text-[11px]">Door / Space</span>
+                  <span className="text-slate-400 block text-xs">Door / Space</span>
                   <span className="font-semibold text-slate-700 dark:text-slate-300">{viewingKey.space_or_door_name}</span>
                 </div>
                 <div>
-                  <span className="text-slate-400 block text-[11px]">Status</span>
-                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold inline-block mt-0.5 ${keyStatusBadge(viewingKey.status)}`}>
+                  <span className="text-slate-400 block text-xs">Status</span>
+                  <span className={`px-2 py-0.5 rounded-full text-xs font-bold inline-block mt-0.5 ${keyStatusBadge(viewingKey.status)}`}>
                     {viewingKey.status}
                   </span>
                 </div>
@@ -883,7 +883,7 @@ export default function SecurityAccessPage() {
               {viewingKey.issued_to_name && (
                 <div className="p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900 rounded-xl space-y-2">
                   <div className="font-bold text-amber-900 dark:text-amber-200">Current Custody Record</div>
-                  <div className="grid grid-cols-2 gap-2 text-[11px]">
+                  <div className="grid grid-cols-2 gap-2 text-xs">
                     <div><span className="text-slate-500">Issued To:</span> <strong className="ml-1">{viewingKey.issued_to_name}</strong></div>
                     <div><span className="text-slate-500">Phone:</span> <strong className="ml-1">{viewingKey.issued_to_phone || "—"}</strong></div>
                     <div><span className="text-slate-500">Issued Date:</span> <span className="ml-1 font-mono">{viewingKey.issued_date ? String(viewingKey.issued_date).slice(0, 10) : "—"}</span></div>

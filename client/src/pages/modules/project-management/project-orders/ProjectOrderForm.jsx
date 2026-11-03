@@ -289,7 +289,7 @@ export default function ProjectOrderForm() {
       return;
     }
     if (newItem.available_qty !== undefined && Number(newItem.qty || 0) > Number(newItem.available_qty || 0)) {
-      setError("Quantity exceeds available stock for selected warehouse");
+      setError("Quantity exceeds available stock for selected warehouse/store");
       return;
     }
     const calculations = calcItem({
@@ -568,10 +568,10 @@ export default function ProjectOrderForm() {
                 </select>
               </div>
               <div>
-                <label className="label">Warehouse</label>
+                <label className="label">Warehouse/store</label>
                 <select className="input" value={formData.warehouseId}
                   onChange={handleWarehouseChange} disabled={readOnly}>
-                  <option value="">Select Warehouse</option>
+                  <option value="">Select Warehouse/store</option>
                   {warehouses.map(w => <option key={w.id} value={w.id}>{w.warehouse_name}</option>)}
                 </select>
               </div>

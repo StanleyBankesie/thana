@@ -34,6 +34,7 @@ export default {
         // User-defined Brand Blend: #0E3646, #F57C00, #2E8B1F
         brand: {
           DEFAULT: "#0E3646", // Deep Teal / Navy Base
+          orange: "#F57C00", // User-defined Brand Blend Orange
           50: "#f0f7fa",
           100: "#e1eff5",
           200: "#c2deeb",

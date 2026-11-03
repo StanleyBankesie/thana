@@ -19,6 +19,18 @@ const toNumber = (v, fallback = null) => {
   return Number.isFinite(n) ? n : fallback;
 };
 
+const parseBoolFlag = (v, fallback = 1) => {
+  if (v === undefined || v === null) return fallback;
+  if (typeof v === "boolean") return v ? 1 : 0;
+  if (typeof v === "number") return v ? 1 : 0;
+  if (typeof v === "string") {
+    const s = v.trim().toLowerCase();
+    if (s === "1" || s === "true" || s === "yes" || s === "on") return 1;
+    if (s === "0" || s === "false" || s === "no" || s === "off") return 0;
+  }
+  return Boolean(v) ? 1 : 0;
+};
+
 const hasColumn = async (tableName, columnName) => {
   const rows = await query(
     `
@@ -40,6 +52,30 @@ async function applyAutoApprovalToLinkedDocument(instance) {
   const companyId = instance?.company_id;
   const documentId = instance?.document_id;
   if (!companyId || !documentId) return;
+
+  if (
+    docType === "FM_HELPDESK_TICKET" ||
+    docType === "FM_HELPDESK" ||
+    docType === "HELPDESK_TICKET"
+  ) {
+    await query(
+      `UPDATE fm_helpdesk_tickets SET status = 'APPROVED', approved_at = NOW(), forwarded_to_username = NULL WHERE id = :id AND (:companyId IS NULL OR company_id = :companyId)`,
+      { id: documentId, companyId: companyId || null },
+    );
+    return;
+  }
+
+  if (
+    docType === "PAYROLL" ||
+    docType === "SALARY_PROCESSING" ||
+    docType === "HR_PAYROLL"
+  ) {
+    await query(
+      `UPDATE hr_payroll SET status = 'APPROVED', approved_at = NOW(), forwarded_to_username = NULL WHERE id = :id AND (:companyId IS NULL OR company_id = :companyId)`,
+      { id: documentId, companyId: companyId || null },
+    );
+    return;
+  }
 
   if (docType === "PURCHASE_ORDER") {
     await query(
@@ -267,6 +303,19 @@ async function applyAutoApprovalToLinkedDocument(instance) {
   ) {
     await query(
       `UPDATE pm_variations SET status = 'APPROVED' WHERE id = :id AND company_id = :companyId`,
+      { id: documentId, companyId },
+    );
+    return;
+  }
+
+  if (
+    docType === 'DAILY_SITE_REPORT' ||
+    docType === 'DAILY_REPORT' ||
+    docType === 'SITE_DIARY' ||
+    docType === 'DSR'
+  ) {
+    await query(
+      `UPDATE pm_daily_site_reports SET status = 'APPROVED', approved_at = NOW() WHERE id = :id AND company_id = :companyId`,
       { id: documentId, companyId },
     );
     return;
@@ -738,6 +787,28 @@ export const reverseApproval = async (req, res, next) => {
         );
       } catch {}
     } else if (
+      instance.document_type === "FM_HELPDESK_TICKET" ||
+      instance.document_type === "FM_HELPDESK" ||
+      instance.document_type === "HELPDESK_TICKET"
+    ) {
+      try {
+        await query(
+          `UPDATE fm_helpdesk_tickets SET status = 'RETURNED', forwarded_to_username = NULL, approved_by_username = NULL, approved_at = NULL WHERE id = :id`,
+          { id: instance.document_id },
+        );
+      } catch {}
+    } else if (
+      instance.document_type === "PAYROLL" ||
+      instance.document_type === "SALARY_PROCESSING" ||
+      instance.document_type === "HR_PAYROLL"
+    ) {
+      try {
+        await query(
+          `UPDATE hr_payroll SET status = 'RETURNED', forwarded_to_username = NULL, approved_by_username = NULL, approved_at = NULL WHERE id = :id`,
+          { id: instance.document_id },
+        );
+      } catch {}
+    } else if (
       instance.document_type === "MAINT_MATERIAL_REQUISITION"
     ) {
       try {
@@ -785,6 +856,18 @@ export const reverseApproval = async (req, res, next) => {
       try {
         await query(
           `UPDATE pm_variations SET status = 'DRAFT', forwarded_to_username = NULL WHERE id = :id AND company_id = :companyId`,
+          { id: instance.document_id, companyId: instance.company_id },
+        );
+      } catch {}
+    } else if (
+      instance.document_type === "DAILY_SITE_REPORT" ||
+      instance.document_type === "DAILY_REPORT" ||
+      instance.document_type === "SITE_DIARY" ||
+      instance.document_type === "DSR"
+    ) {
+      try {
+        await query(
+          `UPDATE pm_daily_site_reports SET status = 'DRAFT', forwarded_to_username = NULL, approved_by_name = NULL WHERE id = :id AND company_id = :companyId`,
           { id: instance.document_id, companyId: instance.company_id },
         );
       } catch {}
@@ -903,7 +986,17 @@ export const reverseByDocument = async (req, res, next) => {
         VARIATION: "pm_variations",
         CHANGE_ORDER: "pm_variations",
         "CHANGE ORDER": "pm_variations",
-        PROJECT_VARIATION: "pm_variations"
+        PROJECT_VARIATION: "pm_variations",
+        DAILY_SITE_REPORT: "pm_daily_site_reports",
+        DAILY_REPORT: "pm_daily_site_reports",
+        SITE_DIARY: "pm_daily_site_reports",
+        DSR: "pm_daily_site_reports",
+        FM_HELPDESK_TICKET: "fm_helpdesk_tickets",
+        HELPDESK_TICKET: "fm_helpdesk_tickets",
+        FM_HELPDESK: "fm_helpdesk_tickets",
+        PAYROLL: "hr_payroll",
+        SALARY_PROCESSING: "hr_payroll",
+        HR_PAYROLL: "hr_payroll"
       };
       const tableName = tableMap[docTypeRaw.toUpperCase()];
       if (tableName) {
@@ -1483,7 +1576,7 @@ export const getPendingApprovals = async (req, res, next) => {
           dw.created_at as submitted_at,
           w.workflow_name,
           ws.step_name,
-          COALESCE(so.order_no, fv.voucher_no, po.po_no, mr.requisition_no, rts.rts_no, sa.adjustment_no, grn.grn_no, pm_ord.order_no, pm_pr.requisition_no, gr.requisition_no, inv.invoice_no) as doc_ref,
+          COALESCE(hr_pp.period_name, fm_ht.ticket_no, so.order_no, fv.voucher_no, po.po_no, mr.requisition_no, rts.rts_no, sa.adjustment_no, grn.grn_no, pm_ord.order_no, pm_pr.requisition_no, gr.requisition_no, inv.invoice_no) as doc_ref,
           po.po_type as po_type,
           u.username as initiator,
           (
@@ -1494,7 +1587,15 @@ export const getPendingApprovals = async (req, res, next) => {
          FROM adm_document_workflows dw
          JOIN adm_workflows w ON dw.workflow_id = w.id
          JOIN adm_workflow_steps ws ON w.id = ws.workflow_id AND dw.current_step_order = ws.step_order
-         LEFT JOIN sal_invoices inv
+         LEFT JOIN hr_payroll hr_p
+            ON (dw.document_type IN ('PAYROLL', 'Payroll', 'SALARY_PROCESSING', 'HR_PAYROLL'))
+           AND hr_p.id = dw.document_id
+          LEFT JOIN hr_payroll_periods hr_pp
+            ON hr_pp.id = hr_p.period_id
+          LEFT JOIN fm_helpdesk_tickets fm_ht
+            ON (dw.document_type IN ('FM_HELPDESK_TICKET', 'FM_HELPDESK', 'HELPDESK_TICKET'))
+           AND fm_ht.id = dw.document_id
+          LEFT JOIN sal_invoices inv
            ON (dw.document_type = 'SALES_INVOICE' OR dw.document_type = 'Sales Invoice')
           AND inv.id = dw.document_id
          LEFT JOIN sal_orders so
@@ -1718,6 +1819,71 @@ export const getApprovalInstanceDetail = async (req, res, next) => {
         { wid: instance.workflow_id, ord: next_step_order },
       );
     }
+    let docRef = null;
+    let docTitle = null;
+    const docTypeNorm = String(instance.document_type || "").trim().toUpperCase();
+
+    if (docTypeNorm === "PAYROLL" || docTypeNorm === "SALARY_PROCESSING" || docTypeNorm === "HR_PAYROLL") {
+      const pRows = await query(
+        `SELECT p.id, pp.period_name 
+         FROM hr_payroll p 
+         LEFT JOIN hr_payroll_periods pp ON pp.id = p.period_id 
+         WHERE p.id = :id LIMIT 1`,
+        { id: instance.document_id }
+      ).catch(() => []);
+      if (pRows.length) {
+        docRef = pRows[0].period_name || `Period #${pRows[0].id}`;
+        docTitle = `Payroll — ${pRows[0].period_name || `Period #${pRows[0].id}`}`;
+      }
+    } else if (docTypeNorm === "FM_HELPDESK_TICKET" || docTypeNorm === "FM_HELPDESK" || docTypeNorm === "HELPDESK_TICKET") {
+      const tRows = await query(
+        `SELECT ticket_no, subject FROM fm_helpdesk_tickets WHERE id = :id LIMIT 1`,
+        { id: instance.document_id }
+      ).catch(() => []);
+      if (tRows.length) {
+        docRef = tRows[0].ticket_no;
+        docTitle = `FM Helpdesk — ${tRows[0].ticket_no}${tRows[0].subject ? ` (${tRows[0].subject})` : ""}`;
+      }
+    } else if (["PAYMENT_VOUCHER", "RECEIPT_VOUCHER", "JOURNAL_VOUCHER", "CONTRA_VOUCHER", "PV", "RV", "JV", "CV", "DEBIT_NOTE", "CREDIT_NOTE", "DN", "CN"].includes(docTypeNorm)) {
+      const vRows = await query(
+        `SELECT voucher_no, voucher_type FROM fin_vouchers WHERE id = :id LIMIT 1`,
+        { id: instance.document_id }
+      ).catch(() => []);
+      if (vRows.length) {
+        docRef = vRows[0].voucher_no;
+        const vTypeName = docTypeNorm === "PV" || docTypeNorm === "PAYMENT_VOUCHER" ? "Payment Voucher" :
+                          docTypeNorm === "RV" || docTypeNorm === "RECEIPT_VOUCHER" ? "Receipt Voucher" :
+                          docTypeNorm === "CV" || docTypeNorm === "CONTRA_VOUCHER" ? "Contra Voucher" :
+                          docTypeNorm === "DN" || docTypeNorm === "DEBIT_NOTE" ? "Debit Note" :
+                          docTypeNorm === "CN" || docTypeNorm === "CREDIT_NOTE" ? "Credit Note" : "Journal Voucher";
+        docTitle = `${vTypeName} — ${vRows[0].voucher_no}`;
+      }
+    } else if (docTypeNorm === "PURCHASE_ORDER") {
+      const poRows = await query(`SELECT po_no FROM pur_orders WHERE id = :id LIMIT 1`, { id: instance.document_id }).catch(() => []);
+      if (poRows.length) {
+        docRef = poRows[0].po_no;
+        docTitle = `Purchase Order — ${poRows[0].po_no}`;
+      }
+    } else if (docTypeNorm === "SALES_ORDER") {
+      const soRows = await query(`SELECT order_no FROM sal_orders WHERE id = :id LIMIT 1`, { id: instance.document_id }).catch(() => []);
+      if (soRows.length) {
+        docRef = soRows[0].order_no;
+        docTitle = `Sales Order — ${soRows[0].order_no}`;
+      }
+    } else if (docTypeNorm === "MATERIAL_REQUISITION") {
+      const mrRows = await query(`SELECT requisition_no FROM inv_material_requisitions WHERE id = :id LIMIT 1`, { id: instance.document_id }).catch(() => []);
+      if (mrRows.length) {
+        docRef = mrRows[0].requisition_no;
+        docTitle = `Material Requisition — ${mrRows[0].requisition_no}`;
+      }
+    } else if (docTypeNorm === "GOODS_RECEIPT" || docTypeNorm === "GRN" || docTypeNorm === "GOODS_RECEIPT_NOTE") {
+      const grnRows = await query(`SELECT grn_no FROM inv_goods_receipt_notes WHERE id = :id LIMIT 1`, { id: instance.document_id }).catch(() => []);
+      if (grnRows.length) {
+        docRef = grnRows[0].grn_no;
+        docTitle = `GRN — ${grnRows[0].grn_no}`;
+      }
+    }
+
     const logs = await query(
       `SELECT l.*, u.username as actor_name,
           l.created_at
@@ -1728,7 +1894,7 @@ export const getApprovalInstanceDetail = async (req, res, next) => {
       { instanceId },
     );
     res.json({
-      item: { ...instance, logs, next_step_order, next_step_approvers },
+      item: { ...instance, doc_ref: docRef, doc_title: docTitle, logs, next_step_order, next_step_approvers },
     });
   } catch (err) {
     next(err);
@@ -1813,12 +1979,25 @@ export const performAction = async (req, res, next) => {
     if (!instances.length)
       throw httpError(404, "NOT_FOUND", "Workflow instance not found");
     const instance = instances[0];
-    if (instance.assigned_to_user_id !== userId) {
-      throw httpError(
-        403,
-        "FORBIDDEN",
-        "You are not authorized to approve this step (Assigned to someone else)",
+    const numericUserId = Number(userId || req.user?.id || req.user?.sub);
+    const assignedId = instance.assigned_to_user_id !== null && instance.assigned_to_user_id !== undefined ? Number(instance.assigned_to_user_id) : null;
+    const isSuperAdmin = req.user?.role === "ADMIN" || req.user?.role === "SUPERADMIN" || req.user?.is_super_admin;
+
+    if (assignedId && numericUserId && assignedId !== numericUserId && !isSuperAdmin) {
+      const stepApprovers = await query(
+        `SELECT approver_user_id FROM adm_workflow_step_approvers WHERE workflow_id = :wid AND step_order = :ord`,
+        { wid: instance.workflow_id, ord: instance.current_step_order },
+      ).catch(() => []);
+      const isConfiguredApprover = Array.isArray(stepApprovers) && stepApprovers.some(
+        (a) => Number(a.approver_user_id) === numericUserId,
       );
+      if (!isConfiguredApprover) {
+        throw httpError(
+          403,
+          "FORBIDDEN",
+          "You are not authorized to approve this step (Assigned to someone else)",
+        );
+      }
     }
     const currentStepRes = await query(
       `SELECT *,
@@ -2085,6 +2264,25 @@ export const performAction = async (req, res, next) => {
             nextUser: nextAssigned,
           },
         );
+        try {
+          const nextUserRows = await query("SELECT username FROM adm_users WHERE id = :id LIMIT 1", { id: nextAssigned }).catch(() => []);
+          const nextUsername = nextUserRows.length ? nextUserRows[0].username : null;
+          const normDocType = String(instance.document_type || "").trim().toUpperCase();
+
+          if (normDocType === "FM_HELPDESK_TICKET" || normDocType === "FM_HELPDESK" || normDocType === "HELPDESK_TICKET") {
+            await query(
+              `UPDATE fm_helpdesk_tickets SET status = 'PENDING_APPROVAL', forwarded_to_username = :nextUsername WHERE id = :id AND company_id = :companyId`,
+              { nextUsername, id: instance.document_id, companyId: instance.company_id }
+            );
+          } else if (normDocType === "PAYROLL" || normDocType === "SALARY_PROCESSING" || normDocType === "HR_PAYROLL") {
+            await query(
+              `UPDATE hr_payroll SET status = 'PENDING_APPROVAL', forwarded_to_username = :nextUsername WHERE id = :id AND company_id = :companyId`,
+              { nextUsername, id: instance.document_id, companyId: instance.company_id }
+            );
+          }
+        } catch (e) {
+          console.error("Error updating document forward recipient:", e);
+        }
         await query(
           `UPDATE adm_workflow_tasks
              SET action = 'APPROVED'
@@ -2147,6 +2345,34 @@ export const performAction = async (req, res, next) => {
              WHERE document_workflow_id = :dw AND step_order = :cur`,
           { dw: instance.id, cur: instance.current_step_order },
         );
+        try {
+          const uRows = await query("SELECT username FROM adm_users WHERE id = :id LIMIT 1", { id: userId }).catch(() => []);
+          const approverName = uRows.length ? uRows[0].username : "admin";
+          const normDocType = String(instance.document_type || "").trim().toUpperCase();
+
+          if (
+            normDocType === "FM_HELPDESK_TICKET" ||
+            normDocType === "FM_HELPDESK" ||
+            normDocType === "HELPDESK_TICKET"
+          ) {
+            await query(
+              `UPDATE fm_helpdesk_tickets SET status = 'APPROVED', approved_by_username = :approverName, approved_at = NOW(), forwarded_to_username = NULL WHERE id = :id`,
+              { approverName, id: instance.document_id }
+            );
+          } else if (
+            normDocType === "PAYROLL" ||
+            normDocType === "SALARY_PROCESSING" ||
+            normDocType === "HR_PAYROLL"
+          ) {
+            await query(
+              `UPDATE hr_payroll SET status = 'APPROVED', approved_by_username = :approverName, approved_at = NOW(), forwarded_to_username = NULL WHERE id = :id`,
+              { approverName, id: instance.document_id }
+            );
+          }
+        } catch (e) {
+          console.error("Error finalizing FM/Payroll document:", e);
+        }
+
         if (
           String(instance.document_type || "").toUpperCase() === "MAINT_REQUEST"
         ) {
@@ -2198,6 +2424,17 @@ export const performAction = async (req, res, next) => {
         ) {
           await query(
             `UPDATE pm_variations SET status = 'APPROVED' WHERE id = :id AND company_id = :companyId`,
+            { id: instance.document_id, companyId: instance.company_id },
+          );
+        }
+        if (
+          instance.document_type === "DAILY_SITE_REPORT" ||
+          instance.document_type === "DAILY_REPORT" ||
+          instance.document_type === "SITE_DIARY" ||
+          instance.document_type === "DSR"
+        ) {
+          await query(
+            `UPDATE pm_daily_site_reports SET status = 'APPROVED', approved_at = NOW() WHERE id = :id AND company_id = :companyId`,
             { id: instance.document_id, companyId: instance.company_id },
           );
         }
@@ -2327,6 +2564,22 @@ export const performAction = async (req, res, next) => {
         `UPDATE adm_document_workflows SET status = 'REJECTED', assigned_to_user_id = NULL WHERE id = :id`,
         { id: instance.id },
       );
+      try {
+        const normDocType = String(instance.document_type || "").trim().toUpperCase();
+        if (normDocType === "FM_HELPDESK_TICKET" || normDocType === "FM_HELPDESK" || normDocType === "HELPDESK_TICKET") {
+          await query(
+            `UPDATE fm_helpdesk_tickets SET status = 'REJECTED', forwarded_to_username = NULL, approved_by_username = NULL, approved_at = NULL WHERE id = :id`,
+            { id: instance.document_id }
+          );
+        } else if (normDocType === "PAYROLL" || normDocType === "SALARY_PROCESSING" || normDocType === "HR_PAYROLL") {
+          await query(
+            `UPDATE hr_payroll SET status = 'REJECTED', forwarded_to_username = NULL, approved_by_username = NULL, approved_at = NULL WHERE id = :id`,
+            { id: instance.document_id }
+          );
+        }
+      } catch (e) {
+        console.error("Error updating FM/Payroll on reject:", e);
+      }
       await query(
         `UPDATE adm_workflow_tasks
            SET action = 'REJECTED'
@@ -2492,6 +2745,22 @@ export const performAction = async (req, res, next) => {
         `UPDATE adm_document_workflows SET status = 'RETURNED', assigned_to_user_id = NULL WHERE id = :id`,
         { id: instance.id },
       );
+      try {
+        const normDocType = String(instance.document_type || "").trim().toUpperCase();
+        if (normDocType === "FM_HELPDESK_TICKET" || normDocType === "FM_HELPDESK" || normDocType === "HELPDESK_TICKET") {
+          await query(
+            `UPDATE fm_helpdesk_tickets SET status = 'RETURNED', forwarded_to_username = NULL, approved_by_username = NULL, approved_at = NULL WHERE id = :id`,
+            { id: instance.document_id }
+          );
+        } else if (normDocType === "PAYROLL" || normDocType === "SALARY_PROCESSING" || normDocType === "HR_PAYROLL") {
+          await query(
+            `UPDATE hr_payroll SET status = 'RETURNED', forwarded_to_username = NULL, approved_by_username = NULL, approved_at = NULL WHERE id = :id`,
+            { id: instance.document_id }
+          );
+        }
+      } catch (e) {
+        console.error("Error updating FM/Payroll on return:", e);
+      }
       await query(
         `UPDATE adm_workflow_tasks
            SET action = 'RETURNED'

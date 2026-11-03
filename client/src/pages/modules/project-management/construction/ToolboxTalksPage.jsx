@@ -183,23 +183,23 @@ export default function ToolboxTalksPage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
         <div className="card p-4 space-y-1">
           <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Total Briefings Held</span>
-          <p className="text-2xl font-bold font-mono text-slate-900 dark:text-white">{totalSessions}</p>
-          <p className="text-[10px] text-slate-400">Recorded safety briefings</p>
+          <p className="text-2xl font-medium text-slate-900 dark:text-white">{totalSessions}</p>
+          <p className="text-xs text-slate-400">Recorded safety briefings</p>
         </div>
         <div className="card p-4 space-y-1">
           <span className="text-xs font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider">Worker Attendances</span>
-          <p className="text-2xl font-bold font-mono text-blue-600">{totalAttendees}</p>
-          <p className="text-[10px] text-slate-400">Total operatives briefed</p>
+          <p className="text-2xl font-medium text-blue-600">{totalAttendees}</p>
+          <p className="text-xs text-slate-400">Total operatives briefed</p>
         </div>
         <div className="card p-4 space-y-1">
           <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">Average Attendance</span>
-          <p className="text-2xl font-bold font-mono text-emerald-600">{avgAttendance} Operatives</p>
-          <p className="text-[10px] text-slate-400">Mean operatives per talk</p>
+          <p className="text-2xl font-medium text-emerald-600">{avgAttendance} Operatives</p>
+          <p className="text-xs text-slate-400">Mean operatives per talk</p>
         </div>
         <div className="card p-4 space-y-1">
           <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Latest Session Date</span>
           <p className="text-lg font-bold font-mono text-slate-900 dark:text-white mt-1">{latestDate}</p>
-          <p className="text-[10px] text-slate-400">Most recent site briefing</p>
+          <p className="text-xs text-slate-400">Most recent site briefing</p>
         </div>
       </div>
 
@@ -424,23 +424,23 @@ export default function ToolboxTalksPage() {
           <div className="space-y-3 text-xs">
             <div className="grid grid-cols-2 gap-2 bg-slate-50 dark:bg-slate-800/50 p-3 rounded-xl border border-slate-200 dark:border-slate-700">
               <div>
-                <span className="text-slate-400 block text-[10px] uppercase font-bold">Project</span>
+                <span className="text-slate-400 block text-xs uppercase font-bold">Project</span>
                 <span className="font-semibold text-slate-800 dark:text-slate-200">{selectedTalk.project_name || "-"}</span>
               </div>
               <div>
-                <span className="text-slate-400 block text-[10px] uppercase font-bold">Date</span>
+                <span className="text-slate-400 block text-xs uppercase font-bold">Date</span>
                 <span className="font-semibold text-slate-800 dark:text-slate-200 font-mono">
                   {selectedTalk.talk_date ? selectedTalk.talk_date.split("T")[0] : "-"}
                 </span>
               </div>
               <div>
-                <span className="text-slate-400 block text-[10px] uppercase font-bold">Speaker / Conductor</span>
+                <span className="text-slate-400 block text-xs uppercase font-bold">Speaker / Conductor</span>
                 <span className="font-semibold text-slate-800 dark:text-slate-200">
                   {selectedTalk.conductor_name || selectedTalk.delivered_by || "Safety Officer"}
                 </span>
               </div>
               <div>
-                <span className="text-slate-400 block text-[10px] uppercase font-bold">Workers Present</span>
+                <span className="text-slate-400 block text-xs uppercase font-bold">Workers Present</span>
                 <span className="font-semibold text-blue-600 font-mono">
                   {selectedTalk.attendee_count ?? selectedTalk.attendees_count ?? 0} Operatives
                 </span>

@@ -845,7 +845,7 @@ export default function ProjectQuotationList() {
             <p className="text-xl font-bold text-slate-900 dark:text-white">
               {quotationMetrics.totalCount}
             </p>
-            <p className="text-[11px] text-slate-500 truncate">
+            <p className="text-xs text-slate-500 truncate">
               {filteredQuotations.length} in current view
             </p>
           </div>
@@ -862,7 +862,7 @@ export default function ProjectQuotationList() {
             <p className="text-xl font-bold text-slate-900 dark:text-white truncate">
               GHS {quotationMetrics.totalPipelineValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </p>
-            <p className="text-[11px] text-slate-500 truncate">
+            <p className="text-xs text-slate-500 truncate">
               Total quoted amount
             </p>
           </div>
@@ -879,7 +879,7 @@ export default function ProjectQuotationList() {
             <p className="text-xl font-bold text-teal-600 dark:text-teal-400">
               {quotationMetrics.approvedCount}
             </p>
-            <p className="text-[11px] text-slate-500 truncate">
+            <p className="text-xs text-slate-500 truncate">
               GHS {quotationMetrics.approvedValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} approved
             </p>
           </div>
@@ -896,7 +896,7 @@ export default function ProjectQuotationList() {
             <p className="text-xl font-bold text-amber-600 dark:text-amber-400">
               {quotationMetrics.draftCount} <span className="text-xs font-normal text-slate-400">Draft</span> / {quotationMetrics.pendingCount} <span className="text-xs font-normal text-slate-400">Pending</span>
             </p>
-            <p className="text-[11px] text-slate-500 truncate">
+            <p className="text-xs text-slate-500 truncate">
               Avg: GHS {quotationMetrics.avgValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </p>
           </div>
@@ -1119,13 +1119,13 @@ export default function ProjectQuotationList() {
         <div className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700/60">
-              <span className="text-slate-400 block text-[11px] font-semibold mb-1 uppercase tracking-wider">Document No</span>
+              <span className="text-slate-400 block text-xs font-semibold mb-1 uppercase tracking-wider">Document No</span>
               <span className="font-bold text-sm text-slate-900 dark:text-slate-100">
                 {selectedQuot?.quotation_no || `#${selectedQuot?.id}`}
               </span>
             </div>
             <div className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700/60">
-              <span className="text-slate-400 block text-[11px] font-semibold mb-1 uppercase tracking-wider">Workflow</span>
+              <span className="text-slate-400 block text-xs font-semibold mb-1 uppercase tracking-wider">Workflow</span>
               <span className="font-bold text-sm text-slate-900 dark:text-slate-100">
                 {candidateWorkflow?.name || "None (inactive)"}
               </span>

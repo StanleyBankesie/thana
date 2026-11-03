@@ -50,6 +50,7 @@ import { api } from "../../../../api/client.js";
 import { toast } from "react-toastify";
 import ProjectModal from "../components/ProjectModal.jsx";
 import { useTaxCodesByPageId, PAGE_IDS } from "../../../../hooks/useTaxCodesByPageId.js";
+import { useUoms } from "@/hooks/useUoms";
 import * as XLSX from "xlsx";
 import { autosizeWorksheetColumns } from "../../../../utils/xlsxUtils.js";
 import { fetchReportHeader, renderHtmlToPdf } from "../../../../utils/pdfUtils.js";
@@ -107,6 +108,20 @@ export default function BOQManager() {
   const [taxPercent, setTaxPercent] = useState(0);
   const [otherCharges, setOtherCharges] = useState(0);
   const [currency, setCurrency] = useState("GHS");
+
+  // UOMs populated from inv_uoms table
+  const { uoms } = useUoms();
+  const dynamicUomOptions = useMemo(() => {
+    if (Array.isArray(uoms) && uoms.length > 0) {
+      return uoms
+        .filter((u) => u.is_active !== 0 && u.is_active !== false)
+        .map((u) => ({
+          value: u.uom_code || u.code || "",
+          label: u.uom_name ? `${u.uom_name} (${u.uom_code || u.code})` : (u.uom_code || u.code || "")
+        }));
+    }
+    return UOM_OPTIONS;
+  }, [uoms]);
 
   // Tax Codes linked to BOQ page (Page ID 29)
   const { taxCodes: boqTaxCodes = [] } = useTaxCodesByPageId(PAGE_IDS.BOQ || 29);
@@ -1317,9 +1332,9 @@ export default function BOQManager() {
             <td>${item.item_description || item.description || "—"}</td>
             <td><span style="font-size: 8.5px; color: #475569;">${item.cost_category || "MATERIALS"}</span></td>
             <td class="center font-mono">${item.uom || item.unit || "EA"}</td>
-            <td class="num font-mono">${Number(item.quantity || 0).toLocaleString()}</td>
-            <td class="num font-mono">${Number(item.unit_rate || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-            <td class="num font-mono bold">${Number(item.amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+            <td class="num">${Number(item.quantity || 0).toLocaleString()}</td>
+            <td class="num">${Number(item.unit_rate || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+            <td class="num">${Number(item.amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
             <td style="font-size: 8.5px; color: #64748b;">${item.remarks || "—"}</td>
           </tr>
         `).join("")}
@@ -1501,7 +1516,7 @@ export default function BOQManager() {
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
             <div className="space-y-2">
               <div className="flex flex-wrap items-center gap-2">
-                <span className="px-2.5 py-0.5 rounded-full text-[11px] font-mono font-bold bg-brand-50 dark:bg-brand-900/40 text-brand-700 dark:text-brand-300 border border-brand-200 dark:border-brand-800">
+                <span className="px-2.5 py-0.5 rounded-full text-xs font-mono font-bold bg-brand-50 dark:bg-brand-900/40 text-brand-700 dark:text-brand-300 border border-brand-200 dark:border-brand-800">
                   {selectedProject?.project_code || "PRJ"}
                 </span>
                 {activeBOQ?.boq_date && (
@@ -1538,7 +1553,7 @@ export default function BOQManager() {
             {/* Quick Switcher among existing project BOQs */}
             <div className="flex flex-col sm:flex-row lg:flex-col items-start lg:items-end gap-3 print:hidden">
               <div className="w-full sm:w-auto">
-                <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+                <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1">
                   Active BOQ Document:
                 </label>
                 <select
@@ -1590,55 +1605,55 @@ export default function BOQManager() {
         {activeBOQ && (
           <div className="p-4 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
             <div className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200/80 dark:border-slate-800 space-y-1">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400 flex items-center gap-1">
+              <span className="text-xs font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400 flex items-center gap-1">
                 <Package size={12} /> Materials
               </span>
-              <p className="font-mono font-bold text-sm text-slate-800 dark:text-slate-100">
+              <p className="text-sm font-medium text-slate-800 dark:text-slate-100">
                 {currency} {categoryTotals.MATERIALS.toLocaleString(undefined, { minimumFractionDigits: 2 })}
               </p>
             </div>
 
             <div className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200/80 dark:border-slate-800 space-y-1">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400 flex items-center gap-1">
+              <span className="text-xs font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400 flex items-center gap-1">
                 <Users size={12} /> Labour
               </span>
-              <p className="font-mono font-bold text-sm text-slate-800 dark:text-slate-100">
+              <p className="text-sm font-medium text-slate-800 dark:text-slate-100">
                 {currency} {categoryTotals.LABOUR.toLocaleString(undefined, { minimumFractionDigits: 2 })}
               </p>
             </div>
 
             <div className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200/80 dark:border-slate-800 space-y-1">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-purple-600 dark:text-purple-400 flex items-center gap-1">
+              <span className="text-xs font-bold uppercase tracking-wider text-purple-600 dark:text-purple-400 flex items-center gap-1">
                 <Wrench size={12} /> Equipment
               </span>
-              <p className="font-mono font-bold text-sm text-slate-800 dark:text-slate-100">
+              <p className="text-sm font-medium text-slate-800 dark:text-slate-100">
                 {currency} {categoryTotals.EQUIPMENT.toLocaleString(undefined, { minimumFractionDigits: 2 })}
               </p>
             </div>
 
             <div className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200/80 dark:border-slate-800 space-y-1">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+              <span className="text-xs font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
                 <HardHat size={12} /> Subcontracts
               </span>
-              <p className="font-mono font-bold text-sm text-slate-800 dark:text-slate-100">
+              <p className="text-sm font-medium text-slate-800 dark:text-slate-100">
                 {currency} {categoryTotals.SUBCONTRACTING.toLocaleString(undefined, { minimumFractionDigits: 2 })}
               </p>
             </div>
 
             <div className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200/80 dark:border-slate-800 space-y-1">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-cyan-600 dark:text-cyan-400 flex items-center gap-1">
+              <span className="text-xs font-bold uppercase tracking-wider text-cyan-600 dark:text-cyan-400 flex items-center gap-1">
                 <Truck size={12} /> Transport
               </span>
-              <p className="font-mono font-bold text-sm text-slate-800 dark:text-slate-100">
+              <p className="text-sm font-medium text-slate-800 dark:text-slate-100">
                 {currency} {categoryTotals.TRANSPORTATION.toLocaleString(undefined, { minimumFractionDigits: 2 })}
               </p>
             </div>
 
             <div className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200/80 dark:border-slate-800 space-y-1">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1">
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1">
                 <DollarSign size={12} /> Other / Overheads
               </span>
-              <p className="font-mono font-bold text-sm text-slate-800 dark:text-slate-100">
+              <p className="text-sm font-medium text-slate-800 dark:text-slate-100">
                 {currency} {categoryTotals.OTHER.toLocaleString(undefined, { minimumFractionDigits: 2 })}
               </p>
             </div>
@@ -1727,7 +1742,7 @@ export default function BOQManager() {
                   return (
                     <tr key={item.id || idx} className="hover:bg-slate-50/80 dark:hover:bg-slate-850/60 transition-colors">
                       {/* Line Number */}
-                      <td className="p-2.5 text-center text-slate-400 font-mono">
+                      <td className="p-2.5 text-center text-slate-400 font-normal">
                         {idx + 1}
                       </td>
 
@@ -1737,7 +1752,7 @@ export default function BOQManager() {
                           type="text"
                           required
                           placeholder="e.g. CIV-001"
-                          className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-xs font-mono font-bold text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-brand-500"
+                          className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-xs font-medium text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-brand-500"
                           value={item.item_code}
                           onChange={e => updateItem(idx, "item_code", e.target.value)}
                         />
@@ -1775,7 +1790,10 @@ export default function BOQManager() {
                           value={item.uom || item.unit || "EA"}
                           onChange={e => updateItem(idx, "uom", e.target.value)}
                         >
-                          {UOM_OPTIONS.map(u => (
+                          {item.uom && !dynamicUomOptions.some(u => u.value === item.uom) && (
+                            <option value={item.uom}>{item.uom}</option>
+                          )}
+                          {dynamicUomOptions.map(u => (
                             <option key={u.value} value={u.value}>{u.label}</option>
                           ))}
                         </select>
@@ -1788,7 +1806,7 @@ export default function BOQManager() {
                           step="any"
                           required
                           min="0"
-                          className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-xs font-mono font-bold text-right text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-brand-500"
+                          className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-xs font-normal text-right text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-brand-500"
                           value={item.quantity}
                           onChange={e => updateItem(idx, "quantity", e.target.value)}
                         />
@@ -1801,14 +1819,14 @@ export default function BOQManager() {
                           step="any"
                           required
                           min="0"
-                          className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-xs font-mono font-bold text-right text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-brand-500"
+                          className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-xs font-normal text-right text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-brand-500"
                           value={item.unit_rate}
                           onChange={e => updateItem(idx, "unit_rate", e.target.value)}
                         />
                       </td>
 
                       {/* Amount */}
-                      <td className="p-2.5 text-right font-mono font-bold text-sm text-slate-900 dark:text-slate-100 whitespace-nowrap">
+                      <td className="p-2.5 text-right font-medium text-sm text-slate-900 dark:text-slate-100 whitespace-nowrap">
                         {Number(item.amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </td>
 
@@ -1853,141 +1871,32 @@ export default function BOQManager() {
           {/* Contingency, Taxes, and Totals Summary Section */}
           <div className="p-6 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
-              {/* Approval Workflow & Governance (Replacing static manual sign-off) */}
-              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm space-y-5">
-                <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-4">
-                  <div className="flex items-center gap-2.5">
-                    <div className="p-2 rounded-xl bg-brand-50 dark:bg-brand-900/40 text-brand-600 dark:text-brand-400">
-                      <ShieldCheck size={20} />
-                    </div>
-                    <div>
-                      <h4 className="text-sm font-bold text-slate-900 dark:text-white">
-                        Approval Workflow & Governance
-                      </h4>
-                      <p className="text-[11px] text-slate-500">
-                        Multi-level sign-off, audit trail, and governed approval progression
-                      </p>
-                    </div>
-                  </div>
-                  <span className={`px-3 py-1.5 rounded-xl text-xs font-bold border uppercase tracking-wider ${currentStatusBadge.cls}`}>
-                    {currentStatusBadge.label}
-                  </span>
-                </div>
-
-                {/* Workflow Status Info Box */}
-                <div className="p-3.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-700/80 space-y-2 text-xs">
-                  <div className="flex justify-between items-center">
-                    <span className="text-slate-500 font-medium">Workflow Stage:</span>
-                    <span className="font-bold text-slate-800 dark:text-slate-200">{currentStatusBadge.label}</span>
-                  </div>
-                  {activeBOQ?.forwarded_to_username && (
-                    <div className="flex justify-between items-center">
-                      <span className="text-slate-500 font-medium">Assigned Approver:</span>
-                      <span className="font-semibold text-brand-600 dark:text-brand-400 font-mono">
-                        {activeBOQ.forwarded_to_username}
-                      </span>
-                    </div>
-                  )}
-                  {activeBOQ?.approved_by_name && (
-                    <div className="flex justify-between items-center">
-                      <span className="text-slate-500 font-medium">Approved By:</span>
-                      <span className="font-semibold text-emerald-600 dark:text-emerald-400">
-                        {activeBOQ.approved_by_name} {activeBOQ.approved_date ? `(${String(activeBOQ.approved_date).split("T")[0]})` : ""}
-                      </span>
-                    </div>
-                  )}
-                  {activeBOQ?.approval_remarks && (
-                    <div className="pt-1 border-t border-slate-200 dark:border-slate-700">
-                      <span className="text-slate-400 block text-[11px] mb-0.5">Workflow Remarks:</span>
-                      <span className="text-slate-700 dark:text-slate-300 italic">{activeBOQ.approval_remarks}</span>
-                    </div>
-                  )}
-                </div>
-
-                {/* Workflow Action Buttons (Sales Order Style) */}
-                <div className="flex flex-wrap items-center gap-3 pt-1">
-                  {/* Forward for Approval */}
-                  {(["DRAFT", "REVERSED", "RETURNED"].includes(String(activeBOQ?.status || "DRAFT").toUpperCase())) && (
-                    <button
-                      type="button"
-                      onClick={openForwardModal}
-                      disabled={!activeBOQ}
-                      className="flex-1 px-4 py-2.5 bg-brand-600 hover:bg-brand-500 text-white rounded-xl text-xs font-bold shadow-md shadow-brand-500/20 flex items-center justify-center gap-2 transition-all disabled:opacity-50"
-                    >
-                      <Send size={15} /> Forward for Approval
-                    </button>
-                  )}
-
-                  {/* Approve & Reject */}
-                  {(["PENDING_APPROVAL", "UNDER_REVIEW"].includes(String(activeBOQ?.status || "").toUpperCase())) && (
-                    <>
-                      <button
-                        type="button"
-                        onClick={() => setShowApproveModal(true)}
-                        className="flex-1 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold shadow-md shadow-emerald-500/20 flex items-center justify-center gap-2 transition-all"
-                      >
-                        <CheckCircle size={15} /> Approve BOQ
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setShowRejectModal(true)}
-                        className="flex-1 px-4 py-2.5 bg-rose-600 hover:bg-rose-500 text-white rounded-xl text-xs font-bold shadow-md shadow-rose-500/20 flex items-center justify-center gap-2 transition-all"
-                      >
-                        <X size={15} /> Reject
-                      </button>
-                    </>
-                  )}
-
-                  {/* Reverse Approval */}
-                  {(String(activeBOQ?.status || "").toUpperCase() === "APPROVED") && (
-                    <button
-                      type="button"
-                      onClick={handleReverseSubmit}
-                      className="flex-1 px-4 py-2.5 bg-amber-600 hover:bg-amber-500 text-white rounded-xl text-xs font-bold shadow-md shadow-amber-500/20 flex items-center justify-center gap-2 transition-all"
-                    >
-                      <RotateCcw size={15} /> Reverse Approval
-                    </button>
-                  )}
-
-                  {/* View Revision & Approval Audit History */}
-                  <button
-                    type="button"
-                    onClick={() => setShowRevisionModal(true)}
-                    className="px-3.5 py-2.5 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all"
-                    title="Audit trail and historical snapshots"
-                  >
-                    <History size={15} /> Audit Log ({revisions.length})
-                  </button>
-                </div>
-
-                {/* Specification Notes / General Remarks */}
-                <div className="pt-2">
-                  <label className="text-slate-500 font-semibold block mb-1 text-xs">
-                    Specification Notes & Exclusions:
-                  </label>
-                  <textarea
-                    rows={2}
-                    placeholder="Specification standard (SMM7/POMI/CESMM), tender exclusions, mobilization terms..."
-                    className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500"
-                    value={remarks}
-                    onChange={e => setRemarks(e.target.value)}
-                    disabled={activeBOQ?.status === "APPROVED"}
-                  />
-                </div>
+              {/* Specification Notes & Exclusions */}
+              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm space-y-3">
+                <h4 className="text-sm font-bold text-slate-900 dark:text-white">
+                  Specification Notes & Exclusions
+                </h4>
+                <textarea
+                  rows={4}
+                  placeholder="Specification standard (SMM7/POMI/CESMM), tender exclusions, mobilization terms..."
+                  className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500"
+                  value={remarks}
+                  onChange={e => setRemarks(e.target.value)}
+                />
               </div>
 
               {/* Financial Totals Breakdown Box */}
               <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm space-y-4">
                 <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center justify-between">
                   <span>BOQ Financial Summary & Contingency</span>
-                  <span className="font-mono text-brand-600">{currency}</span>
+                  <span className="font-medium text-brand-600">{currency}</span>
                 </h4>
 
                 <div className="space-y-3 text-xs border-b border-slate-200 dark:border-slate-800 pb-4">
                   {/* Subtotal */}
                   <div className="flex justify-between items-center">
                     <span className="text-slate-600 dark:text-slate-300 font-semibold">Direct Cost Subtotal:</span>
-                    <span className="font-mono font-bold text-sm text-slate-900 dark:text-white">
+                    <span className="font-medium text-sm text-slate-900 dark:text-white">
                       {currency} {subtotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </span>
                   </div>
@@ -2002,14 +1911,14 @@ export default function BOQManager() {
                           step="0.5"
                           min="0"
                           max="100"
-                          className="w-16 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1 text-xs font-mono font-bold text-right"
+                          className="w-16 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1 text-xs font-normal text-right"
                           value={contingencyPercent}
                           onChange={e => setContingencyPercent(e.target.value)}
                         />
                         <span className="text-slate-400 font-bold">%</span>
                       </div>
                     </div>
-                    <span className="font-mono font-semibold text-slate-800 dark:text-slate-200">
+                    <span className="font-medium text-slate-800 dark:text-slate-200">
                       {currency} {contingencyAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </span>
                   </div>
@@ -2038,14 +1947,14 @@ export default function BOQManager() {
 
                     <div className="flex items-center justify-between gap-4">
                       <div className="flex items-center gap-2">
-                        <span className="text-slate-400 text-[11px] font-medium">Applied Rate:</span>
+                        <span className="text-slate-400 text-xs font-medium">Applied Rate:</span>
                         <div className="flex items-center gap-1">
                           <input
                             type="number"
                             step="0.1"
                             min="0"
                             max="100"
-                            className="w-16 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1 text-xs font-mono font-bold text-right"
+                            className="w-16 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1 text-xs font-normal text-right"
                             value={taxPercent}
                             onChange={e => {
                               setTaxPercent(e.target.value);
@@ -2056,12 +1965,12 @@ export default function BOQManager() {
                           <span className="text-slate-400 font-bold">%</span>
                         </div>
                         {selectedTaxCode && selectedTaxCode.code !== "CUSTOM" && (
-                          <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-brand-50 text-brand-700 border border-brand-200 dark:bg-brand-950/40 dark:text-brand-300 dark:border-brand-800">
+                          <span className="px-2 py-0.5 rounded text-xs font-mono font-bold bg-brand-50 text-brand-700 border border-brand-200 dark:bg-brand-950/40 dark:text-brand-300 dark:border-brand-800">
                             {selectedTaxCode.code}
                           </span>
                         )}
                       </div>
-                      <span className="font-mono font-semibold text-slate-800 dark:text-slate-200">
+                      <span className="font-medium text-slate-800 dark:text-slate-200">
                         {currency} {taxAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </span>
                     </div>
@@ -2071,12 +1980,12 @@ export default function BOQManager() {
                   <div className="flex items-center justify-between gap-4">
                     <span className="text-slate-600 dark:text-slate-300 font-semibold">Preliminaries & Other Charges:</span>
                     <div className="flex items-center gap-1">
-                      <span className="text-slate-400 font-mono text-xs">{currency}</span>
+                      <span className="text-slate-400 text-xs">{currency}</span>
                       <input
                         type="number"
                         step="any"
                         min="0"
-                        className="w-28 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1 text-xs font-mono font-bold text-right"
+                        className="w-28 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1 text-xs font-normal text-right"
                         value={otherCharges}
                         onChange={e => setOtherCharges(e.target.value)}
                       />
@@ -2090,11 +1999,11 @@ export default function BOQManager() {
                     <span className="text-xs font-bold uppercase tracking-wider text-emerald-800 dark:text-emerald-300 block">
                       Final Estimated Cost (Total BOQ Amount)
                     </span>
-                    <span className="text-[11px] text-emerald-600 dark:text-emerald-400">
+                    <span className="text-xs text-emerald-600 dark:text-emerald-400">
                       Inclusive of direct costs, contingency, taxes & preliminaries
                     </span>
                   </div>
-                  <div className="text-xl font-extrabold font-mono text-emerald-700 dark:text-emerald-300">
+                  <div className="text-xl font-medium text-emerald-700 dark:text-emerald-300">
                     {currency} {finalEstimatedCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </div>
                 </div>
@@ -2330,7 +2239,7 @@ export default function BOQManager() {
               <input
                 type="number"
                 step="any"
-                className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500 font-mono font-bold"
+                className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500 font-normal"
                 value={rateForm.material_cost}
                 onChange={e => setRateForm({ ...rateForm, material_cost: Number(e.target.value) })}
               />
@@ -2342,7 +2251,7 @@ export default function BOQManager() {
               <input
                 type="number"
                 step="any"
-                className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500 font-mono font-bold"
+                className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500 font-normal"
                 value={rateForm.labour_cost}
                 onChange={e => setRateForm({ ...rateForm, labour_cost: Number(e.target.value) })}
               />
@@ -2354,7 +2263,7 @@ export default function BOQManager() {
               <input
                 type="number"
                 step="any"
-                className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500 font-mono font-bold"
+                className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500 font-normal"
                 value={rateForm.plant_cost}
                 onChange={e => setRateForm({ ...rateForm, plant_cost: Number(e.target.value) })}
               />
@@ -2366,7 +2275,7 @@ export default function BOQManager() {
               <input
                 type="number"
                 step="any"
-                className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500 font-mono font-bold"
+                className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500 font-normal"
                 value={rateForm.subcontract_cost}
                 onChange={e => setRateForm({ ...rateForm, subcontract_cost: Number(e.target.value) })}
               />
@@ -2375,7 +2284,7 @@ export default function BOQManager() {
 
           <div className="p-3 bg-white dark:bg-slate-900 rounded-xl flex justify-between items-center text-xs border border-slate-200 dark:border-slate-700">
             <span className="font-semibold text-slate-600 dark:text-slate-300">Direct Cost Subtotal:</span>
-            <span className="font-mono font-bold text-slate-900 dark:text-white">
+            <span className="font-medium text-slate-900 dark:text-white">
               {currency} {calculatedDirectCost.toFixed(2)}
             </span>
           </div>
@@ -2385,7 +2294,7 @@ export default function BOQManager() {
               <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">Overhead Rate (%)</label>
               <input
                 type="number"
-                className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500 font-mono font-bold"
+                className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500 font-normal"
                 value={rateForm.overhead_percent}
                 onChange={e => setRateForm({ ...rateForm, overhead_percent: Number(e.target.value) })}
               />
@@ -2394,7 +2303,7 @@ export default function BOQManager() {
               <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">Profit Margin (%)</label>
               <input
                 type="number"
-                className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500 font-mono font-bold"
+                className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500 font-normal"
                 value={rateForm.profit_percent}
                 onChange={e => setRateForm({ ...rateForm, profit_percent: Number(e.target.value) })}
               />
@@ -2404,11 +2313,11 @@ export default function BOQManager() {
           <div className="p-4 bg-brand-50 dark:bg-brand-900/30 border border-brand-200 dark:border-brand-800 rounded-xl flex justify-between items-center">
             <div>
               <p className="text-xs font-bold uppercase text-brand-800 dark:text-brand-300">Computed Unit Rate</p>
-              <p className="text-[11px] text-slate-500">
+              <p className="text-xs text-slate-500">
                 Direct ({calculatedDirectCost.toFixed(2)}) + Overhead ({calculatedOverhead.toFixed(2)}) + Profit ({calculatedProfit.toFixed(2)})
               </p>
             </div>
-            <div className="text-xl font-bold font-mono text-brand-700 dark:text-brand-200">
+            <div className="text-xl font-medium text-brand-700 dark:text-brand-200">
               {currency} {calculatedUnitRate.toFixed(2)}
             </div>
           </div>
@@ -2432,7 +2341,7 @@ export default function BOQManager() {
             </h4>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="text-[11px] font-semibold text-slate-500 block mb-1">New Version Number</label>
+                <label className="text-xs font-semibold text-slate-500 block mb-1">New Version Number</label>
                 <input
                   type="text"
                   placeholder="e.g. 2.0"
@@ -2442,7 +2351,7 @@ export default function BOQManager() {
                 />
               </div>
               <div>
-                <label className="text-[11px] font-semibold text-slate-500 block mb-1">Revision Remarks</label>
+                <label className="text-xs font-semibold text-slate-500 block mb-1">Revision Remarks</label>
                 <input
                   type="text"
                   placeholder="e.g. Revised based on structural engineer addendum 3"
@@ -2493,7 +2402,7 @@ export default function BOQManager() {
                         {Number(rev.total_amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                       </td>
                       <td className="p-2.5">
-                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+                        <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
                           {rev.status || "DRAFT"}
                         </span>
                       </td>
@@ -2625,7 +2534,7 @@ export default function BOQManager() {
                     ))}
                   </select>
                   {firstApprover && (
-                    <p className="text-[11px] text-slate-500 mt-1">
+                    <p className="text-xs text-slate-500 mt-1">
                       Step {firstApprover.step_order || 1}: {firstApprover.step_name || "Approval"}
                     </p>
                   )}

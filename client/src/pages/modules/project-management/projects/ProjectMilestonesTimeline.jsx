@@ -17,11 +17,11 @@ export default function ProjectMilestonesTimeline() {
     async function loadProjects() {
       try {
         setLoading(true);
-        const res = await api.get('/projects/projects');
-        setProjects(res.data?.items || res.data?.projects || []);
-        if (res.data?.items?.length > 0 || res.data?.projects?.length > 0) {
-          const projs = res.data?.items || res.data?.projects;
-          setSelectedProjectId(projs[0].id);
+        const res = await api.get('/projects/projects', { params: { active: 'all' } }).catch(() => api.get('/projects?active=all'));
+        const list = res.data?.items || res.data?.projects || res.data?.data || (Array.isArray(res.data) ? res.data : []);
+        setProjects(list);
+        if (list.length > 0) {
+          setSelectedProjectId(prev => prev || list[0].id);
         }
       } catch (e) {
         toast.error('Failed to load projects');
@@ -120,13 +120,18 @@ export default function ProjectMilestonesTimeline() {
 
       <div className="bg-white dark:bg-slate-800 p-4 rounded-xl border border-slate-100 dark:border-slate-700 shadow-sm flex items-center gap-4">
         <div className="flex-1 max-w-sm">
-          <label className="text-xs font-bold text-slate-500 uppercase block mb-1">Select Project</label>
+          <label className="text-xs font-bold text-slate-500 uppercase block mb-1">
+            Project <span className="text-red-500">*</span>
+          </label>
           {loading ? (
             <div className="h-10 bg-slate-100 dark:bg-slate-700 animate-pulse rounded-lg"></div>
           ) : (
             <select className="select w-full" value={selectedProjectId} onChange={(e) => setSelectedProjectId(e.target.value)}>
+              <option value="">-- Select Project --</option>
               {projects.map(p => (
-                <option key={p.id} value={p.id}>{p.project_code} - {p.project_name}</option>
+                <option key={p.id} value={p.id}>
+                  {p.project_code ? `${p.project_code} - ` : ''}{p.project_name || p.name || `Project #${p.id}`}
+                </option>
               ))}
             </select>
           )}
@@ -135,6 +140,12 @@ export default function ProjectMilestonesTimeline() {
 
       {fetchingTasks ? (
         <div className="py-20 flex justify-center"><Loader2 size={32} className="animate-spin text-brand-500" /></div>
+      ) : !selectedProjectId ? (
+        <div className="bg-white dark:bg-slate-800 p-12 text-center rounded-xl border border-slate-100 dark:border-slate-700">
+          <MapPin size={48} className="mx-auto text-slate-300 mb-4" />
+          <h3 className="text-lg font-semibold text-slate-700 mb-1">Please Select a Project</h3>
+          <p className="text-slate-500">Choose a project from the dropdown above to view its milestones and timeline.</p>
+        </div>
       ) : sortedTasks.length === 0 ? (
         <div className="bg-white dark:bg-slate-800 p-12 text-center rounded-xl border border-slate-100 dark:border-slate-700">
           <MapPin size={48} className="mx-auto text-slate-300 mb-4" />

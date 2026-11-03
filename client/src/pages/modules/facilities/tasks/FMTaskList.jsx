@@ -23,7 +23,7 @@ const StatusBadge = ({ status }) => {
     BLOCKED:     "bg-rose-50 text-rose-600 border-rose-100 dark:bg-rose-900/30 dark:text-rose-400",
   };
   return (
-    <span className={`px-2.5 py-1 rounded-lg text-[10px] font-bold border uppercase tracking-wider ${styles[status] || styles.PENDING}`}>
+    <span className={`px-2.5 py-1 rounded-lg text-xs font-bold border uppercase tracking-wider ${styles[status] || styles.PENDING}`}>
       {status?.replace("_", " ")}
     </span>
   );
@@ -40,7 +40,7 @@ const DueBadge = ({ status, label }) => {
   };
 
   return (
-    <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] border ${styles[status] || styles.ON_SCHEDULE}`}>
+    <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs border ${styles[status] || styles.ON_SCHEDULE}`}>
       {status === "OVERDUE" && "🚨 "}
       {status === "DUE_TODAY" && "⚠️ "}
       {status === "ON_SCHEDULE" && "📅 "}
@@ -60,7 +60,7 @@ const PriorityBadge = ({ priority }) => {
   return (
     <div className="flex items-center gap-1">
       <div className={`w-1.5 h-1.5 rounded-full bg-current ${colors[priority] || colors.LOW}`} />
-      <span className={`text-[10px] font-bold uppercase tracking-tight ${colors[priority] || colors.LOW}`}>{priority}</span>
+      <span className={`text-xs font-bold uppercase tracking-tight ${colors[priority] || colors.LOW}`}>{priority}</span>
     </div>
   );
 };

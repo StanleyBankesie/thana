@@ -367,26 +367,6 @@ export default function FMCompliancePage() {
       {/* ── OBLIGATIONS TAB ─────────────────────────────────────────────────── */}
       {activeTab === "obligations" && (
         <>
-          {/* Summary cards */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
-              <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">Total</span>
-              <div className="text-2xl font-bold font-mono text-slate-900 dark:text-white mt-1">{obTotal}</div>
-            </div>
-            <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
-              <span className="text-[11px] font-bold text-emerald-600 uppercase tracking-wider block">Valid</span>
-              <div className="text-2xl font-bold font-mono text-emerald-600 mt-1">{obValid}</div>
-            </div>
-            <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
-              <span className="text-[11px] font-bold text-amber-600 uppercase tracking-wider block">Expiring Soon</span>
-              <div className="text-2xl font-bold font-mono text-amber-600 mt-1">{obExpiringSoon}</div>
-            </div>
-            <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
-              <span className="text-[11px] font-bold text-rose-600 uppercase tracking-wider block">Expired</span>
-              <div className="text-2xl font-bold font-mono text-rose-600 mt-1">{obExpired}</div>
-            </div>
-          </div>
-
           {/* Filters */}
           <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-wrap gap-3 items-center">
             <select
@@ -482,7 +462,7 @@ export default function FMCompliancePage() {
                           {ob.title}
                         </td>
                         <td className="px-3 py-3">
-                          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+                          <span className="px-2 py-0.5 rounded text-xs font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
                             {ob.category?.replace(/_/g, " ")}
                           </span>
                         </td>
@@ -495,7 +475,7 @@ export default function FMCompliancePage() {
                                 href={ob.document_url}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-sky-50 dark:bg-sky-950/40 text-sky-700 dark:text-sky-300 hover:bg-sky-100 dark:hover:bg-sky-900 border border-sky-200 dark:border-sky-800 text-[10px] font-semibold transition-colors"
+                                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-sky-50 dark:bg-sky-950/40 text-sky-700 dark:text-sky-300 hover:bg-sky-100 dark:hover:bg-sky-900 border border-sky-200 dark:border-sky-800 text-xs font-semibold transition-colors"
                                 title={ob.document_name || "View Document"}
                               >
                                 <Cloud size={11} className="text-sky-500 flex-shrink-0" />
@@ -513,7 +493,7 @@ export default function FMCompliancePage() {
                           ) : (
                             <button
                               onClick={() => openDirectUploadModal(ob)}
-                              className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 text-slate-600 dark:text-slate-300 hover:text-emerald-700 dark:hover:text-emerald-300 border border-dashed border-slate-300 dark:border-slate-700 hover:border-emerald-300 text-[10px] font-medium transition-colors"
+                              className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 text-slate-600 dark:text-slate-300 hover:text-emerald-700 dark:hover:text-emerald-300 border border-dashed border-slate-300 dark:border-slate-700 hover:border-emerald-300 text-xs font-medium transition-colors"
                               title="Upload Statutory Certificate or Document"
                             >
                               <Upload size={10} className="text-emerald-500" />
@@ -526,7 +506,7 @@ export default function FMCompliancePage() {
                           {ob.expiry_date ? String(ob.expiry_date).slice(0, 10) : "—"}
                         </td>
                         <td className="px-3 py-3">
-                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${OBLIGATION_STATUS_COLORS[ob.status] || "bg-slate-100 text-slate-700"}`}>
+                          <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${OBLIGATION_STATUS_COLORS[ob.status] || "bg-slate-100 text-slate-700"}`}>
                             {ob.status?.replace(/_/g, " ")}
                           </span>
                         </td>
@@ -535,7 +515,7 @@ export default function FMCompliancePage() {
                           <div className="flex items-center gap-1.5 whitespace-nowrap">
                             <button
                               onClick={() => setViewingObligation(ob)}
-                              className="inline-flex items-center gap-1 px-2 py-1 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg text-[10px] font-semibold transition-all"
+                              className="inline-flex items-center gap-1 px-2 py-1 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg text-xs font-semibold transition-all"
                               title="View Obligation Details"
                             >
                               <Eye size={11} /> View
@@ -565,7 +545,7 @@ export default function FMCompliancePage() {
                                 });
                                 setShowObUpdateModal(true);
                               }}
-                              className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950 dark:hover:bg-emerald-900 text-emerald-700 dark:text-emerald-300 rounded-lg text-[10px] font-bold transition-colors"
+                              className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950 dark:hover:bg-emerald-900 text-emerald-700 dark:text-emerald-300 rounded-lg text-xs font-bold transition-colors"
                             >
                               <Edit size={11} /> Edit / Update
                             </button>
@@ -584,26 +564,6 @@ export default function FMCompliancePage() {
       {/* ── HAZARDS TAB ──────────────────────────────────────────────────────── */}
       {activeTab === "hazards" && (
         <>
-          {/* Summary cards */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
-              <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">Total Hazards</span>
-              <div className="text-2xl font-bold font-mono text-slate-900 dark:text-white mt-1">{hzTotal}</div>
-            </div>
-            <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
-              <span className="text-[11px] font-bold text-rose-600 uppercase tracking-wider block">Critical</span>
-              <div className="text-2xl font-bold font-mono text-rose-600 mt-1">{hzCritical}</div>
-            </div>
-            <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
-              <span className="text-[11px] font-bold text-amber-600 uppercase tracking-wider block">High Risk</span>
-              <div className="text-2xl font-bold font-mono text-amber-600 mt-1">{hzHigh}</div>
-            </div>
-            <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
-              <span className="text-[11px] font-bold text-blue-600 uppercase tracking-wider block">Active</span>
-              <div className="text-2xl font-bold font-mono text-blue-600 mt-1">{hzActive}</div>
-            </div>
-          </div>
-
           {/* Filters */}
           <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-wrap gap-3 items-center">
             <select
@@ -688,21 +648,21 @@ export default function FMCompliancePage() {
                         <td className="px-3 py-3 text-center font-mono font-bold">{h.likelihood_score}</td>
                         <td className="px-3 py-3 text-center font-mono font-bold">{h.severity_score}</td>
                         <td className="px-3 py-3">
-                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${RISK_COLORS[h.risk_rating] || "bg-slate-100 text-slate-700"}`}>
+                          <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${RISK_COLORS[h.risk_rating] || "bg-slate-100 text-slate-700"}`}>
                             {h.risk_rating}
                           </span>
                         </td>
                         <td className="px-3 py-3 text-slate-500">{h.action_owner || "—"}</td>
                         <td className="px-3 py-3 font-mono">{h.review_date ? String(h.review_date).slice(0, 10) : "—"}</td>
                         <td className="px-3 py-3">
-                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${HAZARD_STATUS_COLORS[h.status] || "bg-slate-100 text-slate-700"}`}>
+                          <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${HAZARD_STATUS_COLORS[h.status] || "bg-slate-100 text-slate-700"}`}>
                             {h.status}
                           </span>
                         </td>
                         <td className="px-3 py-3 text-right">
                           <button
                             onClick={() => setViewingHazard(h)}
-                            className="inline-flex items-center gap-1 px-2.5 py-1 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg text-[10px] font-semibold transition-all"
+                            className="inline-flex items-center gap-1 px-2.5 py-1 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg text-xs font-semibold transition-all"
                             title="View Hazard Assessment"
                           >
                             <Eye size={11} /> View
@@ -991,7 +951,7 @@ export default function FMCompliancePage() {
             <form onSubmit={handleSaveDirectUpload} className="p-6 space-y-4 text-xs">
               <div className="p-3 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-200 dark:border-slate-800">
                 <div className="text-xs font-semibold text-slate-800 dark:text-slate-200">{directUploadObligation.title}</div>
-                <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                   Authority: {directUploadObligation.issuing_authority} | Property: {directUploadObligation.property_name || "—"}
                 </div>
               </div>
@@ -1193,44 +1153,44 @@ export default function FMCompliancePage() {
             <div className="p-6 space-y-4 text-xs">
               <div className="grid grid-cols-2 gap-3 p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl">
                 <div>
-                  <span className="text-slate-400 block text-[11px]">Obligation Title</span>
+                  <span className="text-slate-400 block text-xs">Obligation Title</span>
                   <span className="font-bold text-slate-800 dark:text-slate-200">{viewingObligation.title}</span>
                 </div>
                 <div>
-                  <span className="text-slate-400 block text-[11px]">Category</span>
+                  <span className="text-slate-400 block text-xs">Category</span>
                   <span className="font-semibold text-slate-700 dark:text-slate-300">{viewingObligation.category?.replace(/_/g, " ")}</span>
                 </div>
                 <div>
-                  <span className="text-slate-400 block text-[11px]">Property</span>
+                  <span className="text-slate-400 block text-xs">Property</span>
                   <span className="font-semibold text-slate-700 dark:text-slate-300">{viewingObligation.property_name || "—"}</span>
                 </div>
                 <div>
-                  <span className="text-slate-400 block text-[11px]">Issuing Authority</span>
+                  <span className="text-slate-400 block text-xs">Issuing Authority</span>
                   <span className="font-semibold text-slate-700 dark:text-slate-300">{viewingObligation.issuing_authority}</span>
                 </div>
                 <div>
-                  <span className="text-slate-400 block text-[11px]">Issue Date</span>
+                  <span className="text-slate-400 block text-xs">Issue Date</span>
                   <span className="font-mono text-slate-700 dark:text-slate-300">{viewingObligation.issue_date ? String(viewingObligation.issue_date).slice(0, 10) : "—"}</span>
                 </div>
                 <div>
-                  <span className="text-slate-400 block text-[11px]">Expiry Date</span>
+                  <span className="text-slate-400 block text-xs">Expiry Date</span>
                   <span className="font-mono font-bold text-rose-600">{viewingObligation.expiry_date ? String(viewingObligation.expiry_date).slice(0, 10) : "—"}</span>
                 </div>
                 <div>
-                  <span className="text-slate-400 block text-[11px]">Status</span>
-                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold inline-block mt-0.5 ${OBLIGATION_STATUS_COLORS[viewingObligation.status] || ""}`}>
+                  <span className="text-slate-400 block text-xs">Status</span>
+                  <span className={`px-2 py-0.5 rounded-full text-xs font-bold inline-block mt-0.5 ${OBLIGATION_STATUS_COLORS[viewingObligation.status] || ""}`}>
                     {viewingObligation.status?.replace(/_/g, " ")}
                   </span>
                 </div>
                 <div>
-                  <span className="text-slate-400 block text-[11px]">Responsible Person</span>
+                  <span className="text-slate-400 block text-xs">Responsible Person</span>
                   <span className="font-semibold text-slate-700 dark:text-slate-300">{viewingObligation.responsible_person || "—"}</span>
                 </div>
               </div>
 
               {viewingObligation.document_reference && (
                 <div className="p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl">
-                  <span className="text-slate-400 block text-[11px] font-semibold uppercase mb-0.5">Document Reference</span>
+                  <span className="text-slate-400 block text-xs font-semibold uppercase mb-0.5">Document Reference</span>
                   <span className="font-mono text-slate-800 dark:text-slate-200">{viewingObligation.document_reference}</span>
                 </div>
               )}
@@ -1240,7 +1200,7 @@ export default function FMCompliancePage() {
                   <div className="flex items-center gap-2 overflow-hidden">
                     <Cloud size={18} className="text-sky-500 flex-shrink-0" />
                     <div className="min-w-0">
-                      <span className="text-[10px] text-slate-400 uppercase font-bold block">Statutory Certificate / Cloudinary Doc</span>
+                      <span className="text-xs text-slate-400 uppercase font-bold block">Statutory Certificate / Cloudinary Doc</span>
                       <span className="font-semibold text-sky-800 dark:text-sky-300 text-xs truncate block max-w-xs">
                         {viewingObligation.document_name || viewingObligation.document_url.split("/").pop()}
                       </span>
@@ -1260,7 +1220,7 @@ export default function FMCompliancePage() {
 
               {viewingObligation.notes && (
                 <div className="p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl">
-                  <span className="text-slate-400 block text-[11px] font-semibold uppercase mb-0.5">Notes</span>
+                  <span className="text-slate-400 block text-xs font-semibold uppercase mb-0.5">Notes</span>
                   <p className="text-slate-700 dark:text-slate-300 leading-relaxed whitespace-pre-wrap">{viewingObligation.notes}</p>
                 </div>
               )}
@@ -1322,36 +1282,36 @@ export default function FMCompliancePage() {
             <div className="p-6 space-y-4 text-xs">
               <div className="grid grid-cols-2 gap-3 p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl">
                 <div>
-                  <span className="text-slate-400 block text-[11px]">Work Activity</span>
+                  <span className="text-slate-400 block text-xs">Work Activity</span>
                   <span className="font-semibold text-slate-800 dark:text-slate-200">{viewingHazard.work_activity}</span>
                 </div>
                 <div>
-                  <span className="text-slate-400 block text-[11px]">Property</span>
+                  <span className="text-slate-400 block text-xs">Property</span>
                   <span className="font-semibold text-slate-800 dark:text-slate-200">{viewingHazard.property_name || "—"}</span>
                 </div>
                 <div>
-                  <span className="text-slate-400 block text-[11px]">Likelihood x Severity</span>
+                  <span className="text-slate-400 block text-xs">Likelihood x Severity</span>
                   <span className="font-mono text-slate-800 dark:text-slate-200">{viewingHazard.likelihood_score} x {viewingHazard.severity_score}</span>
                 </div>
                 <div>
-                  <span className="text-slate-400 block text-[11px]">Risk Rating</span>
-                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold inline-block mt-0.5 ${RISK_COLORS[viewingHazard.risk_rating] || ""}`}>
+                  <span className="text-slate-400 block text-xs">Risk Rating</span>
+                  <span className={`px-2 py-0.5 rounded-full text-xs font-bold inline-block mt-0.5 ${RISK_COLORS[viewingHazard.risk_rating] || ""}`}>
                     {viewingHazard.risk_rating}
                   </span>
                 </div>
                 <div>
-                  <span className="text-slate-400 block text-[11px]">Action Owner</span>
+                  <span className="text-slate-400 block text-xs">Action Owner</span>
                   <span className="font-semibold text-slate-800 dark:text-slate-200">{viewingHazard.action_owner || "—"}</span>
                 </div>
                 <div>
-                  <span className="text-slate-400 block text-[11px]">Review Date</span>
+                  <span className="text-slate-400 block text-xs">Review Date</span>
                   <span className="font-mono text-slate-800 dark:text-slate-200">{viewingHazard.review_date ? String(viewingHazard.review_date).slice(0, 10) : "—"}</span>
                 </div>
               </div>
 
               {viewingHazard.existing_controls && (
                 <div>
-                  <span className="text-slate-400 block text-[11px] font-semibold uppercase mb-1">Existing Controls</span>
+                  <span className="text-slate-400 block text-xs font-semibold uppercase mb-1">Existing Controls</span>
                   <p className="p-3 bg-slate-50 dark:bg-slate-800 rounded-xl text-slate-700 dark:text-slate-300 leading-relaxed whitespace-pre-wrap">
                     {viewingHazard.existing_controls}
                   </p>
@@ -1360,7 +1320,7 @@ export default function FMCompliancePage() {
 
               {viewingHazard.additional_mitigations && (
                 <div>
-                  <span className="text-slate-400 block text-[11px] font-semibold uppercase mb-1">Additional Mitigations Required</span>
+                  <span className="text-slate-400 block text-xs font-semibold uppercase mb-1">Additional Mitigations Required</span>
                   <p className="p-3 bg-amber-50 dark:bg-amber-950/30 text-amber-800 dark:text-amber-300 rounded-xl leading-relaxed whitespace-pre-wrap">
                     {viewingHazard.additional_mitigations}
                   </p>

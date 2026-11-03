@@ -294,12 +294,12 @@ export default function QualityControlPage() {
                   <tr key={ir.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/40">
                     <td className="p-3 font-mono font-bold text-brand-600">{ir.ir_number}</td>
                     <td className="p-3 font-bold text-slate-900 dark:text-white">{ir.inspection_title}</td>
-                    <td className="p-3 uppercase text-[10px] font-bold text-slate-500">{ir.inspection_type}</td>
+                    <td className="p-3 uppercase text-xs font-bold text-slate-500">{ir.inspection_type}</td>
                     <td className="p-3">{ir.location_grid || "-"}</td>
                     <td className="p-3 font-mono">{ir.scheduled_date ? ir.scheduled_date.split("T")[0] : "-"}</td>
                     <td className="p-3">{ir.inspector_name || "Consultant"}</td>
                     <td className="p-3 text-center">
-                      <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider ${
+                      <span className={`px-2.5 py-0.5 rounded-full text-xs font-black uppercase tracking-wider ${
                         ir.result === "PASSED" ? "bg-emerald-100 text-emerald-700" : ir.result === "REJECTED" ? "bg-rose-100 text-rose-700" : "bg-amber-100 text-amber-700"
                       }`}>
                         {ir.result}
@@ -342,12 +342,12 @@ export default function QualityControlPage() {
                     <td className="p-3">{n.location_grid || "-"}</td>
                     <td className="p-3 text-slate-500">{n.root_cause || "-"}</td>
                     <td className="p-3">
-                      <span className="px-2 py-0.5 rounded text-[9px] font-black uppercase bg-slate-100 dark:bg-slate-800">
+                      <span className="px-2 py-0.5 rounded text-xs font-black uppercase bg-slate-100 dark:bg-slate-800">
                         {n.severity}
                       </span>
                     </td>
                     <td className="p-3 text-center">
-                      <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider ${
+                      <span className={`px-2.5 py-0.5 rounded-full text-xs font-black uppercase tracking-wider ${
                         n.status === "CLOSED" ? "bg-emerald-100 text-emerald-700" : "bg-rose-100 text-rose-700"
                       }`}>
                         {n.status}
@@ -388,12 +388,12 @@ export default function QualityControlPage() {
                     <td className="p-3 text-slate-800 dark:text-slate-200">{s.defect_description}</td>
                     <td className="p-3">{s.trade_responsible}</td>
                     <td className="p-3">
-                      <span className="px-2 py-0.5 rounded text-[9px] font-bold uppercase bg-slate-100">
+                      <span className="px-2 py-0.5 rounded text-xs font-bold uppercase bg-slate-100">
                         {s.priority}
                       </span>
                     </td>
                     <td className="p-3 text-center">
-                      <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider ${
+                      <span className={`px-2.5 py-0.5 rounded-full text-xs font-black uppercase tracking-wider ${
                         s.status === "VERIFIED" ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"
                       }`}>
                         {s.status}
@@ -434,13 +434,13 @@ export default function QualityControlPage() {
                 tests.map(t => (
                   <tr key={t.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/40">
                     <td className="p-3 font-bold text-brand-600">{t.test_name}</td>
-                    <td className="p-3 uppercase text-[10px] font-bold text-slate-500">{t.material_type}</td>
+                    <td className="p-3 uppercase text-xs font-bold text-slate-500">{t.material_type}</td>
                     <td className="p-3 font-mono">{t.batch_number || "-"}</td>
                     <td className="p-3 font-mono">{t.test_date ? t.test_date.split("T")[0] : "-"}</td>
                     <td className="p-3 font-mono">{t.required_strength || "-"}</td>
                     <td className="p-3 font-mono font-bold text-slate-900 dark:text-white">{t.achieved_strength || "-"}</td>
                     <td className="p-3 text-center">
-                      <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider ${
+                      <span className={`px-2.5 py-0.5 rounded-full text-xs font-black uppercase tracking-wider ${
                         t.result === "PASS" ? "bg-emerald-100 text-emerald-700" : "bg-rose-100 text-rose-700"
                       }`}>
                         {t.result}

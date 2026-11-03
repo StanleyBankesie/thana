@@ -694,7 +694,7 @@ export default function ServiceBillingForm() {
                                 {s.supplier_name || s.name}
                               </div>
                               {s.supplier_code && (
-                                <div className="text-[10px] text-slate-400">{s.supplier_code}</div>
+                                <div className="text-xs text-slate-400">{s.supplier_code}</div>
                               )}
                             </button>
                           ))}
@@ -967,7 +967,7 @@ export default function ServiceBillingForm() {
                             : (newItem.tax_component_name || (newItem.tax_code_id ? taxCodes.find(t => String(t.id) === String(newItem.tax_code_id))?.name : ''))}
                         </span>
                         {newItem.tax_mode === 'INCLUSIVE' && newItem.tax_rate !== undefined && (
-                          <span className="text-[11px] font-bold text-brand-600 bg-brand-50 dark:bg-brand-900/30 px-1.5 py-0.5 rounded shrink-0 ml-1">
+                          <span className="text-xs font-bold text-brand-600 bg-brand-50 dark:bg-brand-900/30 px-1.5 py-0.5 rounded shrink-0 ml-1">
                             {Number(newItem.tax_rate)}%
                           </span>
                         )}
@@ -990,7 +990,7 @@ export default function ServiceBillingForm() {
               {/* Table of Line Items */}
               <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800 mt-4">
                 <table className="w-full text-left text-xs">
-                  <thead className="bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 font-bold border-b border-slate-200 dark:border-slate-800 uppercase tracking-wider text-[11px]">
+                  <thead className="bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 font-bold border-b border-slate-200 dark:border-slate-800 uppercase tracking-wider text-xs">
                     <tr>
                       <th className="p-3 w-12 text-center">#</th>
                       <th className="p-3 min-w-[220px]">Service Item</th>
@@ -1030,7 +1030,7 @@ export default function ServiceBillingForm() {
                             <td className="p-3 font-semibold text-slate-800 dark:text-slate-100">
                               {row.item_name}
                               {row.item_code && (
-                                <span className="block text-[10px] text-slate-400 font-mono">{row.item_code}</span>
+                                <span className="block text-xs text-slate-400 font-mono">{row.item_code}</span>
                               )}
                             </td>
                             <td className="p-3 text-slate-600 dark:text-slate-400 capitalize">{row.category || "General"}</td>
@@ -1064,7 +1064,7 @@ export default function ServiceBillingForm() {
                             <td className="p-3 text-right font-mono text-slate-500">
                               {tax.toFixed(2)}
                               {row.tax_mode === 'INCLUSIVE' && (
-                                <span className="block text-[10px] text-brand-600 font-bold">
+                                <span className="block text-xs text-brand-600 font-bold">
                                   ({Number(row.tax_rate !== undefined && row.tax_rate !== null ? row.tax_rate : (bill.tax_rate || 0))}%)
                                 </span>
                               )}
@@ -1187,7 +1187,7 @@ export default function ServiceBillingForm() {
                         <span className="font-mono">{totals.taxAmount.toFixed(2)}</span>
                       </div>
                       {totals.components.map((c) => (
-                        <div key={c.name} className="flex justify-between text-[11px] text-slate-500 pl-3">
+                        <div key={c.name} className="flex justify-between text-xs text-slate-500 pl-3">
                           <span>{c.name} ({c.rate}%):</span>
                           <span className="font-mono">{Number(c.amount || 0).toFixed(2)}</span>
                         </div>
@@ -1265,14 +1265,14 @@ export default function ServiceBillingForm() {
 
         <div className="grid grid-cols-2 gap-6 py-6 border-b border-slate-300">
           <div>
-            <h4 className="font-bold text-slate-500 uppercase text-[10px] tracking-wider mb-1">Contractor / Vendor:</h4>
+            <h4 className="font-bold text-slate-500 uppercase text-xs tracking-wider mb-1">Contractor / Vendor:</h4>
             <p className="font-bold text-sm">{selectedSupplierObj?.supplier_name || selectedSupplierObj?.name || "N/A"}</p>
             {selectedSupplierObj?.address && <p className="text-slate-600">{selectedSupplierObj.address}</p>}
             {selectedSupplierObj?.phone && <p className="text-slate-600">Phone: {selectedSupplierObj.phone}</p>}
             {selectedSupplierObj?.email && <p className="text-slate-600">Email: {selectedSupplierObj.email}</p>}
           </div>
           <div className="text-right">
-            <h4 className="font-bold text-slate-500 uppercase text-[10px] tracking-wider mb-1">Payment Status:</h4>
+            <h4 className="font-bold text-slate-500 uppercase text-xs tracking-wider mb-1">Payment Status:</h4>
             <p className="font-bold uppercase text-sm">{bill.payment_status || "UNPAID"}</p>
             <p className="text-slate-600">Terms: {bill.payment_terms} Days</p>
             {bill.payment_method && <p className="text-slate-600">Method: {bill.payment_method.toUpperCase()}</p>}
@@ -1281,7 +1281,7 @@ export default function ServiceBillingForm() {
 
         <table className="w-full text-left my-6 border-collapse">
           <thead>
-            <tr className="border-b-2 border-slate-800 text-[11px] uppercase font-bold">
+            <tr className="border-b-2 border-slate-800 text-xs uppercase font-bold">
               <th className="py-2">#</th>
               <th className="py-2">Service Description</th>
               <th className="py-2">Category</th>
@@ -1339,7 +1339,7 @@ export default function ServiceBillingForm() {
 
         {bill.notes && (
           <div className="mt-8 pt-4 border-t border-slate-200">
-            <h5 className="font-bold text-[10px] uppercase text-slate-500 mb-1">Remarks & Notes:</h5>
+            <h5 className="font-bold text-xs uppercase text-slate-500 mb-1">Remarks & Notes:</h5>
             <p className="text-slate-600 text-xs">{bill.notes}</p>
           </div>
         )}

@@ -356,6 +356,15 @@ export async function updateHelpdeskTicket(req, res, next) {
   try {
     const { companyId } = req.scope || {};
     const { id } = req.params;
+
+    const [existingRows] = await pool.query(
+      "SELECT status FROM fm_helpdesk_tickets WHERE id = ? AND company_id = ?",
+      [id, companyId]
+    );
+    if (existingRows.length && existingRows[0].status === "APPROVED") {
+      return res.status(400).json({ success: false, message: "This ticket has been approved and cannot be edited" });
+    }
+
     const allowed = ["status", "priority", "assigned_to_name", "assigned_to_user_id",
       "resolution_code", "root_cause", "resolution_notes", "client_satisfaction_rating",
       "client_feedback", "work_order_id", "sla_paused", "sla_pause_reason"];
@@ -381,6 +390,160 @@ export async function updateHelpdeskTicket(req, res, next) {
     res.json({ success: true, message: "Ticket updated" });
   } catch (err) { next(err); }
 }
+
+export async function submitHelpdeskTicketForApproval(req, res, next) {
+  try {
+    const { companyId } = req.scope || {};
+    const { id } = req.params;
+    const { workflow_id, target_user_id, comments } = req.body || {};
+    const userId = req.user?.sub || req.user?.id || 1;
+
+    const [tickets] = await pool.query(
+      "SELECT * FROM fm_helpdesk_tickets WHERE id = ? AND company_id = ?",
+      [id, companyId]
+    );
+    if (!tickets || !tickets.length) {
+      return res.status(404).json({ success: false, message: "Helpdesk ticket not found" });
+    }
+    const ticket = tickets[0];
+
+    // Find active workflow
+    let chosenWorkflow = null;
+    if (workflow_id) {
+      const [wfRows] = await pool.query(
+        "SELECT * FROM adm_workflows WHERE id = ? AND company_id = ? AND is_active = 1",
+        [workflow_id, companyId]
+      );
+      if (wfRows && wfRows.length) chosenWorkflow = wfRows[0];
+    }
+    if (!chosenWorkflow) {
+      const [allWfs] = await pool.query(
+        "SELECT * FROM adm_workflows WHERE company_id = ? AND is_active = 1",
+        [companyId]
+      );
+      const synonyms = ["FM_HELPDESK_TICKET", "HELPDESK_TICKET", "FM_HELPDESK", "SERVICE_REQUEST", "Helpdesk Ticket", "Service Request"];
+      const normalize = (s) => String(s || "").trim().toUpperCase().replace(/\s+/g, "_");
+      chosenWorkflow = allWfs.find(
+        (w) => String(w.document_route || "") === "/facilities/helpdesk" ||
+               synonyms.some((syn) => normalize(w.document_type) === normalize(syn))
+      ) || null;
+    }
+
+    if (chosenWorkflow) {
+      const [steps] = await pool.query(
+        "SELECT * FROM adm_workflow_steps WHERE workflow_id = ? ORDER BY step_order ASC LIMIT 1",
+        [chosenWorkflow.id]
+      );
+      if (!steps || !steps.length) {
+        return res.status(400).json({ success: false, message: "Selected workflow has no steps" });
+      }
+      const firstStep = steps[0];
+      const [allowedUsers] = await pool.query(
+        "SELECT approver_user_id FROM adm_workflow_step_approvers WHERE workflow_id = ? AND step_order = ?",
+        [chosenWorkflow.id, firstStep.step_order]
+      );
+      const allowedSet = new Set(allowedUsers.map((r) => Number(r.approver_user_id)));
+      let assignedUserId = Number(firstStep.approver_user_id);
+      if (target_user_id) {
+        assignedUserId = Number(target_user_id);
+      } else if (allowedUsers.length > 0) {
+        assignedUserId = Number(allowedUsers[0].approver_user_id);
+      }
+
+      // Get approver username
+      const [uRows] = await pool.query("SELECT username FROM adm_users WHERE id = ?", [assignedUserId]);
+      const approverName = uRows && uRows.length ? uRows[0].username : "Approver";
+
+      // Insert adm_document_workflows
+      const [dwRes] = await pool.query(
+        `INSERT INTO adm_document_workflows 
+           (company_id, workflow_id, document_id, document_type, amount, current_step_order, status, assigned_to_user_id)
+         VALUES (?, ?, ?, 'FM_HELPDESK_TICKET', 0, ?, 'PENDING', ?)`,
+        [companyId, chosenWorkflow.id, id, firstStep.step_order, assignedUserId]
+      );
+
+      // Log submission
+      await pool.query(
+        `INSERT INTO adm_workflow_logs (document_workflow_id, step_order, action, actor_user_id, comments)
+         VALUES (?, ?, 'SUBMIT', ?, ?)`,
+        [dwRes.insertId, firstStep.step_order, userId, comments || "Ticket forwarded for approval"]
+      );
+
+      // Update ticket status
+      await pool.query(
+        "UPDATE fm_helpdesk_tickets SET status = 'PENDING_APPROVAL', forwarded_to_username = ? WHERE id = ? AND company_id = ?",
+        [approverName, id, companyId]
+      );
+
+      return res.json({
+        success: true,
+        status: "PENDING_APPROVAL",
+        forwarded_to_username: approverName,
+        message: `Ticket forwarded to ${approverName} for approval`
+      });
+    } else {
+      // Auto-approve if no workflow configured
+      const [uRows] = await pool.query("SELECT username FROM adm_users WHERE id = ?", [userId]);
+      const approverName = uRows && uRows.length ? uRows[0].username : "Authorized User";
+
+      await pool.query(
+        "UPDATE fm_helpdesk_tickets SET status = 'APPROVED', approved_by_username = ?, approved_at = NOW(), forwarded_to_username = NULL WHERE id = ? AND company_id = ?",
+        [approverName, id, companyId]
+      );
+
+      return res.json({
+        success: true,
+        status: "APPROVED",
+        forwarded_to_username: null,
+        message: "Ticket approved (auto-approved)"
+      });
+    }
+  } catch (err) { next(err); }
+}
+
+export async function approveHelpdeskTicket(req, res, next) {
+  try {
+    const { companyId } = req.scope || {};
+    const { id } = req.params;
+    const userId = req.user?.sub || req.user?.id || 1;
+
+    const [uRows] = await pool.query("SELECT username FROM adm_users WHERE id = ?", [userId]);
+    const approverName = uRows && uRows.length ? uRows[0].username : "Authorized User";
+
+    await pool.query(
+      "UPDATE fm_helpdesk_tickets SET status = 'APPROVED', approved_by_username = ?, approved_at = NOW(), forwarded_to_username = NULL WHERE id = ? AND company_id = ?",
+      [approverName, id, companyId]
+    );
+
+    // Update any open adm_document_workflows
+    await pool.query(
+      "UPDATE adm_document_workflows SET status = 'APPROVED', assigned_to_user_id = NULL WHERE document_id = ? AND company_id = ? AND document_type = 'FM_HELPDESK_TICKET' AND status = 'PENDING'",
+      [id, companyId]
+    ).catch(() => {});
+
+    res.json({ success: true, status: "APPROVED", message: "Ticket approved successfully" });
+  } catch (err) { next(err); }
+}
+
+export async function reverseHelpdeskTicketApproval(req, res, next) {
+  try {
+    const { companyId } = req.scope || {};
+    const { id } = req.params;
+
+    await pool.query(
+      "UPDATE fm_helpdesk_tickets SET status = 'RETURNED', forwarded_to_username = NULL, approved_by_username = NULL, approved_at = NULL WHERE id = ? AND company_id = ?",
+      [id, companyId]
+    );
+
+    await pool.query(
+      "UPDATE adm_document_workflows SET status = 'RETURNED', assigned_to_user_id = NULL WHERE document_id = ? AND company_id = ? AND document_type = 'FM_HELPDESK_TICKET'",
+      [id, companyId]
+    ).catch(() => {});
+
+    res.json({ success: true, status: "RETURNED", message: "Approval reversed and ticket returned" });
+  } catch (err) { next(err); }
+}
+
 
 export async function addTicketNote(req, res, next) {
   try {

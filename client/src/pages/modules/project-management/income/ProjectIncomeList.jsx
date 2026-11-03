@@ -309,7 +309,7 @@ export default function ProjectIncomeList() {
                     <td className="text-sm text-slate-600 overflow-hidden text-ellipsis whitespace-nowrap">{item.description || "—"}</td>
                     <td className="text-right font-semibold">GHS {Number(item.amount).toLocaleString()}</td>
                     <td className="text-center">
-                      <span className={`px-2 py-0.5 rounded text-[10px] font-semibold uppercase ${
+                      <span className={`px-2 py-0.5 rounded text-xs font-semibold uppercase ${
                         item.status === 'APPROVED' || item.status === 'POSTED' ? 'bg-emerald-50 text-emerald-600' :
                         item.status === 'REJECTED' ? 'bg-rose-50 text-rose-600' :
                         'bg-amber-50 text-amber-600'
@@ -399,7 +399,7 @@ export default function ProjectIncomeList() {
           </div>
           <div>
             <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">Amount (GHS) <span className="text-red-500">*</span></label>
-            <input type="number" step="0.01" required className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500 font-mono" value={form.amount} onChange={e => setForm({...form, amount: e.target.value})} />
+            <input type="number" step="0.01" required className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500 font-normal" value={form.amount} onChange={e => setForm({...form, amount: e.target.value})} />
           </div>
         </div>
 

@@ -641,7 +641,7 @@ export default function Setup() {
                 <td className="px-4 py-3 font-medium text-sm">{d.name}</td>
                 <td className="px-4 py-3 text-sm text-slate-500">{d.code || "—"}</td>
                 <td className="px-4 py-3">
-                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${d.is_active === "Y" || d.is_active === 1 ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-500"}`}>
+                  <span className={`px-2 py-0.5 rounded-full text-xs font-bold uppercase ${d.is_active === "Y" || d.is_active === 1 ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-500"}`}>
                     {d.is_active === "Y" || d.is_active === 1 ? "Active" : "Inactive"}
                   </span>
                 </td>
@@ -693,7 +693,7 @@ export default function Setup() {
                 <td className="px-4 py-3 text-sm text-slate-500">{w.warehouse_code}</td>
                 <td className="px-4 py-3 text-sm text-slate-500">{w.location || "—"}</td>
                 <td className="px-4 py-3">
-                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${w.is_active === 1 || w.is_active === "1" ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-500"}`}>
+                  <span className={`px-2 py-0.5 rounded-full text-xs font-bold uppercase ${w.is_active === 1 || w.is_active === "1" ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-500"}`}>
                     {w.is_active === 1 || w.is_active === "1" ? "Active" : "Inactive"}
                   </span>
                 </td>
@@ -1203,7 +1203,7 @@ export default function Setup() {
                 <td className="px-4 py-3 font-medium text-sm">{e.name}</td>
                 <td className="px-4 py-3 text-sm text-slate-500">{e.maint_equipment_name || "—"}</td>
                 <td className="px-4 py-3">
-                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${e.status === "ACTIVE" ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-500"}`}>
+                  <span className={`px-2 py-0.5 rounded-full text-xs font-bold uppercase ${e.status === "ACTIVE" ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-500"}`}>
                     {e.status}
                   </span>
                 </td>

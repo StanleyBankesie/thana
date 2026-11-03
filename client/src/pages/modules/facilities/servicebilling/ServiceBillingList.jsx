@@ -157,7 +157,7 @@ export default function ServiceBillingList() {
         {/* Table View */}
         <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800">
           <table className={"w-full text-left text-xs " + (viewMode === "grid" ? "table-grid-mode" : "")}>
-            <thead className="bg-slate-50 dark:bg-slate-800/60 text-slate-600 dark:text-slate-300 font-bold border-b border-slate-200 dark:border-slate-800 uppercase tracking-wider text-[11px]">
+            <thead className="bg-slate-50 dark:bg-slate-800/60 text-slate-600 dark:text-slate-300 font-bold border-b border-slate-200 dark:border-slate-800 uppercase tracking-wider text-xs">
               <tr>
                 <th className="p-3.5 pl-5">Bill No & Date</th>
                 <th className="p-3.5">Client / Debtor</th>
@@ -189,7 +189,7 @@ export default function ServiceBillingList() {
                 <tr key={r.id} className="hover:bg-slate-50/60 dark:hover:bg-slate-800/40 transition-colors">
                   <td className="p-3.5 pl-5">
                     <span className="font-mono font-bold text-slate-900 dark:text-white block">{r.bill_no}</span>
-                    <span className="text-[11px] text-slate-400">{r.bill_date}</span>
+                    <span className="text-xs text-slate-400">{r.bill_date}</span>
                   </td>
 
                   <td className="p-3.5">
@@ -197,7 +197,7 @@ export default function ServiceBillingList() {
                       {r.client_name || r.supplier_name || "General Client"}
                     </span>
                     {r.notes && (
-                      <span className="text-[11px] text-slate-400 truncate max-w-xs block">
+                      <span className="text-xs text-slate-400 truncate max-w-xs block">
                         {r.notes}
                       </span>
                     )}
@@ -205,7 +205,7 @@ export default function ServiceBillingList() {
 
                   <td className="p-3.5">
                     <span
-                      className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold border ${
+                      className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold border ${
                         String(r.payment_status || "").toUpperCase() === "PAID"
                           ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800"
                           : "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-800"
@@ -221,7 +221,7 @@ export default function ServiceBillingList() {
 
                   <td className="p-3.5">
                     <span
-                      className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold border ${
+                      className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold border ${
                         String(r.status || "").toUpperCase() === "POSTED"
                           ? "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/60 dark:text-blue-300"
                           : String(r.status || "").toUpperCase() === "COMPLETED" || String(r.status || "").toUpperCase() === "PAID"
@@ -236,8 +236,8 @@ export default function ServiceBillingList() {
                   </td>
 
                   <td className="p-3.5 text-slate-500">
-                    <span className="text-[11px] block">{r.created_by_username || r.created_by_name || "Admin"}</span>
-                    <span className="text-[10px] text-slate-400">
+                    <span className="text-xs block">{r.created_by_username || r.created_by_name || "Admin"}</span>
+                    <span className="text-xs text-slate-400">
                       {r.created_at ? new Date(r.created_at).toLocaleDateString() : ""}
                     </span>
                   </td>

@@ -21,12 +21,22 @@ import {
 } from "lucide-react";
 import { api } from "../../../../api/client.js";
 import { toast } from "react-toastify";
+import { useUoms } from "../../../../hooks/useUoms.js";
 
 export default function DailySiteReportForm() {
   const navigate = useNavigate();
   const { id } = useParams();
   const [searchParams] = useSearchParams();
   const isEdit = Boolean(id);
+  const { uoms } = useUoms();
+
+  const uomOptions = React.useMemo(() => {
+    const fromApi = (Array.isArray(uoms) ? uoms : [])
+      .map((u) => u.uom_code || u.code || u.name)
+      .filter(Boolean);
+    const defaults = ["M3", "M2", "M", "KG", "TON", "NR", "SUM", "HRS", "DAY"];
+    return Array.from(new Set([...fromApi, ...defaults]));
+  }, [uoms]);
 
   const [projects, setProjects] = useState([]);
   const [saving, setSaving] = useState(false);
@@ -155,23 +165,44 @@ export default function DailySiteReportForm() {
           <div>
             <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
               <BookOpen size={24} className="text-brand-900 dark:text-brand-400" />
-              {isEdit ? `Daily Site Diary: ${form.report_number}` : "New Daily Site Diary Entry"}
+              {isEdit ? `Daily Site Diary: ${form.report_number || form.report_no || `#${id}`}` : "New Daily Site Diary Entry"}
             </h1>
             <p className="text-slate-500 text-sm mt-0.5">Official construction site daily record and measurements</p>
           </div>
           <div className="flex items-center gap-3">
+            {isEdit && (
+              <span
+                className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${
+                  form.status === "APPROVED"
+                    ? "bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400"
+                    : form.status === "PENDING_APPROVAL"
+                    ? "bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-950/40 dark:text-amber-400"
+                    : "bg-slate-100 text-slate-600 border border-slate-200 dark:bg-slate-800 dark:text-slate-300"
+                }`}
+              >
+                {form.status || "DRAFT"}
+              </span>
+            )}
             <Link to="/project-management/daily-reports" className="btn btn-secondary">
               Cancel
             </Link>
             <button
               onClick={handleSubmit}
-              disabled={saving}
+              disabled={saving || form.status === "APPROVED"}
               className="btn btn-primary inline-flex items-center gap-2"
             >
-              <Save size={16} /> {saving ? "Saving..." : "Save Diary"}
+              <Save size={16} /> {saving ? "Saving..." : form.status === "APPROVED" ? "Locked (Approved)" : "Save Diary"}
             </button>
           </div>
         </div>
+        {form.status === "APPROVED" && (
+          <div className="mt-4 p-3.5 bg-emerald-50 text-emerald-800 border border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-300 dark:border-emerald-800/50 rounded-xl text-xs flex items-center gap-2">
+            <CheckCircle2 size={16} className="shrink-0 text-emerald-600" />
+            <span>
+              This Daily Site Diary is officially approved and certified. To modify measurements or workforce logs, an authorized user must reverse the approval from the Daily Site Diary list page.
+            </span>
+          </div>
+        )}
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
@@ -446,7 +477,7 @@ export default function DailySiteReportForm() {
                         setActivities(copy);
                       }}
                     >
-                      {["M3", "M2", "M", "KG", "TON", "NR", "SUM"].map(u => (
+                      {uomOptions.map(u => (
                         <option key={u} value={u}>{u}</option>
                       ))}
                     </select>

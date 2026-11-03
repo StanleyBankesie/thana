@@ -65,6 +65,8 @@ import { fetchReportHeader, renderHtmlToPdf } from "../../../../utils/pdfUtils.j
 import PrintPreviewModal from "../../../../components/PrintPreviewModal.jsx";
 import DocumentAttachmentsModal from "@/components/attachments/DocumentAttachmentsModal.jsx";
 import { ListAttachmentIconButton } from "@/components/list/ListDocActionIconButtons.jsx";
+import { useUoms } from "@/hooks/useUoms";
+import { useExchangeRate } from "@/hooks/useExchangeRate";
 
 // 7-Stage Workflow Definition matching user specification
 export const WORKFLOW_STAGES = [
@@ -134,6 +136,8 @@ export default function VariationRegister() {
   const initialForm = {
     id: null,
     variation_no: "",
+    currency: "GHS",
+    exchange_rate: "1",
     document_stage: "VARIATION_REQUEST",
     project_id: "",
     title: "",
@@ -217,6 +221,61 @@ export default function VariationRegister() {
   const [activeDocId, setActiveDocId] = useState(null);
   const [uploadingDoc, setUploadingDoc] = useState(false);
   const fileInputRef = useRef(null);
+
+  // UOMs from inv_uoms table & Currency Exchange Rate hook (aligning with Contra Voucher)
+  const { uoms } = useUoms();
+  const { getExchangeRate } = useExchangeRate();
+  const [currencies, setCurrencies] = useState([]);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const curRes = await api.get("/finance/currencies");
+        setCurrencies(curRes.data?.items || []);
+      } catch (e) {}
+    })();
+  }, []);
+
+  const baseCurrency = useMemo(() => {
+    const arr = Array.isArray(currencies) ? currencies : [];
+    return (
+      arr.find((c) => Number(c.is_base || c.is_default || 0) === 1) ||
+      arr.find((c) => String(c.code || c.currency_code || "").toUpperCase() === "GHS") ||
+      arr.find((c) => /ghana|cedi/i.test(String(c.name || c.currency_name || ""))) ||
+      { code: "GHS", name: "Ghana Cedi", symbol: "GH₵" }
+    );
+  }, [currencies]);
+
+  const dynamicUomOptions = useMemo(() => {
+    if (Array.isArray(uoms) && uoms.length > 0) {
+      return uoms
+        .filter((u) => u.is_active !== 0 && u.is_active !== false)
+        .map((u) => ({
+          value: u.uom_code || u.code || "",
+          label: u.uom_name ? `${u.uom_name} (${u.uom_code || u.code})` : (u.uom_code || u.code || "")
+        }));
+    }
+    return UOM_OPTIONS.map((u) => ({ value: u, label: u }));
+  }, [uoms]);
+
+  const handleCurrencyChange = async (newCurr) => {
+    const baseCode = baseCurrency?.code || "GHS";
+    if (!newCurr || newCurr === baseCode) {
+      setForm((prev) => ({ ...prev, currency: newCurr, exchange_rate: "1" }));
+    } else {
+      setForm((prev) => ({ ...prev, currency: newCurr }));
+      try {
+        const rate = await getExchangeRate(newCurr, baseCode);
+        setForm((prev) => ({
+          ...prev,
+          currency: newCurr,
+          exchange_rate: rate != null ? String(rate) : "1",
+        }));
+      } catch {
+        setForm((prev) => ({ ...prev, currency: newCurr, exchange_rate: "1" }));
+      }
+    }
+  };
 
   // Load Projects, Subcontracts, and Report Header on mount (Do NOT auto-select by default)
   useEffect(() => {
@@ -683,6 +742,8 @@ export default function VariationRegister() {
       setForm({
         ...v,
         project_id: String(v.project_id),
+        currency: v.currency || "GHS",
+        exchange_rate: String(v.exchange_rate || "1"),
         date_raised: v.date_raised ? String(v.date_raised).split("T")[0] : "",
         effective_date: v.effective_date ? String(v.effective_date).split("T")[0] : "",
         original_completion_date: v.original_completion_date ? String(v.original_completion_date).split("T")[0] : "",
@@ -718,7 +779,7 @@ export default function VariationRegister() {
       item_description: "",
       change_action: "ADD",
       cost_category: "MATERIALS",
-      uom: "Each",
+      uom: dynamicUomOptions[0]?.value || "Each",
       original_qty: 0,
       original_rate: 0,
       original_amount: 0,
@@ -923,7 +984,7 @@ export default function VariationRegister() {
     const companyName = headerInfo.companyName || "Company";
     const companyAddress = headerInfo.companyAddress || "";
     const companyContact = [headerInfo.companyPhone, headerInfo.companyEmail].filter(Boolean).join("  |  ");
-    const currency = "GH₵";
+    const currency = item.currency || form.currency || "GHS";
 
     const printLineItems = v ? (v.items || lineItems) : lineItems;
 
@@ -986,14 +1047,15 @@ export default function VariationRegister() {
                 <th style="padding: 6px; border: 1px solid #cbd5e1; text-align: center;">Action</th>
                 <th style="padding: 6px; border: 1px solid #cbd5e1; text-align: center;">UoM</th>
                 <th style="padding: 6px; border: 1px solid #cbd5e1; text-align: right;">Orig Qty</th>
+                <th style="padding: 6px; border: 1px solid #cbd5e1; text-align: right;">Orig Rate</th>
                 <th style="padding: 6px; border: 1px solid #cbd5e1; text-align: right;">Rev Qty</th>
+                <th style="padding: 6px; border: 1px solid #cbd5e1; text-align: right;">Prop Rate</th>
                 <th style="padding: 6px; border: 1px solid #cbd5e1; text-align: right;">Diff</th>
-                <th style="padding: 6px; border: 1px solid #cbd5e1; text-align: right;">Rate (${currency})</th>
                 <th style="padding: 6px; border: 1px solid #cbd5e1; text-align: right;">Cost Diff (${currency})</th>
               </tr>
             </thead>
             <tbody>
-              ${printLineItems.length === 0 ? `<tr><td colspan="9" style="padding: 12px; text-align: center; color: #94a3b8; font-style: italic;">No specific line items recorded. Overall lump-sum change applied.</td></tr>` : 
+              ${printLineItems.length === 0 ? `<tr><td colspan="10" style="padding: 12px; text-align: center; color: #94a3b8; font-style: italic;">No specific line items recorded. Overall lump-sum change applied.</td></tr>` : 
                 printLineItems.map(it => `
                   <tr>
                     <td style="padding: 6px; border: 1px solid #cbd5e1; font-family: monospace;">${it.item_code || "—"}</td>
@@ -1001,9 +1063,10 @@ export default function VariationRegister() {
                     <td style="padding: 6px; border: 1px solid #cbd5e1; text-align: center; font-weight: bold;">${it.change_action}</td>
                     <td style="padding: 6px; border: 1px solid #cbd5e1; text-align: center;">${it.uom}</td>
                     <td style="padding: 6px; border: 1px solid #cbd5e1; text-align: right; font-family: monospace;">${Number(it.original_qty || 0).toFixed(2)}</td>
+                    <td style="padding: 6px; border: 1px solid #cbd5e1; text-align: right; font-family: monospace;">${Number(it.original_rate || 0).toFixed(2)}</td>
                     <td style="padding: 6px; border: 1px solid #cbd5e1; text-align: right; font-family: monospace;">${Number(it.revised_qty || 0).toFixed(2)}</td>
+                    <td style="padding: 6px; border: 1px solid #cbd5e1; text-align: right; font-family: monospace;">${Number(it.proposed_rate || 0).toFixed(2)}</td>
                     <td style="padding: 6px; border: 1px solid #cbd5e1; text-align: right; font-family: monospace; font-weight: bold;">${Number(it.qty_diff || 0).toFixed(2)}</td>
-                    <td style="padding: 6px; border: 1px solid #cbd5e1; text-align: right; font-family: monospace;">${Number(it.proposed_rate || it.original_rate || 0).toFixed(2)}</td>
                     <td style="padding: 6px; border: 1px solid #cbd5e1; text-align: right; font-family: monospace; font-weight: bold; color: ${Number(it.cost_diff || 0) >= 0 ? '#166534' : '#991b1b'};">
                       ${Number(it.cost_diff || 0) >= 0 ? '+' : ''}${Number(it.cost_diff || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                     </td>
@@ -1184,7 +1247,7 @@ export default function VariationRegister() {
                   <span className="font-bold text-brand-600 flex items-center gap-1.5">
                     <FileSpreadsheet size={15} /> Baseline Integrity
                   </span>
-                  <p className="text-[11px] text-slate-500">
+                  <p className="text-xs text-slate-500">
                     Original BOQ and contract baseline are preserved for full auditable comparisons.
                   </p>
                 </div>
@@ -1192,7 +1255,7 @@ export default function VariationRegister() {
                   <span className="font-bold text-blue-600 flex items-center gap-1.5">
                     <Layers size={15} /> 7-Stage Workflow
                   </span>
-                  <p className="text-[11px] text-slate-500">
+                  <p className="text-xs text-slate-500">
                     Structured reviews across PM, Lead Quantity Surveyor, and Client authorization.
                   </p>
                 </div>
@@ -1200,7 +1263,7 @@ export default function VariationRegister() {
                   <span className="font-bold text-emerald-600 flex items-center gap-1.5">
                     <DollarSign size={15} /> Contract Reconciliation
                   </span>
-                  <p className="text-[11px] text-slate-500">
+                  <p className="text-xs text-slate-500">
                     Tracks cumulative changes and separates contract price from internal project budget.
                   </p>
                 </div>
@@ -1211,39 +1274,39 @@ export default function VariationRegister() {
               {/* KPI Summary Cards */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
                 <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-1">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Variations Logged</span>
-                  <p className="text-2xl font-bold font-mono text-slate-900 dark:text-white">{stats.total}</p>
-                  <p className="text-[10px] text-slate-500">Registered change proposals</p>
+                  <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Total Variations Logged</span>
+                  <p className="text-2xl font-medium text-slate-900 dark:text-white">{stats.total}</p>
+                  <p className="text-xs text-slate-500">Registered change proposals</p>
                 </div>
 
                 <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-1">
-                  <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">Approved Change Orders</span>
-                  <p className="text-2xl font-bold font-mono text-emerald-600 dark:text-emerald-400">{stats.approvedCount}</p>
-                  <p className="text-[10px] text-slate-500">Formally authorized by client</p>
+                  <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">Approved Change Orders</span>
+                  <p className="text-2xl font-medium text-emerald-600 dark:text-emerald-400">{stats.approvedCount}</p>
+                  <p className="text-xs text-slate-500">Formally authorized by client</p>
                 </div>
 
                 <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-1">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Proposed Value</span>
-                  <p className="text-xl font-bold font-mono text-slate-900 dark:text-white">
+                  <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Total Proposed Value</span>
+                  <p className="text-xl font-medium text-slate-900 dark:text-white">
                     GH₵ {stats.totalProposed.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                   </p>
-                  <p className="text-[10px] text-slate-500">Contractor claimed amount</p>
+                  <p className="text-xs text-slate-500">Contractor claimed amount</p>
                 </div>
 
                 <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-1">
-                  <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider">Approved Net Value</span>
-                  <p className="text-xl font-bold font-mono text-blue-600 dark:text-blue-400">
+                  <span className="text-xs font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider">Approved Net Value</span>
+                  <p className="text-xl font-medium text-blue-600 dark:text-blue-400">
                     GH₵ {stats.totalApprovedVal.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                   </p>
-                  <p className="text-[10px] text-slate-500">Contract sum adjustment</p>
+                  <p className="text-xs text-slate-500">Contract sum adjustment</p>
                 </div>
 
                 <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-1">
-                  <span className="text-[10px] font-bold text-purple-600 dark:text-purple-400 uppercase tracking-wider">Approved Time Extension</span>
-                  <p className="text-xl font-bold font-mono text-purple-600 dark:text-purple-400">
+                  <span className="text-xs font-bold text-purple-600 dark:text-purple-400 uppercase tracking-wider">Approved Time Extension</span>
+                  <p className="text-xl font-medium text-purple-600 dark:text-purple-400">
                     +{stats.totalDays} Days
                   </p>
-                  <p className="text-[10px] text-slate-500">Cumulative schedule impact</p>
+                  <p className="text-xs text-slate-500">Cumulative schedule impact</p>
                 </div>
               </div>
 
@@ -1327,7 +1390,7 @@ export default function VariationRegister() {
                                 <span className="font-mono font-bold text-brand-600 dark:text-brand-400 block">
                                   {v.variation_no}
                                 </span>
-                                <span className={`inline-block px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider mt-0.5 ${
+                                <span className={`inline-block px-1.5 py-0.5 rounded text-xs font-black uppercase tracking-wider mt-0.5 ${
                                   v.document_stage === "CHANGE_ORDER" ? "bg-purple-100 text-purple-700 dark:bg-purple-950/50" : "bg-blue-100 text-blue-700 dark:bg-blue-950/50"
                                 }`}>
                                   {v.document_stage === "CHANGE_ORDER" ? "Change Order" : "Variation Request"}
@@ -1335,28 +1398,28 @@ export default function VariationRegister() {
                               </td>
                               <td className="p-3 max-w-xs">
                                 <div className="font-bold text-slate-900 dark:text-white truncate">{v.title}</div>
-                                <div className="text-[11px] text-slate-400 truncate mt-0.5">{v.description || "—"}</div>
+                                <div className="text-xs text-slate-400 truncate mt-0.5">{v.description || "—"}</div>
                               </td>
                               <td className="p-3">
                                 <span className="font-semibold text-slate-700 dark:text-slate-300 block">{v.change_type}</span>
-                                <span className="text-[10px] text-slate-400">{v.reason}</span>
+                                <span className="text-xs text-slate-400">{v.reason}</span>
                               </td>
-                              <td className="p-3 font-mono text-slate-500 text-[11px]">
+                              <td className="p-3 font-mono text-slate-500 text-xs">
                                 {v.date_raised ? String(v.date_raised).split("T")[0] : "—"}
                               </td>
-                              <td className="p-3 text-right font-mono font-bold text-slate-800 dark:text-slate-200">
+                              <td className="p-3 text-right font-medium text-slate-800 dark:text-slate-200">
                                 {Number(v.contractor_proposed_amount || v.cost_impact || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                               </td>
-                              <td className="p-3 text-right font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                              <td className="p-3 text-right font-medium text-emerald-600 dark:text-emerald-400">
                                 {v.status === "APPROVED" || v.status === "COMPLETED"
                                   ? Number(v.amount_approved || v.cost_impact || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })
                                   : "—"}
                               </td>
-                              <td className="p-3 text-center font-mono font-bold">
+                              <td className="p-3 text-center font-medium">
                                 +{v.schedule_impact_days || 0}d
                               </td>
                               <td className="p-3 text-center">
-                                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold border ${stageInfo.cls}`}>
+                                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold border ${stageInfo.cls}`}>
                                   {stageInfo.label}
                                 </span>
                               </td>
@@ -1633,7 +1696,7 @@ export default function VariationRegister() {
                     Related Contract / Agreement Ref
                   </label>
                   {activeContractsList.length > 0 && (
-                    <span className="text-[10px] text-brand-600 dark:text-brand-400 font-semibold">
+                    <span className="text-xs text-brand-600 dark:text-brand-400 font-semibold">
                       {activeContractsList.length} active
                     </span>
                   )}
@@ -1672,7 +1735,7 @@ export default function VariationRegister() {
                         key={i}
                         type="button"
                         onClick={() => handleSelectContract(c.ref)}
-                        className={`text-[10px] px-2 py-0.5 rounded-full border transition-all ${
+                        className={`text-xs px-2 py-0.5 rounded-full border transition-all ${
                           form.contract_ref === c.ref
                             ? "bg-brand-50 border-brand-300 text-brand-700 font-bold dark:bg-brand-950/40 dark:border-brand-700 dark:text-brand-300 shadow-sm"
                             : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50 dark:bg-slate-900 dark:border-slate-700 dark:text-slate-400"
@@ -1749,6 +1812,47 @@ export default function VariationRegister() {
                   onChange={e => setForm({ ...form, contractor_name: e.target.value })}
                 />
               </div>
+
+              <div>
+                <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                  Currency
+                </label>
+                <select
+                  className="input w-full font-semibold"
+                  value={form.currency || "GHS"}
+                  onChange={e => handleCurrencyChange(e.target.value)}
+                >
+                  {currencies.length > 0 ? (
+                    currencies.map(c => (
+                      <option key={c.id || c.code} value={c.code || c.currency_code}>
+                        {c.code || c.currency_code} ({c.name || c.currency_name || c.code})
+                      </option>
+                    ))
+                  ) : (
+                    <>
+                      <option value="GHS">GHS (Ghana Cedi)</option>
+                      <option value="USD">USD (US Dollar)</option>
+                      <option value="EUR">EUR (Euro)</option>
+                      <option value="GBP">GBP (British Pound)</option>
+                    </>
+                  )}
+                </select>
+              </div>
+
+              <div>
+                <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                  Exchange Rate
+                </label>
+                <input
+                  type="number"
+                  step="any"
+                  min="0"
+                  className="input w-full text-right"
+                  value={form.exchange_rate || "1"}
+                  onChange={e => setForm(prev => ({ ...prev, exchange_rate: e.target.value }))}
+                  placeholder="1.00"
+                />
+              </div>
             </div>
 
             <div className="pt-2 text-xs w-full">
@@ -1812,7 +1916,7 @@ export default function VariationRegister() {
                             <span className="font-mono font-bold text-brand-600 block">{bi.item_code || "BOQ-ITEM"}</span>
                             <span className="truncate block max-w-[200px] text-slate-600 dark:text-slate-300">{bi.item_description}</span>
                           </div>
-                          <span className="font-mono font-bold text-slate-500">GH₵ {Number(bi.unit_rate || 0).toLocaleString()}</span>
+                          <span className="font-medium text-slate-500">GH₵ {Number(bi.unit_rate || 0).toLocaleString()}</span>
                         </button>
                       ))}
                     </div>
@@ -1838,10 +1942,12 @@ export default function VariationRegister() {
                     <th className="p-3 text-center">Action</th>
                     <th className="p-3 text-center">Category</th>
                     <th className="p-3 text-center">UoM</th>
-                    <th className="p-3 text-right">Orig Qty & Rate</th>
-                    <th className="p-3 text-right">Rev Qty & Prop Rate</th>
+                    <th className="p-3 text-right">Orig Qty</th>
+                    <th className="p-3 text-right">Orig Rate</th>
+                    <th className="p-3 text-right">Rev Qty</th>
+                    <th className="p-3 text-right">Prop Rate</th>
                     <th className="p-3 text-right">Qty Diff</th>
-                    <th className="p-3 text-right">Cost Impact (GH₵)</th>
+                    <th className="p-3 text-right">Cost Impact ({form.currency || "GHS"})</th>
                     <th className="p-3">Reason / Spec</th>
                     <th className="p-3 text-center"></th>
                   </tr>
@@ -1849,7 +1955,7 @@ export default function VariationRegister() {
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-medium">
                   {lineItems.length === 0 ? (
                     <tr>
-                      <td colSpan={11} className="p-8 text-center text-slate-400 italic">
+                      <td colSpan={13} className="p-8 text-center text-slate-400 italic">
                         No changed items added yet. Click "+ Add Change Item" or "Import BOQ Item" to itemize scope additions or omissions.
                       </td>
                     </tr>
@@ -1860,7 +1966,7 @@ export default function VariationRegister() {
                           <input
                             type="text"
                             placeholder="e.g. DST-01"
-                            className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1 text-xs font-mono font-bold w-24"
+                            className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1 text-xs font-normal w-24"
                             value={it.item_code || ""}
                             onChange={e => handleUpdateLineItem(idx, "item_code", e.target.value)}
                           />
@@ -1903,59 +2009,68 @@ export default function VariationRegister() {
                             value={it.uom}
                             onChange={e => handleUpdateLineItem(idx, "uom", e.target.value)}
                           >
-                            {UOM_OPTIONS.map(u => (
-                              <option key={u} value={u}>{u}</option>
+                            {it.uom && !dynamicUomOptions.some(u => u.value === it.uom) && (
+                              <option value={it.uom}>{it.uom}</option>
+                            )}
+                            {dynamicUomOptions.map(u => (
+                              <option key={u.value} value={u.value}>{u.label}</option>
                             ))}
                           </select>
                         </td>
-                        <td className="p-2.5 text-right font-mono text-[11px]">
-                          <div className="flex items-center justify-end gap-1">
-                            <input
-                              type="number"
-                              disabled={it.change_action === "ADD"}
-                              className="w-16 text-right bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded px-1.5 py-0.5"
-                              value={it.original_qty}
-                              onChange={e => handleUpdateLineItem(idx, "original_qty", e.target.value)}
-                            />
-                            <span>×</span>
-                            <input
-                              type="number"
-                              disabled={it.change_action === "ADD"}
-                              className="w-16 text-right bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded px-1.5 py-0.5"
-                              value={it.original_rate}
-                              onChange={e => handleUpdateLineItem(idx, "original_rate", e.target.value)}
-                            />
-                          </div>
+                        <td className="p-2.5 text-right font-normal text-xs">
+                          <input
+                            type="number"
+                            step="any"
+                            disabled={it.change_action === "ADD"}
+                            className="w-16 text-right bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded px-1.5 py-0.5 focus:ring-1 focus:ring-brand-500 disabled:opacity-40 disabled:bg-slate-100 dark:disabled:bg-slate-900"
+                            value={it.original_qty}
+                            onChange={e => handleUpdateLineItem(idx, "original_qty", e.target.value)}
+                            placeholder="0"
+                          />
                         </td>
-                        <td className="p-2.5 text-right font-mono text-[11px]">
-                          <div className="flex items-center justify-end gap-1">
-                            <input
-                              type="number"
-                              disabled={it.change_action === "OMIT"}
-                              className="w-16 text-right bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded px-1.5 py-0.5 font-bold"
-                              value={it.revised_qty}
-                              onChange={e => handleUpdateLineItem(idx, "revised_qty", e.target.value)}
-                            />
-                            <span>×</span>
-                            <input
-                              type="number"
-                              className="w-16 text-right bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded px-1.5 py-0.5 font-bold"
-                              value={it.proposed_rate}
-                              onChange={e => handleUpdateLineItem(idx, "proposed_rate", e.target.value)}
-                            />
-                          </div>
+                        <td className="p-2.5 text-right font-normal text-xs">
+                          <input
+                            type="number"
+                            step="any"
+                            disabled={it.change_action === "ADD"}
+                            className="w-20 text-right bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded px-1.5 py-0.5 focus:ring-1 focus:ring-brand-500 disabled:opacity-40 disabled:bg-slate-100 dark:disabled:bg-slate-900"
+                            value={it.original_rate}
+                            onChange={e => handleUpdateLineItem(idx, "original_rate", e.target.value)}
+                            placeholder="0.00"
+                          />
                         </td>
-                        <td className="p-2.5 text-right font-mono font-bold">
+                        <td className="p-2.5 text-right font-normal text-xs">
+                          <input
+                            type="number"
+                            step="any"
+                            disabled={it.change_action === "OMIT"}
+                            className="w-16 text-right bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded px-1.5 py-0.5 font-bold focus:ring-1 focus:ring-brand-500 disabled:opacity-40 disabled:bg-slate-100 dark:disabled:bg-slate-900"
+                            value={it.revised_qty}
+                            onChange={e => handleUpdateLineItem(idx, "revised_qty", e.target.value)}
+                            placeholder="0"
+                          />
+                        </td>
+                        <td className="p-2.5 text-right font-normal text-xs">
+                          <input
+                            type="number"
+                            step="any"
+                            className="w-20 text-right bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded px-1.5 py-0.5 font-bold focus:ring-1 focus:ring-brand-500"
+                            value={it.proposed_rate}
+                            onChange={e => handleUpdateLineItem(idx, "proposed_rate", e.target.value)}
+                            placeholder="0.00"
+                          />
+                        </td>
+                        <td className="p-2.5 text-right font-medium">
                           {Number(it.qty_diff || 0) > 0 ? "+" : ""}{Number(it.qty_diff || 0).toFixed(2)}
                         </td>
-                        <td className={`p-2.5 text-right font-mono font-bold ${Number(it.cost_diff || 0) >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}`}>
+                        <td className={`p-2.5 text-right font-medium ${Number(it.cost_diff || 0) >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}`}>
                           {Number(it.cost_diff || 0) >= 0 ? "+" : ""}{Number(it.cost_diff || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                         </td>
                         <td className="p-2.5 min-w-[140px]">
                           <input
                             type="text"
                             placeholder="Reason / justification..."
-                            className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1 text-xs w-full text-[11px]"
+                            className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1 text-xs w-full text-xs"
                             value={it.reason_and_spec || ""}
                             onChange={e => handleUpdateLineItem(idx, "reason_and_spec", e.target.value)}
                           />
@@ -1979,14 +2094,23 @@ export default function VariationRegister() {
             {/* Scope Items Cost Summary Footer */}
             <div className="p-4 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 flex flex-wrap items-center justify-between gap-4 text-xs">
               <div className="flex items-center gap-6 font-semibold">
-                <span className="text-emerald-600">Additions: +GH₵ {lineItemSummary.additions.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
-                <span className="text-rose-600">Omissions: -GH₵ {lineItemSummary.omissions.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                <span className="text-emerald-600">
+                  Additions: +{form.currency || "GHS"} {lineItemSummary.additions.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                </span>
+                <span className="text-rose-600">
+                  Omissions: -{form.currency || "GHS"} {lineItemSummary.omissions.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                </span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="font-bold text-slate-500 uppercase tracking-wider text-[11px]">Net Line Items Cost Difference:</span>
-                <span className="text-base font-black font-mono text-brand-600 dark:text-brand-400">
-                  {lineItemSummary.net >= 0 ? "+" : ""}GH₵ {lineItemSummary.net.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                <span className="font-bold text-slate-500 uppercase tracking-wider text-xs">Net Line Items Cost Difference:</span>
+                <span className="text-base font-medium text-brand-600 dark:text-brand-400">
+                  {lineItemSummary.net >= 0 ? "+" : ""}{form.currency || "GHS"} {lineItemSummary.net.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                 </span>
+                {Number(form.exchange_rate || 1) !== 1 && (
+                  <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 ml-2 font-mono">
+                    (≈ {baseCurrency.code || "GHS"} {(lineItemSummary.net * Number(form.exchange_rate || 1)).toLocaleString(undefined, { minimumFractionDigits: 2 })})
+                  </span>
+                )}
               </div>
             </div>
           </div>
@@ -2007,35 +2131,49 @@ export default function VariationRegister() {
             {/* Contract Baseline Preservation Bar */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 text-xs">
               <div className="space-y-1">
-                <span className="text-slate-400 font-bold uppercase text-[10px]">Original Approved Contract</span>
-                <p className="font-mono font-bold text-base text-slate-900 dark:text-white">
-                  GH₵ {Number(projectBaseline?.contract_sum || selectedProject?.contract_sum || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                <span className="text-slate-400 font-bold uppercase text-xs">Original Approved Contract</span>
+                <p className="text-base font-medium text-slate-900 dark:text-white">
+                  {form.currency || "GHS"} {Number(projectBaseline?.contract_sum || selectedProject?.contract_sum || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                 </p>
               </div>
 
               <div className="space-y-1">
-                <span className="text-slate-400 font-bold uppercase text-[10px]">Previously Approved Variations</span>
-                <p className="font-mono font-bold text-base text-blue-600">
-                  GH₵ {Number(projectBaseline?.previously_approved_variations || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                <span className="text-slate-400 font-bold uppercase text-xs">Previously Approved Variations</span>
+                <p className="text-base font-medium text-blue-600">
+                  {form.currency || "GHS"} {Number(projectBaseline?.previously_approved_variations || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                 </p>
               </div>
 
               <div className="space-y-1">
-                <span className="text-slate-400 font-bold uppercase text-[10px]">Current Proposed Change</span>
-                <p className="font-mono font-bold text-base text-brand-600">
-                  GH₵ {Number(form.assessed_amount || form.contractor_proposed_amount || lineItemSummary.net || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                <span className="text-slate-400 font-bold uppercase text-xs">Current Proposed Change</span>
+                <p className="text-base font-medium text-brand-600">
+                  {form.currency || "GHS"} {Number(form.assessed_amount || form.contractor_proposed_amount || lineItemSummary.net || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                 </p>
+                {Number(form.exchange_rate || 1) !== 1 && (
+                  <p className="text-xs text-slate-500">
+                    ≈ {baseCurrency.code || "GHS"} {(Number(form.assessed_amount || form.contractor_proposed_amount || lineItemSummary.net || 0) * Number(form.exchange_rate || 1)).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                  </p>
+                )}
               </div>
 
               <div className="space-y-1">
-                <span className="text-slate-400 font-bold uppercase text-[10px]">Revised Contract Value (If Approved)</span>
-                <p className="font-mono font-black text-base text-emerald-600 dark:text-emerald-400">
-                  GH₵ {(
+                <span className="text-slate-400 font-bold uppercase text-xs">Revised Contract Value (If Approved)</span>
+                <p className="text-base font-medium text-emerald-600 dark:text-emerald-400">
+                  {form.currency || "GHS"} {(
                     Number(projectBaseline?.contract_sum || selectedProject?.contract_sum || 0) +
                     Number(projectBaseline?.previously_approved_variations || 0) +
                     Number(form.assessed_amount || form.contractor_proposed_amount || lineItemSummary.net || 0)
                   ).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                 </p>
+                {Number(form.exchange_rate || 1) !== 1 && (
+                  <p className="text-xs text-slate-500">
+                    ≈ {baseCurrency.code || "GHS"} {((
+                      Number(projectBaseline?.contract_sum || selectedProject?.contract_sum || 0) +
+                      Number(projectBaseline?.previously_approved_variations || 0) +
+                      Number(form.assessed_amount || form.contractor_proposed_amount || lineItemSummary.net || 0)
+                    ) * Number(form.exchange_rate || 1)).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                  </p>
+                )}
               </div>
             </div>
 
@@ -2043,42 +2181,42 @@ export default function VariationRegister() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
               <div>
                 <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">
-                  Contractor Proposed Price (GH₵)
+                  Contractor Proposed Price ({form.currency || "GHS"})
                 </label>
                 <input
                   type="number"
-                  className="input w-full font-mono font-bold"
+                  className="input w-full font-normal"
                   value={form.contractor_proposed_amount}
                   onChange={e => setForm({ ...form, contractor_proposed_amount: Number(e.target.value) })}
                 />
-                <span className="text-[10px] text-slate-400">Original price claimed by contractor</span>
+                <span className="text-xs text-slate-400">Original price claimed by contractor</span>
               </div>
 
               <div>
                 <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">
-                  QS / Cost Controller Assessed Amount (GH₵)
+                  QS / Cost Controller Assessed Amount ({form.currency || "GHS"})
                 </label>
                 <input
                   type="number"
-                  className="input w-full font-mono font-bold text-blue-600"
+                  className="input w-full font-normal text-blue-600"
                   value={form.assessed_amount}
                   onChange={e => setForm({ ...form, assessed_amount: Number(e.target.value) })}
                 />
-                <span className="text-[10px] text-slate-400">Technical quantity surveyor evaluation</span>
+                <span className="text-xs text-slate-400">Technical quantity surveyor evaluation</span>
               </div>
 
               <div>
                 <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">
-                  Final Approved Amount (GH₵)
+                  Final Approved Amount ({form.currency || "GHS"})
                 </label>
                 <input
                   type="number"
                   disabled={form.status !== "APPROVED" && form.status !== "PENDING_AUTHORIZATION"}
-                  className="input w-full font-mono font-bold text-emerald-600 disabled:opacity-60"
+                  className="input w-full font-normal text-emerald-600 disabled:opacity-60"
                   value={form.amount_approved}
                   onChange={e => setForm({ ...form, amount_approved: Number(e.target.value) })}
                 />
-                <span className="text-[10px] text-slate-400">Authorized change order value</span>
+                <span className="text-xs text-slate-400">Authorized change order value</span>
               </div>
 
               <div>
@@ -2099,7 +2237,7 @@ export default function VariationRegister() {
 
               <div>
                 <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">
-                  Contingency Impact (GH₵)
+                  Contingency Impact ({form.currency || "GHS"})
                 </label>
                 <input
                   type="number"
@@ -2116,15 +2254,15 @@ export default function VariationRegister() {
                 <div className="flex gap-2">
                   <input
                     type="number"
-                    placeholder="Overhead GHS"
-                    className="input font-mono"
+                    placeholder={`Overhead ${form.currency || "GHS"}`}
+                    className="input"
                     value={form.overhead_cost}
                     onChange={e => setForm({ ...form, overhead_cost: Number(e.target.value) })}
                   />
                   <input
                     type="number"
                     placeholder="Markup %"
-                    className="input font-mono w-24"
+                    className="input w-24"
                     value={form.markup_percent}
                     onChange={e => setForm({ ...form, markup_percent: Number(e.target.value) })}
                   />
@@ -2151,7 +2289,7 @@ export default function VariationRegister() {
                 </label>
                 <input
                   type="date"
-                  className="input font-mono"
+                  className="input"
                   value={form.original_completion_date}
                   onChange={e => setForm({ ...form, original_completion_date: e.target.value })}
                 />
@@ -2163,11 +2301,11 @@ export default function VariationRegister() {
                 </label>
                 <input
                   type="number"
-                  className="input w-full font-mono font-bold text-purple-600"
+                  className="input w-full font-normal text-purple-600"
                   value={form.schedule_impact_days}
                   onChange={e => setForm({ ...form, schedule_impact_days: Number(e.target.value) })}
                 />
-                <span className="text-[10px] text-slate-400">Positive for extension, negative for acceleration</span>
+                <span className="text-xs text-slate-400">Positive for extension, negative for acceleration</span>
               </div>
 
               <div>
@@ -2176,7 +2314,7 @@ export default function VariationRegister() {
                 </label>
                 <input
                   type="date"
-                  className="input w-full font-mono font-bold text-emerald-600"
+                  className="input w-full font-normal text-emerald-600"
                   value={form.revised_completion_date}
                   onChange={e => setForm({ ...form, revised_completion_date: e.target.value })}
                 />
@@ -2194,7 +2332,7 @@ export default function VariationRegister() {
                 value={form.affected_tasks}
                 onChange={e => setForm({ ...form, affected_tasks: e.target.value })}
               />
-              <span className="text-[10px] text-slate-400">Identify work breakdown structure elements on critical path</span>
+              <span className="text-xs text-slate-400">Identify work breakdown structure elements on critical path</span>
             </div>
           </div>
 
@@ -2240,7 +2378,7 @@ export default function VariationRegister() {
               <div className="flex items-center justify-between mb-2">
                 <span className="font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
                   Supporting Documents Attached ({form.supporting_documents?.length || 0})
-                  <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-sky-600 bg-sky-50 dark:bg-sky-950/40 px-2 py-0.5 rounded-full border border-sky-200 dark:border-sky-800">
+                  <span className="inline-flex items-center gap-1 text-xs font-semibold text-sky-600 bg-sky-50 dark:bg-sky-950/40 px-2 py-0.5 rounded-full border border-sky-200 dark:border-sky-800">
                     <Cloud size={11} /> Cloudinary Storage
                   </span>
                 </span>
@@ -2267,7 +2405,7 @@ export default function VariationRegister() {
                     <span className="font-bold block text-slate-800 dark:text-slate-200">
                       Revised Drawings, Client Instructions, Supplier Quotes & Inspection Reports
                     </span>
-                    <span className="text-[11px] text-slate-400">
+                    <span className="text-xs text-slate-400">
                       Upload directly to Cloudinary • PDF, DWG, XLSX, DOCX, PNG, JPG (Max 25MB)
                     </span>
                   </div>
@@ -2319,7 +2457,7 @@ export default function VariationRegister() {
                             <span className="font-semibold block truncate text-slate-800 dark:text-slate-200" title={doc.name}>
                               {doc.name || `Attachment_${idx + 1}`}
                             </span>
-                            <span className="text-[10px] text-slate-400 block">
+                            <span className="text-xs text-slate-400 block">
                               {doc.size ? `${(doc.size / 1024).toFixed(0)} KB` : "Document"} • {isCloudinary ? "Cloudinary" : "Stored"}
                             </span>
                           </div>
@@ -2469,7 +2607,7 @@ export default function VariationRegister() {
             <span className="font-bold block text-slate-800 dark:text-slate-200">
               {selectedVariation?.title}
             </span>
-            <span className="text-[11px] text-slate-500 font-mono">
+            <span className="text-xs text-slate-500 font-mono">
               Ref: {selectedVariation?.variation_no} | Initiator: {selectedVariation?.originator || "CLIENT"}
             </span>
           </div>
@@ -2499,12 +2637,12 @@ export default function VariationRegister() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">
-                    Final Approved Amount (GH₵) <span className="text-rose-500">*</span>
+                    Final Approved Amount ({selectedVariation?.currency || form.currency || "GHS"}) <span className="text-rose-500">*</span>
                   </label>
                   <input
                     type="number"
                     required
-                    className="input font-mono font-bold text-emerald-600"
+                    className="input font-normal text-emerald-600"
                     value={workflowApprovalData.amount_approved}
                     onChange={e => setWorkflowApprovalData({ ...workflowApprovalData, amount_approved: Number(e.target.value) })}
                   />
@@ -2516,7 +2654,7 @@ export default function VariationRegister() {
                   </label>
                   <input
                     type="number"
-                    className="input font-mono font-bold"
+                    className="input font-normal"
                     value={workflowApprovalData.schedule_impact_days}
                     onChange={e => setWorkflowApprovalData({ ...workflowApprovalData, schedule_impact_days: Number(e.target.value) })}
                   />
@@ -2524,7 +2662,7 @@ export default function VariationRegister() {
               </div>
 
               {/* Downstream ERP Rules Checkboxes */}
-              <div className="space-y-2 pt-2 border-t border-emerald-200/80 dark:border-emerald-800 text-[11px]">
+              <div className="space-y-2 pt-2 border-t border-emerald-200/80 dark:border-emerald-800 text-xs">
                 <label className="flex items-center gap-2 cursor-pointer font-bold text-slate-800 dark:text-slate-200">
                   <input
                     type="checkbox"
@@ -2547,7 +2685,7 @@ export default function VariationRegister() {
 
                 {workflowApprovalData.update_project_budget && (
                   <div className="pl-6 pt-1">
-                    <label className="text-[10px] text-slate-500 block mb-1">Internal Budget Adjustment Amount (GH₵):</label>
+                    <label className="text-xs text-slate-500 block mb-1">Internal Budget Adjustment Amount ({selectedVariation?.currency || form.currency || "GHS"}):</label>
                     <input
                       type="number"
                       className="input font-mono w-48 text-xs py-1"

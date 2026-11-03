@@ -845,13 +845,13 @@ export default function ProjectInvoiceList() {
         <div className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700/60">
-              <span className="text-slate-400 block text-[11px] font-semibold mb-1 uppercase tracking-wider">Document No</span>
+              <span className="text-slate-400 block text-xs font-semibold mb-1 uppercase tracking-wider">Document No</span>
               <span className="font-bold text-sm text-slate-900 dark:text-slate-100">
                 {selectedDoc?.invoice_no || `#${selectedDoc?.id}`}
               </span>
             </div>
             <div className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700/60">
-              <span className="text-slate-400 block text-[11px] font-semibold mb-1 uppercase tracking-wider">Workflow</span>
+              <span className="text-slate-400 block text-xs font-semibold mb-1 uppercase tracking-wider">Workflow</span>
               <span className="font-bold text-sm text-slate-900 dark:text-slate-100">
                 {candidateWorkflow
                   ? `${candidateWorkflow.workflow_name || candidateWorkflow.name} (${candidateWorkflow.workflow_code || ""})`

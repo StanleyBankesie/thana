@@ -429,7 +429,7 @@ export default function AssetCategoriesPage() {
                     {cat.expense_account_code ? `${cat.expense_account_code} - ${cat.expense_account_name}` : "5024 (Auto)"}
                   </span>
                 </div>
-                <div className="flex items-center justify-between text-[11px] text-slate-400">
+                <div className="flex items-center justify-between text-xs text-slate-400">
                   <span>Accum Dep A/C:</span>
                   <span className="font-mono truncate max-w-[170px]" title={cat.accum_account_name}>
                     {cat.accum_account_code ? `${cat.accum_account_code} - ${cat.accum_account_name}` : "1099 (Auto)"}
@@ -547,7 +547,7 @@ export default function AssetCategoriesPage() {
                   <span className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
                     General Ledger Accounts
                   </span>
-                  <span className="text-[11px] text-slate-400">Defaults pre-selected</span>
+                  <span className="text-xs text-slate-400">Defaults pre-selected</span>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

@@ -483,7 +483,7 @@ export default function TaskExecutionReportPage({ isEmbedded = false }) {
               <p className="text-2xl font-extrabold text-rose-800 dark:text-rose-300 mt-1">
                 {analytics.priorityDistribution?.URGENT || 0}
               </p>
-              <p className="text-[10px] text-rose-600/70 dark:text-rose-400/70">
+              <p className="text-xs text-rose-600/70 dark:text-rose-400/70">
                 Requires immediate action
               </p>
             </div>
@@ -495,7 +495,7 @@ export default function TaskExecutionReportPage({ isEmbedded = false }) {
               <p className="text-2xl font-extrabold text-amber-800 dark:text-amber-300 mt-1">
                 {analytics.priorityDistribution?.HIGH || 0}
               </p>
-              <p className="text-[10px] text-amber-600/70 dark:text-amber-400/70">
+              <p className="text-xs text-amber-600/70 dark:text-amber-400/70">
                 Critical path deliverables
               </p>
             </div>
@@ -507,7 +507,7 @@ export default function TaskExecutionReportPage({ isEmbedded = false }) {
               <p className="text-2xl font-extrabold text-blue-800 dark:text-blue-300 mt-1">
                 {analytics.priorityDistribution?.MEDIUM || 0}
               </p>
-              <p className="text-[10px] text-blue-600/70 dark:text-blue-400/70">
+              <p className="text-xs text-blue-600/70 dark:text-blue-400/70">
                 Standard execution
               </p>
             </div>
@@ -519,7 +519,7 @@ export default function TaskExecutionReportPage({ isEmbedded = false }) {
               <p className="text-2xl font-extrabold text-slate-800 dark:text-slate-200 mt-1">
                 {analytics.priorityDistribution?.LOW || 0}
               </p>
-              <p className="text-[10px] text-slate-400">Non-blocking backlog</p>
+              <p className="text-xs text-slate-400">Non-blocking backlog</p>
             </div>
           </div>
 
@@ -562,7 +562,7 @@ export default function TaskExecutionReportPage({ isEmbedded = false }) {
                   />
                 </div>
                 {a.overdue > 0 ? (
-                  <span className="text-[10px] text-rose-500 font-semibold mt-1 inline-block">
+                  <span className="text-xs text-rose-500 font-semibold mt-1 inline-block">
                     ⚠️ {a.overdue} overdue task{a.overdue > 1 ? "s" : ""}
                   </span>
                 ) : null}
@@ -638,15 +638,15 @@ export default function TaskExecutionReportPage({ isEmbedded = false }) {
 
                   const dueStatusBadge =
                     task.due_status === "COMPLETED" ? (
-                      <span className="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">
+                      <span className="px-2 py-0.5 rounded-md text-xs font-semibold bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">
                         Completed
                       </span>
                     ) : task.due_status === "OVERDUE" ? (
-                      <span className="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-rose-50 text-rose-600 dark:bg-rose-950/40 dark:text-rose-400 border border-rose-200 dark:border-rose-800 flex items-center gap-1 w-fit">
+                      <span className="px-2 py-0.5 rounded-md text-xs font-semibold bg-rose-50 text-rose-600 dark:bg-rose-950/40 dark:text-rose-400 border border-rose-200 dark:border-rose-800 flex items-center gap-1 w-fit">
                         <AlertTriangle size={11} /> {task.due_label}
                       </span>
                     ) : task.due_status === "DUE_TODAY" ? (
-                      <span className="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-amber-50 text-amber-600 dark:bg-amber-950/40 dark:text-amber-400 border border-amber-200 dark:border-amber-800">
+                      <span className="px-2 py-0.5 rounded-md text-xs font-semibold bg-amber-50 text-amber-600 dark:bg-amber-950/40 dark:text-amber-400 border border-amber-200 dark:border-amber-800">
                         Due Today
                       </span>
                     ) : (
@@ -664,7 +664,7 @@ export default function TaskExecutionReportPage({ isEmbedded = false }) {
                       <td className="py-3 px-4 text-slate-600 dark:text-slate-300">
                         <span className="font-medium">{task.project_name}</span>
                         {task.project_code ? (
-                          <span className="text-[10px] text-slate-400 block font-mono">
+                          <span className="text-xs text-slate-400 block font-mono">
                             #{task.project_code}
                           </span>
                         ) : null}
@@ -674,7 +674,7 @@ export default function TaskExecutionReportPage({ isEmbedded = false }) {
                       </td>
                       <td className="py-3 px-4">
                         <span
-                          className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${priorityColor}`}
+                          className={`px-2 py-0.5 rounded-md text-xs font-bold ${priorityColor}`}
                         >
                           {task.priority || "MEDIUM"}
                         </span>
@@ -687,14 +687,14 @@ export default function TaskExecutionReportPage({ isEmbedded = false }) {
                               style={{ width: `${task.completion_percent || 0}%` }}
                             />
                           </div>
-                          <span className="text-[10px] font-bold text-slate-600 dark:text-slate-300">
+                          <span className="text-xs font-bold text-slate-600 dark:text-slate-300">
                             {task.completion_percent || 0}%
                           </span>
                         </div>
                       </td>
                       <td className="py-3 px-4">
                         <span
-                          className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${statusColor}`}
+                          className={`px-2 py-0.5 rounded-md text-xs font-bold ${statusColor}`}
                         >
                           {task.status}
                         </span>

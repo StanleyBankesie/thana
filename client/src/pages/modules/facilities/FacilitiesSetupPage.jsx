@@ -1117,7 +1117,7 @@ export default function FacilitiesSetupPage() {
                         {c.customer_name}
                       </td>
                       <td className="px-4 py-3 text-slate-500">
-                        <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+                        <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
                           {c.customer_type || "LOCAL"}
                         </span>
                       </td>
@@ -1126,14 +1126,14 @@ export default function FacilitiesSetupPage() {
                       </td>
                       <td className="px-4 py-3 text-slate-500">
                         <div>{c.phone || "-"}</div>
-                        {c.email && <div className="text-[11px] text-slate-400">{c.email}</div>}
+                        {c.email && <div className="text-xs text-slate-400">{c.email}</div>}
                       </td>
                       <td className="px-4 py-3 text-slate-500">
                         {[c.city, c.state, c.country].filter(Boolean).join(", ") || "-"}
                       </td>
                       <td className="px-4 py-3 text-center">
                         <span
-                          className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                          className={`px-2 py-0.5 rounded-full text-xs font-bold ${
                             Number(c.is_active) === 1 || c.is_active === true
                               ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"
                               : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400"
@@ -1234,7 +1234,7 @@ export default function FacilitiesSetupPage() {
                       </td>
                       <td className="px-4 py-3 text-center">
                         <span
-                          className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                          className={`px-2 py-0.5 rounded-full text-xs font-bold ${
                             c.is_active !== 0
                               ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"
                               : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400"
@@ -1320,7 +1320,7 @@ export default function FacilitiesSetupPage() {
           <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
-                <thead className="bg-slate-50 dark:bg-slate-800/60 text-slate-600 dark:text-slate-300 font-bold border-b border-slate-200 dark:border-slate-800 uppercase tracking-wider text-[11px]">
+                <thead className="bg-slate-50 dark:bg-slate-800/60 text-slate-600 dark:text-slate-300 font-bold border-b border-slate-200 dark:border-slate-800 uppercase tracking-wider text-xs">
                   <tr>
                     <th className="p-3.5 pl-5">Personnel Name & HR Code</th>
                     <th className="p-3.5">Service Category</th>
@@ -1351,18 +1351,18 @@ export default function FacilitiesSetupPage() {
                               <div>
                                 <span className="font-bold text-slate-900 dark:text-white block">{per.name}</span>
                                 {per.employee_code ? (
-                                  <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500">
+                                  <span className="text-xs font-mono px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500">
                                     HR: {per.employee_code}
                                   </span>
                                 ) : (
-                                  <span className="text-[10px] text-slate-400 italic">Direct Contractor</span>
+                                  <span className="text-xs text-slate-400 italic">Direct Contractor</span>
                                 )}
                               </div>
                             </div>
                           </td>
 
                           <td className="p-3.5">
-                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
                               <span>{cat.icon}</span>
                               {cat.label}
                             </span>
@@ -1384,12 +1384,12 @@ export default function FacilitiesSetupPage() {
 
                           <td className="p-3.5 text-slate-500">
                             {per.phone && (
-                              <div className="flex items-center gap-1 text-[11px]">
+                              <div className="flex items-center gap-1 text-xs">
                                 <Phone size={11} className="text-slate-400" /> {per.phone}
                               </div>
                             )}
                             {per.email && (
-                              <div className="flex items-center gap-1 text-[11px] text-slate-400">
+                              <div className="flex items-center gap-1 text-xs text-slate-400">
                                 <Mail size={11} /> {per.email}
                               </div>
                             )}
@@ -1397,11 +1397,11 @@ export default function FacilitiesSetupPage() {
 
                           <td className="p-3.5">
                             {per.is_active ? (
-                              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">
+                              <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">
                                 Active
                               </span>
                             ) : (
-                              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400">
+                              <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400">
                                 Inactive
                               </span>
                             )}
@@ -1484,11 +1484,11 @@ export default function FacilitiesSetupPage() {
                         <h3 className="font-bold text-slate-900 dark:text-white text-sm">{sup.name}</h3>
                         <div className="flex items-center gap-1.5 mt-0.5">
                           {sup.employee_code && (
-                            <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-purple-50 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300">
+                            <span className="text-xs font-mono px-1.5 py-0.2 rounded bg-purple-50 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300">
                               HR: {sup.employee_code}
                             </span>
                           )}
-                          <span className="text-[11px] text-slate-500">{sup.department || "Facilities"}</span>
+                          <span className="text-xs text-slate-500">{sup.department || "Facilities"}</span>
                         </div>
                       </div>
                     </div>
@@ -1513,7 +1513,7 @@ export default function FacilitiesSetupPage() {
 
                   <div className="space-y-1.5 text-xs text-slate-600 dark:text-slate-300 pt-2 border-t border-slate-100 dark:border-slate-800">
                     <div className="flex items-center justify-between">
-                      <span className="text-slate-400 text-[11px]">Assigned Shift:</span>
+                      <span className="text-slate-400 text-xs">Assigned Shift:</span>
                       <span className="font-semibold text-slate-800 dark:text-slate-200 flex items-center gap-1">
                         <Clock size={12} className="text-blue-500" />
                         {sup.shift_name || "All Shifts"}
@@ -1522,21 +1522,21 @@ export default function FacilitiesSetupPage() {
 
                     {sup.phone && (
                       <div className="flex items-center justify-between">
-                        <span className="text-slate-400 text-[11px]">Phone:</span>
+                        <span className="text-slate-400 text-xs">Phone:</span>
                         <span className="font-medium text-slate-700 dark:text-slate-300">{sup.phone}</span>
                       </div>
                     )}
 
                     {sup.email && (
                       <div className="flex items-center justify-between">
-                        <span className="text-slate-400 text-[11px]">Email:</span>
+                        <span className="text-slate-400 text-xs">Email:</span>
                         <span className="font-medium text-slate-700 dark:text-slate-300 truncate max-w-[180px]">{sup.email}</span>
                       </div>
                     )}
                   </div>
 
                   {sup.notes && (
-                    <p className="text-[11px] text-slate-500 italic bg-slate-50 dark:bg-slate-800/50 p-2 rounded-xl">
+                    <p className="text-xs text-slate-500 italic bg-slate-50 dark:bg-slate-800/50 p-2 rounded-xl">
                       "{sup.notes}"
                     </p>
                   )}
@@ -1575,7 +1575,7 @@ export default function FacilitiesSetupPage() {
               >
                 <div className="flex items-start justify-between">
                   <div>
-                    <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300 font-bold">
+                    <span className="text-xs font-mono px-2 py-0.5 rounded-md bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300 font-bold">
                       {shift.code}
                     </span>
                     <h3 className="font-bold text-slate-900 dark:text-white text-sm mt-1">{shift.name}</h3>
@@ -1599,25 +1599,25 @@ export default function FacilitiesSetupPage() {
 
                 <div className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-xl flex items-center justify-between">
                   <div className="text-center">
-                    <span className="text-[10px] text-slate-400 block uppercase">Start</span>
+                    <span className="text-xs text-slate-400 block uppercase">Start</span>
                     <span className="text-sm font-bold text-slate-800 dark:text-white font-mono">
                       {shift.start_time?.slice(0, 5)}
                     </span>
                   </div>
                   <span className="text-slate-400 font-bold">➔</span>
                   <div className="text-center">
-                    <span className="text-[10px] text-slate-400 block uppercase">End</span>
+                    <span className="text-xs text-slate-400 block uppercase">End</span>
                     <span className="text-sm font-bold text-slate-800 dark:text-white font-mono">
                       {shift.end_time?.slice(0, 5)}
                     </span>
                   </div>
                 </div>
 
-                <p className="text-[11px] text-slate-500 line-clamp-2 min-h-[32px]">
+                <p className="text-xs text-slate-500 line-clamp-2 min-h-[32px]">
                   {shift.description || "Routine facilities operational shift."}
                 </p>
 
-                <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[11px]">
+                <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs">
                   <span className="text-slate-400">Status</span>
                   {shift.is_active ? (
                     <span className="text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1">
@@ -1714,12 +1714,12 @@ export default function FacilitiesSetupPage() {
                             <span className="font-bold text-slate-900 dark:text-white block">
                               {tpl.template_name}
                             </span>
-                            <span className="text-[11px] text-slate-400 line-clamp-1">
+                            <span className="text-xs text-slate-400 line-clamp-1">
                               {tpl.description || "Digital audit checklist"}
                             </span>
                           </td>
                           <td className="px-4 py-3">
-                            <span className="px-2 py-0.5 rounded-md bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 font-semibold text-[11px] inline-flex items-center gap-1">
+                            <span className="px-2 py-0.5 rounded-md bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 font-semibold text-xs inline-flex items-center gap-1">
                               {CHECKLIST_SERVICE_LINES.find((s) => s.value === tpl.service_line)?.icon || "📋"}{" "}
                               {CHECKLIST_SERVICE_LINES.find((s) => s.value === tpl.service_line)?.label ||
                                 tpl.service_line?.replace(/_/g, " ")}
@@ -1730,11 +1730,11 @@ export default function FacilitiesSetupPage() {
                           </td>
                           <td className="px-4 py-3">
                             {criticalCount > 0 ? (
-                              <span className="text-red-600 dark:text-red-400 font-bold flex items-center gap-1 text-[11px]">
+                              <span className="text-red-600 dark:text-red-400 font-bold flex items-center gap-1 text-xs">
                                 <AlertCircle size={12} /> {criticalCount} Critical
                               </span>
                             ) : (
-                              <span className="text-slate-400 text-[11px]">None</span>
+                              <span className="text-slate-400 text-xs">None</span>
                             )}
                           </td>
                           <td className="px-4 py-3 text-right">
@@ -1815,7 +1815,7 @@ export default function FacilitiesSetupPage() {
           <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
-                <thead className="bg-slate-50 dark:bg-slate-800/60 text-slate-600 dark:text-slate-300 font-bold border-b border-slate-200 dark:border-slate-800 uppercase tracking-wider text-[11px]">
+                <thead className="bg-slate-50 dark:bg-slate-800/60 text-slate-600 dark:text-slate-300 font-bold border-b border-slate-200 dark:border-slate-800 uppercase tracking-wider text-xs">
                   <tr>
                     <th className="p-3.5 w-12 text-center">#</th>
                     <th className="p-3.5 min-w-[200px]">Contractor / Company</th>
@@ -1834,13 +1834,13 @@ export default function FacilitiesSetupPage() {
                       <td className="p-3.5 font-bold text-slate-800 dark:text-slate-100">
                         {c.supplier_name || c.name}
                         {c.supplier_code && (
-                          <span className="block text-[10px] text-slate-400 font-mono font-normal">
+                          <span className="block text-xs text-slate-400 font-mono font-normal">
                             {c.supplier_code}
                           </span>
                         )}
                       </td>
                       <td className="p-3.5">
-                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+                        <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
                           {c.supplier_type || "LOCAL"}
                         </span>
                       </td>
@@ -1931,7 +1931,7 @@ export default function FacilitiesSetupPage() {
           <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
-                <thead className="bg-slate-50 dark:bg-slate-800/60 text-slate-600 dark:text-slate-300 font-bold border-b border-slate-200 dark:border-slate-800 uppercase tracking-wider text-[11px]">
+                <thead className="bg-slate-50 dark:bg-slate-800/60 text-slate-600 dark:text-slate-300 font-bold border-b border-slate-200 dark:border-slate-800 uppercase tracking-wider text-xs">
                   <tr>
                     <th className="p-3.5 w-12 text-center">#</th>
                     <th className="p-3.5 min-w-[220px]">Room / Space Name</th>
@@ -1960,7 +1960,7 @@ export default function FacilitiesSetupPage() {
                         {sp.property_name || "Portfolio Estate"}
                       </td>
                       <td className="p-3.5">
-                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+                        <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
                           {String(sp.space_type || "MEETING_ROOM").replace(/_/g, " ")}
                         </span>
                       </td>
@@ -1973,7 +1973,7 @@ export default function FacilitiesSetupPage() {
                       </td>
                       <td className="p-3.5">
                         <span
-                          className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold border ${
+                          className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold border ${
                             sp.is_active !== 0
                               ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300"
                               : "bg-slate-100 text-slate-500 border-slate-200 dark:bg-slate-800"
@@ -2050,7 +2050,7 @@ export default function FacilitiesSetupPage() {
                       </option>
                     ))}
                   </select>
-                  <div className="text-[11px] text-emerald-700 dark:text-emerald-400 flex items-center">
+                  <div className="text-xs text-emerald-700 dark:text-emerald-400 flex items-center">
                     Selecting an HR employee automatically links their name, code, contact phone, and company records.
                   </div>
                 </div>
@@ -2537,7 +2537,7 @@ export default function FacilitiesSetupPage() {
                       <CheckSquare size={14} className="text-amber-500" />
                       Inspection Criteria & Checklist Items ({checklistForm.items.length})
                     </h4>
-                    <p className="text-[11px] text-slate-500">
+                    <p className="text-xs text-slate-500">
                       Specify the inspection checks, verification type, and critical pass/fail criteria.
                     </p>
                   </div>
@@ -2557,7 +2557,7 @@ export default function FacilitiesSetupPage() {
                       className="p-3 bg-white dark:bg-slate-850 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-2.5"
                     >
                       <div className="flex items-start gap-2">
-                        <span className="w-5 h-5 rounded-full bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 font-bold flex items-center justify-center text-[10px] mt-2 flex-shrink-0">
+                        <span className="w-5 h-5 rounded-full bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 font-bold flex items-center justify-center text-xs mt-2 flex-shrink-0">
                           {idx + 1}
                         </span>
                         <div className="flex-1">
@@ -2584,7 +2584,7 @@ export default function FacilitiesSetupPage() {
 
                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pl-7 items-center">
                         <div>
-                          <label className="text-[10px] text-slate-400 block mb-0.5">Verification Type</label>
+                          <label className="text-xs text-slate-400 block mb-0.5">Verification Type</label>
                           <select
                             value={item.field_type}
                             onChange={(e) => handleUpdateChecklistItem(idx, "field_type", e.target.value)}
@@ -3274,7 +3274,7 @@ export default function FacilitiesSetupPage() {
                   <Eye size={18} className="text-amber-600" />
                   {previewTemplate.template_name}
                 </h3>
-                <span className="text-[11px] font-mono text-slate-500">
+                <span className="text-xs font-mono text-slate-500">
                   {previewTemplate.template_code} • {previewTemplate.service_line?.replace(/_/g, " ")}
                 </span>
               </div>
@@ -3307,18 +3307,18 @@ export default function FacilitiesSetupPage() {
                         <td className="px-3 py-2 font-mono text-slate-400">{idx + 1}</td>
                         <td className="px-3 py-2 font-medium">{it.item_text}</td>
                         <td className="px-3 py-2">
-                          <span className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 font-mono text-[10px]">
+                          <span className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 font-mono text-xs">
                             {it.field_type}
                             {it.unit_of_measure ? ` (${it.unit_of_measure})` : ""}
                           </span>
                         </td>
                         <td className="px-3 py-2 text-right">
                           {it.is_critical ? (
-                            <span className="text-red-600 dark:text-red-400 font-bold text-[10px] uppercase">
+                            <span className="text-red-600 dark:text-red-400 font-bold text-xs uppercase">
                               Critical
                             </span>
                           ) : (
-                            <span className="text-slate-400 text-[10px]">Normal</span>
+                            <span className="text-slate-400 text-xs">Normal</span>
                           )}
                         </td>
                       </tr>

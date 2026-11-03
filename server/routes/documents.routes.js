@@ -3924,6 +3924,16 @@ async function loadData(type, id, companyId, branchId) {
       { id, companyId },
     ).catch(() => []);
     if (!payslip) throw httpError(404, "NOT_FOUND", "Payslip not found");
+
+    // Guard: ensure payroll for this period is approved before viewing/printing
+    const [payrollCheck] = await query(
+      `SELECT status FROM hr_payroll WHERE period_id = :periodId AND company_id = :companyId ORDER BY id DESC LIMIT 1`,
+      { periodId: payslip.period_id, companyId }
+    ).catch(() => []);
+    const prStatus = String(payrollCheck?.status || '').toUpperCase();
+    if (!['APPROVED', 'CLOSED'].includes(prStatus)) {
+      throw httpError(403, "FORBIDDEN", "Cannot view or print payslip: Processed salary for this period has not been approved yet.");
+    }
     const [company] = await query(
       `SELECT id, name, address, address2, city, state, postal_code, country, telephone, email, website, logo,
           created_at,

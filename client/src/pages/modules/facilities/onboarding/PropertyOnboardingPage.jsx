@@ -201,26 +201,6 @@ export default function PropertyOnboardingPage() {
         </button>
       </div>
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
-          <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">Total Onboardings</span>
-          <div className="text-2xl font-bold font-mono text-slate-900 dark:text-white mt-1">{total}</div>
-        </div>
-        <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
-          <span className="text-[11px] font-bold text-blue-600 uppercase tracking-wider block">In Progress</span>
-          <div className="text-2xl font-bold font-mono text-blue-600 mt-1">{inProgress}</div>
-        </div>
-        <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
-          <span className="text-[11px] font-bold text-amber-600 uppercase tracking-wider block">Pending Review</span>
-          <div className="text-2xl font-bold font-mono text-amber-600 mt-1">{pendingReview}</div>
-        </div>
-        <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
-          <span className="text-[11px] font-bold text-green-600 uppercase tracking-wider block">Operational</span>
-          <div className="text-2xl font-bold font-mono text-green-600 mt-1">{operational}</div>
-        </div>
-      </div>
-
       {/* Filters */}
       <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col sm:flex-row gap-3 items-start sm:items-center">
         <div className="flex items-center gap-2 flex-1">
@@ -301,7 +281,7 @@ export default function PropertyOnboardingPage() {
                         {ob.client_name || "—"}
                       </td>
                       <td className="px-3 py-3">
-                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${STAGE_COLORS[ob.stage] || "bg-slate-100 text-slate-700"}`}>
+                        <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${STAGE_COLORS[ob.stage] || "bg-slate-100 text-slate-700"}`}>
                           {ob.stage?.replace(/_/g, " ")}
                         </span>
                       </td>
@@ -319,7 +299,7 @@ export default function PropertyOnboardingPage() {
                               style={{ width: `${Math.min(100, pct)}%` }}
                             />
                           </div>
-                          <span className="font-mono text-[10px] text-slate-500 whitespace-nowrap">
+                          <span className="font-mono text-xs text-slate-500 whitespace-nowrap">
                             {done}/{total_items}
                           </span>
                         </div>
@@ -327,7 +307,7 @@ export default function PropertyOnboardingPage() {
                       <td className="px-3 py-3">
                         <button
                           onClick={() => openDetail(ob.id)}
-                          className="inline-flex items-center gap-1 px-2.5 py-1 bg-blue-50 hover:bg-blue-100 dark:bg-blue-950 dark:hover:bg-blue-900 text-blue-700 dark:text-blue-300 rounded-lg text-[10px] font-bold transition-colors"
+                          className="inline-flex items-center gap-1 px-2.5 py-1 bg-blue-50 hover:bg-blue-100 dark:bg-blue-950 dark:hover:bg-blue-900 text-blue-700 dark:text-blue-300 rounded-lg text-xs font-bold transition-colors"
                         >
                           <Eye size={11} /> View Progress
                         </button>
@@ -466,19 +446,19 @@ export default function PropertyOnboardingPage() {
                 {/* Header info */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-700">
                   <div>
-                    <span className="text-[10px] text-slate-400 font-bold uppercase block mb-0.5">Property</span>
+                    <span className="text-xs text-slate-400 font-bold uppercase block mb-0.5">Property</span>
                     <span className="font-semibold text-slate-800 dark:text-white">{detailRecord.property_name}</span>
                   </div>
                   <div>
-                    <span className="text-[10px] text-slate-400 font-bold uppercase block mb-0.5">Client</span>
+                    <span className="text-xs text-slate-400 font-bold uppercase block mb-0.5">Client</span>
                     <span className="font-semibold text-slate-800 dark:text-white">{detailRecord.client_name || "—"}</span>
                   </div>
                   <div>
-                    <span className="text-[10px] text-slate-400 font-bold uppercase block mb-0.5">Manager</span>
+                    <span className="text-xs text-slate-400 font-bold uppercase block mb-0.5">Manager</span>
                     <span className="font-semibold text-slate-800 dark:text-white">{detailRecord.property_manager_name || "—"}</span>
                   </div>
                   <div>
-                    <span className="text-[10px] text-slate-400 font-bold uppercase block mb-0.5">Target Date</span>
+                    <span className="text-xs text-slate-400 font-bold uppercase block mb-0.5">Target Date</span>
                     <span className="font-mono font-semibold text-slate-800 dark:text-white">
                       {detailRecord.target_handover_date ? String(detailRecord.target_handover_date).slice(0, 10) : "—"}
                     </span>
@@ -535,12 +515,12 @@ export default function PropertyOnboardingPage() {
                                 {item.item_name || item.description}
                               </span>
                               {item.notes && (
-                                <span className="text-[10px] text-slate-400 truncate block">{item.notes}</span>
+                                <span className="text-xs text-slate-400 truncate block">{item.notes}</span>
                               )}
                             </div>
                           </div>
                           <div className="flex items-center gap-2 shrink-0">
-                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                            <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${
                               item.status === "COMPLETE"
                                 ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"
                                 : "bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-400"
@@ -551,7 +531,7 @@ export default function PropertyOnboardingPage() {
                               <button
                                 onClick={() => handleMarkChecklistItem(item)}
                                 disabled={markingItem === item.id}
-                                className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-[10px] font-bold disabled:opacity-60"
+                                className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold disabled:opacity-60"
                               >
                                 {markingItem === item.id ? "..." : "Mark Complete"}
                               </button>
@@ -565,7 +545,7 @@ export default function PropertyOnboardingPage() {
 
                 {detailRecord.condition_summary && (
                   <div className="bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-700">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Condition Summary</span>
+                    <span className="text-xs font-bold text-slate-400 uppercase block mb-1">Condition Summary</span>
                     <p className="text-slate-600 dark:text-slate-300">{detailRecord.condition_summary}</p>
                   </div>
                 )}
