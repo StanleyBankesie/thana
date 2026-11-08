@@ -21,16 +21,7 @@ const REPORTS = [
   { module: "Finance", label: "Supplier Outstanding Payables", path: "/purchase/reports/supplier-outstanding-payables", icon: "📄" },
   { module: "Inventory", label: "Stock Balances", path: "/inventory/reports/stock-balances", icon: "📦" },
   { module: "Inventory", label: "Stock Movement", path: "/inventory/reports/stock-movement", icon: "📦" },
-  { module: "HR", label: "Employee List", path: "/hr/reports/employee-list", icon: "👥" },
-  { module: "HR", label: "Attendance Report", path: "/hr/reports/attendance", icon: "👥" },
-  { module: "Projects", label: "Task Management & Execution", path: "/project-management/reports/task-management-execution", icon: "✅" },
-  { module: "Projects", label: "Project Status", path: "/project-management/reports/project-status", icon: "✅" },
-  { module: "Service", label: "Service Request Summary", path: "/service-management/reports/service-request-summary", icon: "🔧" },
-  { module: "Service", label: "Technician Utilization", path: "/service-management/reports/technician-utilization", icon: "🔧" },
-  { module: "Service", label: "SLA Compliance", path: "/service-management/reports/sla-compliance", icon: "🔧" },
   { module: "POS", label: "POS Sales Report", path: "/pos/reports/sales", icon: "⚡" },
-  { module: "Transport", label: "Trip Report", path: "/transport/reports/trips", icon: "🚛" },
-  { module: "Maintenance", label: "Job Order Report", path: "/maintenance/reports/job-orders", icon: "⚙️" },
 ];
 
 const MODULES = ["All", ...new Set(REPORTS.map(r => r.module))];

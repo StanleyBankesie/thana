@@ -39,12 +39,6 @@ const BusinessInsightsPage       = lazy(() => import("./BusinessInsightsPage.jsx
 const FinancialAnalytics    = lazy(() => import("./FinancialAnalytics.jsx"));
 const InventoryAnalytics    = lazy(() => import("./InventoryAnalytics.jsx"));
 const PurchaseAnalytics     = lazy(() => import("./PurchaseAnalytics.jsx"));
-const HRAnalytics           = lazy(() => import("./HRAnalytics.jsx"));
-const MaintenanceAnalytics  = lazy(() => import("./MaintenanceAnalytics.jsx"));
-const ProductionAnalytics   = lazy(() => import("./ProductionAnalytics.jsx"));
-const ProjectAnalytics      = lazy(() => import("./ProjectAnalytics.jsx"));
-const TransportAnalytics    = lazy(() => import("./TransportAnalytics.jsx"));
-const ServiceAnalytics      = lazy(() => import("./ServiceAnalytics.jsx"));
 const POSAnalytics          = lazy(() => import("./POSAnalytics.jsx"));
 const AdminAnalytics        = lazy(() => import("./AdminAnalytics.jsx"));
 const CrossModuleAnalytics  = lazy(() => import("./CrossModuleAnalytics.jsx"));
@@ -80,12 +74,6 @@ const NAV_GROUPS = [
       { label: "Financial Analytics",     path: "/business-intelligence/financial",        icon: TrendingUp, moduleKey: "finance" },
       { label: "Inventory Analytics",     path: "/business-intelligence/inventory",        icon: Package, moduleKey: "inventory" },
       { label: "Purchase Analytics",      path: "/business-intelligence/purchase",         icon: ShoppingCart, moduleKey: "purchase" },
-      { label: "HR Analytics",            path: "/business-intelligence/hr",               icon: Users, moduleKey: "hr" },
-      { label: "Maintenance Analytics",   path: "/business-intelligence/maintenance",      icon: Wrench, moduleKey: "maintenance" },
-      { label: "Production Analytics",    path: "/business-intelligence/production",       icon: Factory, moduleKey: "production" },
-      { label: "Project Analytics",       path: "/business-intelligence/projects",         icon: FolderKanban, moduleKey: "pm" },
-      { label: "Transport Analytics",     path: "/business-intelligence/transport",        icon: Truck, moduleKey: "transport" },
-      { label: "Service Analytics",       path: "/business-intelligence/service",          icon: HeadphonesIcon, moduleKey: "service" },
       { label: "POS Analytics",           path: "/business-intelligence/pos",              icon: Zap, moduleKey: "pos" },
       { label: "Administration Analytics",path: "/business-intelligence/administration",   icon: Shield, moduleKey: "admin" },
       { label: "Cross Module Analytics",  path: "/business-intelligence/cross-module",     icon: Layers },
@@ -450,12 +438,6 @@ export default function BusinessIntelligenceHome() {
             <Route path="/financial"            element={<div className="p-6"><FinancialAnalytics /></div>} />
             <Route path="/inventory"            element={<div className="p-6"><InventoryAnalytics /></div>} />
             <Route path="/purchase"             element={<div className="p-6"><PurchaseAnalytics /></div>} />
-            <Route path="/hr"                   element={<div className="p-6"><HRAnalytics /></div>} />
-            <Route path="/maintenance"          element={<div className="p-6"><MaintenanceAnalytics /></div>} />
-            <Route path="/production"           element={<div className="p-6"><ProductionAnalytics /></div>} />
-            <Route path="/projects"             element={<div className="p-6"><ProjectAnalytics /></div>} />
-            <Route path="/transport"            element={<div className="p-6"><TransportAnalytics /></div>} />
-            <Route path="/service"              element={<div className="p-6"><ServiceAnalytics /></div>} />
             <Route path="/pos"                  element={<div className="p-6"><POSAnalytics /></div>} />
             <Route path="/administration"       element={<div className="p-6"><AdminAnalytics /></div>} />
             <Route path="/cross-module"         element={<div className="p-6"><CrossModuleAnalytics /></div>} />

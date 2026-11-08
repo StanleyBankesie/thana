@@ -233,26 +233,10 @@ const MODULE_DEFINITIONS = [
         actions: [
           { label: "View", path: "/purchase/dashboard", type: "outline" }
         ], icon: ShoppingBag, color: "text-purple-500 bg-purple-50 dark:bg-purple-950/40 border-purple-200 dark:border-purple-800", desc: "Purchase requisitions, RFQs, POs & vendor management" },
-  { key: "human-resources", label: "Human Resources & Payroll", path: "/human-resources/dashboard",
+    { key: "pos", label: "Point of Sale", path: "/pos",
         actions: [
-          { label: "View", path: "/human-resources/dashboard", type: "outline" }
-        ], icon: Users, color: "text-violet-500 bg-violet-50 dark:bg-violet-950/40 border-violet-200 dark:border-violet-800", desc: "Employee directory, attendance, leaves & monthly payroll" },
-  { key: "maintenance", label: "Asset Maintenance", path: "/maintenance/dashboard",
-        actions: [
-          { label: "View", path: "/maintenance/dashboard", type: "outline" }
-        ], icon: Wrench, color: "text-amber-500 bg-amber-50 dark:bg-amber-950/40 border-amber-200 dark:border-amber-800", desc: "Work orders, preventive maintenance & downtime log" },
-  { key: "production", label: "Production & Manufacturing", path: "/production/dashboard",
-        actions: [
-          { label: "View", path: "/production/dashboard", type: "outline" }
-        ], icon: Boxes, color: "text-teal-500 bg-teal-50 dark:bg-teal-950/40 border-teal-200 dark:border-teal-800", desc: "Bill of materials, work centers & production orders" },
-  { key: "project-management", label: "Project Management", path: "/project-management/dashboard",
-        actions: [
-          { label: "View", path: "/project-management/dashboard", type: "outline" }
-        ], icon: Layers, color: "text-rose-500 bg-rose-50 dark:bg-rose-950/40 border-rose-200 dark:border-rose-800", desc: "Projects WBS, task assignments, execution & tracking" },
-  { key: "service-management", label: "Service Management", path: "/service-management/dashboard",
-        actions: [
-          { label: "View", path: "/service-management/dashboard", type: "outline" }
-        ], icon: ShieldCheck, color: "text-orange-500 bg-orange-50 dark:bg-orange-950/40 border-orange-200 dark:border-orange-800", desc: "Service tickets, SLA tracking, executions & service billing" },
+          { label: "View", path: "/pos", type: "outline" }
+        ], icon: Zap, color: "text-amber-500 bg-amber-50 dark:bg-amber-950/40 border-amber-200 dark:border-amber-800", desc: "Sales registers, cash management & day close routines" },
   { key: "business-intelligence", label: "Business Intelligence", path: "/business-intelligence",
         actions: [
           { label: "View", path: "/business-intelligence", type: "outline" },
@@ -345,13 +329,6 @@ export default function ExecutiveOverviewHome() {
         const prevFastData = prevFastRes.status === "fulfilled" ? prevFastRes.value.data?.items || [] : [];
         const slowData = slowRes.status === "fulfilled" ? slowRes.value.data?.items || [] : [];
         const prevSlowData = prevSlowRes.status === "fulfilled" ? prevSlowRes.value.data?.items || [] : [];
-
-        try {
-          const wfResponse = await api.get("/executive-overview/workflows");
-          setWorkflows(wfResponse?.data?.data || []);
-        } catch (e) {
-          console.error("Failed to load workflows", e);
-        }
 
         const outstandingReceivablesVal = sumOutstanding(recData);
         const outstandingPayablesVal = sumOutstanding(payData);
@@ -713,76 +690,7 @@ export default function ExecutiveOverviewHome() {
 
       {/* Bottom Full-Width Section */}
       <div className="w-full px-4 sm:px-6 pb-8">
-        {/* Workflow Overview Section */}
-        <div className="space-y-4">
-          <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-2">
-            <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-              <span className="w-3 h-3 rounded-full bg-indigo-500" /> Workflow Overview
-            </h2>
-            <span className="text-xs text-slate-500 dark:text-slate-400 font-semibold">
-              {workflows.length} Pending Actions
-            </span>
-          </div>
-          <div className="card overflow-hidden">
-            <div className="overflow-x-auto overflow-y-auto max-h-[calc(100vh-120px)] erp-scrollbar">
-              <table className="w-full text-left text-sm text-slate-600 dark:text-slate-300">
-                <thead className="bg-slate-50 dark:bg-slate-800/50 text-slate-700 dark:text-slate-200 border-b border-slate-200 dark:border-slate-700 sticky top-0 z-10">
-                  <tr>
-                    <th className="px-4 py-3 font-semibold">Document No</th>
-                    <th className="px-4 py-3 font-semibold">Module</th>
-                    <th className="px-4 py-3 font-semibold">Type</th>
-                    <th className="px-4 py-3 font-semibold">Status</th>
-                    <th className="px-4 py-3 font-semibold">Date</th>
-                    <th className="px-4 py-3 font-semibold">Forwarded To</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                  {workflows.length === 0 ? (
-                    <tr>
-                      <td colSpan="6" className="px-4 py-8 text-center text-slate-500">
-                        No pending workflows or drafts.
-                      </td>
-                    </tr>
-                  ) : (
-                    workflows.map((wf, idx) => (
-                      <tr key={idx} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
-                        <td className="px-4 py-3 font-medium text-brand">{wf.doc_no || "-"}</td>
-                        <td className="px-4 py-3">
-                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
-                            {wf.module}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3">{wf.type}</td>
-                        <td className="px-4 py-3">
-                          <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold ${
-                            wf.status === 'DRAFT' ? 'bg-slate-100 text-slate-600' :
-                            wf.status === 'SUBMITTED' ? 'bg-blue-50 text-blue-600' :
-                            'bg-amber-50 text-amber-600'
-                          }`}>
-                            {wf.status}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3">{wf.doc_date ? new Date(wf.doc_date).toLocaleDateString() : "-"}</td>
-                        <td className="px-4 py-3">
-                          {wf.assigned_to ? (
-                            <div className="flex items-center gap-1.5">
-                              <div className="w-5 h-5 rounded-full bg-brand-100 text-brand-700 flex items-center justify-center text-[10px] font-bold">
-                                {wf.assigned_to.substring(0, 1).toUpperCase()}
-                              </div>
-                              <span>{wf.assigned_to}</span>
-                            </div>
-                          ) : (
-                            <span className="text-slate-400 text-xs italic">Unassigned</span>
-                          )}
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
+        
       </div>
     </div>
   );

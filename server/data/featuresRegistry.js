@@ -16,9 +16,6 @@ export const FEATURES_REGISTRY = {
       { feature_key: "administration:users", type: "feature", label: "User Management", path: "/administration/users" },
       { feature_key: "administration:settings", type: "feature", label: "Settings", path: "/administration/settings" },
       { feature_key: "administration:diagnostics", type: "feature", label: "Diagnostics", path: "/administration/diagnostics" },
-      { feature_key: "administration:workflows", type: "feature", label: "Workflow Configuration", path: "/administration/workflows" },
-      { feature_key: "administration:workflow-approvals", type: "feature", label: "Workflow Approvals", path: "/administration/workflows/approvals" },
-      { feature_key: "administration:document-review", type: "feature", label: "Document Review", path: "/administration/workflows/approvals" },
     ],
     dashboards: [
       { feature_key: "administration:system-log-book", type: "dashboard", label: "System Log Book Report", path: "/administration/reports/system-log-book" },
@@ -213,122 +210,6 @@ export const FEATURES_REGISTRY = {
 ],
   },
 
-  // Human Resources Module: Contains features for employee management, payroll, attendance, and leave management
-  "human-resources": {
-    features: [
-      { feature_key: "human-resources:employees", type: "feature", label: "Employee Setup", path: "/human-resources/employees" },
-      { feature_key: "human-resources:departments", type: "feature", label: "Departments", path: "/human-resources/departments" },
-      { feature_key: "human-resources:designations", type: "feature", label: "Designations", path: "/human-resources/designations" },
-      { feature_key: "human-resources:requisitions", type: "feature", label: "Job Requisitions", path: "/human-resources/requisitions" },
-      { feature_key: "human-resources:candidates", type: "feature", label: "Candidates", path: "/human-resources/candidates" },
-      { feature_key: "human-resources:interviews", type: "feature", label: "Interviews", path: "/human-resources/interviews" },
-      { feature_key: "human-resources:offers", type: "feature", label: "Offers", path: "/human-resources/offers" },
-      { feature_key: "human-resources:attendance", type: "feature", label: "Attendance Management", path: "/human-resources/attendance" },
-      { feature_key: "human-resources:work-schedules", type: "feature", label: "Work Schedule Management", path: "/human-resources/work-schedules" },
-      { feature_key: "human-resources:roster", type: "feature", label: "Roster Management", path: "/human-resources/roster" },
-      { feature_key: "human-resources:leave-setup", type: "feature", label: "Leave Setup", path: "/human-resources/leave-setup" },
-      { feature_key: "human-resources:leave-management", type: "feature", label: "Leave Management", path: "/human-resources/leave-management" },
-      { feature_key: "human-resources:payroll", type: "feature", label: "Payroll Processing", path: "/human-resources/payroll" },
-      { feature_key: "human-resources:payslips", type: "feature", label: "Payslips", path: "/human-resources/payslips" },
-      { feature_key: "human-resources:salary-config", type: "feature", label: "Salary Configurations", path: "/human-resources/salary-config" },
-      { feature_key: "human-resources:tax-config", type: "feature", label: "Statutory Contributions", path: "/human-resources/tax-config" },
-      { feature_key: "human-resources:allowances", type: "feature", label: "Allowances", path: "/human-resources/allowances" },
-      { feature_key: "human-resources:loans", type: "feature", label: "Employee Loans", path: "/human-resources/loans" },
-      { feature_key: "human-resources:promotions", type: "feature", label: "Promotions", path: "/human-resources/promotions" },
-      { feature_key: "human-resources:medical-policies", type: "feature", label: "Medical Policies", path: "/human-resources/medical-policies" },
-      { feature_key: "human-resources:policies", type: "feature", label: "Policies", path: "/human-resources/policies" },
-      { feature_key: "human-resources:setup", type: "feature", label: "HR Setup", path: "/human-resources/setup" },
-      { feature_key: "human-resources:hr-reports", type: "feature", label: "HR Reports", path: "/human-resources/hr-reports" },
-    ],
-    dashboards: [
-
-
-
-    ],
-  },
-
-  // Maintenance Module: Contains features for asset management, equipment, and maintenance schedules
-  maintenance: {
-    features: [
-      { feature_key: "maintenance:assets", type: "feature", label: "Asset Management", path: "/maintenance/assets" },
-      { feature_key: "maintenance:equipment", type: "feature", label: "Equipment", path: "/maintenance/equipment" },
-      { feature_key: "maintenance:contracts", type: "feature", label: "Maintenance Contracts", path: "/maintenance/contracts" },
-      { feature_key: "maintenance:maintenance-requests", type: "feature", label: "Maintenance Requests", path: "/maintenance/maintenance-requests" },
-      { feature_key: "maintenance:job-orders", type: "feature", label: "Job Orders", path: "/maintenance/job-orders" },
-      { feature_key: "maintenance:pm-schedules", type: "feature", label: "PM Schedules", path: "/maintenance/pm-schedules" },
-      { feature_key: "maintenance:schedules", type: "feature", label: "Maintenance Schedules", path: "/maintenance/schedules" },
-      { feature_key: "maintenance:rosters", type: "feature", label: "Maintenance Rosters", path: "/maintenance/rosters" },
-      { feature_key: "maintenance:maintenance-reports", type: "feature", label: "Maintenance Reports", path: "/maintenance/maintenance-reports" },
-      { feature_key: "maintenance:setup", type: "feature", label: "Maintenance Setup", path: "/maintenance/setup" },
-      { feature_key: "maintenance:material-receipts", type: "feature", label: "Material Receipts", path: "/maintenance/material-receipts" },
-    ],
-    dashboards: [
-          { feature_key: "maintenance:maint-open-work-orders", type: "dashboard", label: "Open Work Orders", path: "/maintenance/reports/maint-open-work-orders" },
-      { feature_key: "maintenance:maint-assets-in-maint", type: "dashboard", label: "Assets in Maintenance", path: "/maintenance/reports/maint-assets-in-maint" },
-      { feature_key: "maintenance:maint-total-assets", type: "dashboard", label: "Total Assets", path: "/maintenance/reports/maint-total-assets" },
-],
-  },
-
-  // Production Module: Contains features for manufacturing processes, BOMs, routings, and work orders
-  production: {
-    features: [
-      { feature_key: "production:stock", type: "feature", label: "Production Stock Overview", path: "/production/stock" },
-      { feature_key: "production:boms", type: "feature", label: "Bills of Materials", path: "/production/boms" },
-      { feature_key: "production:routings", type: "feature", label: "Routing & Operations", path: "/production/routings" },
-      { feature_key: "production:work-orders", type: "feature", label: "Work Orders", path: "/production/work-orders" },
-      { feature_key: "production:production-planning", type: "feature", label: "Production Planning", path: "/production/production-planning" },
-      { feature_key: "production:job-cards", type: "feature", label: "Job Cards", path: "/production/job-cards" },
-      { feature_key: "production:warehouse-stock-report", type: "feature", label: "Production Warehouse Stock Report", path: "/production/reports/warehouse-stock" },
-
-      { feature_key: "production:setup", type: "feature", label: "Manufacturing Setup", path: "/production/setup" },
-    ],
-    dashboards: [
-          { feature_key: "production:prod-active-orders", type: "dashboard", label: "Active Production Orders", path: "/production/reports/prod-active-orders" },
-      { feature_key: "production:prod-completed-orders", type: "dashboard", label: "Completed Orders", path: "/production/reports/prod-completed-orders" },
-      { feature_key: "production:prod-yield", type: "dashboard", label: "Production Yield", path: "/production/reports/prod-yield" },
-],
-  },
-
-  // Project Management Module: Contains features for project tracking, task management, and resource allocation
-  "project-management": {
-    features: [
-      { feature_key: "project-management:projects", type: "feature", label: "Projects", path: "/project-management/projects" },
-      { feature_key: "project-management:tasks", type: "feature", label: "Task Management", path: "/project-management/tasks" },
-      { feature_key: "project-management:milestones", type: "feature", label: "Milestones", path: "/project-management/milestones" },
-      { feature_key: "project-management:resources", type: "feature", label: "Resource Management", path: "/project-management/resources" },
-      { feature_key: "project-management:timesheets", type: "feature", label: "Timesheets", path: "/project-management/timesheets" },
-      { feature_key: "project-management:expenses", type: "feature", label: "Project Expenses", path: "/project-management/expenses" },
-      { feature_key: "project-management:setup", type: "feature", label: "Project Setup", path: "/project-management/setup" },
-      { feature_key: "project-management:material-requisitions", type: "feature", label: "Material Requisitions", path: "/project-management/material-requisitions" },
-      { feature_key: "project-management:material-utilizations", type: "feature", label: "Material Utilizations", path: "/project-management/material-utilizations" },
-      { feature_key: "project-management:material-receipts", type: "feature", label: "Material Receipts", path: "/project-management/material-receipts" },
-      { feature_key: "project-management:project-orders", type: "feature", label: "Project Orders", path: "/project-management/project-orders" },
-      { feature_key: "project-management:purchase-requisition", type: "feature", label: "Purchase Requisition", path: "/project-management/purchase-requisition" },
-      { feature_key: "project-management:project-reports", type: "feature", label: "Project Reports", path: "/project-management/project-reports" },
-      { feature_key: "project-management:project-status-report", type: "feature", label: "Project Status Report", path: "/project-management/reports/project-status" },
-      { feature_key: "project-management:project-income-report", type: "feature", label: "Project Income Report", path: "/project-management/reports/project-income" },
-      { feature_key: "project-management:project-expense-report", type: "feature", label: "Project Expense Report", path: "/project-management/reports/project-expense" },
-      { feature_key: "project-management:tenders", type: "feature", label: "Tenders & Bidding", path: "/project-management/tenders" },
-      { feature_key: "project-management:boqs", type: "feature", label: "Bill of Quantities (BOQ)", path: "/project-management/boqs" },
-      { feature_key: "project-management:cost-control", type: "feature", label: "Cost Control & EVM", path: "/project-management/cost-control" },
-      { feature_key: "project-management:gantt-schedule", type: "feature", label: "Planning & CPM Schedule", path: "/project-management/schedule" },
-      { feature_key: "project-management:daily-reports", type: "feature", label: "Daily Site Diary (DSR)", path: "/project-management/daily-reports" },
-      { feature_key: "project-management:subcontractors", type: "feature", label: "Subcontractors & IPCs", path: "/project-management/subcontracts" },
-      { feature_key: "project-management:client-valuations", type: "feature", label: "Client Valuations", path: "/project-management/client-valuations" },
-      { feature_key: "project-management:payment-applications", type: "feature", label: "Interim Payment Applications (IPAs)", path: "/project-management/payment-applications" },
-      { feature_key: "project-management:variations", type: "feature", label: "Variations & Change Orders", path: "/project-management/variations" },
-      { feature_key: "project-management:quality-control", type: "feature", label: "Quality Control (QA/QC)", path: "/project-management/quality-control" },
-      { feature_key: "project-management:safety", type: "feature", label: "Safety Management (HSE)", path: "/project-management/safety" },
-      { feature_key: "project-management:documents", type: "feature", label: "Drawings & Documents", path: "/project-management/documents" },
-      { feature_key: "project-management:rfis", type: "feature", label: "RFIs (Requests for Information)", path: "/project-management/rfis" },
-      { feature_key: "project-management:equipment-logs", type: "feature", label: "Plant & Equipment Logs", path: "/project-management/equipment-logs" },
-    ],
-    dashboards: [
-
-
-    ],
-  },
-
   // Point of Sale (POS) Module: Contains features for retail operations, cash collection, and day management
   pos: {
     features: [
@@ -410,12 +291,6 @@ export const FEATURES_REGISTRY = {
       { feature_key: "business-intelligence:financial", type: "feature", label: "Financial Analytics", path: "/business-intelligence/financial" },
       { feature_key: "business-intelligence:inventory", type: "feature", label: "Inventory Analytics", path: "/business-intelligence/inventory" },
       { feature_key: "business-intelligence:purchase", type: "feature", label: "Purchase Analytics", path: "/business-intelligence/purchase" },
-      { feature_key: "business-intelligence:hr", type: "feature", label: "HR Analytics", path: "/business-intelligence/hr" },
-      { feature_key: "business-intelligence:maintenance", type: "feature", label: "Maintenance Analytics", path: "/business-intelligence/maintenance" },
-      { feature_key: "business-intelligence:production", type: "feature", label: "Production Analytics", path: "/business-intelligence/production" },
-      { feature_key: "business-intelligence:projects", type: "feature", label: "Project Analytics", path: "/business-intelligence/projects" },
-      { feature_key: "business-intelligence:transport", type: "feature", label: "Transport Analytics", path: "/business-intelligence/transport" },
-      { feature_key: "business-intelligence:service", type: "feature", label: "Service Analytics", path: "/business-intelligence/service" },
       { feature_key: "business-intelligence:pos", type: "feature", label: "POS Analytics", path: "/business-intelligence/pos" },
       { feature_key: "business-intelligence:administration", type: "feature", label: "Administration Analytics", path: "/business-intelligence/administration" },
       { feature_key: "business-intelligence:cross-module", type: "feature", label: "Cross Module Analytics", path: "/business-intelligence/cross-module" },
@@ -432,7 +307,6 @@ export const FEATURES_REGISTRY = {
       { feature_key: "business-intelligence:bi-revenue-performance", type: "dashboard", label: "Revenue & Sales Performance", path: "/business-intelligence/multidimensional" },
       { feature_key: "business-intelligence:bi-procurement-spend", type: "dashboard", label: "Procurement & Spend Dashboard", path: "/business-intelligence/purchase" },
       { feature_key: "business-intelligence:bi-inventory-valuation", type: "dashboard", label: "Inventory Valuation & Stock", path: "/business-intelligence/inventory" },
-      { feature_key: "business-intelligence:bi-manufacturing-yield", type: "dashboard", label: "Manufacturing Yield & Scrap", path: "/business-intelligence/production" },
       { feature_key: "business-intelligence:bi-financial-gl", type: "dashboard", label: "General Ledger Financials", path: "/business-intelligence/financial" }
     ],
   },
@@ -444,51 +318,6 @@ export const FEATURES_REGISTRY = {
     ],
     dashboards: [
     ],
-  },
-
-  // Service Management Module: Contains features for customer/supplier service requests and service orders
-  "service-management": {
-    features: [
-      { feature_key: "service-management:customer-service-requests", type: "feature", label: "Customer Service Requests", path: "/service-management/customer-service-requests" },
-      { feature_key: "service-management:supplier-service-requests", type: "feature", label: "Supplier Service Requests", path: "/service-management/supplier-service-requests" },
-      { feature_key: "service-management:service-requests", type: "feature", label: "Service Requests", path: "/service-management/service-requests" },
-      { feature_key: "service-management:service-orders", type: "feature", label: "Service Orders", path: "/service-management/service-orders" },
-      { feature_key: "service-management:service-executions", type: "feature", label: "Service Execution", path: "/service-management/service-executions" },
-      { feature_key: "service-management:service-confirmations", type: "feature", label: "Service Confirmations", path: "/service-management/service-confirmations" },
-      { feature_key: "service-management:service-bills", type: "feature", label: "Service Bills", path: "/service-management/service-bills" },
-      { feature_key: "service-management:service-invoices", type: "feature", label: "Service Invoices", path: "/service-management/service-invoices" },
-      { feature_key: "service-management:billing", type: "feature", label: "Service Billing", path: "/service-management/billing" },
-      { feature_key: "service-management:service-reports", type: "feature", label: "Service Reports", path: "/service-management/service-reports" },
-      { feature_key: "service-management:visitors-log", type: "feature", label: "Visitors Log Book", path: "/service-management/visitors-log" },
-      { feature_key: "service-management:setup", type: "feature", label: "Service Setup", path: "/service-management/setup" },
-    ],
-    dashboards: [
-
-
-    ],
-  },
-  
-  // Transport Module
-  transport: {
-    features: [
-      { feature_key: "transport:requests", type: "feature", label: "Transport Requests", path: "/transport/requests" },
-      { feature_key: "transport:trips", type: "feature", label: "Trips & Dispatch", path: "/transport/trips" },
-      { feature_key: "transport:fuel", type: "feature", label: "Refuelling", path: "/transport/fuel" },
-      { feature_key: "transport:bills", type: "feature", label: "Transportation Bills", path: "/transport/transportation-bills" },
-      { feature_key: "transport:billing", type: "feature", label: "Billing", path: "/transport/billing" },
-      { feature_key: "transport:income", type: "feature", label: "Transportation Income", path: "/transport/income" },
-      { feature_key: "transport:expenses", type: "feature", label: "Transportation Expenses", path: "/transport/expenses" },
-      { feature_key: "transport:routes", type: "feature", label: "Routes", path: "/transport/routes" },
-      { feature_key: "transport:inspections", type: "feature", label: "Inspections", path: "/transport/inspections" },
-      { feature_key: "transport:maintenance", type: "feature", label: "Maintenance Requests", path: "/transport/maintenance" },
-      { feature_key: "transport:settings", type: "feature", label: "Transport Settings", path: "/transport/settings" },
-      { feature_key: "transport:reports", type: "feature", label: "Reports & Analytics", path: "/transport/reports" }
-    ],
-    dashboards: [
-          { feature_key: "transport:trans-active-vehicles", type: "dashboard", label: "Active Vehicles", path: "/transport/reports/trans-active-vehicles" },
-      { feature_key: "transport:trans-ongoing-trips", type: "dashboard", label: "Ongoing Trips", path: "/transport/reports/trans-ongoing-trips" },
-      { feature_key: "transport:trans-pending-maint", type: "dashboard", label: "Pending Fleet Maintenance", path: "/transport/reports/trans-pending-maint" },
-],
   },
 };
 

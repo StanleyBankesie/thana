@@ -47,10 +47,18 @@ export default function UserLoginActivityReportPage() {
   async function run() {
     try {
       setLoading(true);
-      const res = await api.get("/admin/user-login-activities", {
-        params: { from: from || null, to: to || null, userId: userId || null },
-      });
-      setItems(res.data?.items || []);
+      const params = { from: from || null, to: to || null, user_id: userId || null, userId: userId || null };
+      let res;
+      try {
+        res = await api.get("/admin/reports/user-login-activity", { params });
+      } catch (err) {
+        if (err?.response?.status === 404) {
+          res = await api.get("/admin/user-login-activities", { params });
+        } else {
+          throw err;
+        }
+      }
+      setItems(res?.data?.items || []);
     } catch (e) {
       toast.error(e?.response?.data?.message || "Failed to load activities");
     } finally {
@@ -257,7 +265,7 @@ export default function UserLoginActivityReportPage() {
                   items.map((r) => {
                     const isLogin = (r.page_name || r.action || "").toLowerCase().includes("login");
                     return (
-                      <tr key={r.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40 border-b border-slate-100 dark:border-slate-800 transition-colors">
+                      <tr key={`${r.event_type || "evt"}-${r.id}`} className="hover:bg-slate-50 dark:hover:bg-slate-800/40 border-b border-slate-100 dark:border-slate-800 transition-colors">
                         <td className="py-3 px-4 whitespace-nowrap text-xs font-medium text-slate-700 dark:text-slate-300">
                           {r.event_time ? new Date(r.event_time).toLocaleString() : "-"}
                         </td>

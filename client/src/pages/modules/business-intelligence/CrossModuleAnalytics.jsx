@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { Layers, Factory, DollarSign, ShoppingCart, FolderKanban } from "lucide-react";
+import { Layers, DollarSign, ShoppingCart, Package, Zap } from "lucide-react";
 import { api } from "../../../api/client.js";
 import { PageHeader, SectionCard, DataTable, ErrorAlert, fmtCurrency, fmtNum } from "./bi.shared.jsx";
 
@@ -29,15 +29,15 @@ export default function CrossModuleAnalytics() {
     <div className="space-y-6">
       <PageHeader
         title="Cross Module Analytics & Intelligence"
-        description="Unified correlations across Projects, Production, Inventory, and POS Sales"
+        description="Unified correlations across Sales, Purchase, Inventory, Finance, and POS"
         onRefresh={load}
         loading={loading}
       />
       {error && <ErrorAlert message={error} onRetry={load} />}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Project Profitability */}
-        <SectionCard title="Project Margin & Profitability (Finance + Projects)">
+        {/* Customer Receivables vs Sales */}
+        <SectionCard title="Sales & Receivables Overview (Finance + Sales)">
           {loading ? (
             <div className="p-5 space-y-3">
               {Array.from({ length: 5 }).map((_, i) => (
@@ -48,25 +48,26 @@ export default function CrossModuleAnalytics() {
             <DataTable
               columns={[
                 {
-                  key: "project_name",
-                  label: "Project",
+                  key: "customer_name",
+                  label: "Account / Entity",
                   className: "font-semibold text-slate-800 dark:text-slate-200",
+                  render: (v, row) => v || row.project_name || "General Sales",
                 },
                 {
                   key: "revenue",
-                  label: "Revenue / Billing",
+                  label: "Invoiced Revenue",
                   className: "text-emerald-600 dark:text-emerald-400 font-bold",
                   render: (v) => fmtCurrency(v),
                 },
                 {
                   key: "cost",
-                  label: "Expenses",
+                  label: "Balance / Outstanding",
                   className: "text-slate-600 dark:text-slate-300 font-bold",
                   render: (v) => fmtCurrency(v),
                 },
                 {
                   key: "profit",
-                  label: "Net Profit",
+                  label: "Collected / Net",
                   className: "font-bold",
                   render: (_, row) => {
                     const p = Number(row.revenue || 0) - Number(row.cost || 0);
@@ -78,14 +79,14 @@ export default function CrossModuleAnalytics() {
                   },
                 },
               ]}
-              rows={data?.projectProfitability || []}
-              emptyMessage="No completed projects with profitability data."
+              rows={data?.projectProfitability || data?.salesReceivables || []}
+              emptyMessage="No sales and receivables cross-module data available."
             />
           )}
         </SectionCard>
 
-        {/* Manufacturing Output vs Inventory */}
-        <SectionCard title="Production Output vs Current Inventory (Production + Inventory)">
+        {/* Procurement vs Current Inventory */}
+        <SectionCard title="Procurement vs Available Inventory (Purchase + Inventory)">
           {loading ? (
             <div className="p-5 space-y-3">
               {Array.from({ length: 5 }).map((_, i) => (
@@ -97,24 +98,24 @@ export default function CrossModuleAnalytics() {
               columns={[
                 {
                   key: "item_name",
-                  label: "Manufactured Product",
+                  label: "Product Name",
                   className: "font-semibold text-slate-800 dark:text-slate-200",
                 },
                 {
                   key: "producedQty",
-                  label: "Produced Qty",
+                  label: "Purchased Qty",
                   className: "text-brand-600 font-bold",
                   render: (v) => `${fmtNum(v)} units`,
                 },
                 {
                   key: "inStockQty",
-                  label: "Available in Stock",
+                  label: "Current Stock",
                   className: "text-emerald-600 dark:text-emerald-400 font-bold",
                   render: (v) => `${fmtNum(v)} units`,
                 },
               ]}
-              rows={data?.productionVsInventory || []}
-              emptyMessage="No production output data correlated with inventory yet."
+              rows={data?.productionVsInventory || data?.purchaseVsInventory || []}
+              emptyMessage="No procurement vs inventory correlations found."
             />
           )}
         </SectionCard>

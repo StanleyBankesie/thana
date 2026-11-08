@@ -289,17 +289,6 @@ export default function HomePage() {
     let cancelled = false;
 
     client
-      .get("/workflows/approvals/pending")
-      .then((res) => {
-        if (cancelled) return;
-        setPendingItems(Array.isArray(res.data?.items) ? res.data.items : []);
-      })
-      .catch(() => {
-        if (cancelled) return;
-        setPendingItems([]);
-      });
-
-    client
       .get("/workflows/notifications")
       .then((res) => {
         if (cancelled) return;
@@ -308,23 +297,6 @@ export default function HomePage() {
       .catch(() => {
         if (cancelled) return;
         setNotifications([]);
-      });
-
-    client
-      .get("/workflows/approvals/sent")
-      .then((res) => {
-        if (cancelled) return;
-        setSentDocuments(
-          Array.isArray(res.data?.items)
-            ? res.data.items
-            : Array.isArray(res.data?.data)
-            ? res.data.data
-            : []
-        );
-      })
-      .catch(() => {
-        if (cancelled) return;
-        setSentDocuments([]);
       });
 
     client
@@ -1289,99 +1261,7 @@ export default function HomePage() {
               </div>
             </div>
           </div>
-          <div className="space-y-6">
-            <div
-              className="bg-white dark:bg-slate-900 rounded-xl shadow-[0_8px_30px_rgb(0,0,0,0.03)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.2)] p-6 border border-slate-100 dark:border-slate-800/80 hover:border-slate-200/80 dark:hover:border-slate-700/80 hover:shadow-[0_12px_40px_rgb(0,0,0,0.06)] dark:hover:shadow-[0_12px_40px_rgb(0,0,0,0.25)] transition-all duration-300 relative overflow-hidden "
-              style={{
-                height: pendingHeight ? `${pendingHeight}px` : undefined,
-                display: "flex",
-                flexDirection: "column",
-              }}
-            >
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-                  <span className="text-blue-500">✅</span> Pending Approvals
-                </h2>
-                <span className="px-2 py-1 bg-blue-50 text-blue-700 text-xs font-bold rounded-full">
-                  {filteredPending.length} Pending
-                </span>
-              </div>
-              <div className="flex-1 min-h-0 overflow-y-auto">
-                {uniquePending.length > 0 ? (
-                  <div className="space-y-4">
-                    {orderedGroups.map((key) => (
-                      <div key={key}>
-                        <div className="flex items-center justify-between mb-2">
-                          <div className="text-sm font-bold text-slate-700">
-                            {displayType(key)}
-                          </div>
-                          <span className="px-2 py-0.5 bg-slate-100 text-slate-700 text-xs font-bold rounded-full">
-                            {groupedPending[key].length}
-                          </span>
-                        </div>
-                        <div className="divide-y divide-slate-100">
-                          {groupedPending[key].map((item) => (
-                            <div
-                              key={item.workflow_instance_id}
-                              className="py-3 flex items-center justify-between hover:bg-slate-50 rounded-lg px-2 transition-colors"
-                            >
-                              <div className="flex items-center gap-3">
-                                <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-sm font-bold text-slate-600">
-                                  {item.initiator
-                                    ? item.initiator.charAt(0)
-                                    : "U"}
-                                </div>
-                                <div>
-                                  <p className="text-sm font-medium text-slate-900">
-                                    {docLabel(item)}
-                                  </p>
-                                  <p className="text-xs text-slate-500">
-                                    {item.submitted_at
-                                      ? new Date(
-                                          item.submitted_at,
-                                        ).toLocaleString()
-                                      : "Just now"}{" "}
-                                    •{" "}
-                                    {item.workflow_name || "Approval Required"}
-                                  </p>
-                                </div>
-                              </div>
-                              <div className="flex gap-2">
-                                <button
-                                  onClick={() =>
-                                    openApprovalModal(item.workflow_instance_id)
-                                  }
-                                  className="px-3 py-1 text-xs font-medium text-green-700 bg-green-50 hover:bg-green-100 rounded-md transition-colors"
-                                >
-                                  Approve
-                                </button>
-
-                                <button
-                                  onClick={() =>
-                                    navigate(
-                                      `/administration/workflows/approvals/${item.workflow_instance_id}`,
-                                    )
-                                  }
-                                  className="px-3 py-1 text-xs font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-md transition-colors"
-                                >
-                                  Review
-                                </button>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-8 text-slate-500 text-sm bg-slate-50/50 rounded-lg border border-dashed border-slate-200">
-                    No pending approvals found. You're all caught up! 🎉
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
+</div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="bg-white dark:bg-slate-900 rounded-xl shadow-[0_8px_30px_rgb(0,0,0,0.03)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.2)] p-6 border border-slate-100 dark:border-slate-800/80 hover:border-slate-200/80 dark:hover:border-slate-700/80 hover:shadow-[0_12px_40px_rgb(0,0,0,0.06)] dark:hover:shadow-[0_12px_40px_rgb(0,0,0,0.25)] transition-all duration-300 relative overflow-visible ">
@@ -1556,62 +1436,9 @@ export default function HomePage() {
               <span className="text-brand-500">🔔</span> Notifications
             </h2>
             <div className="space-y-4">
-              <div className="rounded-lg border border-slate-200 p-4 flex items-center justify-between">
-                <div>
-                  <div className="text-sm font-bold text-slate-800">
-                    Approved Documents
-                  </div>
-                  <div className="text-xs text-slate-500">
-                    {approvedNotifications.length} Approved
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  className="btn-secondary"
-                  onClick={() => navigate("/administration/workflows/approved")}
-                >
-                  View Details
-                </button>
-              </div>
-
-              <div className="rounded-lg border border-slate-200 p-4 flex items-center justify-between">
-                <div>
-                  <div className="text-sm font-bold text-slate-800">
-                    Sent Documents
-                  </div>
-                  <div className="text-xs text-slate-500">
-                    {sentDocuments.length} Sent ({sentSummary.approved} Approved, {sentSummary.pending} In Review)
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  className="btn-secondary"
-                  onClick={() => navigate("/administration/workflows/sent")}
-                >
-                  View Details
-                </button>
-              </div>
-
-              <div className="rounded-lg border border-slate-200 p-4 flex items-center justify-between">
-                <div>
-                  <div className="text-sm font-bold text-slate-800">
-                    Pending Documents
-                  </div>
-                  <div className="text-xs text-slate-500">
-                    {filteredPending.length} Pending
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  className="btn-secondary"
-                  onClick={() =>
-                    navigate("/administration/workflows/approvals")
-                  }
-                >
-                  View Details
-                </button>
-              </div>
-            </div>
+              <div className="text-center py-8 text-slate-500 text-sm bg-slate-50/50 dark:bg-slate-800/50 rounded-lg border border-dashed border-slate-200 dark:border-slate-700">
+                No active system alerts. You're all caught up! 🎉
+              </div>            </div>
           </div>
         </div>
       </>
@@ -1710,158 +1537,6 @@ export default function HomePage() {
           </div>
         )}
       </div>
-      {showApprovalModal && (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-sm flex justify-center items-start p-4 sm:p-6 md:p-8 animate-fadeIn">
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden my-auto sm:my-8 transition-all flex flex-col max-h-[calc(100vh-4rem)]">
-            <div className="shrink-0 px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-white dark:bg-slate-900">
-              <div className="flex items-center gap-3 min-w-0">
-                <div className="w-10 h-10 rounded-xl bg-brand-50 dark:bg-brand-900/30 text-brand-900 dark:text-brand-400 flex items-center justify-center font-bold flex-shrink-0 border border-brand-200/50 dark:border-brand-800/50">
-                  <CheckCircle size={20} className="text-brand-600 dark:text-brand-400" />
-                </div>
-                <div className="min-w-0">
-                  <h2 className="text-base font-bold text-slate-900 dark:text-white leading-tight">Approval</h2>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Review and take action on this workflow request</p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={closeApprovalModal}
-                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-                title="Close"
-              >
-                <X size={18} />
-              </button>
-            </div>
-            <div className="p-4 sm:p-6 space-y-4 overflow-y-auto flex-1 text-slate-800 dark:text-slate-100">
-              {modalLoading ? (
-                <div className="text-xs text-slate-500 py-4 text-center">Loading approval details...</div>
-              ) : modalData ? (
-                <>
-                  <div className="bg-slate-50 dark:bg-slate-800/60 p-3.5 rounded-xl border border-slate-200/80 dark:border-slate-700/80 space-y-2.5 text-xs">
-                    <div className="flex justify-between items-center">
-                      <span className="text-slate-500 dark:text-slate-400 font-medium">Document:</span>
-                      <span className="font-semibold text-slate-800 dark:text-slate-100">
-                        {modalData.doc_title || (
-                          modalData.doc_ref
-                            ? `${displayType(modalData.document_type)} — ${modalData.doc_ref}`
-                            : `${displayType(modalData.document_type)} #${modalData.document_id}`
-                        )}
-                      </span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-slate-500 dark:text-slate-400">Current Step:</span>
-                      <span className="font-semibold text-brand-600 dark:text-brand-400">
-                        {modalData.step_name}
-                      </span>
-                    </div>
-                    <div className="flex justify-between items-center pt-1 border-t border-slate-200/60 dark:border-slate-700/60">
-                      <span className="text-slate-500 dark:text-slate-400">Amount:</span>
-                      <span className="font-medium text-sm text-slate-900 dark:text-white">
-                        {modalData.amount != null
-                          ? Number(modalData.amount).toLocaleString("en-US", {
-                              minimumFractionDigits: 2,
-                              maximumFractionDigits: 2,
-                            })
-                          : "0.00"}
-                      </span>
-                    </div>
-                  </div>
-
-                  {(() => {
-                    const previousCommentLog = (modalData.logs || [])
-                      .slice()
-                      .reverse()
-                      .find(log => log.comments && log.comments.trim() !== "" && log.comments !== "Workflow started");
-                    return previousCommentLog ? (
-                      <div>
-                        <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">
-                          Previous Comment (from {previousCommentLog.actor_name || "Unknown"})
-                        </label>
-                        <div className="p-3 bg-amber-50 dark:bg-amber-950/30 text-amber-900 dark:text-amber-200 rounded-xl border border-amber-200 dark:border-amber-800/60 text-xs leading-relaxed">
-                          "{previousCommentLog.comments}"
-                        </div>
-                      </div>
-                    ) : null;
-                  })()}
-
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">
-                      Comments / Remarks
-                    </label>
-                    <textarea
-                      className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3 text-xs text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-brand-500 h-24"
-                      placeholder="Enter comments or reason for your decision..."
-                      value={modalComment}
-                      onChange={(e) => setModalComment(e.target.value)}
-                    />
-                  </div>
-                  {!modalData.is_last_step &&
-                    Array.isArray(modalData.next_step_approvers) && (
-                      <div>
-                        <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">
-                          Forward To Approver
-                        </label>
-                        <select
-                          className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 text-xs text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-brand-500"
-                          value={modalNextUser || ""}
-                          onChange={(e) =>
-                            setModalNextUser(Number(e.target.value))
-                          }
-                        >
-                          <option value="">Select user...</option>
-                          {modalData.next_step_approvers.map((u) => (
-                            <option key={u.id} value={u.id}>
-                              {u.username}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                    )}
-                </>
-              ) : (
-                <div className="text-xs text-rose-600 p-3 bg-rose-50 rounded-xl border border-rose-200">
-                  Failed to load approval details.
-                </div>
-              )}
-            </div>
-            <div className="px-6 py-3.5 border-t border-slate-200 dark:border-slate-800 flex justify-end gap-2 bg-slate-50 dark:bg-slate-800/50 shrink-0">
-              <button
-                type="button"
-                className="px-4 py-2 text-xs font-semibold rounded-xl border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-                onClick={closeApprovalModal}
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                className="px-4 py-2 text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl shadow-sm transition-colors disabled:opacity-50"
-                onClick={() => handleModalAction("APPROVE")}
-                disabled={modalProcessing}
-              >
-                {modalData && modalData.is_last_step
-                  ? "Final Approve"
-                  : "Forward"}
-              </button>
-              <button
-                type="button"
-                className="px-4 py-2 text-xs font-semibold bg-amber-600 hover:bg-amber-500 text-white rounded-xl shadow-sm transition-colors disabled:opacity-50"
-                onClick={() => handleModalAction("RETURN")}
-                disabled={modalProcessing}
-              >
-                Return
-              </button>
-              <button
-                type="button"
-                className="px-4 py-2 text-xs font-semibold bg-rose-600 hover:bg-rose-500 text-white rounded-xl shadow-sm transition-colors disabled:opacity-50"
-                onClick={() => handleModalAction("REJECT")}
-                disabled={modalProcessing}
-              >
-                Reject
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
       {/* chat v2 floating widget is mounted globally in AppShell */}
     </div>
   );

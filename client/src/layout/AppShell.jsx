@@ -49,34 +49,10 @@ const PurchaseHome = React.lazy(
 const FinanceRoutes = React.lazy(
   () => import("../pages/modules/finance/FinanceRoutes.jsx"),
 );
-const HumanResourcesHome = React.lazy(
-  () => import("../pages/modules/human-resources/HumanResourcesHome.jsx"),
-);
-const MaintenanceHome = React.lazy(
-  () => import("../pages/modules/maintenance/MaintenanceHome.jsx"),
-);
-const FacilitiesHome = React.lazy(
-  () => import("../pages/modules/facilities/FacilitiesHome.jsx"),
-);
-const AssetManagementHome = React.lazy(
-  () => import("../pages/modules/asset-management/AssetManagementHome.jsx"),
-);
-const ProjectManagementHome = React.lazy(
-  () => import("../pages/modules/project-management/ProjectManagementHome.jsx"),
-);
-const ProductionHome = React.lazy(
-  () => import("../pages/modules/production/ProductionHome.jsx"),
-);
 const PosHome = React.lazy(() => import("../pages/modules/pos/PosHome.jsx"));
 const BusinessIntelligenceHome = React.lazy(
   () =>
     import("../pages/modules/business-intelligence/BusinessIntelligenceHome.jsx"),
-);
-const ServiceManagementHome = React.lazy(
-  () => import("../pages/modules/service-management/ServiceManagementHome.jsx"),
-);
-const TransportLayout = React.lazy(
-  () => import("../pages/modules/transport/TransportLayout.jsx"),
 );
 const ExecutiveOverviewRoutes = React.lazy(
   () =>
@@ -160,26 +136,11 @@ const AppRoutes = React.memo(function AppRoutes({ user }) {
         <Route path="/inventory/*" element={<InventoryHome />} />
         <Route path="/purchase/*" element={<PurchaseHome />} />
         <Route path="/finance/*" element={<FinanceRoutes />} />
-        <Route path="/human-resources/*" element={<HumanResourcesHome />} />
-        <Route path="/maintenance/*" element={<MaintenanceHome />} />
-        <Route path="/facilities/*" element={<FacilitiesHome />} />
-        <Route path="/assets/*" element={<AssetManagementHome />} />
-        <Route path="/asset-management/*" element={<AssetManagementHome />} />
-        <Route
-          path="/project-management/*"
-          element={<ProjectManagementHome />}
-        />
-        <Route path="/production/*" element={<ProductionHome />} />
         <Route path="/pos/*" element={<PosHome />} />
         <Route
           path="/business-intelligence/*"
           element={<BusinessIntelligenceHome />}
         />
-        <Route
-          path="/service-management/*"
-          element={<ServiceManagementHome />}
-        />
-        <Route path="/transport/*" element={<TransportLayout />} />
         <Route
           path="/executive-overview/*"
           element={<ExecutiveOverviewRoutes />}
@@ -240,42 +201,6 @@ const modules = [
     icon: <ShoppingCart />,
   },
   { key: "finance", label: "Finance", path: "/finance", icon: <Landmark /> },
-  {
-    key: "human-resources",
-    label: "Human Resources",
-    path: "/human-resources",
-    icon: <Users />,
-  },
-  {
-    key: "maintenance",
-    label: "Maintenance",
-    path: "/maintenance",
-    icon: <Wrench />,
-  },
-  {
-    key: "facilities",
-    label: "Facilities Management",
-    path: "/facilities",
-    icon: <Building2 />,
-  },
-  {
-    key: "assets",
-    label: "Asset Management",
-    path: "/assets",
-    icon: <Calculator />,
-  },
-  {
-    key: "project-management",
-    label: "Project Management",
-    path: "/project-management",
-    icon: <Blocks />,
-  },
-  {
-    key: "production",
-    label: "Manufacturing",
-    path: "/production",
-    icon: <Factory />,
-  },
   { key: "pos", label: "POS", path: "/pos", icon: <ShoppingBasket /> },
   {
     key: "business-intelligence",
@@ -284,22 +209,10 @@ const modules = [
     icon: <AreaChart />,
   },
   {
-    key: "service-management",
-    label: "Field Service Management",
-    path: "/service-management",
-    icon: <Headset />,
-  },
-  {
     key: "executive-overview",
     label: "Executive Overview",
     path: "/executive-overview",
     icon: <Presentation />,
-  },
-  {
-    key: "transport",
-    label: "Transport & Logistics",
-    path: "/transport",
-    icon: <Truck />,
   },
 ];
 
@@ -696,9 +609,6 @@ export default function AppShell() {
   useEffect(() => {
     async function logPageView() {
       try {
-        if (import.meta && import.meta.env && import.meta.env.DEV) {
-          return;
-        }
         const path = location.pathname || "/";
         const seg = path.split("/").filter(Boolean)[0] || "dashboard";
         const moduleName = seg

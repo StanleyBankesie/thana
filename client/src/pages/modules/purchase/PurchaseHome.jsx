@@ -494,17 +494,6 @@ function PurchaseHomeIndex() {
         ],
     },
     {
-      rbac_key: "pending-approvals",
-      icon: "⏳",
-      value: loading ? "..." : String(overview?.pendingApprovals ?? 0),
-      label: "Pending Approvals",
-      path: "/administration/workflows/approvals",
-        actions: [
-          { label: "View", path: "/administration/workflows/approvals", type: "outline" },
-          { label: "New", path: "/administration/workflows/approvals/new", type: "primary" }
-        ],
-    },
-    {
       rbac_key: "outstanding-payables",
       icon: "💳",
       value: loading ? "..." : fmt(overview?.outstandingPayables || 0),

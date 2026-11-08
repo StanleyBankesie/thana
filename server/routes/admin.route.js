@@ -2719,58 +2719,58 @@ router.get("/reports/system-log-book", requireAuth, async (req, res, next) => {
   }
 });
 
-router.get(
-  "/reports/user-login-activity",
-  requireAuth,
-  async (req, res, next) => {
-    try {
-      await ensureLoginLogsTable();
-      await ensureSystemLogsTable();
-      const { from, to, user_id, filter } = req.query || {};
-      const sysParams = {};
-      const sysClauses = [];
-      if (from) { sysClauses.push("s.event_time >= :from"); sysParams.from = new Date(String(from)); }
-      if (to) { sysClauses.push("s.event_time < DATE_ADD(:to, INTERVAL 1 DAY)"); sysParams.to = new Date(String(to)); }
-      if (user_id) { sysClauses.push("s.user_id = :uid"); sysParams.uid = Number(user_id); }
-      const sysWhere = sysClauses.length ? `WHERE ${sysClauses.join(" AND ")}` : "";
+const handleUserLoginActivity = async (req, res, next) => {
+  try {
+    await ensureLoginLogsTable();
+    await ensureSystemLogsTable();
+    const { from, to, user_id, userId, filter } = req.query || {};
+    const uid = user_id || userId;
+    const sysParams = {};
+    const sysClauses = [];
+    if (from) { sysClauses.push("s.event_time >= :from"); sysParams.from = new Date(String(from)); }
+    if (to) { sysClauses.push("s.event_time < DATE_ADD(:to, INTERVAL 1 DAY)"); sysParams.to = new Date(String(to)); }
+    if (uid) { sysClauses.push("s.user_id = :uid"); sysParams.uid = Number(uid); }
+    const sysWhere = sysClauses.length ? `WHERE ${sysClauses.join(" AND ")}` : "";
 
-      const loginParams = {};
-      const loginClauses = [];
-      if (from) { loginClauses.push("l.login_time >= :from"); loginParams.from = new Date(String(from)); }
-      if (to) { loginClauses.push("l.login_time < DATE_ADD(:to, INTERVAL 1 DAY)"); loginParams.to = new Date(String(to)); }
-      if (user_id) { loginClauses.push("l.user_id = :uid"); loginParams.uid = Number(user_id); }
-      const loginWhere = loginClauses.length ? `WHERE ${loginClauses.join(" AND ")}` : "";
+    const loginParams = {};
+    const loginClauses = [];
+    if (from) { loginClauses.push("l.login_time >= :from"); loginParams.from = new Date(String(from)); }
+    if (to) { loginClauses.push("l.login_time < DATE_ADD(:to, INTERVAL 1 DAY)"); loginParams.to = new Date(String(to)); }
+    if (uid) { loginClauses.push("l.user_id = :uid"); loginParams.uid = Number(uid); }
+    const loginWhere = loginClauses.length ? `WHERE ${loginClauses.join(" AND ")}` : "";
 
-      const pageItems = filter !== "login" ? await query(`
-        SELECT s.id, s.event_time, u.username AS user_name, s.module_name,
-               s.url_path AS page_name, s.ip_address, '' AS location,
-               'page' AS event_type
-          FROM adm_system_logs s
-          LEFT JOIN adm_users u ON s.user_id = u.id
-         ${sysWhere}
-         ORDER BY s.event_time DESC LIMIT 500
-      `, sysParams) : [];
+    const pageItems = filter !== "login" ? await query(`
+      SELECT s.id, s.event_time, u.username AS user_name, s.module_name,
+             s.url_path AS page_name, s.ip_address, '' AS location,
+             'page' AS event_type
+        FROM adm_system_logs s
+        LEFT JOIN adm_users u ON s.user_id = u.id
+       ${sysWhere}
+       ORDER BY s.event_time DESC LIMIT 500
+    `, sysParams) : [];
 
-      const loginItems = filter !== "page" ? await query(`
-        SELECT l.id, l.login_time AS event_time, l.username AS user_name,
-               'Authentication' AS module_name, 'LOGIN' AS page_name,
-               l.ip_address, '' AS location, 'login' AS event_type
-          FROM adm_login_logs l
-         ${loginWhere}
-         ORDER BY l.login_time DESC LIMIT 200
-      `, loginParams) : [];
+    const loginItems = filter !== "page" ? await query(`
+      SELECT l.id, l.login_time AS event_time, l.username AS user_name,
+             'Authentication' AS module_name, 'LOGIN' AS page_name,
+             l.ip_address, '' AS location, 'login' AS event_type
+        FROM adm_login_logs l
+       ${loginWhere}
+       ORDER BY l.login_time DESC LIMIT 200
+    `, loginParams) : [];
 
-      const combined = [...(pageItems || []), ...(loginItems || [])].sort((a, b) => {
-        const ta = new Date(a.event_time).getTime();
-        const tb = new Date(b.event_time).getTime();
-        return tb - ta;
-      });
-      res.json({ items: combined.slice(0, 500) });
-    } catch (err) {
-      next(err);
-    }
-  },
-);
+    const combined = [...(pageItems || []), ...(loginItems || [])].sort((a, b) => {
+      const ta = new Date(a.event_time).getTime();
+      const tb = new Date(b.event_time).getTime();
+      return tb - ta;
+    });
+    res.json({ items: combined.slice(0, 500) });
+  } catch (err) {
+    next(err);
+  }
+};
+
+router.get("/reports/user-login-activity", requireAuth, handleUserLoginActivity);
+router.get("/user-login-activities", requireAuth, handleUserLoginActivity);
 
 // ===== Push Notifications =====
 router.get("/push/public-key", requireAuth, async (req, res, next) => {

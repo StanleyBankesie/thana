@@ -168,13 +168,10 @@ export default function AppModeControlSection() {
               </div>
 
               <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-                Full enterprise dashboard featuring Company Feed/Posts, Pending Approvals workflow queue, all Module Reports, and Notification summaries. Module homes show grouped Category Section cards with "Explore Section" navigation.
+                Full enterprise dashboard featuring Company Feed/Posts, all Module Reports, and Notification summaries. Module homes show grouped Category Section cards with "Explore Section" navigation.
               </p>
 
               <div className="pt-2 border-t border-slate-100 dark:border-slate-800/80 space-y-1.5 text-[11px] text-slate-500 dark:text-slate-400">
-                <div className="flex items-center gap-1.5">
-                  <span className="text-emerald-500">✓</span> Pending Approvals & Workflows on Home
-                </div>
                 <div className="flex items-center gap-1.5">
                   <span className="text-emerald-500">✓</span> Company Social Feed & Post History
                 </div>
@@ -228,7 +225,7 @@ export default function AppModeControlSection() {
               </div>
 
               <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-                Streamlined view for fast operations. Hides Pending Approvals, Company Posts, Reports, and Notifications from the homepage. Directly displays up to 3 assigned pages per module on the homepage, and individual assigned pages in module homes.
+                Streamlined view for fast operations. Hides Company Posts, Reports, and Notifications from the homepage. Directly displays up to 3 assigned pages per module on the homepage, and individual assigned pages in module homes.
               </p>
 
               <div className="pt-2 border-t border-slate-100 dark:border-slate-800/80 space-y-1.5 text-[11px] text-slate-500 dark:text-slate-400">
@@ -242,7 +239,7 @@ export default function AppModeControlSection() {
                   <span className="text-amber-500">✓</span> Direct Individual Pages in Module Homes (No Section Cards)
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <span className="text-slate-400">✗</span> Approvals, Posts, Reports, Notifications Hidden from Home
+                  <span className="text-slate-400">✗</span> Posts, Reports, Notifications Hidden from Home
                 </div>
               </div>
             </div>

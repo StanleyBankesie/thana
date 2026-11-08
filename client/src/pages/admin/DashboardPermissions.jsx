@@ -88,15 +88,10 @@ export default function DashboardPermissions() {
         "purchase",
         "inventory",
         "finance",
-        "human-resources",
-        "maintenance",
-        "pos",
-        "project-management",
-        "service-management",
-        "business-intelligence",
+                        "pos",
+                        "business-intelligence",
         "executive-overview",
-        "transport"
-      ]);
+              ]);
       const extras = modulesWithDashboard.has(key) ? [{ key: "dashboard", name: "Dashboard" }] : [];
       if (key === "business-intelligence") {
         extras.unshift({ key: "dashboards", name: "Dashboards" });

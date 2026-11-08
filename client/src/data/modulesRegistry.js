@@ -19,11 +19,8 @@ export const MODULES_REGISTRY = {
       { key: "users", label: "User Management", type: "feature" },
       { key: "settings", label: "Settings", type: "feature" },
       { key: "diagnostics", label: "Diagnostics", type: "feature" },
-      { key: "workflows", label: "Workflow Configuration", type: "feature" },
-      { key: "workflow-approvals", label: "Workflow Approvals", type: "feature" },
-      { key: "document-review", label: "Document Review", type: "feature" },
-      { key: "system-log-book", label: "System Log Book Report", type: "feature" },
-      { key: "user-login-activity", label: "User Login Activity Report", type: "feature" },
+      { key: "system-log-book", label: "System Log Book Report", path: "/administration/reports/system-log-book", type: "feature" },
+      { key: "user-login-activity", label: "User Login Activity Report", path: "/administration/reports/user-login-activity", type: "feature" },
     ],
     dashboards: [
 
@@ -229,168 +226,6 @@ export const MODULES_REGISTRY = {
 ]
   },
 
-  "human-resources": {
-    name: "Human Resources",
-    icon: "👥",
-    features: [
-      { key: "employees", label: "Employee Setup", type: "feature" },
-      { key: "departments", label: "Departments", type: "feature" },
-      { key: "designations", label: "Designations", type: "feature" },
-      { key: "requisitions", label: "Job Requisitions", type: "feature" },
-      { key: "candidates", label: "Candidates", type: "feature" },
-      { key: "interviews", label: "Interviews", type: "feature" },
-      { key: "offers", label: "Offers", type: "feature" },
-      { key: "attendance", label: "Attendance Management", type: "feature" },
-      { key: "work-schedules", label: "Work Schedule Management", type: "feature" },
-      { key: "roster", label: "Roster Management", type: "feature" },
-      { key: "leave-setup", label: "Leave Setup", type: "feature" },
-      { key: "leave-management", label: "Leave Management", type: "feature" },
-      { key: "payroll", label: "Payroll Processing", type: "feature" },
-      { key: "payslips", label: "Payslips", type: "feature" },
-      { key: "salary-config", label: "Salary Configurations", type: "feature" },
-      { key: "tax-config", label: "Statutory Contributions", type: "feature" },
-      { key: "allowances", label: "Allowances", type: "feature" },
-      { key: "loans", label: "Employee Loans", type: "feature" },
-      { key: "promotions", label: "Promotions", type: "feature" },
-      { key: "medical-policies", label: "Medical Policies", type: "feature" },
-      { key: "policies", label: "Policies", type: "feature" },
-      { key: "setup", label: "HR Setup", type: "feature" },
-      { key: "hr-reports", label: "HR Reports", type: "feature" },
-    ],
-    dashboards: [
-
-
-
-    ]
-  },
-
-  maintenance: {
-    name: "Maintenance",
-    icon: "🔧",
-    features: [
-      { key: "assets", label: "Asset Management", type: "feature" },
-      { key: "equipment", label: "Equipment", type: "feature" },
-      { key: "contracts", label: "Maintenance Contracts", type: "feature" },
-      { key: "maintenance-requests", label: "Maintenance Requests", type: "feature" },
-      { key: "work-orders", label: "Work Orders", type: "feature" },
-      { key: "job-orders", label: "Job Orders", type: "feature" },
-      { key: "pm-schedules", label: "PM Schedules", type: "feature" },
-      { key: "schedules", label: "Maintenance Schedules", type: "feature" },
-      { key: "rosters", label: "Maintenance Rosters", type: "feature" },
-      { key: "maintenance-reports", label: "Maintenance Reports", type: "feature" },
-      { key: "setup", label: "Maintenance Setup", type: "feature" },
-      { key: "material-receipts", label: "Material Receipts", type: "feature" },
-    ],
-    dashboards: [
-      { key: "maint-open-work-orders", label: "Open Work Orders", type: "dashboard" },
-      { key: "maint-assets-in-maint", label: "Assets in Maintenance", type: "dashboard" },
-      { key: "maint-total-assets", label: "Total Assets", type: "dashboard" },
-    ]
-  },
-
-  facilities: {
-    name: "Facilities Management",
-    icon: "🏢",
-    features: [
-      { key: "dashboard", label: "Facilities Command Center", type: "feature" },
-      { key: "properties", label: "Properties & Estates", type: "feature" },
-      { key: "contracts", label: "FM Service Contracts", type: "feature" },
-      { key: "field-service", label: "Field Technician Workspace", type: "feature" },
-      { key: "checklists", label: "Inspection Checklists", type: "feature" },
-      { key: "soft-services", label: "Soft Facilities Services", type: "feature" },
-      { key: "reports", label: "Facilities Reports", type: "feature" },
-    ],
-    dashboards: [
-      { key: "fac-sla-compliance", label: "SLA Compliance Rate", type: "dashboard" },
-      { key: "fac-open-tickets", label: "Open Helpdesk Tickets", type: "dashboard" },
-      { key: "fac-active-contracts", label: "Active FM Contracts", type: "dashboard" },
-    ]
-  },
-
-  assets: {
-    name: "Asset Management",
-    icon: "🏛️",
-    features: [
-      { key: "register", label: "Fixed Asset Register", type: "feature" },
-      { key: "categories", label: "Asset Categories & Policies", type: "feature" },
-      { key: "setup", label: "Master Setup & Tagging Rules", type: "feature" },
-      { key: "depreciation", label: "Asset Depreciation Engine", type: "feature" },
-      { key: "revaluations", label: "Asset Value Adjustments", type: "feature" },
-      { key: "transfers", label: "Asset Transfers", type: "feature" },
-      { key: "disposals", label: "Asset Disposals & Retirements", type: "feature" },
-      { key: "schedule-report", label: "Fixed Asset Schedule", type: "feature" },
-    ],
-    dashboards: [
-      { key: "ast-total-cost", label: "Total Historical Cost", type: "dashboard" },
-      { key: "ast-total-nbv", label: "Portfolio Net Book Value", type: "dashboard" },
-      { key: "ast-active-count", label: "Active Capitalized Assets", type: "dashboard" },
-    ]
-  },
-
-  production: {
-    name: "Production",
-    icon: "🏭",
-    features: [
-      { key: "boms", label: "Bills of Materials", type: "feature" },
-      { key: "routings", label: "Routing & Operations", type: "feature" },
-      { key: "work-orders", label: "Work Orders", type: "feature" },
-      { key: "production-planning", label: "Production Planning", type: "feature" },
-      { key: "job-cards", label: "Job Cards", type: "feature" },
-
-      { key: "setup", label: "Manufacturing Setup", type: "feature" },
-    ],
-    dashboards: [
-
-
-          { key: "prod-active-orders", label: "Active Production Orders", type: "dashboard" },
-      { key: "prod-completed-orders", label: "Completed Orders", type: "dashboard" },
-      { key: "prod-yield", label: "Production Yield", type: "dashboard" },
-]
-  },
-
-  "project-management": {
-    name: "Project Management",
-    icon: "📊",
-    features: [
-      { key: "projects", label: "Projects", type: "feature" },
-      { key: "tasks", label: "Task Management", type: "feature" },
-      { key: "setup", label: "Setup", type: "feature" },
-      { key: "material-requisitions", label: "Material Requisition", type: "feature" },
-      { key: "material-utilizations", label: "Material Utilization", type: "feature" },
-      { key: "material-receipts", label: "Materials Receipt", type: "feature" },
-      { key: "project-orders", label: "Project Orders", type: "feature" },
-      { key: "quotations", label: "Project Quotations", type: "feature" },
-      { key: "project-invoices", label: "Project Invoices", type: "feature" },
-      { key: "purchase-requisitions", label: "Purchase Requisition", type: "feature" },
-      { key: "milestones", label: "Milestones", type: "feature" },
-      { key: "resources", label: "Resource Management", type: "feature" },
-      { key: "timesheets", label: "Timesheets", type: "feature" },
-      { key: "income", label: "Project Income", type: "feature" },
-      { key: "expenses", label: "Project Expenses", type: "feature" },
-      { key: "project-reports", label: "Project Reports", type: "feature" },
-      { key: "project-status-report", label: "Project Status Report", type: "feature" },
-      { key: "project-income-report", label: "Project Income Report", type: "feature" },
-      { key: "project-expense-report", label: "Project Expense Report", type: "feature" },
-      { key: "tenders", label: "Tenders & Bidding", type: "feature" },
-      { key: "boqs", label: "Bill of Quantities (BOQ)", type: "feature" },
-      { key: "cost-control", label: "Cost Control & EVM", type: "feature" },
-      { key: "schedule", label: "Planning & CPM Schedule", type: "feature" },
-      { key: "daily-reports", label: "Daily Site Diary (DSR)", type: "feature" },
-      { key: "subcontracts", label: "Subcontractors & IPCs", type: "feature" },
-      { key: "client-valuations", label: "Client Valuations (IPAs)", type: "feature" },
-      { key: "variations", label: "Variations & Change Orders", type: "feature" },
-      { key: "quality-control", label: "Quality Control (QA/QC)", type: "feature" },
-      { key: "safety", label: "Safety Management (HSE)", type: "feature" },
-      { key: "documents", label: "Drawings & Documents", type: "feature" },
-      { key: "rfis", label: "RFIs (Requests for Information)", type: "feature" },
-      { key: "equipment-logs", label: "Plant & Equipment Logs", type: "feature" },
-    ],
-    dashboards: [
-
-
-    ]
-  },
-
   pos: {
     name: "Point of Sale",
     icon: "🛒",
@@ -464,21 +299,7 @@ export const MODULES_REGISTRY = {
 ]
   },
 
-  "business-intelligence": {
-    name: "Business Intelligence",
-    icon: "📈",
-    features: [
 
-      { key: "reports", label: "Custom Reports", type: "feature" },
-      { key: "data-sources", label: "Data Sources", type: "feature" },
-      { key: "analytics", label: "Analytics", type: "feature" },
-      { key: "bi-reports", label: "BI Reports", type: "feature" },
-    ],
-    dashboards: [
-
-
-    ]
-  },
 
   "executive-overview": {
     name: "Executive Overview",
@@ -492,62 +313,7 @@ export const MODULES_REGISTRY = {
     ]
   },
 
-  "service-management": {
-    name: "Field Service Management",
-    icon: "🛠️",
-    features: [
-      { key: "customer-service-requests", label: "Customer Service Requests", type: "feature" },
-      { key: "supplier-service-requests", label: "Supplier Service Requests", type: "feature" },
-      { key: "service-requests", label: "Service Requests", type: "feature" },
-      { key: "service-orders", label: "Service Orders", type: "feature" },
-      { key: "service-executions", label: "Service Execution", type: "feature" },
-      { key: "service-confirmations", label: "Service Confirmations", type: "feature" },
-      { key: "service-bills", label: "Service Bills", type: "feature" },
-      { key: "service-invoices", label: "Service Invoices", type: "feature" },
-      { key: "billing", label: "Service Billing", type: "feature" },
-      { key: "service-reports", label: "Service Reports", type: "feature" },
-      { key: "visitors-log", label: "Visitors Log Book", type: "feature" },
-      { key: "setup", label: "Service Setup", type: "feature" },
-    ],
-    dashboards: [
 
-
-    ]
-  },
-  transport: {
-    name: "Transport",
-    path: "/transport",
-    icon: "🚚",
-    features: [
-      { key: "trips", label: "Trips & Dispatch", type: "feature" },
-      { key: "trip_management", label: "Trip Management", type: "feature" },
-      { key: "trip_returns", label: "Trip Returns", type: "feature" },
-      { key: "tracking", label: "Tracking", type: "feature" },
-      { key: "compliance", label: "Compliance", type: "feature" },
-      { key: "servicing", label: "Servicing", type: "feature" },
-      { key: "logbooks", label: "Logbooks", type: "feature" },
-      { key: "fuel", label: "Fuel Logs", type: "feature" },
-      { key: "fuel_expenses", label: "Fuel Expenses", type: "feature" },
-      { key: "transportation_bills", label: "Transportation Bills", type: "feature" },
-      { key: "billing", label: "Billing", type: "feature" },
-      { key: "routes", label: "Routes", type: "feature" },
-      { key: "inspections", label: "Inspections", type: "feature" },
-      { key: "maintenance", label: "Maintenance", type: "feature" },
-      { key: "breakdowns", label: "Breakdowns", type: "feature" },
-      { key: "settings", label: "Transport Settings", type: "feature" },
-      { key: "reports", label: "Reports & Analytics", type: "feature" },
-      { key: "income", label: "Transportation Income", type: "feature" },
-      { key: "expenses", label: "Transportation Expenses", type: "feature" },
-      { key: "expense_log", label: "Expense Logs", type: "feature" }
-    ],
-    dashboards: [
-
-          { key: "trans-active-vehicles", label: "Active Vehicles", type: "dashboard" },
-      { key: "trans-ongoing-trips", label: "Ongoing Trips", type: "dashboard" },
-      { key: "trans-pending-maint", label: "Pending Fleet Maintenance", type: "dashboard" },
-]
-  },
-  
   "business-intelligence": {
     name: "Business Intelligence",
     path: "/business-intelligence",
@@ -567,12 +333,6 @@ export const MODULES_REGISTRY = {
       { key: "financial", label: "Financial Analytics", type: "feature" },
       { key: "inventory", label: "Inventory Analytics", type: "feature" },
       { key: "purchase", label: "Purchase Analytics", type: "feature" },
-      { key: "hr", label: "HR Analytics", type: "feature" },
-      { key: "maintenance", label: "Maintenance Analytics", type: "feature" },
-      { key: "production", label: "Production Analytics", type: "feature" },
-      { key: "projects", label: "Project Analytics", type: "feature" },
-      { key: "transport", label: "Transport Analytics", type: "feature" },
-      { key: "service", label: "Service Analytics", type: "feature" },
       { key: "pos", label: "POS Analytics", type: "feature" },
       { key: "administration", label: "Administration Analytics", type: "feature" },
       { key: "cross-module", label: "Cross Module Analytics", type: "feature" },
@@ -589,7 +349,6 @@ export const MODULES_REGISTRY = {
       { key: "bi-revenue-performance", label: "Revenue & Sales Performance", type: "dashboard" },
       { key: "bi-procurement-spend", label: "Procurement & Spend Dashboard", type: "dashboard" },
       { key: "bi-inventory-valuation", label: "Inventory Valuation & Stock", type: "dashboard" },
-      { key: "bi-manufacturing-yield", label: "Manufacturing Yield & Scrap", type: "dashboard" },
       { key: "bi-financial-gl", label: "General Ledger Financials", type: "dashboard" }
     ]
   },

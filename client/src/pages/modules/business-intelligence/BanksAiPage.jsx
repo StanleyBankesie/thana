@@ -96,19 +96,11 @@ function MarkdownBody({ content }) {
 }
 
 const STATIC_PROMPTS = [
-  { category: "transport", path: "/transport", title: "📝 Vehicle Inspection Form", prompt: "Create a vehicle pre-trip inspection form with driver, odometer, fluids, tires, and checklist fields" },
-  { category: "hr", path: "/human-resource", title: "📝 Employee Onboarding Form", prompt: "Create an employee onboarding form with personal info, department, role, emergency contact, and bank details" },
   { category: "sales", path: "/sales", title: "📝 Customer Complaint Form", prompt: "Create a customer feedback and complaint form with customer details, order reference, category, and issue description" },
   { category: "purchases", path: "/purchases", title: "📝 Purchase Requisition Form", prompt: "Create a purchase requisition form with item specifications, quantity, estimated cost, and justification" },
-  { category: "maintenance", path: "/maintenance", title: "📝 Maintenance Work Order Form", prompt: "Create an equipment maintenance work order form with machine name, location, fault type, and urgency" },
   { category: "sales", path: "/sales", title: "Executive Business Summary", prompt: "Give me an executive summary of our overall revenue, sales, expenses, and gross profit." },
   { category: "inventory", path: "/inventory", title: "Inventory Health & Reorder", prompt: "Check inventory health: which items are below their safety reorder level and need replenishment?" },
-  { category: "production", path: "/production", title: "Production & Work Orders", prompt: "What is our current production status, active work orders, completed units, and machine status?" },
-  { category: "projects", path: "/project-management", title: "Project Milestones & Budget", prompt: "Show me all active projects, their budgets, and expenses incurred so far." },
   { category: "pos", path: "/pos", title: "Retail POS Daily Performance", prompt: "How much retail sales have been processed at the POS today, and what are the top selling items?" },
-  { category: "transport", path: "/transport", title: "Fleet & Delivery Status", prompt: "What is the status of our fleet deliveries and active dispatches?" },
-  { category: "maintenance", path: "/maintenance", title: "Maintenance Job Orders", prompt: "Show me open maintenance job orders and equipment requiring attention." },
-  { category: "hr", path: "/human-resource", title: "Workforce Overview", prompt: "Give me a breakdown of active workforce headcount across departments." },
 ];
 
 export default function BanksAiPage() {
@@ -318,7 +310,7 @@ export default function BanksAiPage() {
               <span className="flex items-center gap-1"><CheckCircle size={11} className="text-secondary" /> Sales & Invoices</span>
               <span className="flex items-center gap-1"><CheckCircle size={11} className="text-secondary" /> Inventory Items</span>
               <span className="flex items-center gap-1"><CheckCircle size={11} className="text-secondary" /> Work Orders</span>
-              <span className="flex items-center gap-1"><CheckCircle size={11} className="text-secondary" /> Projects & Spend</span>
+              <span className="flex items-center gap-1"><CheckCircle size={11} className="text-secondary" /> Procurement & Spend</span>
               <span className="flex items-center gap-1"><CheckCircle size={11} className="text-secondary" /> POS Sales</span>
               <span className="flex items-center gap-1"><CheckCircle size={11} className="text-secondary" /> Fleet Deliveries</span>
             </div>

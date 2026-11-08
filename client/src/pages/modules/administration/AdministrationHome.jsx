@@ -11,12 +11,6 @@ import { api } from "../../../api/client.js";
 import { useAuth } from "../../../auth/AuthContext.jsx";
 import UserList from "./users/UserList.jsx";
 import UserForm from "./users/UserForm.jsx";
-import WorkflowList from "./workflows/WorkflowList.jsx";
-import WorkflowForm from "./workflows/WorkflowForm.jsx";
-import MyApprovals from "./workflows/MyApprovals.jsx";
-import ApprovedDocuments from "./workflows/ApprovedDocuments.jsx";
-import SentDocuments from "./workflows/SentDocuments.jsx";
-import DocumentReview from "./workflows/DocumentReview.jsx";
 import SystemLogBookPage from "./reports/SystemLogBookPage.jsx";
 import UserLoginActivityReportPage from "./reports/UserLoginActivityReportPage.jsx";
 import SettingsPage from "./SettingsPage.jsx";
@@ -154,69 +148,6 @@ export const administrationSections = [
     ],
   },
   {
-    icon: "🔄",
-    title: "Workflow Engine",
-    badge: "Automation",
-    items: [
-      {
-        title: "My Approvals",
-        description: "View and process pending approval requests",
-        path: "/administration/workflows/approvals",
-        
-        icon: "✅",
-        actions: [
-          { label: "View", path: "/administration/workflows/approvals",
-        actions: [
-          { label: "View", path: "/administration/workflows/approvals", type: "outline" },
-          { label: "New", path: "/administration/workflows/approvals/new", type: "primary" }
-        ], type: "outline" },
-          { label: "New", path: "/administration/workflows/approvals/new",
-        actions: [
-          { label: "View", path: "/administration/workflows/approvals/new", type: "outline" },
-          { label: "New", path: "/administration/workflows/approvals/new/new", type: "primary" }
-        ], type: "primary" }
-        ],
-      },
-      {
-        title: "Approved Documents",
-        description: "History of fully approved workflows",
-        path: "/administration/workflows/approved",
-        
-        icon: "📁",
-        actions: [
-          { label: "View", path: "/administration/workflows/approved",
-        actions: [
-          { label: "View", path: "/administration/workflows/approved", type: "outline" },
-          { label: "New", path: "/administration/workflows/approved/new", type: "primary" }
-        ], type: "outline" },
-          { label: "New", path: "/administration/workflows/approved/new",
-        actions: [
-          { label: "View", path: "/administration/workflows/approved/new", type: "outline" },
-          { label: "New", path: "/administration/workflows/approved/new/new", type: "primary" }
-        ], type: "primary" }
-        ],
-      },
-      {
-        title: "Workflow Configurations",
-        description: "Define multi-stage approval rules and triggers",
-        path: "/administration/workflows",
-        
-        icon: "🔀",
-        actions: [
-          {
-            label: "Create Workflow",
-            path: "/administration/workflows/new",
-        actions: [
-          { label: "View", path: "/administration/workflows/new", type: "outline" },
-          { label: "New", path: "/administration/workflows/new/new", type: "primary" }
-        ],
-            type: "primary",
-          },
-        ],
-      },
-    ],
-  },
-  {
     icon: "📜",
     title: "Audit & Logs",
     badge: "Compliance",
@@ -228,16 +159,7 @@ export const administrationSections = [
         
         icon: "📖",
         actions: [
-          { label: "View", path: "/administration/workflows",
-        actions: [
-          { label: "View", path: "/administration/workflows", type: "outline" },
-          { label: "New", path: "/administration/workflows/new", type: "primary" }
-        ], type: "outline" },
-          { label: "New", path: "/administration/workflows/new",
-        actions: [
-          { label: "View", path: "/administration/workflows/new", type: "outline" },
-          { label: "New", path: "/administration/workflows/new/new", type: "primary" }
-        ], type: "primary" }
+          { label: "View", path: "/administration/reports/system-log-book", type: "outline" }
         ],
       },
       {
@@ -284,18 +206,7 @@ function AdministrationLanding() {
           { label: "New", path: "/administration/access/roles/new", type: "primary" }
         ],
     },
-    {
-      rbac_key: "pending-approvals",
-      value: "—",
-      label: "Pending Approvals",
-      change: "Loading…",
-      changeType: "neutral",
-      path: "/administration/workflows/approvals",
-        actions: [
-          { label: "View", path: "/administration/workflows/approvals", type: "outline" },
-          { label: "New", path: "/administration/workflows/approvals/new", type: "primary" }
-        ],
-    },
+
   ]);
 
   const quickActions = [
@@ -333,13 +244,6 @@ function AdministrationLanding() {
               value: String(d.rolesCount ?? "—"),
               change: "System roles",
               changeType: "neutral",
-            };
-            next[2] = {
-              ...next[2],
-              value: String(d.pendingWorkflows ?? "—"),
-              change:
-                d.pendingWorkflows > 0 ? "Requires approval" : "All clear",
-              changeType: d.pendingWorkflows > 0 ? "warning" : "positive",
             };
             return next;
           });
@@ -383,21 +287,16 @@ export default function AdministrationHome() {
       <Route path="/users" element={<UserList />} />
       <Route path="/users/new" element={<UserForm />} />
       <Route path="/users/:id" element={<UserForm />} />
-      <Route path="/workflows" element={<WorkflowList />} />
-      <Route path="/workflows/new" element={<WorkflowForm />} />
-      <Route path="/workflows/:id" element={<WorkflowForm />} />
-      <Route path="/workflows/approvals" element={<MyApprovals />} />
       <Route path="/notifications" element={<NotificationSettings />} />
-      <Route path="/workflows/approved" element={<ApprovedDocuments />} />
-      <Route path="/workflows/sent" element={<SentDocuments />} />
-      <Route
-        path="/workflows/approvals/:instanceId"
-        element={<DocumentReview />}
-      />
 
       <Route path="/reports/system-log-book" element={<SystemLogBookPage />} />
+      <Route path="/system-log-book" element={<SystemLogBookPage />} />
       <Route
         path="/reports/user-login-activity"
+        element={<UserLoginActivityReportPage />}
+      />
+      <Route
+        path="/user-login-activity"
         element={<UserLoginActivityReportPage />}
       />
       <Route path="/settings" element={<SettingsPage />} />
@@ -487,36 +386,7 @@ export const administrationFeatures = [
         ],
     type: "feature",
   },
-  {
-    module_key: "administration",
-    label: "Workflow Configuration",
-    path: "/administration/workflows",
-        actions: [
-          { label: "View", path: "/administration/workflows", type: "outline" },
-          { label: "New", path: "/administration/workflows/new", type: "primary" }
-        ],
-    type: "feature",
-  },
-  {
-    module_key: "administration",
-    label: "Workflow Approvals",
-    path: "/administration/workflows/approvals",
-        actions: [
-          { label: "View", path: "/administration/workflows/approvals", type: "outline" },
-          { label: "New", path: "/administration/workflows/approvals/new", type: "primary" }
-        ],
-    type: "feature",
-  },
-  {
-    module_key: "administration",
-    label: "Document Review",
-    path: "/administration/workflows/approvals",
-        actions: [
-          { label: "View", path: "/administration/workflows/approvals", type: "outline" },
-          { label: "New", path: "/administration/workflows/approvals/new", type: "primary" }
-        ],
-    type: "feature",
-  },
+
   {
     module_key: "administration",
     label: "System Log Book Report",

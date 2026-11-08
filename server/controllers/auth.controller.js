@@ -7,6 +7,7 @@ import { httpError } from "../utils/httpError.js";
 import { cacheDel } from "../utils/redis.js";
 import { isMailerConfigured, sendMail } from "../utils/mailer.js";
 import { validateCompanyLicense, getCompanyLicense } from "../services/license.service.js";
+import { resolveUserLocation } from "../utils/locationResolver.js";
 import {
   clearRefreshTokenCookie,
   buildAuthUserPayload,
@@ -107,6 +108,7 @@ async function ensureLoginLogsTable() {
       company_id BIGINT UNSIGNED NULL,
       branch_id BIGINT UNSIGNED NULL,
       ip_address VARCHAR(100) NULL,
+      location VARCHAR(150) NULL,
       user_agent VARCHAR(255) NULL,
       login_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
       PRIMARY KEY (id),
@@ -114,16 +116,29 @@ async function ensureLoginLogsTable() {
       KEY idx_login_user (user_id)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
   `);
+  try {
+    const has = await query(
+      `SELECT COUNT(*) AS c FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'adm_login_logs' AND column_name = 'location'`
+    );
+    if (!Number(has?.[0]?.c || 0)) {
+      await query(`ALTER TABLE adm_login_logs ADD COLUMN location VARCHAR(150) NULL AFTER ip_address`);
+    }
+  } catch {}
 }
 
 async function writeLoginLog(user, req) {
   try {
     await ensureLoginLogsTable();
     const { ip, userAgent } = getClientMeta(req);
+    const location = await resolveUserLocation(req, {
+      branchId: user.branch_id,
+      companyId: user.company_id,
+      userId: user.id,
+    });
     await query(
       `
-      INSERT INTO adm_login_logs (user_id, username, company_id, branch_id, ip_address, user_agent)
-      VALUES (:user_id, :username, :company_id, :branch_id, :ip_address, :user_agent)
+      INSERT INTO adm_login_logs (user_id, username, company_id, branch_id, ip_address, location, user_agent)
+      VALUES (:user_id, :username, :company_id, :branch_id, :ip_address, :location, :user_agent)
       `,
       {
         user_id: user.id,
@@ -131,6 +146,7 @@ async function writeLoginLog(user, req) {
         company_id: user.company_id || null,
         branch_id: user.branch_id || null,
         ip_address: ip,
+        location: location || null,
         user_agent: userAgent,
       },
     );

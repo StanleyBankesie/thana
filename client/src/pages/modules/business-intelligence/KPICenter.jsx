@@ -6,7 +6,7 @@ import { Target, Plus, TrendingUp, TrendingDown, Minus, Trash2, Edit } from "luc
 import { PageHeader, SectionCard } from "./bi.shared.jsx";
 
 const STORAGE_KEY = "bi_kpis";
-const MODULES = ["Sales", "Finance", "Inventory", "Purchase", "HR", "Projects", "Maintenance", "Production", "Transport", "Service", "POS", "Administration"];
+const MODULES = ["Sales", "Finance", "Inventory", "Purchase", "POS", "Administration"];
 const TREND_OPTIONS = ["Up is good", "Down is good", "Neutral"];
 const FORMAT_OPTIONS = ["Number", "Currency (GHS)", "Percentage (%)"];
 

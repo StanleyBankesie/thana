@@ -10,10 +10,7 @@ const MODULES_CONFIG = [
   { label: "Sales (Invoices)", endpoint: "/bi/financial", resultKey: "revenueTrend", chartValueKey: "revenue", chartLabelKey: "month", columns: [{ key: "month", label: "Month" }, { key: "revenue", label: "Revenue (GHS)" }, { key: "invoices", label: "# Invoices" }] },
   { label: "Purchase (Orders)", endpoint: "/bi/purchase", resultKey: "spendTrend", chartValueKey: "spend", chartLabelKey: "month", columns: [{ key: "month", label: "Month" }, { key: "spend", label: "Spend (GHS)" }, { key: "orders", label: "# Orders" }] },
   { label: "Inventory (by Category)", endpoint: "/bi/inventory", resultKey: "byCategory", chartValueKey: "totalQty", chartLabelKey: "category_name", columns: [{ key: "category_name", label: "Category" }, { key: "itemCount", label: "Items" }, { key: "totalQty", label: "Total Qty" }] },
-  { label: "Projects (by Status)", endpoint: "/bi/projects", resultKey: "byStatus", chartValueKey: "count", chartLabelKey: "status", columns: [{ key: "status", label: "Status" }, { key: "count", label: "Count" }] },
-  { label: "Transport (Trips Trend)", endpoint: "/bi/transport", resultKey: "tripsTrend", chartValueKey: "trips", chartLabelKey: "month", columns: [{ key: "month", label: "Month" }, { key: "trips", label: "Trips" }] },
   { label: "POS (Daily Sales)", endpoint: "/bi/pos", resultKey: "dailyTrend", chartValueKey: "sales", chartLabelKey: "day", columns: [{ key: "day", label: "Day" }, { key: "sales", label: "Sales (GHS)" }, { key: "txns", label: "Txns" }] },
-  { label: "HR (by Department)", endpoint: "/bi/hr", resultKey: "byDepartment", chartValueKey: "count", chartLabelKey: "department_name", columns: [{ key: "department_name", label: "Department" }, { key: "count", label: "Headcount" }] },
 ];
 
 const CHART_TYPES = ["Bar Chart", "Data Table", "Both"];

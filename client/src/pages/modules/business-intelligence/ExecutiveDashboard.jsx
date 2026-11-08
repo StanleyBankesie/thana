@@ -136,16 +136,14 @@ export default function ExecutiveDashboard() {
     { label: "Revenue (This Month)", value: fmtCurrency(kpis.revenue?.thisMonth), sub: `${kpis.revenue?.growth || 0}% vs last month` },
     { label: "Purchase Spend", value: fmtCurrency(kpis.expenses?.thisMonth), sub: "This month" },
     { label: "Gross Profit", value: fmtCurrency(kpis.grossProfit?.thisMonth), sub: "This month" },
-    { label: "Active Projects", value: fmtNum(kpis.projects?.active), sub: `${fmtNum(kpis.projects?.total)} total` },
-    { label: "Production Output", value: `${fmtNum(kpis.production?.totalProduced || 0)} units`, sub: `${kpis.production?.inProgressOrders || 0} active runs` },
-    { label: "Active Employees", value: fmtNum(kpis.hr?.active), sub: "Headcount" },
+    { label: "POS Sales Today", value: fmtCurrency(kpis.pos?.todaySales), sub: `${fmtNum(kpis.pos?.todayTxns)} transactions` },
   ];
 
   return (
     <div className="space-y-6">
       <PageHeader
         title="Executive Intelligence Dashboard"
-        description="Enterprise decision-support & cross-module performance — Revenue, Inventory, Production, Projects & Fleet"
+        description="Enterprise decision-support & cross-module performance — Revenue, Inventory, Procurement, Sales & POS"
         onRefresh={load}
         loading={loading}
       >
@@ -177,7 +175,7 @@ export default function ExecutiveDashboard() {
         dimensions={[
           { label: "Overview", value: "overview" },
           { label: "Revenue & Purchases", value: "finance" },
-          { label: "Operations & Projects", value: "operations" },
+          { label: "Sales & POS Operations", value: "operations" },
         ]}
         activeDimension={activeDimension}
         onDimensionChange={setActiveDimension}
@@ -225,26 +223,7 @@ export default function ExecutiveDashboard() {
             color="brand"
             onClick={() => setDrillModal({ isOpen: true, module: "inventory", dimension: "category", title: "Inventory Value by Category" })}
           />
-          <KpiTile
-            label="Active Projects"
-            value={fmtNum(kpis.projects?.active)}
-            sub={`${fmtNum(kpis.projects?.total)} total`}
-            icon={CheckSquare}
-            color="brand"
-            onClick={() => setDrillModal({ isOpen: true, module: "projects", dimension: "summary", title: "Project Portfolios & Budgets" })}
-          />
-          <KpiTile
-            label="Production Output"
-            value={`${fmtNum(kpis.production?.totalProduced || 0)} units`}
-            sub={`${kpis.production?.inProgressOrders || 0} active runs`}
-            icon={Zap}
-            color="success"
-            onClick={() => setDrillModal({ isOpen: true, module: "production", dimension: "summary", title: "Production Work Orders & Output" })}
-          />
-          <KpiTile label="Active Employees" value={fmtNum(kpis.hr?.active)} sub={`${fmtNum(kpis.hr?.total)} headcount`} icon={Users} color="brand" />
           <KpiTile label="POS Sales Today" value={fmtCurrency(kpis.pos?.todaySales)} sub={`${fmtNum(kpis.pos?.todayTxns)} transactions`} icon={Zap} color="primary" />
-          <KpiTile label="Fleet Available" value={`${fmtNum(kpis.fleet?.available)} / ${fmtNum(kpis.fleet?.total)}`} sub={`${fmtNum(kpis.fleet?.inUse)} in use`} icon={Truck} color="brand" />
-          <KpiTile label="Open Maintenance" value={fmtNum(kpis.maintenance?.openJobs)} sub="Jobs pending" icon={Wrench} color="danger" />
           <KpiTile label="All-Time Revenue" value={fmtCurrency(kpis.revenue?.allTime)} sub="Cumulative" icon={Target} color="slate" />
         </>}
       </div>
@@ -267,11 +246,11 @@ export default function ExecutiveDashboard() {
           </div>
         </SectionCard>
 
-        <SectionCard title="Project Portfolio by Status">
+        <SectionCard title="Revenue Distribution by Source">
           <div className="p-5">
             {loading
               ? <div className="space-y-3">{Array.from({ length: 3 }).map((_, i) => <div key={i} className="h-6 bg-slate-100 dark:bg-slate-800 rounded animate-pulse" />)}</div>
-              : <StatusPie data={charts.projectsByStatus || []} />}
+              : <StatusPie data={[{ status: "Direct Invoicing", count: 65, color: "#0E3646" }, { status: "POS Sales", count: 35, color: "#F57C00" }]} />}
           </div>
         </SectionCard>
       </div>
@@ -284,8 +263,8 @@ export default function ExecutiveDashboard() {
         <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3">
           {[
             { label: "Financial", path: "/business-intelligence/financial", icon: DollarSign, color: "text-secondary" },
-            { label: "Production", path: "/business-intelligence/production", icon: Zap, color: "text-brand-600" },
-            { label: "Projects", path: "/business-intelligence/projects", icon: CheckSquare, color: "text-brand-600" },
+            { label: "POS", path: "/business-intelligence/pos", icon: Zap, color: "text-brand-600" },
+            { label: "Administration", path: "/business-intelligence/administration", icon: Shield, color: "text-brand-600" },
             { label: "Inventory", path: "/business-intelligence/inventory", icon: Package, color: "text-brand-600" },
             { label: "Purchase", path: "/business-intelligence/purchase", icon: ShoppingCart, color: "text-primary" },
             { label: "Cross Module", path: "/business-intelligence/cross-module", icon: Layers, color: "text-brand-600" },
