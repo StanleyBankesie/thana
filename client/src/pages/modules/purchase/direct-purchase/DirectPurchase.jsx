@@ -14,6 +14,7 @@ import { Trash2, ArrowLeft } from "lucide-react";
 import { toast } from "react-toastify";
 import { filterByPrefix } from "@/utils/searchUtils.js";
 import TaxPricingModal, { TaxModeRadioSelector } from "@/components/common/TaxPricingModal.jsx";
+import Swal from "sweetalert2";
 
 /**
  *  component
@@ -27,7 +28,7 @@ export default function DirectPurchase() {
   const isPos = location.pathname.startsWith("/pos");
   const baseRoute = isPos ? "/pos/direct-purchases" : "/purchase/direct-purchase";
   const { canEditDiscount, hasExceptional } = usePermission();
-  const canRecordDirectPayment = hasExceptional(
+  const canRecordDirectPayment = isPos || hasExceptional(
     "PURCHASE.DIRECT_PURCHASE.AUTO_PAYMENT",
   );
   const { getExchangeRate } = useExchangeRate();
@@ -55,7 +56,7 @@ export default function DirectPurchase() {
     payment_type: "CASH",
     payment_terms: "",
     remarks: "",
-    auto_payment: false,
+    auto_payment: !dpId,
     payment_account_id: "",
     payment_method: "Cash",
     payment_reference: "",
@@ -82,6 +83,8 @@ export default function DirectPurchase() {
   const [standardPrices, setStandardPrices] = useState([]);
   const [unitConversions, setUnitConversions] = useState([]);
   const [taxes, setTaxes] = useState([]);
+  const [paymentModes, setPaymentModes] = useState([]);
+  const [generalSettings, setGeneralSettings] = useState(null);
   const { uoms } = useUoms();
   const defaultUomCode = useMemo(() => {
     const list = Array.isArray(uoms) ? uoms : [];
@@ -193,7 +196,7 @@ export default function DirectPurchase() {
     let mounted = true;
     async function load() {
       try {
-        const [sup, wh, it, cur, std, conv, tax, reqs, accs] = await Promise.all([
+        const [sup, wh, it, cur, std, conv, tax, reqs, accs, posModes, genSettings] = await Promise.all([
           api.get("/purchase/suppliers").then((r) => r.data.items || []),
           api.get("/inventory/warehouses").then((r) => r.data.items || []),
           api.get("/inventory/items").then((r) => r.data.items || []),
@@ -223,6 +226,14 @@ export default function DirectPurchase() {
             .get("/finance/accounts")
             .catch(() => ({ data: { items: [] } }))
             .then((r) => r.data.items || []),
+          api
+            .get("/pos/payment-modes")
+            .catch(() => ({ data: { items: [] } }))
+            .then((r) => r.data?.items || []),
+          api
+            .get("/pos/general-settings")
+            .catch(() => ({ data: { settings: {} } }))
+            .then((r) => r.data?.settings || {}),
         ]);
         if (mounted) {
           setSuppliers(sup);
@@ -239,6 +250,10 @@ export default function DirectPurchase() {
           }));
           setTaxes(mappedTaxes);
           setApprovedItemRequisitions(Array.isArray(reqs) ? reqs : []);
+          const activeModes = Array.isArray(posModes) ? posModes : [];
+          setPaymentModes(activeModes);
+          const gSettings = genSettings || {};
+          setGeneralSettings(gSettings);
           const base =
             (cur || []).find((c) => Number(c.is_base) === 1 || c.is_base === true)?.id || null;
           setBaseCurrencyId(base);
@@ -246,6 +261,19 @@ export default function DirectPurchase() {
             setForm((prev) =>
               prev.currency_id ? prev : { ...prev, currency_id: base },
             );
+          }
+          // Resolve default linked payment account on load for new Direct Purchase
+          if (!dpId) {
+            setForm((prev) => {
+              const linked = activeModes.filter((m) => m && m.is_active !== 0 && Boolean(m.account));
+              if (!linked.length) return prev;
+              const def = linked.find((m) => String(m.name || "").trim().toLowerCase() === "cash") || linked[0];
+              return {
+                ...prev,
+                payment_method: def.name,
+                payment_account_id: String(def.account),
+              };
+            });
           }
         }
       } catch (e) {}
@@ -483,6 +511,49 @@ export default function DirectPurchase() {
 
     return { subtotal, grossSub, totalDiscount, totalTax, grandTotal, components };
   }, [lines, form.tax_mode, form.tax_rate, form.tax_component_name]);
+
+  const accountLabelById = useMemo(() => {
+    const m = new Map();
+    for (const a of (Array.isArray(accounts) ? accounts : [])) {
+      if (!a || a.id === undefined || a.id === null) continue;
+      const id = String(a.id);
+      const name = String(a.name || "").trim();
+      const code = String(a.code || "").trim();
+      m.set(id, code ? `${code} - ${name}` : name || id);
+    }
+    return m;
+  }, [accounts]);
+
+  const linkedPaymentModes = useMemo(() => {
+    const list = Array.isArray(paymentModes) ? paymentModes : [];
+    // Only show active payment methods that have an account linked
+    return list.filter((m) => m && m.is_active !== 0 && Boolean(m.account));
+  }, [paymentModes]);
+
+  const handlePaidToggle = (e) => {
+    const checked = e.target.checked;
+    if (checked) {
+      updateForm("auto_payment", true);
+      const defaultMode = linkedPaymentModes.find(
+        (m) => String(m.name || "").toLowerCase() === String(form.payment_method || "").toLowerCase()
+      ) || linkedPaymentModes[0];
+
+      if (defaultMode) {
+        updateForm("payment_method", defaultMode.name);
+        if (defaultMode.account) {
+          updateForm("payment_account_id", String(defaultMode.account));
+        }
+      } else if (generalSettings?.directPurchasePaymentAccountId) {
+        updateForm("payment_account_id", String(generalSettings.directPurchasePaymentAccountId));
+      }
+
+      if (totalInCurrentCurrency > 0 && (!form.paid_amount || Number(form.paid_amount) === 0)) {
+        updateForm("paid_amount", String(totalInCurrentCurrency));
+      }
+    } else {
+      updateForm("auto_payment", false);
+    }
+  };
 
   const isChequeLike = useMemo(
     () =>
@@ -750,9 +821,10 @@ export default function DirectPurchase() {
         payment_terms: form.payment_terms ? Number(form.payment_terms) : null,
         remarks: form.remarks || null,
         status: action === "post" ? "POSTED" : "DRAFT",
+        is_pos: isPos,
         auto_payment: Boolean(canRecordDirectPayment && form.auto_payment),
         payment_account_id: form.auto_payment
-          ? Number(form.payment_account_id) || null
+          ? Number(form.payment_account_id || (paymentModes.find(m => String(m.name || "").toLowerCase() === String(form.payment_method || "").toLowerCase())?.account) || generalSettings?.directPurchasePaymentAccountId) || null
           : null,
         payment_method: form.auto_payment ? form.payment_method || "Cash" : null,
         payment_reference: form.auto_payment
@@ -1551,18 +1623,7 @@ export default function DirectPurchase() {
                     className="w-4 h-4 text-brand rounded border-gray-300 focus:ring-brand"
                     checked={Boolean(form.auto_payment)}
                     disabled={isViewMode}
-                    onChange={(e) => {
-                      const checked = e.target.checked;
-                      updateForm("auto_payment", checked);
-                      if (checked) {
-                        updateForm(
-                          "paid_amount",
-                          totalInCurrentCurrency > 0
-                            ? String(totalInCurrentCurrency)
-                            : "",
-                        );
-                      }
-                    }}
+                    onChange={handlePaidToggle}
                   />
                   <span className="font-bold text-base text-brand dark:text-brand-300">
                     Paid Upon Purchase
@@ -1571,50 +1632,38 @@ export default function DirectPurchase() {
               </div>
 
               {form.auto_payment && (
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-4 pt-1">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4 pt-1">
                   <div className="flex flex-col gap-1">
-                    <label className="label font-medium">
-                      Payment Method *
-                    </label>
+                    <label className="label font-medium">Payment Method *</label>
                     <select
-                      className="input w-full"
-                      value={form.payment_method || "Cash"}
+                      className="input w-full font-medium"
+                      value={form.payment_method || ""}
                       disabled={isViewMode}
                       onChange={(e) => {
-                        updateForm("payment_method", e.target.value);
-                        updateForm("payment_account_id", "");
+                        const val = e.target.value;
+                        updateForm("payment_method", val);
+                        const matched = linkedPaymentModes.find(
+                          (m) => String(m.name || "").toLowerCase() === String(val).toLowerCase() ||
+                                 String(m.type || "").toLowerCase() === String(val).toLowerCase()
+                        );
+                        if (matched?.account) {
+                          updateForm("payment_account_id", String(matched.account));
+                        }
                       }}
                     >
-                      <option value="Cash">Cash</option>
-                      <option value="Bank Transfer">Bank Transfer</option>
-                      <option value="Cheque">Cheque</option>
-                      <option value="Mobile Money">Mobile Money</option>
-                      <option value="Credit Card">Credit Card</option>
+                      {linkedPaymentModes.length === 0 ? (
+                        <option value="">No linked payment methods found</option>
+                      ) : (
+                        linkedPaymentModes.map((m) => (
+                          <option key={m.id || m.name} value={m.name}>
+                            {m.name}
+                          </option>
+                        ))
+                      )}
                     </select>
                   </div>
 
-                  <div className="flex flex-col gap-1">
-                    <label className="label font-medium">
-                      Payment Account *
-                    </label>
-                    <select
-                      className="input w-full"
-                      value={form.payment_account_id || ""}
-                      disabled={isViewMode}
-                      onChange={(e) =>
-                        updateForm("payment_account_id", e.target.value)
-                      }
-                      required
-                    >
-                      <option value="">-- Select Payment Account --</option>
-                      {selectablePaymentAccounts.map((a) => (
-                        <option key={a.id} value={a.id}>
-                          {a.code} - {a.name}{" "}
-                          {a.currency_code ? `(${a.currency_code})` : ""}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+
 
                   <div className="flex flex-col gap-1">
                     <label className="label font-medium">

@@ -5580,6 +5580,133 @@ router.post(
   },
 );
 
+async function ensureSystemSettingsTable() {
+  await query(`
+    CREATE TABLE IF NOT EXISTS adm_system_settings (
+      id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+      company_id BIGINT UNSIGNED NULL,
+      branch_id BIGINT UNSIGNED NULL,
+      setting_key VARCHAR(150) NOT NULL,
+      setting_value TEXT NULL,
+      updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      PRIMARY KEY (id),
+      UNIQUE KEY uq_setting (company_id, branch_id, setting_key),
+      KEY idx_setting_key (setting_key)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  `).catch(() => {});
+}
+
+router.get(
+  "/general-settings",
+  requireAuth,
+  requireCompanyScope,
+  async (req, res, next) => {
+    try {
+      await ensureSystemSettingsTable();
+      const { companyId } = req.scope || {};
+      const rows = await query(
+        `SELECT setting_key, setting_value
+         FROM adm_system_settings
+         WHERE (company_id = :companyId OR company_id IS NULL)
+           AND setting_key IN (
+             'POS_GENERAL_SETTINGS',
+             'POS_DIRECT_PURCHASE_PAYMENT_ACCOUNT_ID',
+             'POS_DIRECT_PURCHASE_PAYMENT_METHOD'
+           )
+         ORDER BY company_id DESC`,
+        { companyId: companyId ?? null },
+      ).catch(() => []);
+
+      const map = {};
+      for (const r of rows) {
+        if (map[r.setting_key] === undefined) {
+          map[r.setting_key] = r.setting_value;
+        }
+      }
+
+      let generalSettings = {};
+      if (map.POS_GENERAL_SETTINGS) {
+        try {
+          generalSettings = JSON.parse(map.POS_GENERAL_SETTINGS);
+        } catch {}
+      }
+
+      const directPurchasePaymentAccountId =
+        map.POS_DIRECT_PURCHASE_PAYMENT_ACCOUNT_ID ||
+        generalSettings.directPurchasePaymentAccountId ||
+        "";
+      const directPurchasePaymentMethod =
+        map.POS_DIRECT_PURCHASE_PAYMENT_METHOD ||
+        generalSettings.directPurchasePaymentMethod ||
+        "Cash";
+
+      res.json({
+        settings: {
+          ...generalSettings,
+          directPurchasePaymentAccountId,
+          directPurchasePaymentMethod,
+        },
+      });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
+router.put(
+  "/general-settings",
+  requireAuth,
+  requireCompanyScope,
+  async (req, res, next) => {
+    try {
+      await ensureSystemSettingsTable();
+      const { companyId } = req.scope || {};
+      const body = req.body || {};
+      const directPurchasePaymentAccountId = body.directPurchasePaymentAccountId
+        ? String(body.directPurchasePaymentAccountId)
+        : "";
+      const directPurchasePaymentMethod = body.directPurchasePaymentMethod
+        ? String(body.directPurchasePaymentMethod)
+        : "Cash";
+
+      const payloadToStore = {
+        ...body,
+        directPurchasePaymentAccountId,
+        directPurchasePaymentMethod,
+      };
+      const fullSettingsStr = JSON.stringify(payloadToStore);
+
+      await query(
+        `INSERT INTO adm_system_settings (company_id, branch_id, setting_key, setting_value)
+         VALUES 
+           (:companyId, NULL, 'POS_GENERAL_SETTINGS', :fullSettingsStr),
+           (:companyId, NULL, 'POS_DIRECT_PURCHASE_PAYMENT_ACCOUNT_ID', :directPurchasePaymentAccountId),
+           (:companyId, NULL, 'POS_DIRECT_PURCHASE_PAYMENT_METHOD', :directPurchasePaymentMethod)
+         ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value), updated_at = CURRENT_TIMESTAMP`,
+        {
+          companyId: companyId ?? null,
+          fullSettingsStr,
+          directPurchasePaymentAccountId,
+          directPurchasePaymentMethod,
+        },
+      );
+
+      if (body.payment_mode_accounts && typeof body.payment_mode_accounts === "object") {
+        for (const [pmId, accId] of Object.entries(body.payment_mode_accounts)) {
+          await query(
+            `UPDATE pos_payment_modes SET account = :accId WHERE id = :pmId AND company_id = :companyId`,
+            { accId: accId ? String(accId) : null, pmId: Number(pmId), companyId: companyId ?? null }
+          ).catch(() => null);
+        }
+      }
+
+      res.json({ success: true, message: "General settings saved successfully" });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
 router.get(
   "/payment-modes",
   requireAuth,

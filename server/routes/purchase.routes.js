@@ -11909,17 +11909,63 @@ router.post(
           ? "CREDIT"
           : "CASH";
       const autoPayment = Boolean(body.auto_payment);
-      const paymentAccountId = toNumber(body.payment_account_id) || null;
+      let paymentAccountId = toNumber(body.payment_account_id) || null;
       const paymentMethod = String(body.payment_method || "Cash");
       const paymentReference = body.payment_reference ? String(body.payment_reference).trim() : null;
       const chequeDate = body.cheque_date || null;
       const paidAmount = Number(body.paid_amount || 0);
 
-      // Verify exceptional permission if auto_payment requested
+      // Verify permission if auto_payment requested
       if (autoPayment) {
+        const isPosReq = Boolean(body.is_pos) || req.headers["x-module"] === "pos";
         const hasEx = await userHasExceptionalAllow(req.user?.sub, "PURCHASE.DIRECT_PURCHASE.AUTO_PAYMENT");
-        if (!hasEx) {
-          throw httpError(403, "FORBIDDEN", "You do not have exceptional permission to record direct payment on Direct Purchase");
+        if (!hasEx && !isPosReq) {
+          const posPermRows = await query(
+            `SELECT 1 FROM adm_user_roles ur
+             JOIN adm_role_permissions rp ON rp.role_id = ur.role_id
+             JOIN adm_permissions p ON p.id = rp.permission_id
+             WHERE ur.user_id = :userId AND p.code IN ('POS.DIRECT_PURCHASE', 'POS.MANAGE')
+             LIMIT 1`,
+            { userId: req.user?.sub || 0 }
+          ).catch(() => []);
+          if (posPermRows.length === 0) {
+            throw httpError(403, "FORBIDDEN", "You do not have permission to record direct payment on Direct Purchase");
+          }
+        }
+        if (!paymentAccountId) {
+          // 1. Try finding paymentAccountId from pos_payment_modes for the selected paymentMethod
+          const [modeRows] = await conn.execute(
+            `SELECT account FROM pos_payment_modes 
+             WHERE company_id = :companyId AND (name = :pm OR type = :pm) AND account IS NOT NULL AND is_active = 1 LIMIT 1`,
+            { companyId, pm: paymentMethod }
+          ).catch(() => [[]]);
+          if (modeRows?.[0]?.account) {
+            paymentAccountId = toNumber(modeRows[0].account);
+          }
+          // 2. Try General Settings
+          if (!paymentAccountId) {
+            const [settRows] = await conn.execute(
+              `SELECT setting_value FROM adm_system_settings 
+               WHERE (company_id = :companyId OR company_id IS NULL) AND setting_key = 'POS_DIRECT_PURCHASE_PAYMENT_ACCOUNT_ID'
+               ORDER BY company_id DESC LIMIT 1`,
+              { companyId }
+            ).catch(() => [[]]);
+            if (settRows?.[0]?.setting_value) {
+              paymentAccountId = toNumber(settRows[0].setting_value);
+            }
+          }
+          // 3. Fallback to default Cash account
+          if (!paymentAccountId) {
+            const [cashAcc] = await conn.execute(
+              `SELECT id FROM fin_accounts 
+               WHERE company_id = :companyId AND is_active = 1 AND is_postable = 1 AND (code IN ('1021', '1020') OR LOWER(name) LIKE '%cash%')
+               LIMIT 1`,
+              { companyId }
+            ).catch(() => [[]]);
+            if (cashAcc?.[0]?.id) {
+              paymentAccountId = toNumber(cashAcc[0].id);
+            }
+          }
         }
         if (!paymentAccountId) {
           throw httpError(400, "VALIDATION_ERROR", "Payment Account is required when recording direct payment");

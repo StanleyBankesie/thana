@@ -3429,7 +3429,7 @@ router.get(
         `SELECT setting_key, setting_value
          FROM adm_system_settings
          WHERE (company_id = :companyId OR company_id IS NULL)
-           AND setting_key IN ('POS_ENABLE_DAY_OPEN_CLOSE', 'POS_AUTO_FINANCE_SALES_ACCOUNT_ID')
+           AND setting_key IN ('POS_ENABLE_DAY_OPEN_CLOSE', 'POS_AUTO_FINANCE_SALES_ACCOUNT_ID', 'POS_DIRECT_PURCHASE_PAYMENT_ACCOUNT_ID')
          ORDER BY company_id DESC`,
         { companyId: companyId ?? null }
       );
@@ -3488,6 +3488,7 @@ router.get(
           enable_day_open_close: enableDayOpenClose,
           sales_account_id: salesAccountId ? String(salesAccountId) : (salesAccountInfo ? String(salesAccountInfo.id) : ""),
           sales_account: salesAccountInfo,
+          direct_purchase_payment_account_id: map.POS_DIRECT_PURCHASE_PAYMENT_ACCOUNT_ID || "",
           payment_modes: paymentModes,
           tax_account: taxSettings?.[0] || null,
         },
@@ -3509,6 +3510,7 @@ router.post(
       const body = req.body || {};
       const enableVal = body.enable_day_open_close === false || body.enable_day_open_close === "0" ? "0" : "1";
       const salesAccId = body.sales_account_id ? String(body.sales_account_id) : "";
+      const dpPaymentAccId = body.direct_purchase_payment_account_id !== undefined ? String(body.direct_purchase_payment_account_id || "") : null;
 
       await query(
         `INSERT INTO adm_system_settings (company_id, branch_id, setting_key, setting_value)
@@ -3522,6 +3524,26 @@ router.post(
           salesAccId,
         }
       );
+      if (dpPaymentAccId !== null) {
+        await query(
+          `INSERT INTO adm_system_settings (company_id, branch_id, setting_key, setting_value)
+           VALUES (:companyId, NULL, 'POS_DIRECT_PURCHASE_PAYMENT_ACCOUNT_ID', :dpPaymentAccId)
+           ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value), updated_at = CURRENT_TIMESTAMP`,
+          {
+            companyId: companyId ?? null,
+            dpPaymentAccId,
+          }
+        );
+      }
+
+      if (body.payment_mode_accounts && typeof body.payment_mode_accounts === "object") {
+        for (const [pmId, accId] of Object.entries(body.payment_mode_accounts)) {
+          await query(
+            `UPDATE pos_payment_modes SET account = :accId WHERE id = :pmId AND company_id = :companyId`,
+            { accId: accId ? String(accId) : null, pmId: Number(pmId), companyId: companyId ?? null }
+          ).catch(() => null);
+        }
+      }
       res.json({ success: true, message: "Day Open & Close settings saved successfully" });
     } catch (err) {
       next(err);

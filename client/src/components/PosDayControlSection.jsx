@@ -11,6 +11,9 @@ export default function PosDayControlSection() {
   const [paymentModes, setPaymentModes] = useState([]);
   const [taxAccount, setTaxAccount] = useState(null);
   const [revenueAccounts, setRevenueAccounts] = useState([]);
+  const [directPurchasePaymentAccountId, setDirectPurchasePaymentAccountId] = useState("");
+  const [allAccounts, setAllAccounts] = useState([]);
+  const [modeAccounts, setModeAccounts] = useState({});
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
@@ -33,14 +36,26 @@ export default function PosDayControlSection() {
         setSalesAccount(d.sales_account || null);
         setPaymentModes(Array.isArray(d.payment_modes) ? d.payment_modes : []);
         setTaxAccount(d.tax_account || null);
+        setDirectPurchasePaymentAccountId(d.direct_purchase_payment_account_id ? String(d.direct_purchase_payment_account_id) : "");
 
         const items = Array.isArray(accRes?.data?.items) ? accRes.data.items : [];
+        setAllAccounts(items);
         const rev = items.filter((a) => {
           const nat = String(a.nature || a.type || "").toUpperCase();
           const code = String(a.code || "");
           return nat === "INCOME" || nat === "REVENUE" || code.startsWith("4");
         });
         setRevenueAccounts(rev.length > 0 ? rev : items);
+
+        const modes = Array.isArray(d.payment_modes) ? d.payment_modes : [];
+        setPaymentModes(modes);
+        const initialMap = {};
+        for (const pm of modes) {
+          if (pm && pm.id) {
+            initialMap[pm.id] = pm.account ? String(pm.account) : "";
+          }
+        }
+        setModeAccounts(initialMap);
       } catch (err) {
         console.error("Failed to load POS day control settings", err);
       } finally {
@@ -59,6 +74,8 @@ export default function PosDayControlSection() {
       await api.post("/admin/settings/pos-day-control", {
         enable_day_open_close: enabled,
         sales_account_id: salesAccountId ? Number(salesAccountId) : null,
+        direct_purchase_payment_account_id: directPurchasePaymentAccountId ? Number(directPurchasePaymentAccountId) : null,
+        payment_mode_accounts: modeAccounts,
       });
       try {
         localStorage.setItem("pos_enable_day_open_close", String(enabled));
@@ -195,35 +212,6 @@ export default function PosDayControlSection() {
                   </div>
                 </div>
 
-                {/* Configured Payment Mode Accounts */}
-                <div className="pt-2">
-                  <div className="flex items-center justify-between mb-1.5">
-                    <span className="text-xs font-semibold text-slate-700">
-                      Configured Payment Accounts (Debited per Payment Method):
-                    </span>
-                    <Link to="/pos/setup" className="text-xs text-brand-600 hover:underline flex items-center gap-1">
-                      Manage in POS Setup <ArrowRight className="w-3 h-3" />
-                    </Link>
-                  </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2">
-                    {paymentModes.length > 0 ? (
-                      paymentModes.map((pm) => (
-                        <div key={pm.id} className="p-2.5 rounded-lg bg-white border border-slate-200 text-xs">
-                          <div className="font-semibold text-slate-800">{pm.name}</div>
-                          <div className="text-[11px] text-slate-500 uppercase">{pm.type}</div>
-                          <div className="text-[11px] text-brand-700 font-medium mt-1 truncate">
-                            {pm.account_code ? `${pm.account_code} - ${pm.account_name}` : pm.account ? `Account #${pm.account}` : "Default (1000)"}
-                          </div>
-                        </div>
-                      ))
-                    ) : (
-                      <div className="col-span-full p-2.5 rounded-lg bg-white border border-slate-200 text-xs text-slate-500">
-                        Default Cash/Bank account (1000) will be used for all payment collections.
-                      </div>
-                    )}
-                  </div>
-                </div>
-
                 {/* Test Action */}
                 <div className="pt-2 border-t border-amber-200/60 flex flex-wrap items-center justify-between gap-3">
                   <div className="text-xs text-slate-600 flex items-center gap-1.5">
@@ -257,6 +245,104 @@ export default function PosDayControlSection() {
                 )}
               </div>
             )}
+
+            {/* Configured Payment Mode Accounts (ALWAYS VISIBLE whether Day Control is on or off) */}
+            <div className="pt-2 border-t border-slate-200">
+              <div className="flex items-center justify-between mb-2">
+                <div>
+                  <div className="flex items-center gap-2 text-sm font-semibold text-slate-800">
+                    <CheckCircle2 className="w-4 h-4 text-brand-600" />
+                    Payment Methods &amp; Finance Account Linkage
+                  </div>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Link each payment method to its finance account. These accounts are credited when recording Paid Direct Purchases, and debited during POS Sales. Only methods linked to an account appear in Direct Purchase.
+                  </p>
+                </div>
+                <Link to="/pos/setup" className="text-xs text-brand-600 hover:underline flex items-center gap-1 font-medium">
+                  Manage in POS Setup <ArrowRight className="w-3 h-3" />
+                </Link>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2.5">
+                {paymentModes.length > 0 ? (
+                  paymentModes.map((pm) => {
+                    const currentAccId = modeAccounts[pm.id] !== undefined ? modeAccounts[pm.id] : (pm.account ? String(pm.account) : "");
+                    const isLinked = Boolean(currentAccId);
+                    return (
+                      <div key={pm.id} className="p-3 rounded-lg bg-white border border-slate-200 text-xs shadow-xs flex flex-col justify-between">
+                        <div>
+                          <div className="flex items-center justify-between">
+                            <span className="font-semibold text-slate-800">{pm.name}</span>
+                            <span className={`text-[10px] px-1.5 py-0.5 rounded font-semibold ${
+                              isLinked ? "bg-emerald-50 text-emerald-700 border border-emerald-200" : "bg-amber-50 text-amber-700 border border-amber-200"
+                            }`}>
+                              {isLinked ? "Linked" : "Unlinked"}
+                            </span>
+                          </div>
+                          <div className="text-[10px] text-slate-500 uppercase font-mono mt-0.5">{pm.type}</div>
+                        </div>
+                        <div className="mt-2.5">
+                          <label className="text-[10px] font-semibold text-slate-600 block mb-1">
+                            Linked Account:
+                          </label>
+                          <select
+                            className="input input-xs w-full bg-slate-50 border-slate-300 text-xs"
+                            value={currentAccId}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              setModeAccounts((prev) => ({ ...prev, [pm.id]: val }));
+                            }}
+                          >
+                            <option value="">-- No Account (Unlinked) --</option>
+                            {allAccounts.map((a) => (
+                              <option key={a.id} value={String(a.id)}>
+                                {a.code} - {a.name}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+                    );
+                  })
+                ) : (
+                  <div className="col-span-full p-2.5 rounded-lg bg-white border border-slate-200 text-xs text-slate-500">
+                    Default Cash/Bank account (1000) will be used for all payment collections.
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Direct Purchase Payment Account Section */}
+            <div className="pt-4 border-t border-slate-200">
+              <div className="flex items-center gap-2 text-sm font-semibold text-slate-800 mb-1">
+                <CheckCircle2 className="w-4 h-4 text-brand-600" />
+                Direct Purchase Payment Voucher Account
+              </div>
+              <p className="text-xs text-slate-600 mb-3">
+                Configure the default payment account to credit in fin_vouchers when Direct Purchases are marked as &quot;Paid&quot; in POS.
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-slate-700">
+                    Direct Purchase Payment Account
+                  </label>
+                  <select
+                    className="input input-sm w-full bg-white border-slate-300"
+                    value={directPurchasePaymentAccountId}
+                    onChange={(e) => setDirectPurchasePaymentAccountId(e.target.value)}
+                  >
+                    <option value="">-- Select Payment Account --</option>
+                    {allAccounts.map((a) => (
+                      <option key={a.id} value={String(a.id)}>
+                        {a.code} - {a.name}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-[11px] text-slate-500">
+                    Used automatically when creating payment vouchers into fin_vouchers.
+                  </p>
+                </div>
+              </div>
+            </div>
 
             {/* Save Button */}
             <div className="flex justify-end pt-2">

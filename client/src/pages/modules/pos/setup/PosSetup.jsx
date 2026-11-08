@@ -2261,33 +2261,94 @@ function GeneralSettingsTab() {
     useState(false);
   const [autoPrintReceipt, setAutoPrintReceipt] = useState(false);
   const [showAvailableQty, setShowAvailableQty] = useState(true);
+  const [directPurchasePaymentAccountId, setDirectPurchasePaymentAccountId] = useState("");
+  const [directPurchasePaymentMethod, setDirectPurchasePaymentMethod] = useState("Cash");
+  const [accounts, setAccounts] = useState([]);
+  const [paymentModes, setPaymentModes] = useState([]);
   const [returnReasons, setReturnReasons] = useState([]);
   const [returnReasonsLoading, setReturnReasonsLoading] = useState(false);
   const [newReturnReason, setNewReturnReason] = useState("");
+  const [paymentModeAccounts, setPaymentModeAccounts] = useState({});
+
+  const accountLabelById = useMemo(() => {
+    const m = new Map();
+    for (const a of accounts) {
+      if (!a || a.id === undefined || a.id === null) continue;
+      const id = String(a.id);
+      const name = String(a.name || "").trim();
+      m.set(id, a.code ? `${a.code} - ${name}` : name || id);
+    }
+    return m;
+  }, [accounts]);
 
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem(POS_GENERAL_SETTINGS_KEY);
-      if (!raw) return;
-      const parsed = JSON.parse(raw);
-      if (!parsed || typeof parsed !== "object") return;
-      if (parsed.defaultCurrency)
-        setDefaultCurrency(String(parsed.defaultCurrency));
-      if (parsed.decimalPlaces !== undefined)
-        setDecimalPlaces(String(parsed.decimalPlaces));
-      if (parsed.dateFormat) setDateFormat(String(parsed.dateFormat));
-      if (parsed.timeFormat) setTimeFormat(String(parsed.timeFormat));
-      if (typeof parsed.allowDiscounts === "boolean")
-        setAllowDiscounts(parsed.allowDiscounts);
-      if (typeof parsed.requireCustomer === "boolean")
-        setRequireCustomer(parsed.requireCustomer);
-      if (typeof parsed.autoLogoutAfterShiftClose === "boolean")
-        setAutoLogoutAfterShiftClose(parsed.autoLogoutAfterShiftClose);
-      if (typeof parsed.autoPrintReceipt === "boolean")
-        setAutoPrintReceipt(parsed.autoPrintReceipt);
-      if (typeof parsed.showAvailableQty === "boolean")
-        setShowAvailableQty(parsed.showAvailableQty);
-    } catch {}
+    let mounted = true;
+    api
+      .get("/finance/accounts", { params: { postable: 1, active: 1 } })
+      .then((res) => {
+        if (!mounted) return;
+        const items = Array.isArray(res.data?.items) ? res.data.items : [];
+        setAccounts(items);
+      })
+      .catch(() => {});
+
+    api
+      .get("/pos/payment-modes")
+      .then((res) => {
+        if (!mounted) return;
+        const rows = Array.isArray(res.data?.items) ? res.data.items : [];
+        setPaymentModes(rows);
+        const map = {};
+        for (const m of rows) {
+          if (m && m.id) {
+            map[m.id] = m.account ? String(m.account) : "";
+          }
+        }
+        setPaymentModeAccounts(map);
+      })
+      .catch(() => {});
+
+    api
+      .get("/pos/general-settings")
+      .then((res) => {
+        if (!mounted) return;
+        const s = res.data?.settings || {};
+        if (s.defaultCurrency) setDefaultCurrency(String(s.defaultCurrency));
+        if (s.decimalPlaces !== undefined) setDecimalPlaces(String(s.decimalPlaces));
+        if (s.dateFormat) setDateFormat(String(s.dateFormat));
+        if (s.timeFormat) setTimeFormat(String(s.timeFormat));
+        if (typeof s.allowDiscounts === "boolean") setAllowDiscounts(s.allowDiscounts);
+        if (typeof s.requireCustomer === "boolean") setRequireCustomer(s.requireCustomer);
+        if (typeof s.autoLogoutAfterShiftClose === "boolean") setAutoLogoutAfterShiftClose(s.autoLogoutAfterShiftClose);
+        if (typeof s.autoPrintReceipt === "boolean") setAutoPrintReceipt(s.autoPrintReceipt);
+        if (typeof s.showAvailableQty === "boolean") setShowAvailableQty(s.showAvailableQty);
+        if (s.directPurchasePaymentAccountId) setDirectPurchasePaymentAccountId(String(s.directPurchasePaymentAccountId));
+        if (s.directPurchasePaymentMethod) setDirectPurchasePaymentMethod(String(s.directPurchasePaymentMethod));
+      })
+      .catch(() => {})
+      .finally(() => {
+        try {
+          const raw = localStorage.getItem(POS_GENERAL_SETTINGS_KEY);
+          if (!raw) return;
+          const parsed = JSON.parse(raw);
+          if (!parsed || typeof parsed !== "object") return;
+          if (parsed.defaultCurrency) setDefaultCurrency(String(parsed.defaultCurrency));
+          if (parsed.decimalPlaces !== undefined) setDecimalPlaces(String(parsed.decimalPlaces));
+          if (parsed.dateFormat) setDateFormat(String(parsed.dateFormat));
+          if (parsed.timeFormat) setTimeFormat(String(parsed.timeFormat));
+          if (typeof parsed.allowDiscounts === "boolean") setAllowDiscounts(parsed.allowDiscounts);
+          if (typeof parsed.requireCustomer === "boolean") setRequireCustomer(parsed.requireCustomer);
+          if (typeof parsed.autoLogoutAfterShiftClose === "boolean") setAutoLogoutAfterShiftClose(parsed.autoLogoutAfterShiftClose);
+          if (typeof parsed.autoPrintReceipt === "boolean") setAutoPrintReceipt(parsed.autoPrintReceipt);
+          if (typeof parsed.showAvailableQty === "boolean") setShowAvailableQty(parsed.showAvailableQty);
+          if (parsed.directPurchasePaymentAccountId) setDirectPurchasePaymentAccountId(String(parsed.directPurchasePaymentAccountId));
+          if (parsed.directPurchasePaymentMethod) setDirectPurchasePaymentMethod(String(parsed.directPurchasePaymentMethod));
+        } catch {}
+      });
+
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   useEffect(() => {
@@ -2316,7 +2377,7 @@ function GeneralSettingsTab() {
     };
   }, []);
 
-  function saveGeneralSettings() {
+  async function saveGeneralSettings() {
     const payload = {
       defaultCurrency,
       decimalPlaces: decimalPlaces || "2",
@@ -2327,10 +2388,14 @@ function GeneralSettingsTab() {
       autoLogoutAfterShiftClose: !!autoLogoutAfterShiftClose,
       autoPrintReceipt: !!autoPrintReceipt,
       showAvailableQty: !!showAvailableQty,
+      directPurchasePaymentAccountId: directPurchasePaymentAccountId || "",
+      directPurchasePaymentMethod: directPurchasePaymentMethod || "Cash",
+      payment_mode_accounts: paymentModeAccounts,
     };
     try {
+      await api.put("/pos/general-settings", payload).catch(() => null);
       localStorage.setItem(POS_GENERAL_SETTINGS_KEY, JSON.stringify(payload));
-      toast.success("General settings saved");
+      toast.success("General settings saved successfully");
     } catch {
       toast.error("Failed to save general settings");
     }
@@ -2473,6 +2538,137 @@ function GeneralSettingsTab() {
                 onChange={(e) => setShowAvailableQty(e.target.checked)}
               />
               <span className="text-sm">Show Available Qty in Sales Entry</span>
+            </div>
+          </div>
+          <div className="pt-4 border-t border-slate-200 space-y-4">
+            <div>
+              <div className="text-base font-semibold text-slate-900">
+                Direct Purchase &amp; Payment Voucher Settings
+              </div>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Configure the payment methods and linked finance accounts for POS Sales and Direct Purchases.
+                When a user checks &quot;Paid Upon Purchase&quot;, a payment voucher is automatically recorded into fin_vouchers using the account configured below.
+              </p>
+            </div>
+
+            {/* Configured Payment Accounts (Cards matching sales Day Control Image) */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-slate-700">
+                  Configured Payment Accounts (Debited / Credited per Payment Method):
+                </span>
+                <span className="text-[11px] text-slate-500">
+                  Only linked methods (e.g. Cash, Momo) appear in Direct Purchase
+                </span>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+                {paymentModes.length > 0 ? (
+                  paymentModes.map((pm) => {
+                    const currentAcc = paymentModeAccounts[pm.id] !== undefined ? paymentModeAccounts[pm.id] : (pm.account ? String(pm.account) : "");
+                    const isLinked = Boolean(currentAcc);
+                    return (
+                      <div
+                        key={pm.id}
+                        className={`p-3 rounded-lg border text-xs flex flex-col justify-between transition-all ${
+                          isLinked
+                            ? "bg-white border-slate-200 shadow-xs"
+                            : "bg-amber-50/60 border-amber-200 text-amber-900"
+                        }`}
+                      >
+                        <div>
+                          <div className="flex items-center justify-between">
+                            <span className="font-bold text-slate-800 text-sm">{pm.name}</span>
+                            <span
+                              className={`text-[10px] px-1.5 py-0.5 rounded font-semibold ${
+                                isLinked
+                                  ? "bg-emerald-100 text-emerald-800"
+                                  : "bg-amber-100 text-amber-800"
+                              }`}
+                            >
+                              {isLinked ? "Linked & Active" : "Unlinked (Hidden)"}
+                            </span>
+                          </div>
+                          <div className="text-[11px] text-slate-500 uppercase font-mono mt-0.5">
+                            {pm.type}
+                          </div>
+                        </div>
+
+                        <div className="mt-2.5">
+                          <label className="text-[10px] font-semibold text-slate-600 block mb-1">
+                            Linked GL Account:
+                          </label>
+                          <select
+                            className="input input-xs w-full bg-white border-slate-300 text-xs font-medium"
+                            value={currentAcc}
+                            onChange={(e) => {
+                              const newAcc = e.target.value;
+                              setPaymentModeAccounts((prev) => ({
+                                ...prev,
+                                [pm.id]: newAcc,
+                              }));
+                            }}
+                          >
+                            <option value="">-- No Account (Unlinked) --</option>
+                            {accounts.map((a) => (
+                              <option key={a.id} value={String(a.id)}>
+                                {a.code} - {a.name} {a.currency_code ? `(${a.currency_code})` : ""}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+                    );
+                  })
+                ) : (
+                  <div className="col-span-full p-3 rounded-lg bg-slate-50 border border-slate-200 text-xs text-slate-500">
+                    No payment modes configured in POS.
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
+              <div>
+                <label className="label">Default Payment Method for Direct Purchase</label>
+                <select
+                  className="input"
+                  value={directPurchasePaymentMethod}
+                  onChange={(e) => setDirectPurchasePaymentMethod(e.target.value)}
+                >
+                  {paymentModes.map((m) => {
+                    const accId = paymentModeAccounts[m.id] !== undefined ? paymentModeAccounts[m.id] : m.account;
+                    return (
+                      <option key={m.id || m.name} value={m.name}>
+                        {m.name} {accId ? `(Account: ${accountLabelById.get(String(accId)) || accId})` : "(Not linked)"}
+                      </option>
+                    );
+                  })}
+                  {!paymentModes.some((m) => m.name === "Cash") && (
+                    <option value="Cash">Cash</option>
+                  )}
+                </select>
+                <span className="text-[11px] text-slate-500 block mt-1">
+                  Default method pre-selected when opening Direct Purchase form
+                </span>
+              </div>
+              <div>
+                <label className="label">Fallback Payment Account (Optional)</label>
+                <select
+                  className="input"
+                  value={directPurchasePaymentAccountId}
+                  onChange={(e) => setDirectPurchasePaymentAccountId(e.target.value)}
+                >
+                  <option value="">-- Use Payment Method&apos;s Linked Account --</option>
+                  {accounts.map((a) => (
+                    <option key={a.id} value={String(a.id)}>
+                      {a.code} - {a.name} {a.currency_code ? `(${a.currency_code})` : ""}
+                    </option>
+                  ))}
+                </select>
+                <span className="text-[11px] text-slate-500 block mt-1">
+                  Used as fallback if selected payment method does not specify an account
+                </span>
+              </div>
             </div>
           </div>
           <div>

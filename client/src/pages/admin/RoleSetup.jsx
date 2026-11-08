@@ -250,7 +250,7 @@ export default function RoleSetup() {
     }
   }
 
-  function handleModuleSelectAll(moduleKey, checked) {
+  function handleModuleSelectAll(moduleKey, checked, targetKeys = null) {
     const newSelectedModules = new Set(selectedModules);
     const newSelectedFeatures = new Set(selectedFeatures);
     const newSelectedDashboards = new Set(selectedDashboards);
@@ -567,13 +567,27 @@ export default function RoleSetup() {
                   )
                 .map(([moduleKey, module]) => {
                   const isModuleSelected = selectedModules.has(moduleKey);
+
+                  const licensedTokens = Array.from(effectiveLic || []).filter((x) =>
+                    x.startsWith(`page:${moduleKey}:`)
+                  );
+                  const licensedKeys = new Set(
+                    licensedTokens.map((x) =>
+                      x.slice(`page:${moduleKey}:`.length).toLowerCase().trim()
+                    )
+                  );
+                  const rawFeatures = (module.features || []).filter((f) => !f.isExclusive);
+                  const filteredFeatures = licensedKeys.size > 0
+                    ? rawFeatures.filter((f) => licensedKeys.has(String(f.key || '').toLowerCase().trim()))
+                    : rawFeatures;
+
+                  const featureKeysForMod = filteredFeatures.map((f) => `${moduleKey}:${f.key}`);
                   const totalCount =
-                    (module.features?.length || 0) + (module.dashboards?.length || 0);
+                    filteredFeatures.length + (module.dashboards?.length || 0);
                   let selectedCount = 0;
 
-                  (module.features || []).forEach((f) => {
-                    if (selectedFeatures.has(`${moduleKey}:${f.key}`))
-                      selectedCount++;
+                  featureKeysForMod.forEach((k) => {
+                    if (selectedFeatures.has(k)) selectedCount++;
                   });
                   (module.dashboards || []).forEach((d) => {
                     if (selectedDashboards.has(`${moduleKey}:${d.key}`))
@@ -610,6 +624,7 @@ export default function RoleSetup() {
                                 handleModuleSelectAll(
                                   moduleKey,
                                   e.target.checked,
+                                  featureKeysForMod
                                 )
                               }
                             />
@@ -627,7 +642,7 @@ export default function RoleSetup() {
                           {(() => {
                             const allSections = getModuleSectionsAndPages(moduleKey);
                             const featureKeyMap = new Map(
-                              (module.features || []).map((f) => [
+                              filteredFeatures.map((f) => [
                                 String(f.key).toLowerCase().trim(),
                                 f,
                               ])
