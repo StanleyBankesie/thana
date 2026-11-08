@@ -28,7 +28,7 @@ import {
   ChevronRight,
   Activity,
   ArrowLeft,
-  ChevronDown
+  ChevronDown, Zap
 } from "lucide-react";
 
 function ExecNavDropdown({ label, items, navigate }) {
