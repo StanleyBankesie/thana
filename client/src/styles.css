@@ -241,7 +241,8 @@
   input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):not([type="reset"]):not([type="file"]):not([type="range"]):not([type="color"]),
   select,
   textarea {
-    @apply bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100;
+    background-color: #ffffff;
+    color: #0f172a;
   }
 
   input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):not([type="reset"]):not([type="file"]):not([type="range"]):not([type="color"]).bg-slate-50,
@@ -263,48 +264,6 @@
     background-color: #ffffff !important;
   }
 
-  /* Universal Dark Mode Input & Control Surfaces */
-  .dark input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):not([type="reset"]):not([type="file"]):not([type="range"]):not([type="color"]),
-  .dark select,
-  .dark textarea,
-  .dark .input {
-    background-color: #0f172a !important;
-    color: #f8fafc !important;
-    border-color: #334155 !important;
-  }
-
-  .dark input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):not([type="reset"]):not([type="file"]):not([type="range"]):not([type="color"]):focus,
-  .dark select:focus,
-  .dark textarea:focus,
-  .dark .input:focus {
-    border-color: #38bdf8 !important;
-  }
-
-  .dark input::placeholder,
-  .dark textarea::placeholder,
-  .dark .input::placeholder {
-    color: #94a3b8 !important;
-  }
-
-  /* Native select dropdown options in Dark Mode */
-  .dark select option {
-    background-color: #0f172a !important;
-    color: #f8fafc !important;
-  }
-
-  /* Disabled & Read-Only Inputs in Dark Mode */
-  .dark input:disabled,
-  .dark select:disabled,
-  .dark textarea:disabled,
-  .dark input[readonly],
-  .dark textarea[readonly],
-  .dark .input:disabled,
-  .dark .input[readonly] {
-    background-color: #1e293b !important;
-    color: #cbd5e1 !important;
-    border-color: #334155 !important;
-  }
-
   /* Login page input variant */
   .login-input {
     @apply w-full h-11 px-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none transition-all shadow-apple-xs;
@@ -318,110 +277,6 @@
 
   .label {
     @apply block text-xs font-semibold uppercase tracking-wider mb-1.5 text-slate-700 dark:text-slate-200;
-  }
-
-  /* ── Universal Form Cards & Page Surfaces in Dark Mode ── */
-  /* Fixes form cards becoming bright white when application is in dark mode */
-  .dark main div.bg-white:not([data-theme-keep="white"]):not(.keep-white):not([data-print]):not(.btn-primary):not(.btn-success):not(.btn-danger),
-  .dark main section.bg-white:not([data-theme-keep="white"]):not(.keep-white):not([data-print]):not(.btn-primary):not(.btn-success):not(.btn-danger),
-  .dark main article.bg-white:not([data-theme-keep="white"]):not(.keep-white):not([data-print]):not(.btn-primary):not(.btn-success):not(.btn-danger),
-  .dark form div.bg-white:not([data-theme-keep="white"]):not(.keep-white):not([data-print]):not(.btn-primary):not(.btn-success):not(.btn-danger),
-  .dark form section.bg-white:not([data-theme-keep="white"]):not(.keep-white):not([data-print]):not(.btn-primary):not(.btn-success):not(.btn-danger),
-  .dark [data-no-overview="true"],
-  .dark .form-card,
-  .dark [data-form-card] {
-    background-color: #0f172a !important;
-    border-color: #334155 !important;
-    color: #f1f5f9;
-  }
-
-  /* Secondary nested form bars, toolbars, and summary panels */
-  .dark main .bg-\[\#f8f9fa\],
-  .dark main .bg-\[\#f9fafb\],
-  .dark main .bg-slate-50,
-  .dark main .bg-gray-50,
-  .dark main .bg-gray-100,
-  .dark form .bg-\[\#f8f9fa\],
-  .dark form .bg-\[\#f9fafb\],
-  .dark form .bg-slate-50,
-  .dark form .bg-gray-50,
-  .dark form .bg-gray-100 {
-    background-color: #1e293b !important;
-    border-color: #334155 !important;
-    color: #f1f5f9;
-  }
-
-  /* Field Names / Labels in Dark Mode */
-  .dark label,
-  .dark .label,
-  .dark label span {
-    color: #e2e8f0 !important;
-  }
-  .dark label.text-slate-400,
-  .dark label.text-gray-400,
-  .dark label .text-slate-400,
-  .dark label .text-gray-400 {
-    color: #94a3b8 !important;
-  }
-
-  /* Floating Autocomplete & Search Popups in Dark Mode (Fixes Image 1) */
-  .dark div[style*="zIndex: 9999"],
-  .dark div[style*="z-index: 9999"],
-  .dark div[style*="z-index:9999"],
-  .dark [style*="position: fixed"][class*="bg-white"],
-  .dark [style*="position: absolute"][class*="bg-white"],
-  .dark .autocomplete-dropdown {
-    background-color: #0f172a !important;
-    border-color: #334155 !important;
-    color: #f8fafc !important;
-  }
-
-  .dark div[style*="zIndex: 9999"] button,
-  .dark div[style*="z-index: 9999"] button,
-  .dark div[style*="z-index:9999"] button,
-  .dark [style*="position: fixed"][class*="bg-white"] button,
-  .dark [style*="position: absolute"][class*="bg-white"] button,
-  .dark .autocomplete-dropdown button {
-    color: #f8fafc !important;
-    background-color: transparent !important;
-    border-color: #334155 !important;
-  }
-
-  .dark div[style*="zIndex: 9999"] button:hover,
-  .dark div[style*="z-index: 9999"] button:hover,
-  .dark div[style*="z-index:9999"] button:hover,
-  .dark [style*="position: fixed"][class*="bg-white"] button:hover,
-  .dark [style*="position: absolute"][class*="bg-white"] button:hover,
-  .dark .autocomplete-dropdown button:hover {
-    background-color: #1e293b !important;
-    color: #38bdf8 !important;
-  }
-
-  .dark div[style*="zIndex: 9999"] button *,
-  .dark div[style*="z-index: 9999"] button *,
-  .dark div[style*="z-index:9999"] button *,
-  .dark [style*="position: fixed"][class*="bg-white"] button *,
-  .dark [style*="position: absolute"][class*="bg-white"] button * {
-    color: inherit;
-  }
-
-  /* Form Section Headings & Legacy Banners in Dark Mode */
-  .dark .text-\[\#0E3646\],
-  .dark form h1,
-  .dark form h2,
-  .dark form h3,
-  .dark form h4 {
-    color: #38bdf8 !important;
-  }
-
-  .dark .border-\[\#0E3646\] {
-    border-color: #0284c7 !important;
-  }
-
-  .dark form p,
-  .dark form .text-slate-600,
-  .dark form .text-gray-600 {
-    color: #94a3b8 !important;
   }
 
   /* ── Focus ring for all interactive elements ────────── */
@@ -1681,4 +1536,392 @@ textarea:focus,
 }
 .dark .ant-modal .ant-modal-title {
   color: #ffffff !important;
+}
+
+
+/* ==========================================================================
+   UNIVERSAL APPLICATION-WIDE DARK MODE REINFORCEMENT SYSTEM
+   Guarantees that all pages, cards, forms, inputs, labels, tables, modals,
+   and floating dropdowns render seamlessly with perfect legibility in Dark Mode.
+   ========================================================================== */
+
+/* 1. Universal Container & Form Surfaces */
+html.dark .bg-white:not([data-theme-keep="white"]):not(.keep-white):not([data-print]):not(.btn):not(.btn-primary):not(.btn-success):not(.btn-danger):not(button):not(img):not(svg):not(canvas):not([role="img"]),
+.dark .bg-white:not([data-theme-keep="white"]):not(.keep-white):not([data-print]):not(.btn):not(.btn-primary):not(.btn-success):not(.btn-danger):not(button):not(img):not(svg):not(canvas):not([role="img"]),
+html.dark .card,
+.dark .card,
+html.dark .form-card,
+.dark .form-card,
+html.dark [data-form-card],
+.dark [data-form-card],
+html.dark [data-no-overview="true"],
+.dark [data-no-overview="true"] {
+  background-color: #0f172a !important;
+  border-color: #334155 !important;
+  color: #f1f5f9;
+}
+
+/* Secondary nested surfaces (summary bars, toolbars, item inputs, info rows) */
+html.dark .bg-\[\#f8f9fa\],
+.dark .bg-\[\#f8f9fa\],
+html.dark .bg-\[\#f9fafb\],
+.dark .bg-\[\#f9fafb\],
+html.dark .bg-slate-50,
+.dark .bg-slate-50,
+html.dark .bg-gray-50,
+.dark .bg-gray-50,
+html.dark .bg-gray-100,
+.dark .bg-gray-100,
+html.dark .bg-slate-100,
+.dark .bg-slate-100 {
+  background-color: #1e293b !important;
+  border-color: #334155 !important;
+  color: #f1f5f9;
+}
+
+/* 2. Universal Inputs, Selects, Textareas & Form Controls */
+html.dark input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):not([type="reset"]):not([type="file"]):not([type="range"]):not([type="color"]),
+.dark input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):not([type="reset"]):not([type="file"]):not([type="range"]):not([type="color"]),
+html.dark select,
+.dark select,
+html.dark textarea,
+.dark textarea,
+html.dark .input,
+.dark .input,
+html.dark .ant-input,
+.dark .ant-input,
+html.dark .ant-input-affix-wrapper,
+.dark .ant-input-affix-wrapper,
+html.dark .ant-select-selector,
+.dark .ant-select-selector,
+html.dark .ant-input-number,
+.dark .ant-input-number,
+html.dark .ant-picker,
+.dark .ant-picker,
+html.dark .login-input,
+.dark .login-input {
+  background-color: #0f172a !important;
+  color: #f8fafc !important;
+  border-color: #334155 !important;
+  box-shadow: 0 2px 6px -1px rgba(0, 0, 0, 0.45), 0 1px 4px -1px rgba(0, 0, 0, 0.3) !important;
+}
+
+/* Input Focus States */
+html.dark input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):not([type="reset"]):not([type="file"]):not([type="range"]):not([type="color"]):focus,
+.dark input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):not([type="reset"]):not([type="file"]):not([type="range"]):not([type="color"]):focus,
+html.dark select:focus,
+.dark select:focus,
+html.dark textarea:focus,
+.dark textarea:focus,
+html.dark .input:focus,
+.dark .input:focus,
+html.dark .ant-input:focus,
+.dark .ant-input:focus,
+html.dark .ant-input-focused,
+.dark .ant-input-focused,
+html.dark .ant-input-affix-wrapper:focus,
+.dark .ant-input-affix-wrapper:focus,
+html.dark .ant-input-affix-wrapper-focused,
+.dark .ant-input-affix-wrapper-focused,
+html.dark .ant-select-focused .ant-select-selector,
+.dark .ant-select-focused .ant-select-selector,
+html.dark .ant-input-number:focus,
+.dark .ant-input-number:focus,
+html.dark .ant-picker-focused,
+.dark .ant-picker-focused,
+html.dark .login-input:focus,
+.dark .login-input:focus {
+  border-color: #38bdf8 !important;
+  box-shadow: 0 4px 14px -2px rgba(0, 0, 0, 0.6), 0 0 0 3px rgba(56, 189, 248, 0.25) !important;
+}
+
+/* Input Placeholders */
+html.dark input::placeholder,
+.dark input::placeholder,
+html.dark textarea::placeholder,
+.dark textarea::placeholder,
+html.dark .input::placeholder,
+.dark .input::placeholder,
+html.dark .login-input::placeholder,
+.dark .login-input::placeholder {
+  color: #94a3b8 !important;
+  opacity: 1 !important;
+}
+
+/* Native Select Options */
+html.dark select option,
+.dark select option {
+  background-color: #0f172a !important;
+  color: #f8fafc !important;
+}
+
+/* Disabled and Read-Only Inputs */
+html.dark input:disabled,
+.dark input:disabled,
+html.dark select:disabled,
+.dark select:disabled,
+html.dark textarea:disabled,
+.dark textarea:disabled,
+html.dark input[readonly],
+.dark input[readonly],
+html.dark textarea[readonly],
+.dark textarea[readonly],
+html.dark .input:disabled,
+.dark .input:disabled,
+html.dark .input[readonly],
+.dark .input[readonly] {
+  background-color: #1e293b !important;
+  color: #cbd5e1 !important;
+  border-color: #334155 !important;
+}
+
+/* 3. Field Names, Form Labels & Typography Contrast */
+html.dark label,
+.dark label,
+html.dark .label,
+.dark .label,
+html.dark [class*="label"],
+.dark [class*="label"],
+html.dark label span,
+.dark label span {
+  color: #e2e8f0 !important;
+}
+
+/* Muted or uppercase tracking labels */
+html.dark label.text-slate-400,
+.dark label.text-slate-400,
+html.dark label.text-gray-400,
+.dark label.text-gray-400,
+html.dark label.text-slate-500,
+.dark label.text-slate-500,
+html.dark label.text-gray-500,
+.dark label.text-gray-500 {
+  color: #94a3b8 !important;
+}
+
+/* Section Headings inside forms and cards */
+html.dark form h1, .dark form h1,
+html.dark form h2, .dark form h2,
+html.dark form h3, .dark form h3,
+html.dark form h4, .dark form h4,
+html.dark .card h1, .dark .card h1,
+html.dark .card h2, .dark .card h2,
+html.dark .card h3, .dark .card h3,
+html.dark .card h4, .dark .card h4,
+html.dark .form-card h1, .dark .form-card h1,
+html.dark .form-card h2, .dark .form-card h2,
+html.dark .form-card h3, .dark .form-card h3,
+html.dark .form-card h4, .dark .form-card h4,
+html.dark .text-\[\#0E3646\], .dark .text-\[\#0E3646\] {
+  color: #38bdf8 !important;
+}
+
+/* Contrast inside cards, forms, and surfaces */
+html.dark form .text-slate-900, .dark form .text-slate-900,
+html.dark form .text-gray-900, .dark form .text-gray-900,
+html.dark form .text-slate-800, .dark form .text-slate-800,
+html.dark form .text-gray-800, .dark form .text-gray-800,
+html.dark form .text-slate-700, .dark form .text-slate-700,
+html.dark form .text-gray-700, .dark form .text-gray-700,
+html.dark .card .text-slate-900, .dark .card .text-slate-900,
+html.dark .card .text-gray-900, .dark .card .text-gray-900,
+html.dark .card .text-slate-800, .dark .card .text-slate-800,
+html.dark .card .text-gray-800, .dark .card .text-gray-800,
+html.dark .card .text-slate-700, .dark .card .text-slate-700,
+html.dark .card .text-gray-700, .dark .card .text-gray-700 {
+  color: #f1f5f9 !important;
+}
+
+html.dark form p, .dark form p,
+html.dark form .text-slate-600, .dark form .text-slate-600,
+html.dark form .text-gray-600, .dark form .text-gray-600,
+html.dark form .text-slate-500, .dark form .text-slate-500,
+html.dark form .text-gray-500, .dark form .text-gray-500,
+html.dark .card p, .dark .card p,
+html.dark .card .text-slate-600, .dark .card .text-slate-600,
+html.dark .card .text-gray-600, .dark .card .text-gray-600,
+html.dark .card .text-slate-500, .dark .card .text-slate-500,
+html.dark .card .text-gray-500, .dark .card .text-gray-500 {
+  color: #94a3b8 !important;
+}
+
+/* 4. Universal Floating Autocompletes, Search Dropdowns & Results Lists */
+html.dark [style*="position: fixed"],
+.dark [style*="position: fixed"],
+html.dark [style*="position: absolute"],
+.dark [style*="position: absolute"],
+html.dark .absolute[class*="shadow"],
+.dark .absolute[class*="shadow"],
+html.dark .absolute[class*="z-"],
+.dark .absolute[class*="z-"],
+html.dark .autocomplete-dropdown,
+.dark .autocomplete-dropdown,
+html.dark div[style*="zIndex: 9999"],
+.dark div[style*="zIndex: 9999"],
+html.dark div[style*="z-index: 9999"],
+.dark div[style*="z-index: 9999"],
+html.dark div[style*="z-index:9999"],
+.dark div[style*="z-index:9999"] {
+  background-color: #0f172a !important;
+  border-color: #334155 !important;
+  color: #f8fafc !important;
+}
+
+html.dark .absolute[class*="shadow"] button,
+.dark .absolute[class*="shadow"] button,
+html.dark .absolute[class*="z-"] button,
+.dark .absolute[class*="z-"] button,
+html.dark [style*="position: fixed"] button,
+.dark [style*="position: fixed"] button,
+html.dark [style*="position: absolute"] button,
+.dark [style*="position: absolute"] button,
+html.dark .autocomplete-dropdown button,
+.dark .autocomplete-dropdown button,
+html.dark div[style*="zIndex: 9999"] button,
+.dark div[style*="zIndex: 9999"] button,
+html.dark div[style*="z-index: 9999"] button,
+.dark div[style*="z-index: 9999"] button {
+  color: #f8fafc !important;
+  background-color: transparent !important;
+  border-color: #334155 !important;
+}
+
+html.dark .absolute[class*="shadow"] button:hover,
+.dark .absolute[class*="shadow"] button:hover,
+html.dark .absolute[class*="z-"] button:hover,
+.dark .absolute[class*="z-"] button:hover,
+html.dark [style*="position: fixed"] button:hover,
+.dark [style*="position: fixed"] button:hover,
+html.dark [style*="position: absolute"] button:hover,
+.dark [style*="position: absolute"] button:hover,
+html.dark .autocomplete-dropdown button:hover,
+.dark .autocomplete-dropdown button:hover,
+html.dark div[style*="zIndex: 9999"] button:hover,
+.dark div[style*="zIndex: 9999"] button:hover,
+html.dark div[style*="z-index: 9999"] button:hover,
+.dark div[style*="z-index: 9999"] button:hover {
+  background-color: #1e293b !important;
+  color: #38bdf8 !important;
+}
+
+html.dark .absolute[class*="shadow"] .text-slate-800,
+.dark .absolute[class*="shadow"] .text-slate-800,
+html.dark .absolute[class*="shadow"] .text-gray-800,
+.dark .absolute[class*="shadow"] .text-gray-800,
+html.dark .absolute[class*="shadow"] .text-slate-900,
+.dark .absolute[class*="shadow"] .text-slate-900,
+html.dark .absolute[class*="shadow"] .text-gray-900,
+.dark .absolute[class*="shadow"] .text-gray-900,
+html.dark .absolute[class*="z-"] .text-slate-800,
+.dark .absolute[class*="z-"] .text-slate-800,
+html.dark .absolute[class*="z-"] .text-gray-800,
+.dark .absolute[class*="z-"] .text-gray-800,
+html.dark [style*="position: fixed"] .text-slate-800,
+.dark [style*="position: fixed"] .text-slate-800,
+html.dark [style*="position: fixed"] .text-gray-800,
+.dark [style*="position: fixed"] .text-gray-800 {
+  color: #f8fafc !important;
+}
+
+html.dark .absolute[class*="shadow"] .text-slate-500,
+.dark .absolute[class*="shadow"] .text-slate-500,
+html.dark .absolute[class*="shadow"] .text-gray-500,
+.dark .absolute[class*="shadow"] .text-gray-500,
+html.dark .absolute[class*="shadow"] .text-slate-600,
+.dark .absolute[class*="shadow"] .text-slate-600,
+html.dark .absolute[class*="shadow"] .text-gray-600,
+.dark .absolute[class*="shadow"] .text-gray-600,
+html.dark .absolute[class*="z-"] .text-slate-500,
+.dark .absolute[class*="z-"] .text-slate-500,
+html.dark .absolute[class*="z-"] .text-gray-500,
+.dark .absolute[class*="z-"] .text-gray-500,
+html.dark [style*="position: fixed"] .text-slate-500,
+.dark [style*="position: fixed"] .text-slate-500,
+html.dark [style*="position: fixed"] .text-gray-500,
+.dark [style*="position: fixed"] .text-gray-500 {
+  color: #94a3b8 !important;
+}
+
+/* 5. Tables inside form pages & modules */
+html.dark table thead th,
+.dark table thead th,
+html.dark .table thead th,
+.dark .table thead th {
+  background-color: #1e293b !important;
+  color: #cbd5e1 !important;
+  border-color: #334155 !important;
+}
+
+html.dark table tbody tr,
+.dark table tbody tr,
+html.dark .table tbody tr,
+.dark .table tbody tr {
+  border-color: #334155 !important;
+}
+
+html.dark table tbody td,
+.dark table tbody td,
+html.dark .table tbody td,
+.dark .table tbody td {
+  color: #f1f5f9 !important;
+  border-color: #334155 !important;
+}
+
+html.dark table tbody tr:hover,
+.dark table tbody tr:hover,
+html.dark .table tbody tr:hover,
+.dark .table tbody tr:hover {
+  background-color: rgba(30, 41, 59, 0.6) !important;
+}
+
+/* 6. Universal Borders & Dividers */
+html.dark .border-gray-300, .dark .border-gray-300,
+html.dark .border-gray-200, .dark .border-gray-200,
+html.dark .border-gray-100, .dark .border-gray-100,
+html.dark .border-slate-300, .dark .border-slate-300,
+html.dark .border-slate-200, .dark .border-slate-200,
+html.dark .border-slate-100, .dark .border-slate-100,
+html.dark .border-\[\#dee2e6\], .dark .border-\[\#dee2e6\],
+html.dark .border-\[\#e2e8f0\], .dark .border-\[\#e2e8f0\],
+html.dark .border-\[\#e5e7eb\], .dark .border-\[\#e5e7eb\],
+html.dark .border-\[\#cbd5e1\], .dark .border-\[\#cbd5e1\] {
+  border-color: #334155 !important;
+}
+
+html.dark .divide-gray-200 > :not([hidden]) ~ :not([hidden]),
+.dark .divide-gray-200 > :not([hidden]) ~ :not([hidden]),
+html.dark .divide-slate-200 > :not([hidden]) ~ :not([hidden]),
+.dark .divide-slate-200 > :not([hidden]) ~ :not([hidden]),
+html.dark hr,
+.dark hr {
+  border-color: #334155 !important;
+}
+
+/* 7. Datepicker & Datetime Picker Indicators */
+html.dark input[type="date"]::-webkit-calendar-picker-indicator,
+.dark input[type="date"]::-webkit-calendar-picker-indicator,
+html.dark input[type="datetime-local"]::-webkit-calendar-picker-indicator,
+.dark input[type="datetime-local"]::-webkit-calendar-picker-indicator,
+html.dark input[type="time"]::-webkit-calendar-picker-indicator,
+.dark input[type="time"]::-webkit-calendar-picker-indicator {
+  filter: invert(1) brightness(1.2) !important;
+  cursor: pointer;
+}
+
+/* 8. Webkit Autofill Override (Windows / OS Dark Mode) */
+html.dark input:-webkit-autofill,
+html.dark input:-webkit-autofill:hover,
+html.dark input:-webkit-autofill:focus,
+html.dark textarea:-webkit-autofill,
+html.dark select:-webkit-autofill,
+.dark input:-webkit-autofill,
+.dark input:-webkit-autofill:hover,
+.dark input:-webkit-autofill:focus,
+.dark textarea:-webkit-autofill,
+.dark select:-webkit-autofill {
+  -webkit-text-fill-color: #f8fafc !important;
+  -webkit-box-shadow: 0 0 0px 1000px #0f172a inset !important;
+  box-shadow: 0 0 0px 1000px #0f172a inset !important;
+  caret-color: #f8fafc !important;
+  transition: background-color 5000s ease-in-out 0s;
 }

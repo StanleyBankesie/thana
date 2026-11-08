@@ -522,11 +522,11 @@ export default function LoginPage() {
               <div className="bg-white/95 dark:bg-slate-800/90 backdrop-blur-md px-4 sm:px-5 py-1.5 sm:py-2 rounded-full shadow-sm flex items-center gap-2.5 border border-slate-200 dark:border-slate-700">
                 <img
                   src="/OMNISUITE_ICON_CLEAR.png"
-                  alt="Omnisuite ERP"
+                  alt="Omnisuite POS"
                   className="h-6 sm:h-7 w-auto object-contain"
                 />
                 <span className="font-extrabold text-slate-900 dark:text-white text-base sm:text-lg tracking-tight">
-                  Omnisuite ERP
+                  Omnisuite POS
                 </span>
               </div>
             </div>

@@ -1858,7 +1858,7 @@ export default function InvoiceForm() {
                               {c.customer_name}
                             </div>
                             {c.customer_code && (
-                              <div className="text-xs text-slate-500">
+                              <div className="text-xs text-slate-500 dark:text-slate-400">
                                 {c.customer_code}
                               </div>
                             )}
