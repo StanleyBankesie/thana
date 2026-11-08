@@ -502,7 +502,7 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen w-full flex items-center justify-center bg-slate-100 dark:bg-slate-950 p-2 sm:p-3 md:p-4 overflow-y-auto">
-      <div className="w-full max-w-md sm:max-w-lg md:max-w-3xl lg:max-w-4xl bg-white dark:bg-slate-900 rounded-2xl sm:rounded-3xl shadow-2xl overflow-hidden flex flex-col md:flex-row max-h-[calc(100vh-1rem)] sm:max-h-[calc(100vh-1.5rem)] my-auto transition-all">
+      <div className="w-full max-w-md sm:max-w-lg md:max-w-3xl lg:max-w-4xl bg-white dark:bg-slate-900 rounded-2xl sm:rounded-3xl shadow-2xl overflow-hidden flex flex-col md:flex-row max-h-[calc(100vh-1rem)] sm:max-h-[calc(100vh-1.5rem)] my-auto transition-all border border-slate-200 dark:border-slate-800">
         {/* Left Side: Form */}
         <div
           className="w-full md:w-1/2 p-4 sm:p-5 md:p-6 flex flex-col justify-between relative bg-white dark:bg-slate-900 overflow-y-auto [scrollbar-width:thin]"
@@ -519,29 +519,29 @@ export default function LoginPage() {
           <div className="max-w-md w-full mx-auto relative z-10 my-auto flex flex-col justify-between py-1">
             {/* Logo on top for all devices */}
             <div className="flex justify-center mb-2.5 sm:mb-3.5">
-              <div className="bg-white/95 backdrop-blur-md px-4 sm:px-5 py-1.5 sm:py-2 rounded-full shadow-sm flex items-center gap-2.5 border border-slate-200">
+              <div className="bg-white/95 dark:bg-slate-800/90 backdrop-blur-md px-4 sm:px-5 py-1.5 sm:py-2 rounded-full shadow-sm flex items-center gap-2.5 border border-slate-200 dark:border-slate-700">
                 <img
                   src="/OMNISUITE_ICON_CLEAR.png"
                   alt="Omnisuite ERP"
                   className="h-6 sm:h-7 w-auto object-contain"
                 />
-                <span className="font-extrabold text-slate-900 text-base sm:text-lg tracking-tight">
+                <span className="font-extrabold text-slate-900 dark:text-white text-base sm:text-lg tracking-tight">
                   Omnisuite ERP
                 </span>
               </div>
             </div>
 
             <div className="text-center mb-2.5 sm:mb-3.5">
-              <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight mb-1">
+              <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight mb-1">
                 {savedProfiles.length > 0 ? "Welcome Back" : "Welcome"}
               </h1>
-              <p className="text-xs sm:text-sm text-slate-700 font-medium">
+              <p className="text-xs sm:text-sm text-slate-700 dark:text-slate-300 font-medium">
                 Sign in to continue your enterprise journey.
               </p>
             </div>
 
             {error ? (
-              <div className="mb-3 rounded-lg border border-status-error/30 bg-red-50 px-3.5 py-2 text-status-error text-xs sm:text-sm">
+              <div className="mb-3 rounded-lg border border-status-error/30 bg-red-50 dark:bg-red-950/40 px-3.5 py-2 text-status-error dark:text-red-300 text-xs sm:text-sm">
                 {error}
               </div>
             ) : null}
@@ -554,7 +554,7 @@ export default function LoginPage() {
             >
               <div className="relative w-full">
                 <label
-                  className="block text-xs sm:text-sm font-bold text-slate-900 mb-1 tracking-wide"
+                  className="block text-xs sm:text-sm font-bold text-slate-900 dark:text-slate-200 mb-1 tracking-wide"
                   htmlFor="username"
                 >
                   Username
@@ -563,7 +563,7 @@ export default function LoginPage() {
                   id="username"
                   name="username"
                   type="text"
-                  className="w-full px-4 py-2.5 sm:py-3 rounded-xl border border-slate-300 text-sm sm:text-base font-semibold text-slate-900 bg-white shadow-xs focus:border-amber-500 focus:ring-3 focus:ring-amber-400/20 outline-none transition-all"
+                  className="w-full px-4 py-2.5 sm:py-3 rounded-xl border border-slate-300 dark:border-slate-700 text-sm sm:text-base font-semibold text-slate-900 dark:text-white bg-white dark:bg-slate-800/90 shadow-xs focus:border-amber-500 focus:ring-3 focus:ring-amber-400/20 outline-none transition-all placeholder:text-slate-400 dark:placeholder:text-slate-500"
                   ref={usernameRef}
                   autoComplete="username"
                   required
@@ -592,7 +592,7 @@ export default function LoginPage() {
                 {shouldShowSuggestion && (
                   <div
                     ref={suggestionRef}
-                    className="absolute left-0 right-0 top-full mt-1 bg-white border border-slate-200 rounded-xl shadow-lg z-50 max-h-56 overflow-y-auto overflow-x-hidden"
+                    className="absolute left-0 right-0 top-full mt-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-lg z-50 max-h-56 overflow-y-auto overflow-x-hidden"
                   >
                     {filteredProfiles.map((profile) => (
                       <button
@@ -608,7 +608,7 @@ export default function LoginPage() {
                           e.stopPropagation();
                           handleSelectSuggestion(profile);
                         }}
-                        className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-slate-50 transition-colors border-b border-slate-100 last:border-0 text-left"
+                        className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-700/60 transition-colors border-b border-slate-100 dark:border-slate-700/50 last:border-0 text-left"
                       >
                         {profile.profilePictureUrl ? (
                           <img
@@ -631,10 +631,10 @@ export default function LoginPage() {
                           </div>
                         )}
                         <div className="min-w-0">
-                          <div className="font-semibold text-xs sm:text-sm text-slate-800 leading-tight truncate">
+                          <div className="font-semibold text-xs sm:text-sm text-slate-800 dark:text-slate-100 leading-tight truncate">
                             {profile.username}
                           </div>
-                          <div className="text-[11px] text-slate-400 leading-tight">
+                          <div className="text-[11px] text-slate-400 dark:text-slate-500 leading-tight">
                             ••••••••
                           </div>
                         </div>
@@ -646,7 +646,7 @@ export default function LoginPage() {
 
               <div className="w-full">
                 <label
-                  className="block text-xs sm:text-sm font-bold text-slate-900 mb-1 tracking-wide"
+                  className="block text-xs sm:text-sm font-bold text-slate-900 dark:text-slate-200 mb-1 tracking-wide"
                   htmlFor="password"
                 >
                   Password
@@ -656,7 +656,7 @@ export default function LoginPage() {
                     id="password"
                     name="password"
                     type={showPassword ? "text" : "password"}
-                    className="w-full px-4 py-2.5 sm:py-3 rounded-xl border border-slate-300 text-sm sm:text-base font-semibold text-slate-900 bg-white shadow-xs focus:border-amber-500 focus:ring-3 focus:ring-amber-400/20 outline-none transition-all pr-12"
+                    className="w-full px-4 py-2.5 sm:py-3 rounded-xl border border-slate-300 dark:border-slate-700 text-sm sm:text-base font-semibold text-slate-900 dark:text-white bg-white dark:bg-slate-800/90 shadow-xs focus:border-amber-500 focus:ring-3 focus:ring-amber-400/20 outline-none transition-all pr-12 placeholder:text-slate-400 dark:placeholder:text-slate-500"
                     ref={passwordRef}
                     autoComplete="current-password"
                     required
@@ -664,7 +664,7 @@ export default function LoginPage() {
                   />
                   <button
                     type="button"
-                    className="absolute inset-y-0 right-3 flex items-center text-slate-400 hover:text-slate-600 transition-colors cursor-pointer"
+                    className="absolute inset-y-0 right-3 flex items-center text-slate-400 dark:text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors cursor-pointer"
                     onClick={() => setShowPassword((v) => !v)}
                   >
                     {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
@@ -672,7 +672,7 @@ export default function LoginPage() {
                 </div>
               </div>
 
-              <label className="inline-flex items-center gap-2 text-xs sm:text-sm font-normal text-slate-700 cursor-pointer pt-0.5">
+              <label className="inline-flex items-center gap-2 text-xs sm:text-sm font-normal text-slate-700 dark:text-slate-300 cursor-pointer pt-0.5">
                 <input
                   type="checkbox"
                   className="rounded border-slate-300 text-amber-500 focus:ring-amber-500 w-4 h-4 cursor-pointer"
@@ -704,14 +704,14 @@ export default function LoginPage() {
               </div>
             </form>
 
-            <div className="mt-3 sm:mt-4 pt-2.5 border-t border-amber-200/60 flex flex-col items-center gap-1 text-xs font-medium text-slate-600">
+            <div className="mt-3 sm:mt-4 pt-2.5 border-t border-amber-200/60 dark:border-slate-800 flex flex-col items-center gap-1 text-xs font-medium text-slate-600 dark:text-slate-400">
               <div>
                 Powered by{" "}
                 <a
                   href="https://www.stannesstechnologies.com"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="hover:text-slate-800 transition-colors font-medium"
+                  className="hover:text-slate-800 dark:hover:text-slate-200 transition-colors font-medium"
                 >
                   Stanness Technologies
                 </a>
@@ -719,7 +719,7 @@ export default function LoginPage() {
               <div className="flex gap-4">
                 <Link
                   to="/privacy-policy"
-                  className="hover:text-slate-800 transition-colors text-[11px]"
+                  className="hover:text-slate-800 dark:hover:text-slate-200 transition-colors text-[11px]"
                 >
                   Privacy Policy
                 </Link>
@@ -795,13 +795,13 @@ export default function LoginPage() {
 
             {/* Upcoming Events Widget */}
             <div className="backdrop-blur-md bg-white/95 dark:bg-slate-900/95 border border-white/40 dark:border-slate-800 p-2.5 sm:p-3 rounded-xl shadow-lg flex flex-col gap-1.5 w-full max-h-[110px] sm:max-h-[130px] overflow-y-auto">
-              <h3 className="font-bold text-slate-900 text-xs sm:text-sm border-b border-slate-200 pb-1 flex items-center justify-between">
+              <h3 className="font-bold text-slate-900 dark:text-slate-100 text-xs sm:text-sm border-b border-slate-200 dark:border-slate-800 pb-1 flex items-center justify-between">
                 <span>Upcoming Events</span>
               </h3>
 
               {upcomingEvents.announcements && upcomingEvents.announcements.length > 0 && (
-                <div className="flex items-start gap-2 bg-blue-50/70 p-2 rounded-lg">
-                  <div className="bg-blue-100 text-blue-600 p-1.5 rounded-md shrink-0">
+                <div className="flex items-start gap-2 bg-blue-50/70 dark:bg-blue-950/40 p-2 rounded-lg border border-blue-100/50 dark:border-blue-900/40">
+                  <div className="bg-blue-100 dark:bg-blue-900/60 text-blue-600 dark:text-blue-300 p-1.5 rounded-md shrink-0">
                     <Megaphone size={16} />
                   </div>
                   <div className="relative flex-1 overflow-hidden min-h-[32px]">
@@ -814,7 +814,7 @@ export default function LoginPage() {
                           opacity: idx === announcementIndex ? 1 : 0,
                         }}
                       >
-                        <p className="text-slate-900 text-xs sm:text-sm font-normal leading-snug w-full truncate">
+                        <p className="text-slate-900 dark:text-slate-100 text-xs sm:text-sm font-normal leading-snug w-full truncate">
                           {ann}
                         </p>
                       </div>
@@ -825,14 +825,14 @@ export default function LoginPage() {
 
               {upcomingEvents.birthdays?.map((bd, idx) => (
                 <div key={`bd-${idx}`} className="flex items-center gap-2">
-                  <div className="bg-pink-100 text-pink-600 p-1.5 rounded-md shrink-0">
+                  <div className="bg-pink-100 dark:bg-pink-900/60 text-pink-600 dark:text-pink-300 p-1.5 rounded-md shrink-0">
                     <Gift size={15} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <h4 className="font-normal text-slate-700 text-xs truncate">
+                    <h4 className="font-normal text-slate-700 dark:text-slate-200 text-xs truncate">
                       {bd.full_name}'s Birthday
                     </h4>
-                    <p className="text-slate-500 text-[10px]">
+                    <p className="text-slate-500 dark:text-slate-400 text-[10px]">
                       {bd.celebration_date}
                     </p>
                   </div>
@@ -841,14 +841,14 @@ export default function LoginPage() {
 
               {upcomingEvents.anniversaries?.map((an, idx) => (
                 <div key={`an-${idx}`} className="flex items-center gap-2">
-                  <div className="bg-amber-100 text-amber-600 p-1.5 rounded-md shrink-0">
+                  <div className="bg-amber-100 dark:bg-amber-900/60 text-amber-600 dark:text-amber-300 p-1.5 rounded-md shrink-0">
                     <Award size={15} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <h4 className="font-normal text-slate-700 text-xs truncate">
+                    <h4 className="font-normal text-slate-700 dark:text-slate-200 text-xs truncate">
                       {an.full_name}'s Work Anniversary
                     </h4>
-                    <p className="text-slate-500 text-[10px]">
+                    <p className="text-slate-500 dark:text-slate-400 text-[10px]">
                       {an.celebration_date}
                     </p>
                   </div>

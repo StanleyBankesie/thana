@@ -237,11 +237,11 @@
   }
 
   /* ── Form Inputs Global Clean Surface (Apple Clean Controls) ── */
-  /* Remove any grey / slate background fill from all inputs, selects, and textareas across all form pages */
+  /* Remove any grey / slate background fill from all inputs, selects, and textareas across all form pages in light mode */
   input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):not([type="reset"]):not([type="file"]):not([type="range"]):not([type="color"]),
   select,
   textarea {
-    @apply bg-white dark:bg-slate-900;
+    @apply bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100;
   }
 
   input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):not([type="reset"]):not([type="file"]):not([type="range"]):not([type="color"]).bg-slate-50,
@@ -263,27 +263,54 @@
     background-color: #ffffff !important;
   }
 
-  .dark input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):not([type="reset"]):not([type="file"]):not([type="range"]):not([type="color"]).bg-slate-50,
-  .dark input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):not([type="reset"]):not([type="file"]):not([type="range"]):not([type="color"]).bg-slate-100,
-  .dark input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):not([type="reset"]):not([type="file"]):not([type="range"]):not([type="color"]).bg-slate-800,
-  .dark select.bg-slate-50,
-  .dark select.bg-slate-100,
-  .dark select.bg-slate-800,
-  .dark textarea.bg-slate-50,
-  .dark textarea.bg-slate-100,
-  .dark textarea.bg-slate-800,
-  .dark .input.bg-slate-50,
-  .dark .input.bg-slate-100,
-  .dark .input.bg-slate-800 {
+  /* Universal Dark Mode Input & Control Surfaces */
+  .dark input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):not([type="reset"]):not([type="file"]):not([type="range"]):not([type="color"]),
+  .dark select,
+  .dark textarea,
+  .dark .input {
     background-color: #0f172a !important;
+    color: #f8fafc !important;
+    border-color: #334155 !important;
+  }
+
+  .dark input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):not([type="reset"]):not([type="file"]):not([type="range"]):not([type="color"]):focus,
+  .dark select:focus,
+  .dark textarea:focus,
+  .dark .input:focus {
+    border-color: #38bdf8 !important;
+  }
+
+  .dark input::placeholder,
+  .dark textarea::placeholder,
+  .dark .input::placeholder {
+    color: #94a3b8 !important;
+  }
+
+  /* Native select dropdown options in Dark Mode */
+  .dark select option {
+    background-color: #0f172a !important;
+    color: #f8fafc !important;
+  }
+
+  /* Disabled & Read-Only Inputs in Dark Mode */
+  .dark input:disabled,
+  .dark select:disabled,
+  .dark textarea:disabled,
+  .dark input[readonly],
+  .dark textarea[readonly],
+  .dark .input:disabled,
+  .dark .input[readonly] {
+    background-color: #1e293b !important;
+    color: #cbd5e1 !important;
+    border-color: #334155 !important;
   }
 
   /* Login page input variant */
   .login-input {
-    @apply w-full h-11 px-4 rounded-xl border border-slate-200 bg-white text-slate-900 outline-none transition-all shadow-apple-xs;
+    @apply w-full h-11 px-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none transition-all shadow-apple-xs;
   }
   .login-input::placeholder {
-    @apply text-slate-500;
+    @apply text-slate-500 dark:text-slate-400;
   }
   .login-input:focus {
     @apply border-brand-500 ring-4 ring-brand-500/15;
@@ -291,6 +318,110 @@
 
   .label {
     @apply block text-xs font-semibold uppercase tracking-wider mb-1.5 text-slate-700 dark:text-slate-200;
+  }
+
+  /* ── Universal Form Cards & Page Surfaces in Dark Mode ── */
+  /* Fixes form cards becoming bright white when application is in dark mode */
+  .dark main div.bg-white:not([data-theme-keep="white"]):not(.keep-white):not([data-print]):not(.btn-primary):not(.btn-success):not(.btn-danger),
+  .dark main section.bg-white:not([data-theme-keep="white"]):not(.keep-white):not([data-print]):not(.btn-primary):not(.btn-success):not(.btn-danger),
+  .dark main article.bg-white:not([data-theme-keep="white"]):not(.keep-white):not([data-print]):not(.btn-primary):not(.btn-success):not(.btn-danger),
+  .dark form div.bg-white:not([data-theme-keep="white"]):not(.keep-white):not([data-print]):not(.btn-primary):not(.btn-success):not(.btn-danger),
+  .dark form section.bg-white:not([data-theme-keep="white"]):not(.keep-white):not([data-print]):not(.btn-primary):not(.btn-success):not(.btn-danger),
+  .dark [data-no-overview="true"],
+  .dark .form-card,
+  .dark [data-form-card] {
+    background-color: #0f172a !important;
+    border-color: #334155 !important;
+    color: #f1f5f9;
+  }
+
+  /* Secondary nested form bars, toolbars, and summary panels */
+  .dark main .bg-\[\#f8f9fa\],
+  .dark main .bg-\[\#f9fafb\],
+  .dark main .bg-slate-50,
+  .dark main .bg-gray-50,
+  .dark main .bg-gray-100,
+  .dark form .bg-\[\#f8f9fa\],
+  .dark form .bg-\[\#f9fafb\],
+  .dark form .bg-slate-50,
+  .dark form .bg-gray-50,
+  .dark form .bg-gray-100 {
+    background-color: #1e293b !important;
+    border-color: #334155 !important;
+    color: #f1f5f9;
+  }
+
+  /* Field Names / Labels in Dark Mode */
+  .dark label,
+  .dark .label,
+  .dark label span {
+    color: #e2e8f0 !important;
+  }
+  .dark label.text-slate-400,
+  .dark label.text-gray-400,
+  .dark label .text-slate-400,
+  .dark label .text-gray-400 {
+    color: #94a3b8 !important;
+  }
+
+  /* Floating Autocomplete & Search Popups in Dark Mode (Fixes Image 1) */
+  .dark div[style*="zIndex: 9999"],
+  .dark div[style*="z-index: 9999"],
+  .dark div[style*="z-index:9999"],
+  .dark [style*="position: fixed"][class*="bg-white"],
+  .dark [style*="position: absolute"][class*="bg-white"],
+  .dark .autocomplete-dropdown {
+    background-color: #0f172a !important;
+    border-color: #334155 !important;
+    color: #f8fafc !important;
+  }
+
+  .dark div[style*="zIndex: 9999"] button,
+  .dark div[style*="z-index: 9999"] button,
+  .dark div[style*="z-index:9999"] button,
+  .dark [style*="position: fixed"][class*="bg-white"] button,
+  .dark [style*="position: absolute"][class*="bg-white"] button,
+  .dark .autocomplete-dropdown button {
+    color: #f8fafc !important;
+    background-color: transparent !important;
+    border-color: #334155 !important;
+  }
+
+  .dark div[style*="zIndex: 9999"] button:hover,
+  .dark div[style*="z-index: 9999"] button:hover,
+  .dark div[style*="z-index:9999"] button:hover,
+  .dark [style*="position: fixed"][class*="bg-white"] button:hover,
+  .dark [style*="position: absolute"][class*="bg-white"] button:hover,
+  .dark .autocomplete-dropdown button:hover {
+    background-color: #1e293b !important;
+    color: #38bdf8 !important;
+  }
+
+  .dark div[style*="zIndex: 9999"] button *,
+  .dark div[style*="z-index: 9999"] button *,
+  .dark div[style*="z-index:9999"] button *,
+  .dark [style*="position: fixed"][class*="bg-white"] button *,
+  .dark [style*="position: absolute"][class*="bg-white"] button * {
+    color: inherit;
+  }
+
+  /* Form Section Headings & Legacy Banners in Dark Mode */
+  .dark .text-\[\#0E3646\],
+  .dark form h1,
+  .dark form h2,
+  .dark form h3,
+  .dark form h4 {
+    color: #38bdf8 !important;
+  }
+
+  .dark .border-\[\#0E3646\] {
+    border-color: #0284c7 !important;
+  }
+
+  .dark form p,
+  .dark form .text-slate-600,
+  .dark form .text-gray-600 {
+    color: #94a3b8 !important;
   }
 
   /* ── Focus ring for all interactive elements ────────── */
@@ -561,6 +692,18 @@
   .disabled-light-blue .input {
     background-color: #e3f2fd !important;
     cursor: not-allowed !important;
+  }
+
+  .dark .disabled-light-blue input,
+  .dark .disabled-light-blue select,
+  .dark .disabled-light-blue textarea,
+  .dark .disabled-light-blue .input,
+  .dark .view-mode input,
+  .dark .view-mode select,
+  .dark .view-mode textarea {
+    background-color: #1e293b !important;
+    color: #94a3b8 !important;
+    border-color: #334155 !important;
   }
 
   /* Global discount guard (fallback) */

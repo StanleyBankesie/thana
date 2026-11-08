@@ -1505,7 +1505,7 @@ export default function PurchaseOrdersLocalForm() {
           </table>
         </div>
       </div>
-      <div className="w-full bg-white rounded-xl shadow-[0_4px_20px_rgba(14,54,70,0.15)] overflow-hidden">
+      <div className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-[0_4px_20px_rgba(14,54,70,0.15)] overflow-hidden">
         {/* Header */}
         <div className="bg-[#0E3646] text-white p-8">
           <h1 className="text-3xl font-bold mb-2">📝 Purchase Order</h1>
@@ -1513,7 +1513,7 @@ export default function PurchaseOrdersLocalForm() {
         </div>
 
         {/* Toolbar */}
-        <div className="flex flex-wrap justify-between items-center p-5 bg-[#f8f9fa] border-b border-[#dee2e6] gap-4">
+        <div className="flex flex-wrap justify-between items-center p-5 bg-[#f8f9fa] dark:bg-slate-800/60 border-b border-[#dee2e6] dark:border-slate-800 gap-4">
           <div className="flex bg-[#f8f9fa] p-1 rounded-md border border-[#dee2e6]">
             <button
               type="button"
@@ -1547,7 +1547,7 @@ export default function PurchaseOrdersLocalForm() {
           <form onSubmit={handleSubmit}>
             {/* PO Info Section */}
             <div className="mb-8">
-              <div className="text-lg font-semibold text-[#0E3646] mb-5 pb-2 border-b-2 border-[#0E3646]">
+              <div className="text-lg font-semibold text-[#0E3646] dark:text-sky-400 mb-5 pb-2 border-b-2 border-[#0E3646] dark:border-sky-500/40">
                 📋 Purchase Order Information
               </div>
 
@@ -1803,7 +1803,7 @@ export default function PurchaseOrdersLocalForm() {
 
             {/* Items Section */}
             <div className="mb-8">
-              <div className="bg-[#f8f9fa] p-5 rounded-lg border border-[#dee2e6]">
+              <div className="bg-[#f8f9fa] dark:bg-slate-800/60 p-5 rounded-lg border border-[#dee2e6] dark:border-slate-700">
                 <div className="flex justify-between items-center mb-4">
                   <div className="text-lg font-semibold text-[#0E3646]">
                     📦 Order Items
@@ -1834,7 +1834,7 @@ export default function PurchaseOrdersLocalForm() {
                     use the “number of UOM” button beside the UOM to convert
                     quantity to the item’s default for accurate costing.
                   </div>
-                  <table className="w-full border-collapse bg-white rounded-lg overflow-hidden">
+                  <table className="w-full border-collapse bg-white dark:bg-slate-900 rounded-lg overflow-hidden border border-slate-200 dark:border-slate-800">
                     <thead className="bg-[#0E3646] text-white">
                       <tr>
                         <th className="p-3 text-left text-[13px] w-[50px]">
@@ -1960,7 +1960,7 @@ export default function PurchaseOrdersLocalForm() {
                                             : { bottom: 0, left: 0, width: 0 };
                                           return (
                                             <div
-                                              className="bg-white border border-[#dee2e6] rounded-lg shadow-lg max-h-48 overflow-auto"
+                                              className="bg-white dark:bg-slate-900 border border-[#dee2e6] dark:border-slate-700 rounded-lg shadow-lg max-h-48 overflow-auto"
                                               style={{
                                                 position: "fixed",
                                                 top: `${r.bottom + 4}px`,
@@ -1973,7 +1973,7 @@ export default function PurchaseOrdersLocalForm() {
                                                 <button
                                                   type="button"
                                                   key={o.id}
-                                                  className="block w-full text-left px-3 py-2 hover:bg-slate-50 text-xs"
+                                                  className="block w-full text-left px-3 py-2 hover:bg-slate-50 dark:hover:bg-slate-800 text-xs text-slate-900 dark:text-slate-100"
                                                   onClick={() => {
                                                     handleItemChange(
                                                       idx,
@@ -2305,7 +2305,7 @@ export default function PurchaseOrdersLocalForm() {
 
             {/* Terms & Conditions */}
             <div className="mb-8">
-              <div className="text-lg font-semibold text-[#0E3646] mb-5 pb-2 border-b-2 border-[#0E3646]">
+              <div className="text-lg font-semibold text-[#0E3646] dark:text-sky-400 mb-5 pb-2 border-b-2 border-[#0E3646] dark:border-sky-500/40">
                 📜 Terms & Conditions
               </div>
               <div className="flex flex-col">

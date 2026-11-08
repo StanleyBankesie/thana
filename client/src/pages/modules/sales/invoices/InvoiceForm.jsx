@@ -2183,7 +2183,7 @@ export default function InvoiceForm() {
                                 : { bottom: 0, left: 0, width: 0 };
                               return (
                                 <div
-                                  className="bg-white border border-gray-300 rounded-lg shadow-lg max-h-48 overflow-auto"
+                                  className="bg-white dark:bg-slate-900 border border-gray-300 dark:border-slate-700 rounded-lg shadow-lg max-h-48 overflow-auto"
                                   style={{
                                     position: "fixed",
                                     top: `${r.bottom + 4}px`,
@@ -2196,7 +2196,7 @@ export default function InvoiceForm() {
                                     <button
                                       type="button"
                                       key={o.id}
-                                      className="block w-full text-left px-3 py-2 hover:bg-gray-50 text-xs"
+                                      className="block w-full text-left px-3 py-2 hover:bg-gray-50 dark:hover:bg-slate-800 text-xs text-slate-900 dark:text-slate-100"
                                       onClick={() => {
                                         handleNewItemChange({
                                           target: {

@@ -1172,7 +1172,7 @@ export default function QuotationForm() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto bg-white rounded-xl shadow-lg overflow-hidden my-6 print:shadow-none print:my-0 print:w-full print:max-w-none">
+    <div className="max-w-7xl mx-auto bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-lg overflow-hidden my-6 print:shadow-none print:my-0 print:w-full print:max-w-none">
       <style>{`
         @media print {
           @page { margin: 1cm; }
@@ -1681,14 +1681,14 @@ export default function QuotationForm() {
                           const r = el ? el.getBoundingClientRect() : { bottom: 0, left: 0, width: 0 };
                           return (
                             <div
-                              className="bg-white border border-gray-300 rounded-lg shadow-lg max-h-48 overflow-auto"
+                              className="bg-white dark:bg-slate-900 border border-gray-300 dark:border-slate-700 rounded-lg shadow-lg max-h-48 overflow-auto"
                               style={{ position: 'fixed', top: `${r.bottom + 4}px`, left: `${r.left}px`, width: `${r.width}px`, zIndex: 9999 }}
                             >
                               {results.map((o) => (
                                 <button
                                   type="button"
                                   key={o.id}
-                                  className="block w-full text-left px-3 py-2 hover:bg-gray-50 text-xs"
+                                  className="block w-full text-left px-3 py-2 hover:bg-gray-50 dark:hover:bg-slate-800 text-xs text-slate-900 dark:text-slate-100"
                                   onClick={() => {
                                     handleNewItemChange({ target: { name: "item_id", value: o.id } });
                                     setItemQuery(o.item_name);

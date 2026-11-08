@@ -912,7 +912,7 @@ export default function DirectPurchase() {
 
   return (
     <div className="p-6" data-no-overview="true">
-      <div className="rounded-lg border border-[#dee2e6] bg-white shadow-erp" data-no-overview="true">
+      <div className="rounded-lg border border-[#dee2e6] dark:border-slate-800 bg-white dark:bg-slate-900 shadow-erp" data-no-overview="true">
         <div className="px-6 py-4 border-b bg-brand text-white rounded-t-lg flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold">Direct Purchase</h1>
@@ -1164,7 +1164,7 @@ export default function DirectPurchase() {
             </div>
           </div>
           {/* Add Item Card matching screenshot */}
-          <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm mb-6">
+          <div className="bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm mb-6">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-sm font-bold text-[#0E3646]">
                 Add Item
@@ -1255,12 +1255,12 @@ export default function DirectPurchase() {
                         })
                       : [];
                     return searchResults.length && !newItem.item_id ? (
-                      <div className="absolute z-50 mt-1 w-full bg-white border border-slate-200 rounded-lg shadow-lg max-h-48 overflow-auto">
+                      <div className="absolute z-50 mt-1 w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg max-h-48 overflow-auto">
                         {searchResults.map((o) => (
                           <button
                             type="button"
                             key={o.id}
-                            className="block w-full text-left px-3 py-2 hover:bg-slate-50 text-xs"
+                            className="block w-full text-left px-3 py-2 hover:bg-slate-50 dark:hover:bg-slate-800 text-xs text-slate-900 dark:text-slate-100"
                             onClick={() => {
                               handleNewItemChange({
                                 target: {
