@@ -6,7 +6,7 @@
 import React, { useEffect, useState } from "react";
 import { toast } from "react-toastify";
 import { api } from "api/client";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
 import stannessLogo from "../../../../assets/logo_stanness.png";
@@ -39,6 +39,50 @@ export default function ProfitAndLossReportPage() {
   const [logoDataUrl, setLogoDataUrl] = useState(null);
   const [currencies, setCurrencies] = useState([]);
   const [selectedCurrency, setSelectedCurrency] = useState({ code: "GHS", symbol: "₵" });
+  const location = useLocation();
+  const isPos = location.pathname.startsWith("/pos");
+  const [hideZeroBalances, setHideZeroBalances] = useState(true);
+
+  // Recursive zero-balance filter for accounts and their parent groups
+  function filterZeroNodes(nodes) {
+    if (!nodes || !Array.isArray(nodes)) return [];
+    const result = [];
+    for (const node of nodes) {
+      if (node.type === "group") {
+        const filteredChildren = filterZeroNodes(node.children);
+        const filteredAccounts = filterZeroNodes(node.accounts);
+        const groupAmt = Number(node.amount || 0);
+
+        const hasNonZeroContent = filteredChildren.length > 0 || filteredAccounts.length > 0;
+        const isNonZero = Math.abs(groupAmt) >= 0.005;
+
+        if (hasNonZeroContent || isNonZero) {
+          result.push({
+            ...node,
+            children: filteredChildren,
+            accounts: filteredAccounts,
+          });
+        }
+      } else {
+        const amt = Number(node.amount || 0);
+        if (Math.abs(amt) >= 0.005) {
+          result.push(node);
+        }
+      }
+    }
+    return result;
+  }
+
+  const displayIncomeItems = React.useMemo(() => {
+    if (!hideZeroBalances) return income.items;
+    return filterZeroNodes(income.items);
+  }, [income.items, hideZeroBalances]);
+
+  const displayExpenseItems = React.useMemo(() => {
+    if (!hideZeroBalances) return expenses.items;
+    return filterZeroNodes(expenses.items);
+  }, [expenses.items, hideZeroBalances]);
+
 
   useEffect(() => {
     async function loadCompanyAndCurrencies() {
@@ -250,8 +294,8 @@ export default function ProfitAndLossReportPage() {
       { Section: "", Type: "", Level: "", Code: "", Name: "", Amount: "" }
     );
 
-    const incomeRows = flattenTree(income.items, 99, [], "Income");
-    const expenseRows = flattenTree(expenses.items, 99, [], "Expenses");
+    const incomeRows = flattenTree(displayIncomeItems, 99, [], "Income");
+    const expenseRows = flattenTree(displayExpenseItems, 99, [], "Expenses");
     const all = [
       ...headerRows,
       { Section: "=== INCOME ===", Type: "", Level: "", Code: "", Name: "", Amount: "" },
@@ -444,9 +488,9 @@ export default function ProfitAndLossReportPage() {
       y += 9.5;
     }
 
-    renderSection("Income", income.items, income.total, [5, 150, 105]);
+    renderSection("Income", displayIncomeItems, income.total, [5, 150, 105]);
     y += 3;
-    renderSection("Expenses", expenses.items, expenses.total, [225, 29, 72]);
+    renderSection("Expenses", displayExpenseItems, expenses.total, [225, 29, 72]);
 
     // Net profit/loss banner
     if (y > 260) {
@@ -557,9 +601,9 @@ export default function ProfitAndLossReportPage() {
       {/* Header */}
       <div className="flex justify-between items-center bg-white dark:bg-slate-800 p-6 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700">
         <div>
-          <button onClick={() => window.history.back()} className="font-sans text-xs font-bold text-brand uppercase tracking-wider hover:text-brand-600 transition-colors">
-            ← Back to Finance
-          </button>
+          <Link to={isPos ? "/pos" : "/finance"} className="font-sans text-xs font-bold text-brand uppercase tracking-wider hover:text-brand-600 transition-colors">
+            {isPos ? "← Return to POS" : "← Back to Finance"}
+          </Link>
           <h1 className="text-3xl font-extrabold text-slate-900 dark:text-slate-100 mt-2 tracking-tight">
             Profit & Loss
           </h1>
@@ -572,11 +616,11 @@ export default function ProfitAndLossReportPage() {
             🖨️ Print
           </button>
           <button type="button" className="btn btn-outline btn-sm" onClick={exportExcel}
-            disabled={!income.items.length && !expenses.items.length}>
+            disabled={!displayIncomeItems.length && !displayExpenseItems.length}>
             📊 Excel ({selectedCurrency.code})
           </button>
           <button type="button" className="btn btn-primary btn-sm shadow-sm" onClick={exportPDF}
-            disabled={!income.items.length && !expenses.items.length}>
+            disabled={!displayIncomeItems.length && !displayExpenseItems.length}>
             📄 PDF ({selectedCurrency.code})
           </button>
         </div>
@@ -673,6 +717,17 @@ export default function ProfitAndLossReportPage() {
               <span className="bg-brand text-white text-xs font-black px-2 py-1 rounded shadow-sm min-w-[1.75rem] text-center">{level}</span>
             </div>
           </div>
+          <div className="flex items-center gap-2 border-l pl-4 border-slate-200 dark:border-slate-700">
+            <label className="flex items-center gap-2 cursor-pointer select-none text-xs font-semibold text-slate-700 dark:text-slate-300">
+              <input
+                type="checkbox"
+                checked={hideZeroBalances}
+                onChange={(e) => setHideZeroBalances(e.target.checked)}
+                className="rounded border-slate-300 text-brand focus:ring-brand h-4 w-4"
+              />
+              <span>Hide 0.00 Balances</span>
+            </label>
+          </div>
           <button type="button" className="btn btn-ghost btn-sm text-brand font-bold"
             onClick={() => {
               const today = new Date();
@@ -698,10 +753,10 @@ export default function ProfitAndLossReportPage() {
 
               {/* Income Rows */}
               <div className="flex-1 divide-y divide-slate-100 dark:divide-slate-700/50">
-                {income.items.length === 0 && !loading && (
+                {displayIncomeItems.length === 0 && !loading && (
                   <div className="text-center py-8 text-slate-400 text-sm">No income records</div>
                 )}
-                {renderNodes(income.items, level)}
+                {renderNodes(displayIncomeItems, level)}
               </div>
 
               {/* Income Footer */}
@@ -721,10 +776,10 @@ export default function ProfitAndLossReportPage() {
 
               {/* Expense Rows */}
               <div className="flex-1 divide-y divide-slate-100 dark:divide-slate-700/50">
-                {expenses.items.length === 0 && !loading && (
+                {displayExpenseItems.length === 0 && !loading && (
                   <div className="text-center py-8 text-slate-400 text-sm">No expense records</div>
                 )}
-                {renderNodes(expenses.items, level)}
+                {renderNodes(displayExpenseItems, level)}
               </div>
 
               {/* Expense Footer */}

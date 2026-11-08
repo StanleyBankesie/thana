@@ -38,7 +38,9 @@ function emptyLine() {
 export default function PaymentVoucherForm() {
   const navigate = useNavigate();
   const { id } = useParams();
-  const { search } = useLocation();
+  const location = useLocation();
+  const search = location.search;
+  const isPos = Boolean(location.pathname?.startsWith("/pos"));
   const mode = new URLSearchParams(search).get("mode");
   const readOnly = mode === "view";
   const isEdit = Boolean(id);
@@ -872,25 +874,16 @@ export default function PaymentVoucherForm() {
   // Helper function to fetch account balance
   async function fetchAccountBalance(accountId) {
     if (!accountId) return null;
-    const cached = accountBalances[String(accountId)];
-    if (cached !== undefined) return cached;
     try {
-      let balance = null;
-      try {
-        const gl = await api.get("/finance/reports/general-ledger", {
-          params: { accountId: Number(accountId) },
-        });
-        balance =
-          gl.data?.account?.current_balance ??
-          gl.data?.account?.balance ??
-          gl.data?.closing_balance ??
-          null;
-      } catch {}
-      if (balance === null || balance === undefined) {
-        const res = await api.get(`/finance/accounts/${accountId}/balance`);
-        balance = res.data?.balance ?? res.data?.item?.balance ?? null;
-      }
-      setAccountBalances((prev) => ({ ...prev, [String(accountId)]: balance }));
+      const res = await api.get(`/finance/accounts/${accountId}/balance`);
+      const balance = res.data?.balance ?? null;
+      const formatted = res.data?.formatted ?? (balance !== null ? Number(balance).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "");
+      setAccountBalances((prev) => ({
+        ...prev,
+        [String(accountId)]: balance,
+        [`${accountId}_formatted`]: formatted,
+        [`${accountId}_indicator`]: res.data?.indicator || "",
+      }));
       return balance;
     } catch {
       return null;
@@ -1762,6 +1755,8 @@ export default function PaymentVoucherForm() {
         voucherTypeCode: voucherTypeCode,
         voucherDate,
         isDirectPayment: isPAYV && paymentType === "DIRECT",
+        status: isPos ? "APPROVED" : undefined,
+        isPos: isPos,
         ...(isRV
           ? {
               currencyId: rvVoucherCurrencyId || null,
@@ -1876,7 +1871,7 @@ export default function PaymentVoucherForm() {
       if (isEdit) {
         const res = await api.put(`/finance/vouchers/${id}`, payload);
         toast.success(res.data?.message || "Updated voucher");
-        navigate("/finance/payment-voucher", {
+        navigate(isPos ? "/pos/finance/payment-voucher" : "/finance/payment-voucher", {
           state: {
             refresh: true,
             highlightId: id ? Number(id) : undefined,
@@ -1894,7 +1889,7 @@ export default function PaymentVoucherForm() {
 
         toast.success(`Created ${res.data?.voucherNo || "voucher"}`);
         navigate(
-          `/finance/${
+          `${isPos ? "/pos/finance" : "/finance"}/${
             voucherTypeCode === "JV"
               ? "journal-voucher"
               : voucherTypeCode === "PAYV"
@@ -1924,7 +1919,7 @@ export default function PaymentVoucherForm() {
         return;
       }
       navigate(
-        `/finance/${
+        `${isPos ? "/pos/finance" : "/finance"}/${
           voucherTypeCode === "JV"
             ? "journal-voucher"
             : voucherTypeCode === "PV"
@@ -3981,19 +3976,20 @@ export default function PaymentVoucherForm() {
                       className="input md:w-64 bg-white dark:bg-slate-900 text-right"
                       value={
                         pvForm.paymentAccountId
-                          ? accountBalances[String(pvForm.paymentAccountId)] !==
+                          ? accountBalances[`${pvForm.paymentAccountId}_formatted`] ||
+                            (accountBalances[String(pvForm.paymentAccountId)] !==
                               undefined &&
                             accountBalances[String(pvForm.paymentAccountId)] !==
                               null
-                            ? Number(
-                                accountBalances[
-                                  String(pvForm.paymentAccountId)
-                                ],
-                              ).toLocaleString(undefined, {
-                                minimumFractionDigits: 2,
-                                maximumFractionDigits: 2,
-                              })
-                            : "-"
+                              ? Number(
+                                  accountBalances[
+                                    String(pvForm.paymentAccountId)
+                                  ],
+                                ).toLocaleString(undefined, {
+                                  minimumFractionDigits: 2,
+                                  maximumFractionDigits: 2,
+                                })
+                              : "-")
                           : "-"
                       }
                       disabled
@@ -4055,7 +4051,7 @@ export default function PaymentVoucherForm() {
                                     const totalAmount = selectedBills.reduce((sum, b) => sum + Number(b.balance_amount || b.net_amount || 0), 0);
                                     let found = false;
                                     const updatedItems = pvForm.items.map((it) => {
-                                      if (String(it.accountId) === String(pvForm.payToAccountId)) {
+                                      if (String(it.accountId) === String(pvForm.payToAccountId) || (!it.accountId && !it.amount)) {
                                         found = true;
                                         return {
                                           ...it,

@@ -5065,7 +5065,7 @@ router.get(
 
       // Step 1: Get account code from fin_accounts table using account ID
       const accountRows = await query(
-        `SELECT code FROM fin_accounts
+        `SELECT code, name FROM fin_accounts
          WHERE id = ? AND company_id = ?`,
         [account_id, companyId],
       );
@@ -5075,29 +5075,25 @@ router.get(
       }
 
       const accountCode = String(accountRows[0].code || "").trim();
-      if (!accountCode) {
+      const accountName = String(accountRows[0].name || "").trim();
+      if (!accountCode && !accountName) {
         return res.json({ items: [] });
       }
 
-      // Step 2: Find customer using customer_code matching account code
+      // Step 2: Find customer using customer_code, sales_account_id, or customer_name
       let customerRows = await query(
         `SELECT id, customer_code, customer_name
          FROM sal_customers
-         WHERE company_id = ? AND customer_code = ?
+         WHERE company_id = ?
+           AND (
+             customer_code = ?
+             OR sales_account_id = ?
+             OR customer_name = ?
+             OR CAST(id AS CHAR) = ?
+           )
          LIMIT 1`,
-        [companyId, accountCode],
+        [companyId, accountCode, account_id, accountName, accountCode],
       );
-
-      // Fallback: try customer_id if no match found
-      if (!customerRows || customerRows.length === 0) {
-        customerRows = await query(
-          `SELECT id, customer_code, customer_name
-           FROM sal_customers
-           WHERE company_id = ? AND CAST(customer_id AS CHAR) = ?
-           LIMIT 1`,
-          [companyId, accountCode],
-        );
-      }
 
       if (!customerRows || customerRows.length === 0) {
         return res.json({ items: [] });
@@ -5107,24 +5103,58 @@ router.get(
       const customerId = customerRows[0].id;
 
       // Step 3: Get outstanding invoices for this customer
-      // Query sal_invoices with payment_status UNPAID or PARTIALLY_PAID
-      const sql = `SELECT i.id, i.invoice_no, i.invoice_date, i.net_amount,
-                COALESCE(i.balance_amount, i.net_amount) as balance_amount,
-                i.payment_status, i.due_date, c.customer_name,
-                MAX(it.vat_on_sales_id) AS tax_code_id
-         FROM sal_invoices i
-         LEFT JOIN sal_customers c ON i.customer_id = c.id
-         LEFT JOIN sal_invoice_details d ON d.invoice_id = i.id
-         LEFT JOIN inv_items it ON it.id = d.item_id AND it.company_id = i.company_id
-         WHERE i.customer_id = ?
-           AND i.company_id = ?
-           AND (i.branch_id = ? OR i.branch_id IS NULL)
-           AND (i.payment_status = 'UNPAID' OR i.payment_status = 'PARTIALLY_PAID')
-           AND i.status = 'POSTED'
-         GROUP BY i.id, i.invoice_no, i.invoice_date, i.net_amount,
-                  i.balance_amount, i.payment_status, i.due_date, c.customer_name
-         ORDER BY i.invoice_date DESC`;
-      const invoiceParams = [customerId, companyId, branchId];
+      // Union sal_invoices and srv_service_invoices with strictly positive balance
+      const sql = `
+        SELECT id, invoice_no, invoice_date, net_amount, amount_paid,
+               balance_amount, payment_status, due_date, customer_name,
+               tax_code_id, source
+        FROM (
+          SELECT i.id, i.invoice_no, i.invoice_date, i.net_amount,
+                 COALESCE(i.amount_paid, 0) AS amount_paid,
+                 COALESCE(i.balance_amount, (i.net_amount - COALESCE(i.amount_paid, 0))) AS balance_amount,
+                 i.payment_status, i.due_date, c.customer_name,
+                 MAX(it.vat_on_sales_id) AS tax_code_id,
+                 'Sales' AS source
+          FROM sal_invoices i
+          LEFT JOIN sal_customers c ON i.customer_id = c.id
+          LEFT JOIN sal_invoice_details d ON d.invoice_id = i.id
+          LEFT JOIN inv_items it ON it.id = d.item_id AND it.company_id = i.company_id
+          WHERE i.customer_id = ?
+            AND i.company_id = ?
+            AND (? IS NULL OR ? = 0 OR i.branch_id = ? OR i.branch_id IS NULL)
+            AND COALESCE(i.balance_amount, (i.net_amount - COALESCE(i.amount_paid, 0))) > 0.01
+            AND UPPER(COALESCE(i.payment_status, '')) NOT IN ('FULLY PAID', 'PAID', 'SETTLED', 'CLOSED')
+            AND (i.status IS NULL OR i.status NOT IN ('CANCELLED', 'VOID', 'REJECTED'))
+          GROUP BY i.id, i.invoice_no, i.invoice_date, i.net_amount,
+                   i.balance_amount, i.amount_paid, i.payment_status, i.due_date, c.customer_name
+
+          UNION ALL
+
+          SELECT si.id, si.invoice_no, si.invoice_date, si.net_amount,
+                 COALESCE(si.net_amount - si.balance_amount, 0) AS amount_paid,
+                 COALESCE(si.balance_amount, si.net_amount) AS balance_amount,
+                 COALESCE(si.payment_status, 'UNPAID') AS payment_status,
+                 si.due_date, c.customer_name,
+                 NULL AS tax_code_id,
+                 'Service' AS source
+          FROM srv_service_invoices si
+          LEFT JOIN sal_customers c ON si.customer_id = c.id
+          WHERE si.customer_id = ?
+            AND si.company_id = ?
+            AND (? IS NULL OR ? = 0 OR si.branch_id = ? OR si.branch_id IS NULL)
+            AND COALESCE(si.balance_amount, si.net_amount) > 0.01
+            AND UPPER(COALESCE(si.payment_status, '')) NOT IN ('FULLY PAID', 'PAID', 'SETTLED', 'CLOSED')
+            AND (si.status IS NULL OR si.status NOT IN ('CANCELLED', 'VOID', 'REJECTED'))
+        ) combined
+        WHERE combined.balance_amount > 0.01
+          AND UPPER(COALESCE(combined.payment_status, '')) NOT IN ('FULLY PAID', 'PAID', 'SETTLED', 'CLOSED')
+        ORDER BY invoice_date DESC`;
+
+      const effectiveBranch = branchId || null;
+      const invoiceParams = [
+        customerId, companyId, effectiveBranch, effectiveBranch, effectiveBranch,
+        customerId, companyId, effectiveBranch, effectiveBranch, effectiveBranch
+      ];
       const invoiceRows = await query(sql, invoiceParams);
 
       const invoices = (invoiceRows || []).map((row) => ({
@@ -5132,11 +5162,13 @@ router.get(
         invoice_no: row.invoice_no,
         invoice_date: row.invoice_date,
         net_amount: Number(row.net_amount || 0),
+        amount_paid: Number(row.amount_paid || 0),
         balance_amount: Number(row.balance_amount || row.net_amount || 0),
         payment_status: row.payment_status,
         due_date: row.due_date,
         customer_name: row.customer_name,
         tax_code_id: row.tax_code_id || null,
+        source: row.source,
       }));
 
       res.json({

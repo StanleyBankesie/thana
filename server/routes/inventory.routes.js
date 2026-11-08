@@ -11,7 +11,7 @@ import {
   requireCompanyScope,
   requireBranchScope,
 } from "../middleware/auth.js";
-import { requirePermission } from "../middleware/requirePermission.js";
+import { requirePermission, requireAnyPermission } from "../middleware/requirePermission.js";
 import { query, pool } from "../db/pool.js";
 import { httpError } from "../utils/httpError.js";
 import {
@@ -4063,28 +4063,73 @@ async function upsertStockBalanceTx(
   }
 }
 
-async function nextAdjustmentNo(companyId) {
-  const rows = await query(
-    `
-    SELECT adjustment_no,
-          created_at,
-          u.username AS created_by_name
-         FROM inv_stock_adjustments
-        LEFT JOIN adm_users u ON u.id = created_by
-         WHERE company_id = :companyId AND adjustment_no LIKE 'ADJ-%'
-    ORDER BY adjustment_no DESC
-    LIMIT 1
-    `,
-    { companyId },
-  ).catch(() => []);
-  if (rows && rows.length) {
-    const m = String(rows[0].adjustment_no || "").match(/^ADJ-(\d{6})$/);
-    if (m) {
-      const n = Number(m[1]) + 1;
-      return `ADJ-${String(n).padStart(6, "0")}`;
+async function nextAdjustmentNo(companyId, branchId = null, conn = null) {
+  await ensureStockAdjustmentTables();
+
+  const whereClauses = [];
+  const params = {};
+  if (companyId) {
+    whereClauses.push("company_id = :companyId");
+    params.companyId = companyId;
+  }
+// Check globally across company so adjustment numbers never collide
+  const whereSql = whereClauses.length ? `WHERE ${whereClauses.join(" AND ")}` : "";
+
+  let rows = [];
+  if (conn) {
+    const [res] = await conn.execute(
+      `SELECT id, adjustment_no, created_at 
+       FROM inv_stock_adjustments 
+       ${whereSql}
+       ORDER BY id DESC`,
+      params,
+    ).catch(() => [[]]);
+    rows = Array.isArray(res) ? res : [];
+  } else {
+    const res = await query(
+      `SELECT id, adjustment_no, created_at 
+       FROM inv_stock_adjustments 
+       ${whereSql}
+       ORDER BY id DESC`,
+      params,
+    ).catch(() => []);
+    rows = Array.isArray(res) ? res : [];
+  }
+
+  let maxNum = 0;
+  let detectedPrefix = "ADJ-";
+  let padLength = 6;
+
+  for (const r of rows) {
+    const rawNo = String(r.adjustment_no || "").trim();
+    if (!rawNo) continue;
+
+    // Matches standard sequential formats: ADJ-000018, ADJ-18, ADJ000018, SA-000001
+    const match = rawNo.match(/^([A-Za-z]+[-_]?)(\d+)$/);
+    if (match) {
+      const prefix = match[1];
+      const numStr = match[2];
+      const num = parseInt(numStr, 10);
+      if (Number.isFinite(num) && num < 10000000) {
+        if (num > maxNum) {
+          maxNum = num;
+          detectedPrefix = prefix.toUpperCase();
+          padLength = Math.max(6, numStr.length);
+        }
+      }
     }
   }
-  return "ADJ-000001";
+
+  let nextNum = maxNum + 1;
+  let candidate = `${detectedPrefix}${String(nextNum).padStart(padLength, "0")}`;
+
+  const existingSet = new Set(rows.map((r) => String(r.adjustment_no || "").toUpperCase().trim()));
+  while (existingSet.has(candidate.toUpperCase())) {
+    nextNum += 1;
+    candidate = `${detectedPrefix}${String(nextNum).padStart(padLength, "0")}`;
+  }
+
+  return candidate;
 }
 
 export async function allocateFromBatchesTx(
@@ -4205,8 +4250,8 @@ router.get(
   requireBranchScope,
   async (req, res, next) => {
     try {
-      const { companyId = null } = req.scope || {};
-      const nextNo = await nextAdjustmentNo(companyId);
+      const { companyId = null, branchId = null } = req.scope || {};
+      const nextNo = await nextAdjustmentNo(companyId, branchId);
       res.json({ next_no: nextNo });
     } catch (e) {
       next(e);
@@ -4473,7 +4518,7 @@ router.post(
         status,
         details,
       } = req.body || {};
-      const adjNo = adjustment_no || (await nextAdjustmentNo(companyId));
+      const adjNo = adjustment_no || (await nextAdjustmentNo(companyId, branchId, conn));
       await conn.beginTransaction();
       const [hdr] = await conn.execute(
         `
@@ -8335,7 +8380,12 @@ router.post(
   requireAuth,
   requireCompanyScope,
   requireBranchScope,
-  requirePermission("INV.STOCK.TRANSFER.MANAGE"),
+  requireAnyPermission([
+    "INV.STOCK.TRANSFER.MANAGE",
+    "POS.MANAGE",
+    "POS.VIEW",
+    "POS.DIRECT_PURCHASE",
+  ]),
   async (req, res, next) => {
     const conn = await pool.getConnection();
     try {
@@ -8452,7 +8502,12 @@ router.put(
   requireAuth,
   requireCompanyScope,
   requireBranchScope,
-  requirePermission("INV.STOCK.TRANSFER.MANAGE"),
+  requireAnyPermission([
+    "INV.STOCK.TRANSFER.MANAGE",
+    "POS.MANAGE",
+    "POS.VIEW",
+    "POS.DIRECT_PURCHASE",
+  ]),
   async (req, res, next) => {
     const conn = await pool.getConnection();
     try {
@@ -8640,7 +8695,7 @@ router.post(
       const { companyId, branchId = null } = req.scope || {};
       const body = req.body || {};
       const adjustmentNo =
-        body.adjustment_no || (await nextAdjustmentNo(companyId));
+        body.adjustment_no || (await nextAdjustmentNo(companyId, branchId, conn));
       const adjustmentDate =
         toDateOnly(body.adjustment_date || new Date().toISOString().split("T")[0]) || null;
       const status =
@@ -9884,7 +9939,7 @@ router.post(
       let adjNo = null;
 
       if (varianceLines.length > 0) {
-        adjNo = await nextAdjustmentNo(companyId);
+        adjNo = await nextAdjustmentNo(companyId, stk.branch_id || branchId, conn);
         const adjType = stk.stock_take_type === "DAILY" ? "DAILY_STOCK_TAKE" : "PHYSICAL_STOCK_TAKE";
         const [adjHdr] = await conn.execute(
           `

@@ -4,7 +4,7 @@
  */
 
 import React, { useEffect, useMemo, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams, useLocation } from "react-router-dom";
 import { api } from "api/client";
 import { useUoms } from "@/hooks/useUoms";
 import { filterByPrefix } from "@/utils/searchUtils.js";
@@ -401,7 +401,7 @@ export default function StockTransferForm() {
         await api.put(`/inventory/stock-transfers/${id}`, payload);
       }
 
-      navigate("/inventory/stock-transfers");
+      navigate(baseRoute);
     } catch (e2) {
       setError(e2?.response?.data?.message || "Failed to save stock transfer");
     } finally {

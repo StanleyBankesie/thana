@@ -407,8 +407,54 @@ export const MODULES_REGISTRY = {
 
       { key: "customer-history", label: "Customer Accounts", type: "feature" },
       { key: "on-hold", label: "On-Hold Sales", type: "feature", path: "/pos/holds" },
+      { key: "receipt-reprint", label: "Receipt Reprint", type: "feature", path: "/pos/receipt-reprint" },
       { key: "reconciliation", label: "Sync Reconciliation", type: "feature" },
       { key: "setup", label: "POS Setup", type: "feature" },
+      { key: "terminals", label: "POS Terminals", type: "feature", path: "/pos/setup/terminals" },
+      { key: "cash-drawers", label: "Cash Drawers", type: "feature", path: "/pos/setup/cash-drawers" },
+      { key: "receipt-templates", label: "Receipt Templates", type: "feature", path: "/pos/setup/receipt-templates" },
+
+      { key: "customers", label: "Customers", type: "feature", path: "/pos/customers" },
+
+      // Procurement (Direct Purchases)
+      { key: "direct-purchase", label: "Direct Purchases", type: "feature" },
+      { key: "suppliers", label: "Suppliers", type: "feature", path: "/pos/suppliers" },
+
+      // Store Inventory Operations
+      { key: "items", label: "Items Master", type: "feature" },
+      { key: "item-classification", label: "Item Classification", type: "feature" },
+      { key: "stock-balances", label: "Stock Balances", type: "feature" },
+      { key: "stock-transfers", label: "Stock Transfers", type: "feature" },
+      { key: "transfer-acceptance", label: "Transfer Acceptance", type: "feature" },
+      { key: "stock-adjustments", label: "Stock Adjustments", type: "feature" },
+      { key: "stock-reorder", label: "Stock Reorder", type: "feature" },
+      { key: "batches", label: "Item Batches", type: "feature" },
+
+      // Finance & Cash Desk
+      { key: "payment-voucher", label: "Store Expenses (Payment Voucher)", type: "feature" },
+      { key: "receipt-voucher", label: "Customer Payments (Receipt Voucher)", type: "feature" },
+      { key: "contra-voucher", label: "Bank Deposit (Contra Voucher)", type: "feature" },
+
+      // Reports (Purchase, Finance, Inventory)
+      { key: "purchaseregisterreport", label: "Purchase Register Report", type: "feature" },
+      { key: "itempurchasehistoryreport", label: "Item Purchase History Report", type: "feature" },
+      { key: "supplieroutstandingreport", label: "Supplier Outstanding Report", type: "feature" },
+      { key: "supplierpayablesreport", label: "Supplier Outstanding Payables", type: "feature" },
+      { key: "purchasereturnsanalysisreport", label: "Purchase Returns Analysis Report", type: "feature" },
+      { key: "pricevariancereport", label: "Price Variance Report", type: "feature" },
+      { key: "profitandlossreport", label: "Profit and Loss Report", type: "feature" },
+      { key: "customeroutstandingreport", label: "Customer Outstanding Report", type: "feature" },
+      { key: "debtorsledgerreport", label: "Debtors Ledger Report", type: "feature" },
+      { key: "voucherregisterreport", label: "Voucher Register Report", type: "feature" },
+      { key: "outstandingreceivablereport", label: "Outstanding Receivables Report", type: "feature" },
+      { key: "paymentduereport", label: "Payment Due Report", type: "feature" },
+      { key: "stockbalancesreport", label: "Stock Balances Report", type: "feature" },
+      { key: "fastmovingreport", label: "Fast Moving Report", type: "feature" },
+      { key: "slowmovingreport", label: "Slow Moving Report", type: "feature" },
+      { key: "expireditemsreport", label: "Expired Items Report", type: "feature" },
+      { key: "stockadjustmentsreport", label: "Stock Adjustments Report", type: "feature" },
+      { key: "stocktransferreport", label: "Stock Transfer Register Report", type: "feature" },
+      { key: "inventoryhealthmonitorreport", label: "Inventory Health Monitor", type: "feature" },
     ],
     dashboards: [
 

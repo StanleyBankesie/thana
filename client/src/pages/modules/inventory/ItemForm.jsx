@@ -228,7 +228,8 @@ export default function ItemForm({
   const isViewMode = searchParams.get("mode") === "view";
   const id = isModal ? modalItemId || "new" : params.id;
   const isNew = id === "new";
-  const returnTo = location.state?.from || "/inventory/items";
+  const isPos = location.pathname.startsWith("/pos");
+  const returnTo = location.state?.from || (isPos ? "/pos/items" : "/inventory/items");
 
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);

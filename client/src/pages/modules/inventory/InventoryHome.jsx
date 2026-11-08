@@ -146,16 +146,6 @@ export const inventorySections = [
         icon: "📋",
       },
       {
-        name: "Daily Stock Take",
-        path: "/inventory/daily-stock-take",
-        actions: [
-          { label: "View", path: "/inventory/daily-stock-take", type: "outline" },
-          { label: "New", path: "/inventory/daily-stock-take/new", type: "primary" }
-        ],
-        description: "Routine daily operational verification & tolerance tracking",
-        icon: "📅",
-      },
-      {
         name: "Stock Updation",
         path: "/inventory/stock-updation",
         actions: [
@@ -1040,16 +1030,6 @@ export const inventoryFeatures = [
     actions: [
       { label: "View", path: "/inventory/physical-stock-take", type: "outline" },
       { label: "New", path: "/inventory/physical-stock-take/new", type: "primary" }
-    ],
-    type: "feature",
-  },
-  {
-    module_key: "inventory",
-    label: "Daily Stock Take",
-    path: "/inventory/daily-stock-take",
-    actions: [
-      { label: "View", path: "/inventory/daily-stock-take", type: "outline" },
-      { label: "New", path: "/inventory/daily-stock-take/new", type: "primary" }
     ],
     type: "feature",
   },

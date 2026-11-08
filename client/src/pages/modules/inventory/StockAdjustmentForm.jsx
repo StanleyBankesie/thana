@@ -9,7 +9,9 @@ import {
   useNavigate,
   useParams,
   useSearchParams,
+  useLocation,
 } from "react-router-dom";
+import { ArrowLeft } from "lucide-react";
 
 import { api } from "api/client";
 
@@ -32,6 +34,11 @@ export default function StockAdjustmentForm() {
   const [searchParams] = useSearchParams();
   const mode = (searchParams.get("mode") || "").toLowerCase();
   const isView = !isNew && mode === "view";
+  const location = useLocation();
+  const isPos = location.pathname.startsWith("/pos");
+  const baseRoute = isPos
+    ? (location.pathname.includes("/inventory/stock-adjustments") ? "/pos/inventory/stock-adjustments" : "/pos/stock-adjustments")
+    : "/inventory/stock-adjustments";
 
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -244,7 +251,7 @@ export default function StockAdjustmentForm() {
         await api.put(`/inventory/stock-adjustments/${id}`, payload);
       }
 
-      navigate("/inventory/stock-adjustments", { state: { refresh: true } });
+      navigate(baseRoute, { state: { refresh: true } });
     } catch (e2) {
       setError(
         e2?.response?.data?.message || "Failed to save stock adjustment",
@@ -393,10 +400,7 @@ export default function StockAdjustmentForm() {
               </p>
             </div>
             <div className="flex gap-2">
-              <button onClick={() => window.history.back()} className="btn-success bg-green-600 text-white hover:bg-green-700 px-6 py-2 rounded shadow-sm font-medium"
-              >
-                ← Back to List
-              </button>
+              <Link to={baseRoute} className="px-3.5 py-1.5 text-sm font-semibold rounded-lg bg-white text-brand hover:bg-slate-100 inline-flex items-center gap-1.5 transition-colors shadow-sm"><ArrowLeft className="w-4 h-4" /><span>Back to List</span></Link>
             </div>
           </div>
         </div>
@@ -962,10 +966,7 @@ export default function StockAdjustmentForm() {
             </fieldset>
 
             <div className="flex justify-end gap-3 pt-4 border-t border-slate-200">
-              <button onClick={() => window.history.back()} className="btn-light bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 px-4 py-2 rounded"
-              >
-                Cancel
-              </button>
+              <Link to={baseRoute} className="btn-light bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 px-4 py-2 rounded inline-flex items-center justify-center">Cancel</Link>
               {!isView ? (
                 <button
                   type="submit"

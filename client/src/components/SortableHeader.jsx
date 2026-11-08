@@ -49,10 +49,11 @@ export default function SortableHeader({
     if (!active) {
       return <ArrowUpDown className="h-4 w-4 opacity-0 group-hover:opacity-40 transition-opacity duration-200" />;
     }
+    const arrowColor = className.includes("text-white") ? "text-sky-300" : "text-brand-600 dark:text-brand-400";
     return direction === "asc" ? (
-      <ArrowUp className="h-4 w-4 text-brand-600 dark:text-brand-400 opacity-100 transition-transform duration-200" />
+      <ArrowUp className={`h-4 w-4 ${arrowColor} opacity-100 transition-transform duration-200`} />
     ) : (
-      <ArrowDown className="h-4 w-4 text-brand-600 dark:text-brand-400 opacity-100 transition-transform duration-200" />
+      <ArrowDown className={`h-4 w-4 ${arrowColor} opacity-100 transition-transform duration-200`} />
     );
   };
 
@@ -62,13 +63,17 @@ export default function SortableHeader({
 
   return (
     <th
-      className={`select-none font-bold transition-colors group ${active ? "bg-white/10 dark:bg-slate-800/50" : "hover:bg-white/5 dark:hover:bg-slate-800/30"} ${className}`}
+      className={`select-none font-bold transition-colors group ${
+        active 
+          ? (className.includes("text-white") ? "bg-white/10 dark:bg-slate-800/50" : "bg-slate-200/60 dark:bg-slate-700/60") 
+          : (className.includes("text-white") ? "hover:bg-white/5 dark:hover:bg-slate-800/30" : "hover:bg-slate-100/70 dark:hover:bg-slate-800/40")
+      } ${className}`}
       title={`Sort by ${label}`}
       aria-sort={ariaSort}
     >
       <button
         type="button"
-        className={`flex w-full items-center gap-2 ${justifyClass} bg-transparent py-3 px-2 outline-none rounded-md`}
+        className={`flex w-full items-center gap-2 ${justifyClass} !bg-transparent hover:!bg-transparent !shadow-none !border-none py-3 px-2 outline-none rounded-md !text-inherit`}
         onClick={() => onToggle(sortKey)}
       >
         <span className={textColorClass}>

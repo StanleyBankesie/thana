@@ -282,6 +282,7 @@ export function AuthProvider({ children }) {
       initialized,
       login,
       logout,
+      hasAccess: () => true,
       setToken,
       setUser,
       setScope,

@@ -196,6 +196,8 @@ export const purchaseSections = [
       {
         name: "Purchase Upload",
         path: "/purchase/purchase-upload",
+        feature_key: "purchase:purchase-upload",
+        requireAdminPermission: true,
         actions: [
           { label: "View", path: "/purchase/purchase-upload", type: "outline", featureKey: "purchase:purchase-upload" },
           { label: "Upload", path: "/purchase/purchase-upload", type: "primary", featureKey: "purchase:purchase-upload" }

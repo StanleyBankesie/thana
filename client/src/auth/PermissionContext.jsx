@@ -625,10 +625,9 @@ export const PermissionProvider = ({ children }) => {
       parts = parts.slice(0, parts.length - 1);
     }
 
-    if(
-      parts[0] === "administration" &&
-      parts[1] === "access" &&
-      parts.length >= 3
+    if (
+      (parts[0] === "pos" && (parts[1] === "inventory" || parts[1] === "store" || parts[1] === "finance") && parts.length >= 3) ||
+      (parts[0] === "administration" && parts[1] === "access" && parts.length >= 3)
     ) {
       return `/${parts.slice(0, 3).join("/")}`;
     }
@@ -766,10 +765,20 @@ export const PermissionProvider = ({ children }) => {
   }, [modules, permByFeatureKey, user]);
 
   const isModuleEnabled = (moduleKey) => {
-    const mk = String(moduleKey || "");
+    const mk = String(moduleKey || "").toLowerCase().trim();
     if (!mk) return false;
     if (isSuper) return true;
-    return modules.has(mk);
+    if (modules.has(mk)) return true;
+    for (const m of modules) {
+      if (String(m).toLowerCase().trim() === mk) return true;
+    }
+    for (const rf of roleFeatures) {
+      if (String(rf).toLowerCase().startsWith(`${mk}:`)) return true;
+    }
+    for (const pk of permByFeatureKey.keys()) {
+      if (String(pk).toLowerCase().startsWith(`${mk}:`)) return true;
+    }
+    return false;
   };
 
   /**
@@ -832,15 +841,57 @@ export const PermissionProvider = ({ children }) => {
     return permByFeatureKey.has(fk);
   };
 
-  /**
+    /**
+   * Check if user is granted exclusive admin page permission in system admin module
+   */
+  const hasAdminPagePermission = (featureKey) => {
+    const uid = Number(user?.id || user?.sub || 0);
+    if (uid === 1) return true;
+    const cleanTarget = String(featureKey || "")
+      .toLowerCase()
+      .replace(/[^a-z0-9]/g, "");
+    if (!cleanTarget) return false;
+
+    // Must be explicitly granted in Admin Permissions (adm_admin_page_permissions)
+    const hasInPerms = Array.isArray(permissions) && permissions.some((p) => {
+      if (!p) return false;
+      const isEx = p.is_exclusive === true || p.is_exclusive === 1 || p.isExclusive === true;
+      if (!isEx) return false;
+      const fk = String(p.feature_key || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+      return fk === cleanTarget || fk.endsWith(cleanTarget) || cleanTarget.endsWith(fk);
+    });
+    if (hasInPerms) return true;
+
+    if (exceptionalPerms instanceof Set) {
+      for (const ep of exceptionalPerms) {
+        const cleanEp = String(ep || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+        if (cleanEp === cleanTarget || cleanEp.endsWith(cleanTarget) || cleanTarget.endsWith(cleanEp)) {
+          return true;
+        }
+      }
+    }
+    return false;
+  };
+
+/**
    * Check if user can access a specific feature path
    */
   const canAccessFeatureKey = (moduleKey, featureKey) => {
     const mk = String(moduleKey || "");
     const seg = String(featureKey || "");
     if (!mk || !seg) return false;
+
+    // Purchase Upload is an exclusive administrative bulk page strictly requiring Admin Permissions in System Admin
+    if (
+      (mk === "purchase" && (seg === "purchase-upload" || seg === "upload")) ||
+      seg === "purchase:purchase-upload"
+    ) {
+      return hasAdminPagePermission("purchase:purchase-upload");
+    }
+
     if (isSuper) return true;
     if (!isModuleEnabled(mk)) return false;
+    if (mk === "pos") return true;
 
     let isExclusive = false;
     const moduleInfo = MODULES_REGISTRY[mk];
@@ -1054,6 +1105,13 @@ export const PermissionProvider = ({ children }) => {
     const mk = String(parts[0] || "");
     const seg = String(parts[1] || "");
 
+    // POS module encompasses counter sales, inventory, direct purchase, and cash desk finance vouchers
+    if (mk === "pos") {
+      if (isModuleEnabled("pos")) {
+        return true;
+      }
+    }
+
     // If accessing a module dashboard route (e.g. /sales/dashboard or /purchase/dashboard)
     if (mk && (seg === "dashboard" || seg === "dashboards")) {
       return canViewDashboardElement(mk, "dashboard", "dashboard") !== false &&
@@ -1083,6 +1141,9 @@ export const PermissionProvider = ({ children }) => {
     }
 
     if (isExclusive && exclusiveFeatureKey) {
+      if (exclusiveFeatureKey === "purchase-upload") {
+        return hasAdminPagePermission("purchase:purchase-upload");
+      }
       return canAccessFeatureKey(mk, exclusiveFeatureKey);
     }
 
@@ -1197,17 +1258,47 @@ export const PermissionProvider = ({ children }) => {
 
     let perm = permByFeatureKey.get(fk);
     if (!perm) {
-      if (fk === "purchase:direct-purchase") {
-        perm = permByFeatureKey.get("purchase:direct-purchases");
-      } else if (fk === "purchase:direct-purchases") {
-        perm = permByFeatureKey.get("purchase:direct-purchase");
-      } else if (fk === "inventory:items") {
-        perm = permByFeatureKey.get("inventory:item-master");
-      } else if (fk === "inventory:item-master") {
-        perm = permByFeatureKey.get("inventory:items");
+      if (fk === "purchase:direct-purchase" || fk === "pos:direct-purchase") {
+        perm = permByFeatureKey.get("purchase:direct-purchases") || permByFeatureKey.get("purchase:direct-purchase");
+      } else if (fk === "purchase:direct-purchases" || fk === "pos:direct-purchases") {
+        perm = permByFeatureKey.get("purchase:direct-purchase") || permByFeatureKey.get("purchase:direct-purchases");
+      } else if (fk === "inventory:items" || fk === "pos:items" || fk === "pos:inventory" || fk === "pos:inventory:items") {
+        perm = permByFeatureKey.get("pos:items") || permByFeatureKey.get("inventory:items") || permByFeatureKey.get("inventory:item-master");
+      } else if (fk === "inventory:item-master" || fk === "pos:item-master") {
+        perm = permByFeatureKey.get("inventory:items") || permByFeatureKey.get("inventory:item-master");
+      } else if (
+        fk === "pos:item-groups" ||
+        fk === "pos:item-classification" ||
+        fk === "inventory:item-groups" ||
+        fk === "inventory:item-classification" ||
+        fk === "pos:inventory:item-groups"
+      ) {
+        perm =
+          permByFeatureKey.get("inventory:item-groups") ||
+          permByFeatureKey.get("inventory:item-classification") ||
+          permByFeatureKey.get("pos:item-groups") ||
+          permByFeatureKey.get("inventory:items") ||
+          permByFeatureKey.get("pos:items");
+      } else if (fk.startsWith("pos:stock-")) {
+        perm = permByFeatureKey.get(`inventory:${fk.slice(4)}`);
+      } else if (fk === "pos:transfer-acceptance") {
+        perm = permByFeatureKey.get("inventory:transfer-acceptance");
+      } else if (fk.startsWith("pos:") && fk.endsWith("-voucher")) {
+        perm = permByFeatureKey.get(`finance:${fk.slice(4)}`);
       }
     }
-    if (!perm) return false;
+    if (!perm) {
+      if (
+        fk === "inventory:item-groups" ||
+        fk === "pos:item-groups" ||
+        fk === "pos:inventory:item-groups" ||
+        fk === "pos:item-classification" ||
+        fk === "inventory:item-classification"
+      ) {
+        return true;
+      }
+      return false;
+    }
 
     const key =
       action === "view"
@@ -1233,6 +1324,13 @@ export const PermissionProvider = ({ children }) => {
     if (parts.length < 2) return null;
     if (parts[0] === "administration" && parts[1] === "access" && parts[2]) {
       return `administration:${parts[2]}`;
+    }
+    if (
+      parts[0] === "pos" &&
+      (parts[1] === "inventory" || parts[1] === "store") &&
+      parts[2]
+    ) {
+      return `pos:${parts[2]}`;
     }
     return `${parts[0]}:${parts[1]}`;
   };
@@ -1509,7 +1607,9 @@ export const PermissionProvider = ({ children }) => {
                 el.closest(".pos-sales-entry") ||
                 el.getAttribute?.("data-rbac-exempt") === "true" ||
                 el.closest("[data-rbac-exempt='true']") ||
-                el.closest("[data-rbac-exempt]")
+                el.closest("[data-rbac-exempt]") ||
+                el.getAttribute?.("id") === "header-add-item-btn" ||
+                el.closest("#header-add-item-btn")
               ) {
                 return;
               }
@@ -1627,6 +1727,7 @@ export const PermissionProvider = ({ children }) => {
     licensedModules,
     permissions,
     roleFeatures,
+    permByFeatureKey,
     exceptionalPerms,
     loading,
     error,
@@ -1636,6 +1737,7 @@ export const PermissionProvider = ({ children }) => {
     isDashboardEnabled,
     canAccessPath,
     canAccessFeatureKey,
+    hasAdminPagePermission,
     hasRoleFeature,
     canPerformAction,
     canCreateOnPage,
@@ -1717,6 +1819,17 @@ export const PermissionProvider = ({ children }) => {
       exceptionalPerms.has("WORKFLOW.PENDING_APPROVAL.REVERSE") ||
       exceptionalPerms.has("WORKFLOW.APPROVAL.REVERSE"),
     canEditDiscount: () => exceptionalPerms.has("SALES.DISCOUNT.ALLOW"),
+    hasAccess: (pathOrKey, action = "view") => {
+      if (!pathOrKey) return true;
+      if (typeof pathOrKey === "string" && pathOrKey.startsWith("/")) {
+        return canAccessPath(pathOrKey, action);
+      }
+      if (typeof pathOrKey === "string" && pathOrKey.includes(":")) {
+        const [m, f] = pathOrKey.split(":");
+        return canPerformAction(`${m}:${f}`, action);
+      }
+      return isModuleEnabled(pathOrKey);
+    },
   };
 
   return (

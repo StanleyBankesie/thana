@@ -163,6 +163,7 @@ const ModuleDashboard = ({
   const {
     canAccessPath,
     canAccessFeatureKey,
+    hasAdminPagePermission,
     canViewDashboardElement,
     isModuleEnabled,
     moduleSectionViewEnabled,
@@ -187,35 +188,22 @@ const ModuleDashboard = ({
     const searchParams = new URLSearchParams(location.search || "");
     const secParam = searchParams.get("section");
     if (secParam !== null && sections.length > 0) {
+      const normSecParam = secParam.toLowerCase().replace(/[^a-z0-9]/g, "");
       const secIdx = sections.findIndex(
         (s, idx) =>
           String(idx) === secParam ||
-          String(s.title || s.category || "").toLowerCase() === secParam.toLowerCase()
+          String(s.title || s.category || "").toLowerCase() === secParam.toLowerCase() ||
+          String(s.title || s.category || "").toLowerCase().replace(/[^a-z0-9]/g, "") === normSecParam
       );
       if (secIdx !== -1) {
-        if (shouldShowSectionCardsFirst) {
-          setActiveSection(secIdx);
-        } else {
-          setActiveSection(null);
-          const targetSection = sections[secIdx];
-          const secTitle = targetSection?.title || targetSection?.category || "";
-          const targetId = `section-${slug(secTitle)}`;
-          setTimeout(() => {
-            const el =
-              document.getElementById(targetId) ||
-              document.querySelector(`[data-section-title="${secTitle}"]`);
-            if (el && typeof el.scrollIntoView === "function") {
-              el.scrollIntoView({ behavior: "smooth", block: "start" });
-            }
-          }, 120);
-        }
+        setActiveSection(secIdx);
       } else {
         setActiveSection(null);
       }
     } else {
       setActiveSection(null);
     }
-  }, [location.search, sections, shouldShowSectionCardsFirst]);
+  }, [location.search, sections]);
 
   const isDashboardPath = (path) => {
     const parts = String(path || "").split("/").filter(Boolean);
@@ -296,6 +284,19 @@ const ModuleDashboard = ({
     if (!item) return false;
     if (item.hidden) return false;
     const path = String(item.path || "");
+
+    // Purchase Upload is an exclusive administrative bulk page strictly requiring Admin Permissions in System Admin
+    if (
+      item.requireAdminPermission ||
+      path === "/purchase/purchase-upload" ||
+      path === "/purchase/upload" ||
+      item.feature_key === "purchase:purchase-upload" ||
+      item.name === "Purchase Upload"
+    ) {
+      if (typeof hasAdminPagePermission === "function" && !hasAdminPagePermission("purchase:purchase-upload")) {
+        return false;
+      }
+    }
     if (!path && !item.feature_key) return false;
 
     if (showAll || isSuper) return true;
@@ -460,11 +461,23 @@ const ModuleDashboard = ({
       .replace(/\s+/g, "-")
       .replace(/[^a-z0-9\-]/g, "");
 
+  // Reset scroll to top when switching sections within module dashboard
+  React.useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+    if (document.documentElement) document.documentElement.scrollTop = 0;
+    if (document.body) document.body.scrollTop = 0;
+  }, [activeSection]);
+
   React.useEffect(() => {
     const search = new URLSearchParams(location.search || "");
     const hash = String(location.hash || "").replace(/^#/, "");
     const focus = search.get("focus") || hash;
-    if (!focus) return;
+    if (!focus) {
+      window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+      if (document.documentElement) document.documentElement.scrollTop = 0;
+      if (document.body) document.body.scrollTop = 0;
+      return;
+    }
     const tryScroll = (el) => {
       if (!el || typeof el.scrollIntoView !== "function") return false;
       setTimeout(() => {
@@ -565,7 +578,7 @@ const ModuleDashboard = ({
           )}
         </div>
         <div className="flex items-center gap-2">
-          {shouldShowSectionCardsFirst && !searchTerm && activeSection !== null && (
+          {!searchTerm && activeSection !== null && (
             <button 
               type="button"
               onClick={() => {
@@ -946,7 +959,7 @@ const ModuleDashboard = ({
           </div>
         ) : (
           <>
-            {shouldShowSectionCardsFirst && !searchTerm && activeSection !== null && (
+            {!searchTerm && activeSection !== null && (
               <div className="flex items-center justify-between bg-white/80 dark:bg-slate-900/80 backdrop-blur-md p-3 px-4 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-xs mb-2">
                 <button
                   type="button"
@@ -983,14 +996,18 @@ const ModuleDashboard = ({
             )}
 
             {filteredSections.map((section, sectionIndex) => {
-              if (shouldShowSectionCardsFirst && !searchTerm && activeSection !== null && activeSection !== sectionIndex) {
+              if (!searchTerm && activeSection !== null && activeSection !== sectionIndex) {
                 return null;
               }
 
               const sectionTitle = section.title || section.category || "Pages";
               const sectionIcon = getSectionIcon(section, sectionIndex);
               const rawItems = section.items || section.features || [];
-              const visibleSectionItems = rawItems.filter((item) => canShowItem(item));
+              const visibleSectionItems = rawItems.filter((item) => {
+                if (!item || item.hidden) return false;
+                if (!item.path && !item.feature_key && !item.name && !item.title) return false;
+                return canShowItem(item);
+              });
               if (visibleSectionItems.length === 0) return null;
 
               return (

@@ -4,6 +4,7 @@ import { toast } from "react-toastify";
 import { usePermission } from "../../auth/PermissionContext.jsx";
 import { MODULES_REGISTRY } from "../../data/modulesRegistry.js";
 import { DASHBOARD_CARDS } from "../../data/dashboardCards.js";
+import { showModulePagesSweetAlert } from "../../utils/licenseModulePagesHelper.js";
 import { useAuth } from "../../auth/AuthContext.jsx";
 import { useNavigate, useLocation } from "react-router-dom";
 
@@ -239,11 +240,44 @@ export default function LicenseManagement() {
     }
   };
 
+  const openModulePagesModal = async (code, isInitialCheck = false) => {
+    const mod = moduleList.find((m) => m.code === code) || { code, name: code };
+    const currentPages = selectedModules
+      .filter((m) => m.startsWith(`page:${code}:`))
+      .map((m) => m.slice(`page:${code}:`.length));
+
+    const res = await showModulePagesSweetAlert({
+      modCode: code,
+      modName: mod.name,
+      currentlySelectedPages: currentPages,
+      allPagesDefault: isInitialCheck || currentPages.length === 0,
+    });
+
+    if (res.isConfirmed) {
+      const newPages = res.selectedKeys || [];
+      if (newPages.length === 0) {
+        setSelectedModules((prev) =>
+          prev.filter((m) => m !== code && !m.startsWith(`page:${code}:`))
+        );
+      } else {
+        setSelectedModules((prev) => {
+          const clean = prev.filter(
+            (m) => m !== code && !m.startsWith(`page:${code}:`)
+          );
+          const pageTokens = newPages.map((k) => `page:${code}:${k}`);
+          return [...clean, code, ...pageTokens];
+        });
+      }
+    }
+  };
+
   const toggleModule = (code) => {
     if (selectedModules.includes(code)) {
-      setSelectedModules(selectedModules.filter(m => m !== code));
+      setSelectedModules(
+        selectedModules.filter((m) => m !== code && !m.startsWith(`page:${code}:`))
+      );
     } else {
-      setSelectedModules([...selectedModules, code]);
+      openModulePagesModal(code, true);
     }
   };
 
@@ -472,17 +506,49 @@ export default function LicenseManagement() {
                 <div>
                   <h3 className="text-lg font-bold border-b pb-2 mb-4">Licensed Modules</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    {moduleList.map(mod => (
-                      <label key={mod.code} className="flex items-center space-x-2 p-2 border rounded hover:bg-slate-50 dark:bg-slate-800/50 cursor-pointer">
-                        <input 
-                          type="checkbox" 
-                          checked={selectedModules.includes(mod.code)}
-                          onChange={() => toggleModule(mod.code)}
-                          className="rounded"
-                        />
-                        <span className="text-sm font-medium">{mod.name}</span>
-                      </label>
-                    ))}
+                    {moduleList.map(mod => {
+                      const isChecked = selectedModules.includes(mod.code);
+                      const pageCount = selectedModules.filter(m => m.startsWith(`page:${mod.code}:`)).length;
+                      return (
+                        <div 
+                          key={mod.code} 
+                          className={`flex items-center justify-between p-2.5 border rounded-lg transition-all ${
+                            isChecked 
+                              ? "bg-brand-50/40 dark:bg-brand-900/20 border-brand-300 dark:border-brand-700 shadow-sm" 
+                              : "hover:bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700"
+                          }`}
+                        >
+                          <label className="flex items-center space-x-2.5 cursor-pointer flex-1">
+                            <input 
+                              type="checkbox" 
+                              checked={isChecked}
+                              onChange={() => toggleModule(mod.code)}
+                              className="rounded text-brand focus:ring-brand w-4 h-4"
+                            />
+                            <span className="text-sm font-medium text-slate-800 dark:text-slate-200">{mod.name}</span>
+                          </label>
+                          {isChecked && (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                openModulePagesModal(mod.code, false);
+                              }}
+                              className="text-xs px-2.5 py-1 bg-white dark:bg-slate-800 hover:bg-brand-50 dark:hover:bg-brand-900/40 text-brand-700 dark:text-brand-300 rounded border border-brand-200 dark:border-brand-700 flex items-center gap-1 font-medium transition"
+                              title="Configure sections and pages"
+                            >
+                              <span>⚙️ Pages</span>
+                              {pageCount > 0 && (
+                                <span className="bg-brand text-white text-[10px] px-1.5 py-0.2 rounded-full font-bold">
+                                  {pageCount}
+                                </span>
+                              )}
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
 

@@ -45,6 +45,7 @@ export default function ReceiptVoucherList() {
   const [viewMode, setViewMode] = useViewMode();
   const { canPerformAction } = usePermission();
   const location = useLocation();
+  const isPos = Boolean(location.pathname?.startsWith("/pos"));
   const [items, setItems] = useState([]);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -1287,8 +1288,8 @@ export default function ReceiptVoucherList() {
             <p className="text-sm mt-1">List, review, and manage vouchers</p>
           </div>
           <div className="flex gap-2">
-            <Link to="/finance?section=Voucher%20Management" className="font-sans btn btn-secondary">
-              Return to Menu
+            <Link to={isPos ? "/pos" : "/finance?section=Voucher%20Management"} className="font-sans btn btn-secondary">
+              {isPos ? "← Return to POS" : "Return to Menu"}
             </Link>
             <button
               type="button"
@@ -1401,7 +1402,7 @@ export default function ReceiptVoucherList() {
                           {/* Slot 1: View */}
                           <div className="min-w-[80px]">
                             <Link
-                              to={`/finance/${basePath}/${v.id}?mode=view`}
+                              to={`${isPos ? "/pos/finance" : "/finance"}/${basePath}/${v.id}?mode=view`}
                               data-rbac-exempt="true"
                               className="w-full inline-flex items-center justify-center px-4 py-1.5 text-sm font-medium text-slate-700 bg-slate-100 border border-slate-200 rounded-lg hover:bg-slate-200 transition-colors h-9"
                             >
@@ -1417,7 +1418,7 @@ export default function ReceiptVoucherList() {
                               String(v.status || "").toUpperCase(),
                             ) ? (
                               <Link
-                                to={`/finance/${basePath}/${v.id}?mode=edit`}
+                                to={`${isPos ? "/pos/finance" : "/finance"}/${basePath}/${v.id}?mode=edit`}
                                 className="w-full inline-flex items-center justify-center px-4 py-1.5 text-sm font-medium text-slate-700 bg-slate-100 border border-slate-200 rounded-lg hover:bg-slate-200 transition-colors h-9"
                               >
                                 Edit
@@ -1460,6 +1461,7 @@ export default function ReceiptVoucherList() {
                           </div>
 
                           {/* Slot 6: Workflow/Approval */}
+                          {!isPos && (
                           <div className="min-w-[160px]">
                             {(isRV || isCV || isJV || isPAYV) && (
                               <div className="list-approval-slot">
@@ -1500,6 +1502,7 @@ export default function ReceiptVoucherList() {
                               </div>
                             )}
                           </div>
+                          )}
                         </div>
                       </td>
                       {(isPAYV || isRV || isJV) && <td className="py-2">{v.created_by_username || v.created_by_name || "-"}</td>}
@@ -1514,7 +1517,7 @@ export default function ReceiptVoucherList() {
 )}
         </div>
       </div>
-      {showForwardModal ? (
+      {!isPos && showForwardModal ? (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex justify-center items-start p-4 sm:p-6 md:p-10 z-50 animate-fadeIn">
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden my-auto sm:my-8 transition-all">
             <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-white dark:bg-slate-900">

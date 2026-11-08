@@ -6,7 +6,7 @@
  */
 
 import React, { useEffect, useMemo, useState, useCallback } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import {
   Layers,
   FolderTree,
@@ -15,6 +15,8 @@ import {
   Plus,
   Search,
   X,
+  Edit,
+  Eye,
 } from "lucide-react";
 import { api } from "api/client";
 import { toast } from "react-toastify";
@@ -35,6 +37,8 @@ const UOM_TYPES = [
  * @returns {JSX.Element} The rendered component
  */
 export default function ItemGroupsList() {
+  const location = useLocation();
+  const isPos = location.pathname.startsWith("/pos");
   const [searchTerm, setSearchTerm] = useState("");
 
   const [itemTypes, setItemTypes] = useState([]);
@@ -426,9 +430,9 @@ const DEFAULT_PRESET_ITEM_TYPES = [
   }, [uoms, searchTerm]);
 
   return (
-    <div className="space-y-6 no-overview" data-no-overview="true">
+    <div className="space-y-6 no-overview" data-no-overview="true" data-rbac-exempt="true">
       {/* Top Banner Card */}
-      <div className="card bg-brand text-white rounded-xl overflow-hidden shadow">
+      <div className="card bg-brand text-white rounded-xl overflow-hidden shadow" data-rbac-exempt="true">
         <div className="p-6">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             <div>
@@ -439,12 +443,13 @@ const DEFAULT_PRESET_ITEM_TYPES = [
                 Manage your catalog hierarchy: Item Types &rarr; Item Groups &rarr; Item Categories, and Units of Measure.
               </p>
             </div>
-            <div className="flex flex-wrap gap-2 w-full md:w-auto">
+            <div className="flex flex-wrap gap-2 w-full md:w-auto" data-rbac-exempt="true">
               <Link
-                to="/inventory?section=Stock%20Operations"
+                to={isPos ? "/pos" : "/inventory?section=Stock%20Operations"}
                 className="btn btn-secondary text-sm"
+                data-rbac-exempt="true"
               >
-                Return to Menu
+                {isPos ? "← Return to POS" : "Return to Menu"}
               </Link>
               <button
                 type="button"
@@ -461,7 +466,7 @@ const DEFAULT_PRESET_ITEM_TYPES = [
       </div>
 
       {/* Global Search and Classification Pills */}
-      <div className="card p-4 border border-slate-200 dark:border-slate-800 shadow-sm rounded-xl">
+      <div className="card p-4 border border-slate-200 dark:border-slate-800 shadow-sm rounded-xl" data-rbac-exempt="true">
         <div className="flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="relative w-full md:max-w-md">
             <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
@@ -492,9 +497,9 @@ const DEFAULT_PRESET_ITEM_TYPES = [
       </div>
 
       {/* Equal Width Two-Grid Layout for Classification Sections */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 w-full items-stretch">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 w-full items-stretch" data-rbac-exempt="true">
         {/* Grid 1: Item Types */}
-        <div className="card flex flex-col h-full w-full min-w-0 border border-slate-200 dark:border-slate-800 shadow-sm rounded-xl overflow-hidden">
+        <div className="card flex flex-col h-full w-full min-w-0 border border-slate-200 dark:border-slate-800 shadow-sm rounded-xl overflow-hidden" data-rbac-exempt="true">
           <div className="card-header bg-brand text-white p-4">
             <div className="flex justify-between items-center">
               <div className="flex items-center gap-2.5">
@@ -515,6 +520,7 @@ const DEFAULT_PRESET_ITEM_TYPES = [
                 type="button"
                 onClick={() => handleOpenModal("type", "create")}
                 className="btn-success btn-sm flex items-center gap-1.5 text-xs font-semibold"
+                data-rbac-exempt="true"
               >
                 <Plus className="w-3.5 h-3.5" />
                 <span>Add Type</span>
@@ -522,28 +528,29 @@ const DEFAULT_PRESET_ITEM_TYPES = [
             </div>
           </div>
 
-          <div className="card-body p-0 flex-1 flex flex-col">
+          <div className="card-body p-0 flex-1 flex flex-col" data-rbac-exempt="true">
             {typesError && (
               <div className="p-3 text-xs text-red-600 bg-red-50 border-b border-red-100">{typesError}</div>
             )}
-            <div className="overflow-x-auto flex-1 max-h-[380px] overflow-y-auto">
+            <div className="overflow-x-auto flex-1 max-h-[380px] overflow-y-auto" data-rbac-exempt="true">
               <table
-                className="w-full min-w-[520px] border-collapse text-sm"
+                className="w-full border-collapse text-sm"
                 style={{ width: "100%", tableLayout: "fixed" }}
+                data-rbac-exempt="true"
               >
                 <colgroup>
-                  <col style={{ width: "45%" }} />
-                  <col style={{ width: "25%" }} />
-                  <col style={{ width: "30%" }} />
+                  <col style={{ width: "50%" }} />
+                  <col style={{ width: "24%" }} />
+                  <col style={{ width: "26%" }} />
                 </colgroup>
                 <thead className="sticky top-0 bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700 z-10">
                   <tr>
-                    <th style={{ width: "45%" }} className="py-2.5 px-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Name</th>
-                    <th style={{ width: "25%" }} className="py-2.5 px-3 text-center text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Active</th>
-                    <th style={{ width: "30%" }} className="py-2.5 px-3 text-right text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Actions</th>
+                    <th style={{ width: "50%" }} className="py-2.5 px-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Name</th>
+                    <th style={{ width: "24%" }} className="py-2.5 px-3 text-center text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Active</th>
+                    <th style={{ width: "26%" }} className="py-2.5 px-3 text-right text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800" data-rbac-exempt="true">
                   {typesLoading ? (
                     <tr>
                       <td colSpan="3" className="text-center py-8 text-slate-400">Loading item types...</td>
@@ -557,22 +564,35 @@ const DEFAULT_PRESET_ITEM_TYPES = [
                       const isActive = t.is_active === 1 || t.is_active === true || t.is_active === "Y";
                       return (
                         <tr key={t.id || t.type_code} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/40">
-                          <td style={{ width: "45%" }} className="py-2.5 px-3 text-slate-700 dark:text-slate-300 font-medium truncate" title={t.type_name || t.name}>
+                          <td style={{ width: "50%" }} className="py-2.5 px-3 text-slate-700 dark:text-slate-300 font-medium truncate" title={t.type_name || t.name}>
                             {t.type_name || t.name}
                           </td>
-                          <td style={{ width: "25%" }} className="py-2.5 px-3 text-center">
+                          <td style={{ width: "24%" }} className="py-2.5 px-3 text-center">
                             <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${isActive ? "bg-emerald-50 text-emerald-700 border border-emerald-200" : "bg-slate-100 text-slate-600"}`}>
                               {isActive ? "Active" : "Inactive"}
                             </span>
                           </td>
-                          <td style={{ width: "30%" }} className="py-2.5 px-3 text-right whitespace-nowrap">
-                            <button
-                              type="button"
-                              onClick={() => handleOpenModal("type", "edit", t)}
-                              className="inline-flex items-center gap-1 text-xs text-indigo-600 hover:text-indigo-800 font-semibold"
-                            >
-                              Edit
-                            </button>
+                          <td style={{ width: "26%" }} className="py-2 px-3 text-right whitespace-nowrap" data-rbac-exempt="true">
+                            <div className="flex items-center justify-end gap-1.5 whitespace-nowrap" data-rbac-exempt="true">
+                              <button
+                                type="button"
+                                onClick={() => handleOpenModal("type", "view", t)}
+                                className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-colors border border-slate-200 dark:border-slate-700"
+                                data-rbac-exempt="true"
+                              >
+                                <Eye className="w-3.5 h-3.5" />
+                                <span>View</span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleOpenModal("type", "edit", t)}
+                                className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-lg bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/60 dark:hover:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 transition-colors shadow-xs active:scale-95"
+                                data-rbac-exempt="true"
+                              >
+                                <Edit className="w-3.5 h-3.5" />
+                                <span>Edit</span>
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       );
@@ -585,7 +605,7 @@ const DEFAULT_PRESET_ITEM_TYPES = [
         </div>
 
         {/* Grid 2: Item Groups */}
-        <div className="card flex flex-col h-full w-full min-w-0 border border-slate-200 dark:border-slate-800 shadow-sm rounded-xl overflow-hidden">
+        <div className="card flex flex-col h-full w-full min-w-0 border border-slate-200 dark:border-slate-800 shadow-sm rounded-xl overflow-hidden" data-rbac-exempt="true">
           <div className="card-header bg-brand text-white p-4">
             <div className="flex justify-between items-center">
               <div className="flex items-center gap-2.5">
@@ -606,6 +626,7 @@ const DEFAULT_PRESET_ITEM_TYPES = [
                 type="button"
                 onClick={() => handleOpenModal("group", "create")}
                 className="btn-success btn-sm flex items-center gap-1.5 text-xs font-semibold"
+                data-rbac-exempt="true"
               >
                 <Plus className="w-3.5 h-3.5" />
                 <span>Add Group</span>
@@ -613,30 +634,31 @@ const DEFAULT_PRESET_ITEM_TYPES = [
             </div>
           </div>
 
-          <div className="card-body p-0 flex-1 flex flex-col">
+          <div className="card-body p-0 flex-1 flex flex-col" data-rbac-exempt="true">
             {groupsError && (
               <div className="p-3 text-xs text-red-600 bg-red-50 border-b border-red-100">{groupsError}</div>
             )}
-            <div className="overflow-x-auto flex-1 max-h-[380px] overflow-y-auto">
+            <div className="overflow-x-auto flex-1 max-h-[380px] overflow-y-auto" data-rbac-exempt="true">
               <table
-                className="w-full min-w-[560px] border-collapse text-sm"
+                className="w-full border-collapse text-sm"
                 style={{ width: "100%", tableLayout: "fixed" }}
+                data-rbac-exempt="true"
               >
                 <colgroup>
+                  <col style={{ width: "30%" }} />
                   <col style={{ width: "28%" }} />
-                  <col style={{ width: "32%" }} />
-                  <col style={{ width: "18%" }} />
-                  <col style={{ width: "22%" }} />
+                  <col style={{ width: "16%" }} />
+                  <col style={{ width: "26%" }} />
                 </colgroup>
                 <thead className="sticky top-0 bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700 z-10">
                   <tr>
-                    <th style={{ width: "28%" }} className="py-2.5 px-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Name</th>
-                    <th style={{ width: "32%" }} className="py-2.5 px-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Item Type</th>
-                    <th style={{ width: "18%" }} className="py-2.5 px-3 text-center text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Active</th>
-                    <th style={{ width: "22%" }} className="py-2.5 px-3 text-right text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Actions</th>
+                    <th style={{ width: "30%" }} className="py-2.5 px-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Name</th>
+                    <th style={{ width: "28%" }} className="py-2.5 px-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Item Type</th>
+                    <th style={{ width: "16%" }} className="py-2.5 px-3 text-center text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Active</th>
+                    <th style={{ width: "26%" }} className="py-2.5 px-3 text-right text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800" data-rbac-exempt="true">
                   {groupsLoading ? (
                     <tr>
                       <td colSpan="4" className="text-center py-8 text-slate-400">Loading item groups...</td>
@@ -650,10 +672,10 @@ const DEFAULT_PRESET_ITEM_TYPES = [
                       const isActive = g.is_active === 1 || g.is_active === true || g.is_active === "Y";
                       return (
                         <tr key={g.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/40">
-                          <td style={{ width: "28%" }} className="py-2.5 px-3 text-slate-700 dark:text-slate-300 font-medium truncate" title={g.group_name}>
+                          <td style={{ width: "30%" }} className="py-2.5 px-3 text-slate-700 dark:text-slate-300 font-medium truncate" title={g.group_name}>
                             {g.group_name}
                           </td>
-                          <td style={{ width: "32%" }} className="py-2.5 px-3 truncate">
+                          <td style={{ width: "28%" }} className="py-2.5 px-3 truncate">
                             {g.item_type_name || g.item_type_code ? (
                               <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-semibold bg-indigo-50 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 truncate" title={g.item_type_name || g.item_type_code}>
                                 {g.item_type_name || g.item_type_code}
@@ -662,26 +684,30 @@ const DEFAULT_PRESET_ITEM_TYPES = [
                               <span className="text-xs text-slate-400 italic">None</span>
                             )}
                           </td>
-                          <td style={{ width: "18%" }} className="py-2.5 px-3 text-center">
+                          <td style={{ width: "16%" }} className="py-2.5 px-3 text-center">
                             <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${isActive ? "bg-emerald-50 text-emerald-700 border border-emerald-200" : "bg-slate-100 text-slate-600"}`}>
                               {isActive ? "Active" : "Inactive"}
                             </span>
                           </td>
-                          <td style={{ width: "22%" }} className="py-2.5 px-3 text-right">
-                            <div className="flex items-center justify-end gap-1 whitespace-nowrap">
+                          <td style={{ width: "26%" }} className="py-2 px-3 text-right" data-rbac-exempt="true">
+                            <div className="flex items-center justify-end gap-1.5 whitespace-nowrap" data-rbac-exempt="true">
                               <button
                                 type="button"
                                 onClick={() => handleOpenModal("group", "view", g)}
-                                className="px-1.5 py-0.5 text-xs font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 rounded transition-colors"
+                                className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-colors border border-slate-200 dark:border-slate-700"
+                                data-rbac-exempt="true"
                               >
-                                View
+                                <Eye className="w-3.5 h-3.5" />
+                                <span>View</span>
                               </button>
                               <button
                                 type="button"
                                 onClick={() => handleOpenModal("group", "edit", g)}
-                                className="px-1.5 py-0.5 text-xs font-medium text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded transition-colors"
+                                className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 rounded-lg transition-colors border border-emerald-200 dark:border-emerald-800 shadow-xs active:scale-95"
+                                data-rbac-exempt="true"
                               >
-                                Edit
+                                <Edit className="w-3.5 h-3.5" />
+                                <span>Edit</span>
                               </button>
                             </div>
                           </td>
@@ -696,7 +722,7 @@ const DEFAULT_PRESET_ITEM_TYPES = [
         </div>
 
         {/* Grid 3: Item Categories */}
-        <div className="card flex flex-col h-full w-full min-w-0 border border-slate-200 dark:border-slate-800 shadow-sm rounded-xl overflow-hidden">
+        <div className="card flex flex-col h-full w-full min-w-0 border border-slate-200 dark:border-slate-800 shadow-sm rounded-xl overflow-hidden" data-rbac-exempt="true">
           <div className="card-header bg-brand text-white p-4">
             <div className="flex justify-between items-center">
               <div className="flex items-center gap-2.5">
@@ -717,6 +743,7 @@ const DEFAULT_PRESET_ITEM_TYPES = [
                 type="button"
                 onClick={() => handleOpenModal("category", "create")}
                 className="btn-success btn-sm flex items-center gap-1.5 text-xs font-semibold"
+                data-rbac-exempt="true"
               >
                 <Plus className="w-3.5 h-3.5" />
                 <span>Add Category</span>
@@ -724,30 +751,31 @@ const DEFAULT_PRESET_ITEM_TYPES = [
             </div>
           </div>
 
-          <div className="card-body p-0 flex-1 flex flex-col">
+          <div className="card-body p-0 flex-1 flex flex-col" data-rbac-exempt="true">
             {categoriesError && (
               <div className="p-3 text-xs text-red-600 bg-red-50 border-b border-red-100">{categoriesError}</div>
             )}
-            <div className="overflow-x-auto flex-1 max-h-[380px] overflow-y-auto">
+            <div className="overflow-x-auto flex-1 max-h-[380px] overflow-y-auto" data-rbac-exempt="true">
               <table
-                className="w-full min-w-[560px] border-collapse text-sm"
+                className="w-full border-collapse text-sm"
                 style={{ width: "100%", tableLayout: "fixed" }}
+                data-rbac-exempt="true"
               >
                 <colgroup>
-                  <col style={{ width: "32%" }} />
-                  <col style={{ width: "34%" }} />
-                  <col style={{ width: "17%" }} />
-                  <col style={{ width: "17%" }} />
+                  <col style={{ width: "35%" }} />
+                  <col style={{ width: "30%" }} />
+                  <col style={{ width: "15%" }} />
+                  <col style={{ width: "20%" }} />
                 </colgroup>
                 <thead className="sticky top-0 bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700 z-10">
                   <tr>
-                    <th style={{ width: "32%" }} className="py-2.5 px-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Name</th>
-                    <th style={{ width: "34%" }} className="py-2.5 px-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Item Group</th>
-                    <th style={{ width: "17%" }} className="py-2.5 px-3 text-center text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Active</th>
-                    <th style={{ width: "17%" }} className="py-2.5 px-3 text-right text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Actions</th>
+                    <th style={{ width: "35%" }} className="py-2.5 px-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Name</th>
+                    <th style={{ width: "30%" }} className="py-2.5 px-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Item Group</th>
+                    <th style={{ width: "15%" }} className="py-2.5 px-3 text-center text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Active</th>
+                    <th style={{ width: "20%" }} className="py-2.5 px-3 text-right text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800" data-rbac-exempt="true">
                   {categoriesLoading ? (
                     <tr>
                       <td colSpan="4" className="text-center py-8 text-slate-400">Loading item categories...</td>
@@ -761,10 +789,10 @@ const DEFAULT_PRESET_ITEM_TYPES = [
                       const isActive = c.is_active === 1 || c.is_active === true || c.is_active === "Y";
                       return (
                         <tr key={c.id || c.category_code} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/40">
-                          <td style={{ width: "32%" }} className="py-2.5 px-3 text-slate-700 dark:text-slate-300 font-medium truncate" title={c.category_name}>
+                          <td style={{ width: "35%" }} className="py-2.5 px-3 text-slate-700 dark:text-slate-300 font-medium truncate" title={c.category_name}>
                             {c.category_name}
                           </td>
-                          <td style={{ width: "34%" }} className="py-2.5 px-3 truncate">
+                          <td style={{ width: "30%" }} className="py-2.5 px-3 truncate">
                             {c.item_group_name || c.item_group_code ? (
                               <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-semibold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 truncate" title={c.item_group_name || c.item_group_code}>
                                 {c.item_group_name || c.item_group_code}
@@ -773,19 +801,32 @@ const DEFAULT_PRESET_ITEM_TYPES = [
                               <span className="text-xs text-slate-400 italic">None</span>
                             )}
                           </td>
-                          <td style={{ width: "17%" }} className="py-2.5 px-3 text-center">
+                          <td style={{ width: "15%" }} className="py-2.5 px-3 text-center">
                             <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${isActive ? "bg-emerald-50 text-emerald-700 border border-emerald-200" : "bg-slate-100 text-slate-600"}`}>
                               {isActive ? "Active" : "Inactive"}
                             </span>
                           </td>
-                          <td style={{ width: "17%" }} className="py-2.5 px-3 text-right whitespace-nowrap">
-                            <button
-                              type="button"
-                              onClick={() => handleOpenModal("category", "edit", c)}
-                              className="inline-flex items-center gap-1 text-xs text-amber-600 hover:text-amber-800 font-semibold"
-                            >
-                              Edit
-                            </button>
+                          <td style={{ width: "20%" }} className="py-2 px-3 text-right whitespace-nowrap" data-rbac-exempt="true">
+                            <div className="flex items-center justify-end gap-1.5 whitespace-nowrap" data-rbac-exempt="true">
+                              <button
+                                type="button"
+                                onClick={() => handleOpenModal("category", "view", c)}
+                                className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-colors border border-slate-200 dark:border-slate-700"
+                                data-rbac-exempt="true"
+                              >
+                                <Eye className="w-3.5 h-3.5" />
+                                <span>View</span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleOpenModal("category", "edit", c)}
+                                className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-lg bg-amber-50 hover:bg-amber-100 dark:bg-amber-950/60 dark:hover:bg-amber-900/60 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 transition-colors shadow-xs active:scale-95"
+                                data-rbac-exempt="true"
+                              >
+                                <Edit className="w-3.5 h-3.5" />
+                                <span>Edit</span>
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       );
@@ -798,7 +839,7 @@ const DEFAULT_PRESET_ITEM_TYPES = [
         </div>
 
         {/* Grid 4: Units of Measure */}
-        <div className="card flex flex-col h-full w-full min-w-0 border border-slate-200 dark:border-slate-800 shadow-sm rounded-xl overflow-hidden">
+        <div className="card flex flex-col h-full w-full min-w-0 border border-slate-200 dark:border-slate-800 shadow-sm rounded-xl overflow-hidden" data-rbac-exempt="true">
           <div className="card-header bg-brand text-white p-4">
             <div className="flex justify-between items-center">
               <div className="flex items-center gap-2.5">
@@ -819,6 +860,7 @@ const DEFAULT_PRESET_ITEM_TYPES = [
                 type="button"
                 onClick={() => handleOpenModal("uom", "create")}
                 className="btn-success btn-sm flex items-center gap-1.5 text-xs font-semibold"
+                data-rbac-exempt="true"
               >
                 <Plus className="w-3.5 h-3.5" />
                 <span>Add UOM</span>
@@ -826,30 +868,31 @@ const DEFAULT_PRESET_ITEM_TYPES = [
             </div>
           </div>
 
-          <div className="card-body p-0 flex-1 flex flex-col">
+          <div className="card-body p-0 flex-1 flex flex-col" data-rbac-exempt="true">
             {uomsError && (
               <div className="p-3 text-xs text-red-600 bg-red-50 border-b border-red-100">{uomsError}</div>
             )}
-            <div className="overflow-x-auto flex-1 max-h-[380px] overflow-y-auto">
+            <div className="overflow-x-auto flex-1 max-h-[380px] overflow-y-auto" data-rbac-exempt="true">
               <table
-                className="w-full min-w-[560px] border-collapse text-sm"
+                className="w-full border-collapse text-sm"
                 style={{ width: "100%", tableLayout: "fixed" }}
+                data-rbac-exempt="true"
               >
                 <colgroup>
-                  <col style={{ width: "34%" }} />
-                  <col style={{ width: "32%" }} />
-                  <col style={{ width: "17%" }} />
-                  <col style={{ width: "17%" }} />
+                  <col style={{ width: "35%" }} />
+                  <col style={{ width: "30%" }} />
+                  <col style={{ width: "15%" }} />
+                  <col style={{ width: "20%" }} />
                 </colgroup>
                 <thead className="sticky top-0 bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700 z-10">
                   <tr>
-                    <th style={{ width: "34%" }} className="py-2.5 px-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Name</th>
-                    <th style={{ width: "32%" }} className="py-2.5 px-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Type</th>
-                    <th style={{ width: "17%" }} className="py-2.5 px-3 text-center text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Active</th>
-                    <th style={{ width: "17%" }} className="py-2.5 px-3 text-right text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Actions</th>
+                    <th style={{ width: "35%" }} className="py-2.5 px-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Name</th>
+                    <th style={{ width: "30%" }} className="py-2.5 px-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Type</th>
+                    <th style={{ width: "15%" }} className="py-2.5 px-3 text-center text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Active</th>
+                    <th style={{ width: "20%" }} className="py-2.5 px-3 text-right text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800" data-rbac-exempt="true">
                   {uomsLoading ? (
                     <tr>
                       <td colSpan="4" className="text-center py-8 text-slate-400">Loading units of measure...</td>
@@ -863,27 +906,40 @@ const DEFAULT_PRESET_ITEM_TYPES = [
                       const isActive = u.is_active === 1 || u.is_active === true || u.is_active === "Y";
                       return (
                         <tr key={u.id || u.uom_code} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/40">
-                          <td style={{ width: "34%" }} className="py-2.5 px-3 text-slate-700 dark:text-slate-300 font-medium truncate" title={u.uom_name || u.name}>
+                          <td style={{ width: "35%" }} className="py-2.5 px-3 text-slate-700 dark:text-slate-300 font-medium truncate" title={u.uom_name || u.name}>
                             {u.uom_name || u.name}
                           </td>
-                          <td style={{ width: "32%" }} className="py-2.5 px-3 truncate">
+                          <td style={{ width: "30%" }} className="py-2.5 px-3 truncate">
                             <span className="inline-flex px-2 py-0.5 rounded text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
                               {u.uom_type || u.type || "COUNT"}
                             </span>
                           </td>
-                          <td style={{ width: "17%" }} className="py-2.5 px-3 text-center">
+                          <td style={{ width: "15%" }} className="py-2.5 px-3 text-center">
                             <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${isActive ? "bg-emerald-50 text-emerald-700 border border-emerald-200" : "bg-slate-100 text-slate-600"}`}>
                               {isActive ? "Active" : "Inactive"}
                             </span>
                           </td>
-                          <td style={{ width: "17%" }} className="py-2.5 px-3 text-right whitespace-nowrap">
-                            <button
-                              type="button"
-                              onClick={() => handleOpenModal("uom", "edit", u)}
-                              className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 font-semibold"
-                            >
-                              Edit
-                            </button>
+                          <td style={{ width: "20%" }} className="py-2 px-3 text-right whitespace-nowrap" data-rbac-exempt="true">
+                            <div className="flex items-center justify-end gap-1.5 whitespace-nowrap" data-rbac-exempt="true">
+                              <button
+                                type="button"
+                                onClick={() => handleOpenModal("uom", "view", u)}
+                                className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-colors border border-slate-200 dark:border-slate-700"
+                                data-rbac-exempt="true"
+                              >
+                                <Eye className="w-3.5 h-3.5" />
+                                <span>View</span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleOpenModal("uom", "edit", u)}
+                                className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-lg bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/60 dark:hover:bg-blue-900/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 transition-colors shadow-xs active:scale-95"
+                                data-rbac-exempt="true"
+                              >
+                                <Edit className="w-3.5 h-3.5" />
+                                <span>Edit</span>
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       );

@@ -4074,13 +4074,15 @@ router.get(
          LEFT JOIN inv_items it ON it.id = d.item_id AND it.company_id = i.company_id
          WHERE i.customer_id = ?
            AND i.company_id = ?
-           AND (i.branch_id = ? OR i.branch_id IS NULL)
-           AND (i.payment_status = 'UNPAID' OR i.payment_status = 'PARTIALLY_PAID')
-           AND i.status = 'POSTED'
+           AND (? IS NULL OR ? = 0 OR i.branch_id = ? OR i.branch_id IS NULL)
+           AND COALESCE(i.balance_amount, i.net_amount) > 0.01
+           AND UPPER(COALESCE(i.payment_status, '')) NOT IN ('FULLY PAID', 'PAID', 'SETTLED', 'CLOSED')
+           AND (i.status IS NULL OR i.status NOT IN ('CANCELLED', 'VOID', 'REJECTED'))
          GROUP BY i.id, i.invoice_no, i.invoice_date, i.net_amount,
                   i.balance_amount, i.payment_status, i.due_date, c.customer_name
          ORDER BY i.invoice_date DESC`;
-      const invoiceParams = [customerId, companyId, branchId];
+      const effectiveBranch = branchId || null;
+      const invoiceParams = [customerId, companyId, effectiveBranch, effectiveBranch, effectiveBranch];
       const invoiceRows = await query(sql, invoiceParams);
 
       const invoices = (invoiceRows || []).map((row) => ({

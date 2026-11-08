@@ -50,7 +50,11 @@ export function checkModuleAccess(moduleKey) {
         url.includes("/sales/price-types") ||
         url.includes("/sales/zones") ||
         url.includes("/sales/return-reasons") ||
-        url.includes("/sales/sales-persons")
+        url.includes("/sales/sales-persons") ||
+        url.includes("/sales/customers") ||
+        url.includes("/sales/invoices/outstanding-by-account") ||
+        url.includes("/purchase/suppliers") ||
+        url.includes("/purchase/bills/outstanding-by-account")
       ) {
         return next();
       }
@@ -105,6 +109,20 @@ export function checkModuleAccess(moduleKey) {
         { roleId, moduleKey },
       );
       if (!rows.length) {
+        // Fallback: If user has POS module access, grant access to finance vouchers and cash desk endpoints
+        if (moduleKey === "finance" || moduleKey === "purchase" || moduleKey === "sales" || moduleKey === "inventory") {
+          const hasPos = await query(
+            `SELECT 1 FROM adm_role_modules 
+             WHERE role_id = :roleId
+               AND (LOWER(module_key) = 'pos' OR module_key = '*')
+             LIMIT 1`,
+            { roleId },
+          ).catch(() => []);
+          if (hasPos && hasPos.length) {
+            return next();
+          }
+        }
+
         // Fallback: Check if there is view permission for this module in adm_role_permissions
         const permRows = await query(
           `SELECT 1
@@ -205,6 +223,18 @@ export function checkFeatureAccess(featureKey) {
       );
 
       if (!moduleAccess.length) {
+        if (moduleKey === "finance" || moduleKey === "sales" || moduleKey === "purchase" || moduleKey === "inventory") {
+          const hasPos = await query(
+            `SELECT 1 FROM adm_role_modules 
+             WHERE role_id = :roleId
+               AND (LOWER(module_key) = 'pos' OR module_key = '*')
+             LIMIT 1`,
+            { roleId },
+          ).catch(() => []);
+          if (hasPos && hasPos.length) {
+            return next();
+          }
+        }
         return next(httpError(403, "FORBIDDEN", "Module access denied"));
       }
 
@@ -281,6 +311,25 @@ export function checkFeatureAction(featureKey, action) {
                 : "can_view";
         const allowed = !!fallbackRow?.[0]?.[col];
         if (!allowed) {
+          if (
+            url.includes("/sales/customers") ||
+            url.includes("/purchase/suppliers") ||
+            url.includes("/sales/invoices/outstanding-by-account") ||
+            url.includes("/purchase/bills/outstanding-by-account") ||
+            url.includes("/finance/vouchers") ||
+            url.includes("/finance/accounts") || url.includes("/inventory/")
+          ) {
+            const hasPos = await query(
+              `SELECT 1 FROM adm_role_modules 
+               WHERE role_id = :roleId
+                 AND (LOWER(module_key) = 'pos' OR module_key = '*')
+               LIMIT 1`,
+              { roleId },
+            ).catch(() => []);
+            if (hasPos && hasPos.length) {
+              return next();
+            }
+          }
           return next(httpError(403, "FORBIDDEN", "Action not allowed"));
         }
 
@@ -321,6 +370,30 @@ export function checkModuleAction(moduleKey, action) {
         if (roleId === 1) return next();
 
         const actionKey = String(action || "view").toLowerCase();
+        const fullUrl = String(req.originalUrl || req.url || req.baseUrl || "").toLowerCase();
+        const isCommonLookup =
+          fullUrl.includes("/sales/customers") ||
+          fullUrl.includes("/purchase/suppliers") ||
+          fullUrl.includes("/sales/invoices/outstanding-by-account") ||
+          fullUrl.includes("/purchase/bills/outstanding-by-account");
+
+        if (isCommonLookup && actionKey === "view") {
+          return next();
+        }
+
+        const hasPos = await query(
+          "SELECT 1 FROM adm_role_modules WHERE role_id = :roleId AND LOWER(module_key) = 'pos' LIMIT 1",
+          { roleId },
+        );
+
+        if (
+          hasPos?.length &&
+          ["finance", "purchase", "sales", "inventory"].includes(String(moduleKey || "").toLowerCase())
+        ) {
+          if (actionKey === "view" || isCommonLookup || fullUrl.includes("/finance/vouchers") || fullUrl.includes("/sales/customers") || fullUrl.includes("/purchase/suppliers")) {
+            return next();
+          }
+        }
         // Check if the specific action is allowed at the module level based on adm_role_permissions
         const row = await query(
           `SELECT

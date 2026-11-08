@@ -67,24 +67,25 @@ export default function AppModeControlSection() {
     }
   }
 
-  async function handleSave() {
+  async function handleSelectMode(selectedMode) {
+    setMode(selectedMode);
     try {
       setSaving(true);
-      await api.post("/admin/settings/app-mode", { mode, module_section_view: moduleSectionView });
+      await api.post("/admin/settings/app-mode", { mode: selectedMode, module_section_view: moduleSectionView });
       try {
         if (typeof localStorage !== "undefined") {
-          localStorage.setItem("omnisuite.app_mode", mode);
+          localStorage.setItem("omnisuite.app_mode", selectedMode);
           localStorage.setItem("omnisuite.module_section_view", String(moduleSectionView));
         }
         window.dispatchEvent(
-          new CustomEvent("app-mode-changed", { detail: { mode } })
+          new CustomEvent("app-mode-changed", { detail: { mode: selectedMode } })
         );
         window.dispatchEvent(
           new CustomEvent("module-section-view-changed", { detail: { enabled: moduleSectionView } })
         );
       } catch {}
       toast.success(
-        mode === "BASIC"
+        selectedMode === "BASIC"
           ? "Basic Mode activated! Homepage & Module Homes streamlined."
           : "Standard Mode activated! Full enterprise view restored."
       );
@@ -93,6 +94,10 @@ export default function AppModeControlSection() {
     } finally {
       setSaving(false);
     }
+  }
+
+  async function handleSave() {
+    await handleSelectMode(mode);
   }
 
   return (
@@ -127,7 +132,7 @@ export default function AppModeControlSection() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Standard Mode Option */}
           <div
-            onClick={() => setMode("STANDARD")}
+            onClick={() => handleSelectMode("STANDARD")}
             className={`relative p-5 rounded-xl border-2 transition-all cursor-pointer flex flex-col justify-between ${
               mode === "STANDARD"
                 ? "border-brand-600 bg-brand-50/20 dark:bg-brand-950/20 shadow-md ring-1 ring-brand-500/30"
@@ -157,7 +162,7 @@ export default function AppModeControlSection() {
                   type="radio"
                   name="app_mode"
                   checked={mode === "STANDARD"}
-                  onChange={() => setMode("STANDARD")}
+                  onChange={() => handleSelectMode("STANDARD")}
                   className="h-4 w-4 text-brand-600 focus:ring-brand-500"
                 />
               </div>
@@ -185,7 +190,7 @@ export default function AppModeControlSection() {
 
           {/* Basic Mode Option */}
           <div
-            onClick={() => setMode("BASIC")}
+            onClick={() => handleSelectMode("BASIC")}
             className={`relative p-5 rounded-xl border-2 transition-all cursor-pointer flex flex-col justify-between ${
               mode === "BASIC"
                 ? "border-amber-600 bg-amber-50/20 dark:bg-amber-950/20 shadow-md ring-1 ring-amber-500/30"
@@ -217,7 +222,7 @@ export default function AppModeControlSection() {
                   type="radio"
                   name="app_mode"
                   checked={mode === "BASIC"}
-                  onChange={() => setMode("BASIC")}
+                  onChange={() => handleSelectMode("BASIC")}
                   className="h-4 w-4 text-amber-600 focus:ring-amber-500"
                 />
               </div>

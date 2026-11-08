@@ -45,7 +45,7 @@ const TEMPLATE_HEADERS = [
 
 export default function PurchaseUploadPage() {
   const { scope, user } = useAuth();
-  const { canAccessFeatureKey, isSuper } = usePermission();
+  const { canAccessFeatureKey, isSuper, hasAdminPagePermission } = usePermission();
   const fileRef = useRef(null);
 
   const [branches, setBranches] = useState([]);
@@ -61,7 +61,7 @@ export default function PurchaseUploadPage() {
   const [uploading, setUploading] = useState(false);
   const [uploadResult, setUploadResult] = useState(null);
 
-  const hasAccess = isSuper || canAccessFeatureKey("purchase", "purchase-upload");
+  const hasAccess = typeof hasAdminPagePermission === "function" ? hasAdminPagePermission("purchase:purchase-upload") : (Number(user?.id) === 1);
 
   useEffect(() => {
     if (!hasAccess) return;

@@ -4,7 +4,7 @@
  */
 
 import React, { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 
 import { api } from "api/client";
 import { filterAndSort } from "@/utils/searchUtils.js";
@@ -18,6 +18,9 @@ import ViewToggle from "@/components/ViewToggle";
  * @returns {JSX.Element} The rendered component
  */
 export default function TransferAcceptanceList() {
+  const location = useLocation();
+  const isPos = location.pathname.startsWith("/pos");
+  const baseRoute = isPos ? "/pos/inventory/transfer-acceptance" : "/inventory/transfer-acceptance";
   const [viewMode, setViewMode] = useViewMode();
   const [searchTerm, setSearchTerm] = useState("");
   const [items, setItems] = useState([]);
@@ -88,8 +91,8 @@ export default function TransferAcceptanceList() {
               </h1>
               <p className="text-sm mt-1">Receive transferred stock</p>
             </div>
-            <Link to="/inventory?section=Stock%20Operations" className="btn btn-secondary">
-              Return to Menu
+            <Link to={isPos ? "/pos" : "/inventory?section=Stock%20Operations"} className="btn btn-secondary">
+              {isPos ? "← Return to POS" : "Return to Menu"}
             </Link>
           </div>
         </div>
@@ -182,7 +185,7 @@ export default function TransferAcceptanceList() {
                     <td>
                       <div className="flex items-center gap-2 whitespace-nowrap">
                         <Link
-                          to={`/inventory/transfer-acceptance/${t.id}`}
+                          to={`${baseRoute}/${t.id}`}
                           className="inline-flex items-center justify-center px-4 py-1.5 text-sm font-medium text-slate-700 bg-slate-50 border border-slate-200 rounded-full hover:bg-slate-100 hover:text-slate-900 transition-colors"
                         >
                           Open

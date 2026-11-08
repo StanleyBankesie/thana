@@ -2697,6 +2697,9 @@ router.get(
     "PURCHASE.ORDER.MANAGE",
     "PURCHASE.GRN.MANAGE",
     "PURCHASE.BILL.MANAGE",
+    "POS.DIRECT_PURCHASE",
+    "POS.MANAGE",
+    "POS.VIEW",
   ]),
   async (req, res, next) => {
     try {
@@ -2784,6 +2787,8 @@ router.put(
     "PURCHASE.ORDER.MANAGE",
     "PURCHASE.GRN.MANAGE",
     "PURCHASE.BILL.MANAGE",
+    "POS.DIRECT_PURCHASE",
+    "POS.MANAGE",
   ]),
   async (req, res, next) => {
     const conn = await pool.getConnection();
@@ -3409,6 +3414,9 @@ router.get(
     "PURCHASE.ORDER.MANAGE",
     "PURCHASE.GRN.MANAGE",
     "PURCHASE.BILL.MANAGE",
+    "POS.DIRECT_PURCHASE",
+    "POS.MANAGE",
+    "POS.VIEW",
   ]),
   async (req, res, next) => {
     try {
@@ -6211,7 +6219,14 @@ router.get(
   requireAuth,
   requireCompanyScope,
   requireBranchScope,
-  requirePermission("PURCHASE.RFQ.VIEW"),
+  requireAnyPermission([
+    "PURCHASE.RFQ.VIEW",
+    "PURCHASE.ORDER.MANAGE",
+    "PURCHASE.BILL.MANAGE",
+    "POS.DIRECT_PURCHASE",
+    "POS.VIEW",
+    "POS.MANAGE",
+  ]),
   async (req, res, next) => {
     try {
       const { companyId = null, branchIdsStr = '' } = req.scope || {};
@@ -11856,6 +11871,8 @@ router.post(
     "PURCHASE.ORDER.MANAGE",
     "PURCHASE.GRN.MANAGE",
     "PURCHASE.BILL.MANAGE",
+    "POS.DIRECT_PURCHASE",
+    "POS.MANAGE",
   ]),
   async (req, res, next) => {
     const conn = await pool.getConnection();

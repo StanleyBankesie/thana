@@ -4,7 +4,7 @@
  */
 
 import React, { useEffect, useState, useMemo, useRef } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { api } from "../../../api/client";
 import { toast } from "react-toastify";
 import {
@@ -30,6 +30,8 @@ import {
  * @returns {JSX.Element} The rendered component
  */
 export default function StockReorderPage() {
+  const location = useLocation();
+  const isPos = location.pathname.startsWith("/pos");
   const [reorderPoints, setReorderPoints] = useState([]);
   const [items, setItems] = useState([]);
   const [warehouses, setWarehouses] = useState([]);
@@ -83,10 +85,10 @@ export default function StockReorderPage() {
     setLoading(true);
     try {
       const [rpRes, itemsRes, whRes, supRes] = await Promise.all([
-        api.get("/inventory/reorder-points"),
-        api.get("/inventory/items"),
-        api.get("/inventory/warehouses"),
-        api.get("/purchase/suppliers"),
+        api.get("/inventory/reorder-points").catch(() => ({ data: { items: [] } })),
+        api.get("/inventory/items").catch(() => ({ data: { items: [] } })),
+        api.get("/inventory/warehouses").catch(() => ({ data: { items: [] } })),
+        api.get("/purchase/suppliers").catch(() => ({ data: { items: [] } })),
       ]);
 
       setReorderPoints(rpRes.data.items || []);
@@ -325,8 +327,8 @@ export default function StockReorderPage() {
             >
               <Plus size={20} /> Add Reorder Point
             </button>
-            <Link to="/inventory?section=Stock%20Operations" className="btn btn-secondary">
-              Return to Menu
+            <Link to={isPos ? "/pos" : "/inventory?section=Stock%20Operations"} className="btn btn-secondary">
+              {isPos ? "← Return to POS" : "Return to Menu"}
             </Link>
           </div>
         </div>

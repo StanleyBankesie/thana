@@ -4,7 +4,7 @@
  */
 
 import React, { useEffect, useMemo, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import {
   CalendarCheck,
   Plus,
@@ -46,6 +46,9 @@ const STATUS_CONFIG = {
 
 export default function DailyStockTakeList() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const isPos = location.pathname.startsWith("/pos");
+  const baseRoute = isPos ? "/pos/inventory/daily-stock-take" : "/inventory/daily-stock-take";
   const [viewMode, setViewMode] = useViewMode();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
@@ -209,7 +212,7 @@ export default function DailyStockTakeList() {
     if (st === "DRAFT") {
       return (
         <Link
-          to={`/inventory/daily-stock-take/${s.id}`}
+          to={`${baseRoute}/${s.id}`}
           className="btn btn-sm btn-primary inline-flex items-center gap-1.5 text-xs"
         >
           <Play size={13} /> Start Count
@@ -219,7 +222,7 @@ export default function DailyStockTakeList() {
     if (st === "COUNTING" || st === "RECOUNT_REQUIRED") {
       return (
         <Link
-          to={`/inventory/daily-stock-take/${s.id}`}
+          to={`${baseRoute}/${s.id}`}
           className="btn btn-sm btn-warning inline-flex items-center gap-1.5 text-xs text-white"
         >
           <ClipboardCheck size={13} /> Count Items
@@ -229,7 +232,7 @@ export default function DailyStockTakeList() {
     if (st === "UNDER_REVIEW" || st === "COUNT_SUBMITTED") {
       return (
         <Link
-          to={`/inventory/daily-stock-take/${s.id}`}
+          to={`${baseRoute}/${s.id}`}
           className="btn btn-sm btn-outline border-amber-500 text-amber-700 hover:bg-amber-500 hover:text-white inline-flex items-center gap-1.5 text-xs"
         >
           <AlertTriangle size={13} /> Review & Approve
@@ -239,7 +242,7 @@ export default function DailyStockTakeList() {
     if (st === "APPROVED") {
       return (
         <Link
-          to={`/inventory/daily-stock-take/${s.id}`}
+          to={`${baseRoute}/${s.id}`}
           className="btn btn-sm btn-success inline-flex items-center gap-1.5 text-xs"
         >
           <CheckCircle2 size={13} /> Post Adjustment
@@ -248,7 +251,7 @@ export default function DailyStockTakeList() {
     }
     return (
       <Link
-        to={`/inventory/daily-stock-take/${s.id}`}
+        to={`${baseRoute}/${s.id}`}
         className="btn btn-sm btn-secondary inline-flex items-center gap-1.5 text-xs"
       >
         <Eye size={13} /> View Audit
@@ -271,8 +274,8 @@ export default function DailyStockTakeList() {
               </p>
             </div>
             <div className="flex flex-wrap gap-2 items-center">
-              <Link to="/inventory?section=Stock%20Operations" className="btn btn-secondary text-xs">
-                Return to Menu
+              <Link to={isPos ? "/pos" : "/inventory?section=Stock%20Operations"} className="btn btn-secondary text-xs">
+                {isPos ? "← Return to POS" : "Return to Menu"}
               </Link>
               <button onClick={exportExcel} disabled={!filtered.length} className="btn btn-outline btn-sm text-white border-white/30 hover:bg-white/10 flex items-center gap-1.5 text-xs">
                 <Download size={14} /> Excel
@@ -280,7 +283,7 @@ export default function DailyStockTakeList() {
               <button onClick={exportPDF} disabled={!filtered.length} className="btn btn-outline btn-sm text-white border-white/30 hover:bg-white/10 flex items-center gap-1.5 text-xs">
                 <Download size={14} /> PDF
               </button>
-              <Link to="/inventory/daily-stock-take/new" className="btn btn-success flex items-center gap-1.5 text-xs font-semibold">
+              <Link to={`${baseRoute}/new`} className="btn btn-success flex items-center gap-1.5 text-xs font-semibold">
                 <Plus size={15} /> New Daily Count
               </Link>
             </div>
@@ -384,7 +387,7 @@ export default function DailyStockTakeList() {
                 return (
                   <tr key={s.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/60 transition-colors">
                     <td className="py-3 px-3 font-mono font-bold text-brand-700 dark:text-brand-300">
-                      <Link to={`/inventory/daily-stock-take/${s.id}`} className="hover:underline">
+                      <Link to={`${baseRoute}/${s.id}`} className="hover:underline">
                         {s.stock_take_no || `DST-#${s.id}`}
                       </Link>
                     </td>
@@ -450,7 +453,7 @@ export default function DailyStockTakeList() {
         </div>
       </div>
 
-      <FloatingCreateButton to="/inventory/daily-stock-take/new" title="New Daily Stock Take" />
+      <FloatingCreateButton to={`${baseRoute}/new`} title="New Daily Stock Take" />
     </div>
   );
 }

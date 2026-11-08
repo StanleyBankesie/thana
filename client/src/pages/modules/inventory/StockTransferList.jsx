@@ -6,7 +6,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import ReverseApprovalButton from "../../../components/ReverseApprovalButton.jsx";
 import { Printer, FileText, Paperclip } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 
 import { api } from "api/client";
 import FloatingCreateButton from "@/components/FloatingCreateButton.jsx";
@@ -21,6 +21,9 @@ import ViewToggle from "@/components/ViewToggle";
  * @returns {JSX.Element} The rendered component
  */
 export default function StockTransferList() {
+  const location = useLocation();
+  const isPos = location.pathname.startsWith("/pos");
+  const baseRoute = isPos ? "/pos/inventory/stock-transfers" : "/inventory/stock-transfers";
   const [viewMode, setViewMode] = useViewMode();
   const [searchTerm, setSearchTerm] = useState("");
   const [page, setPage] = useState(1);
@@ -243,10 +246,10 @@ export default function StockTransferList() {
               </p>
             </div>
             <div className="flex gap-2">
-              <Link to="/inventory?section=Stock%20Operations" className="btn btn-secondary">
-                Return to Menu
+              <Link to={isPos ? "/pos" : "/inventory?section=Stock%20Operations"} className="btn btn-secondary">
+                {isPos ? "← Return to POS" : "Return to Menu"}
               </Link>
-              <Link to="/inventory/stock-transfers/new" className="btn-success">
+              <Link to={`${baseRoute}/new`} className="btn-success">
                 + New Transfer
               </Link>
             </div>
@@ -332,7 +335,7 @@ export default function StockTransferList() {
                       <div className="flex items-center gap-2 flex-wrap">
                         {/* View */}
                         <Link
-                          to={`/inventory/stock-transfers/${transfer.id}?mode=view`}
+                          to={`${baseRoute}/${transfer.id}?mode=view`}
                           className="inline-flex items-center justify-center px-3 py-1.5 text-sm font-medium text-slate-700 bg-slate-50 border border-slate-200 rounded-full hover:bg-slate-100 hover:text-slate-900 transition-colors"
                         >
                           View
@@ -341,7 +344,7 @@ export default function StockTransferList() {
                         {/* Edit — only for DRAFT */}
                         {transfer.status === "DRAFT" ? (
                           <Link
-                            to={`/inventory/stock-transfers/${transfer.id}?mode=edit`}
+                            to={`${baseRoute}/${transfer.id}?mode=edit`}
                             className="inline-flex items-center justify-center px-3 py-1.5 text-sm font-medium text-slate-700 bg-slate-50 border border-slate-200 rounded-full hover:bg-slate-100 hover:text-slate-900 transition-colors"
                           >
                             Edit
@@ -518,7 +521,7 @@ export default function StockTransferList() {
       )}
 
       <FloatingCreateButton
-        to="/inventory/stock-transfers/new"
+        to="${baseRoute}/new"
         title="New Stock Transfer"
       />
     </div>

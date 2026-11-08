@@ -1519,9 +1519,12 @@ function basePathFromRequestPath(p) {
     parts = parts.slice(0, parts.length - 1);
   }
   if (
-    parts[0] === "administration" &&
-    parts[1] === "access" &&
-    parts.length >= 3
+    (parts[0] === "pos" &&
+      (parts[1] === "inventory" || parts[1] === "finance" || parts[1] === "store") &&
+      parts.length >= 3) ||
+    (parts[0] === "administration" &&
+      parts[1] === "access" &&
+      parts.length >= 3)
   ) {
     return `/${parts.slice(0, 3).join("/")}`;
   }
@@ -2232,10 +2235,37 @@ router.get(
 // Page-level permissions snapshot for current user on a given path
 router.get("/page-permissions", requireAuth, async (req, res, next) => {
   try {
+    const rawId = process.env.LICENSE_SUPER_ADMIN_ID;
+    const superAdminId = rawId ? parseInt(String(rawId).trim(), 10) : 1;
     const userId = Number(req.user?.sub || req.user?.id);
     if (!Number.isFinite(userId) || userId <= 0) {
       return next(httpError(401, "UNAUTHORIZED", "Invalid user"));
     }
+
+    const userRole = String(req.user?.role || req.user?.role_name || "").toLowerCase();
+    const roleId = Number(req.user?.roleId || req.user?.role_id || 0);
+    const isSuper =
+      userId === 1 ||
+      userId === superAdminId ||
+      roleId === 1 ||
+      Boolean(req.user?.isSuperAdmin) ||
+      Boolean(req.user?.is_super_admin) ||
+      (Array.isArray(req.user?.permissions) && req.user.permissions.includes("*")) ||
+      ["admin", "superadmin", "super_admin"].includes(userRole);
+
+    const reqPath = String(req.query?.path || "").trim() || "/";
+    const base = basePathFromRequestPath(reqPath);
+
+    if (isSuper) {
+      return res.json({
+        path: base,
+        can_view: 1,
+        can_create: 1,
+        can_edit: 1,
+        can_delete: 1,
+      });
+    }
+
     try {
       await ensurePagesTable();
       await ensureUserPermissionsTable();
@@ -2243,42 +2273,93 @@ router.get("/page-permissions", requireAuth, async (req, res, next) => {
     } catch (e) {
       console.error("Error in ensure permission tables:", e);
     }
-    const reqPath = String(req.query?.path || "").trim() || "/";
-    const base = basePathFromRequestPath(reqPath);
+
+    const altPath = base.replace("/pos/inventory/", "/pos/").replace("/pos/finance/", "/pos/");
     let pages = await query(
       `SELECT id, path, feature_key,
           created_at,
           u.username AS created_by_name
          FROM adm_pages
         LEFT JOIN adm_users u ON u.id = created_by
-         WHERE path = :path AND is_active = 1 LIMIT 1`,
-      { path: base },
+         WHERE (path = :path OR path = :altPath) AND is_active = 1
+         ORDER BY CASE WHEN path = :path THEN 0 ELSE 1 END LIMIT 1`,
+      { path: base, altPath },
     );
     if (!pages.length) {
       const parts = base.split("/").filter(Boolean);
       const fallbackFeatureKey =
         parts[0] === "administration" && parts[1] === "access" && parts[2]
           ? `administration:${parts[2]}`
-          : parts.length >= 2
-            ? `${parts[0]}:${parts[1]}`
-            : null;
+          : (parts[0] === "pos" && (parts[1] === "inventory" || parts[1] === "finance" || parts[1] === "store") && parts[2])
+            ? `pos:${parts[2]}`
+            : parts.length >= 2
+              ? `${parts[0]}:${parts[1]}`
+              : null;
       if (fallbackFeatureKey) {
+        const shortKey = fallbackFeatureKey.includes(":") ? fallbackFeatureKey.split(":")[1] : fallbackFeatureKey;
         pages = await query(
           `SELECT id, path, feature_key,
               created_at,
               u.username AS created_by_name
              FROM adm_pages
             LEFT JOIN adm_users u ON u.id = created_by
-            WHERE feature_key = :featureKey
+            WHERE (feature_key = :featureKey OR feature_key = :shortKey)
               AND is_active = 1
             ORDER BY CASE WHEN path = :path THEN 0 ELSE 1 END,
                      LENGTH(COALESCE(path, '')) DESC
             LIMIT 1`,
-          { featureKey: fallbackFeatureKey, path: base },
+          { featureKey: fallbackFeatureKey, shortKey, path: base },
         );
       }
     }
     if (!pages.length) {
+      const parts = base.split("/").filter(Boolean);
+      const mod = parts[0] || "";
+      const feat = (parts[0] === "pos" && (parts[1] === "inventory" || parts[1] === "finance") && parts[2])
+        ? parts[2]
+        : parts[1] || "";
+      const modCheck = await query(
+        `SELECT 
+           MAX(rp.can_view) AS can_view,
+           MAX(rp.can_create) AS can_create,
+           MAX(rp.can_edit) AS can_edit,
+           MAX(rp.can_delete) AS can_delete
+         FROM adm_role_permissions rp
+         JOIN adm_users u ON u.role_id = rp.role_id
+         WHERE u.id = :uid 
+           AND (LOWER(rp.module_key) = LOWER(:mod) OR rp.module_key = '*')
+           AND (rp.feature_key = :feat OR rp.feature_key = '*' OR rp.feature_key IS NULL OR rp.feature_key = '')
+         LIMIT 1`,
+        { uid: userId, mod, feat },
+      ).catch(() => []);
+
+      const hasModAccess = await query(
+        `SELECT 1 FROM adm_role_modules rm
+         JOIN adm_users u ON u.role_id = rm.role_id
+         WHERE u.id = :uid AND (LOWER(rm.module_key) = LOWER(:mod) OR rm.module_key = '*') LIMIT 1`,
+        { uid: userId, mod },
+      ).catch(() => []);
+
+      if (modCheck?.length && (modCheck[0].can_view != null || modCheck[0].can_create != null)) {
+        return res.json({
+          path: base,
+          can_view: Number(modCheck[0].can_view) ? 1 : 0,
+          can_create: Number(modCheck[0].can_create) ? 1 : 0,
+          can_edit: Number(modCheck[0].can_edit) ? 1 : 0,
+          can_delete: Number(modCheck[0].can_delete) ? 1 : 0,
+        });
+      }
+
+      if (hasModAccess?.length) {
+        return res.json({
+          path: base,
+          can_view: 1,
+          can_create: 1,
+          can_edit: 1,
+          can_delete: 1,
+        });
+      }
+
       return res.json({
         path: base,
         can_view: 0,
@@ -2297,7 +2378,10 @@ router.get("/page-permissions", requireAuth, async (req, res, next) => {
     };
     try {
       const fk = String(page?.feature_key || "").trim() || null;
-      if (fk) {
+      const featureNameOnly = fk && fk.includes(":") ? fk.split(":")[1] : fk;
+      const parts = base.split("/").filter(Boolean);
+      const moduleKey = fk && fk.includes(":") ? fk.split(":")[0] : (parts[0] || "");
+      if (fk || featureNameOnly) {
         const agg = await query(
           `SELECT 
              MAX(rp.can_view)   AS can_view,
@@ -2310,11 +2394,23 @@ router.get("/page-permissions", requireAuth, async (req, res, next) => {
            JOIN adm_users u ON u.role_id = rp.role_id
         LEFT JOIN adm_users uc ON uc.id = rp.created_by
          WHERE u.id = :uid
-             AND (rp.feature_key = :fk OR rp.feature_key LIKE CONCAT(:fk, ':%'))
+             AND (
+               rp.feature_key = :fk 
+               OR rp.feature_key LIKE CONCAT(:fk, ':%')
+               OR (
+                 :featureNameOnly IS NOT NULL 
+                 AND (rp.feature_key = :featureNameOnly OR rp.feature_key LIKE CONCAT(:featureNameOnly, ':%'))
+                 AND (LOWER(rp.module_key) = LOWER(:moduleKey) OR rp.module_key = '*')
+               )
+               OR (
+                 LOWER(rp.module_key) = LOWER(:moduleKey) 
+                 AND (rp.feature_key = '*' OR rp.feature_key IS NULL)
+               )
+             )
            LIMIT 1`,
-          { uid: userId, fk },
+          { uid: userId, fk, featureNameOnly, moduleKey },
         );
-        if (agg.length) {
+        if (agg.length && agg[0].can_view != null) {
           roleDefaults = {
             can_view: Number(agg[0].can_view) ? 1 : 0,
             can_create: Number(agg[0].can_create) ? 1 : 0,
@@ -2772,11 +2868,30 @@ router.get("/user-permissions", requireAuth, async (req, res, next) => {
     }
 
     if (userId === 1) {
+      const companyId = Number(req.scope?.companyId || 1);
+      let licensedModules = ["*"];
+      try {
+        const licenseQuery = await query(
+          `SELECT id FROM adm_company_licenses WHERE company_id = :companyId ORDER BY id DESC LIMIT 1`,
+          { companyId }
+        );
+        if (licenseQuery && licenseQuery.length > 0) {
+          const licenseId = licenseQuery[0].id;
+          const lm = await query(
+            `SELECT module_code FROM adm_license_modules WHERE license_id = :licenseId`,
+            { licenseId }
+          );
+          if (lm && lm.length > 0) {
+            licensedModules = lm.map((x) => x.module_code);
+          }
+        }
+      } catch (e) {}
+
       return res.json({
         modules: ["*"],
         permissions: [{ module_key: "*", feature_key: "*", can_view: 1, can_create: 1, can_edit: 1, can_delete: 1 }],
         role_features: ["*"],
-        licensed_modules: ["*"],
+        licensed_modules: licensedModules,
       });
     }
 
@@ -2846,6 +2961,22 @@ router.get("/user-permissions", requireAuth, async (req, res, next) => {
         .filter(Boolean),
     );
 
+    const hasWildcard = explicitModules.has("*");
+    const inferredModules = new Set(explicitModules);
+
+    // Ensure all modules for which the role has permissions or role features are included
+    for (const p of normalizedPermissions) {
+      if (p.module_key) {
+        inferredModules.add(p.module_key);
+      }
+    }
+    for (const f of normalizedRoleFeatures) {
+      const [m] = f.split(":");
+      if (m) {
+        inferredModules.add(m);
+      }
+    }
+
     // Fetch exclusive permissions for this user
     const exclusivePerms = await query(
       `SELECT module_key, feature_key FROM adm_admin_page_permissions WHERE user_id = :userId`,
@@ -2854,7 +2985,7 @@ router.get("/user-permissions", requireAuth, async (req, res, next) => {
     for (const ep of exclusivePerms) {
       const mk = normalizeModuleKey(ep.module_key);
       const fk = normalizeFeatureKey(ep.feature_key, mk);
-      explicitModules.add(mk);
+      inferredModules.add(mk);
       normalizedRoleFeatures.push(fk);
       normalizedPermissions.push({
         module_key: mk,
@@ -2865,8 +2996,6 @@ router.get("/user-permissions", requireAuth, async (req, res, next) => {
         can_delete: 1,
       });
     }
-
-    const inferredModules = new Set(explicitModules);
 
     const companyId = Number(roleResult?.[0]?.company_id || 0);
     let licensedModules = null;
@@ -2883,15 +3012,14 @@ router.get("/user-permissions", requireAuth, async (req, res, next) => {
     let finalPermissions = normalizedPermissions;
     let finalRoleFeatures = normalizedRoleFeatures;
 
-    // Only filter by modules explicitly assigned to the role.
-    // License enforcement happens at role-assignment time (in saveRoleModules).
-    // Do NOT strip role-assigned modules by license here — that causes enabled modules
-    // (e.g. transport) to disappear from sidebar even when checked in role setup.
-    finalPermissions = finalPermissions.filter(p => explicitModules.has(p.module_key));
-    finalRoleFeatures = finalRoleFeatures.filter(f => {
-      const [m] = f.split(":");
-      return explicitModules.has(m);
-    });
+    // Never strip permissions if wildcard or if belonging to inferred modules
+    if (!hasWildcard && inferredModules.size > 0) {
+      finalPermissions = finalPermissions.filter(p => inferredModules.has(p.module_key));
+      finalRoleFeatures = finalRoleFeatures.filter(f => {
+        const [m] = f.split(":");
+        return inferredModules.has(m);
+      });
+    }
 
     res.json({
       modules: finalModules,
@@ -3450,24 +3578,29 @@ router.get(
         } catch {}
       }
       const rows = await query(
-        `SELECT setting_key, setting_value
+        `SELECT setting_key, setting_value, company_id
          FROM adm_system_settings
-         WHERE (company_id = :companyId OR company_id IS NULL)
-           AND setting_key IN ('SYSTEM_APPLICATION_MODE', 'MODULE_HOME_SECTION_VIEW')
-         ORDER BY company_id DESC`,
+         WHERE setting_key IN ('SYSTEM_APPLICATION_MODE', 'MODULE_HOME_SECTION_VIEW')
+         ORDER BY 
+           CASE 
+             WHEN :companyId IS NOT NULL AND company_id = :companyId THEN 1
+             WHEN company_id IS NULL THEN 2
+             ELSE 3 
+           END ASC,
+           updated_at DESC`,
         { companyId: companyId ?? null }
       );
-      let rawMode = "STANDARD";
-      let sectionView = false;
+      let rawMode = null;
+      let sectionView = null;
       for (const r of rows) {
-        if (r.setting_key === "SYSTEM_APPLICATION_MODE") {
+        if (r.setting_key === "SYSTEM_APPLICATION_MODE" && rawMode === null) {
           rawMode = r.setting_value ? String(r.setting_value).toUpperCase() : "STANDARD";
-        } else if (r.setting_key === "MODULE_HOME_SECTION_VIEW") {
+        } else if (r.setting_key === "MODULE_HOME_SECTION_VIEW" && sectionView === null) {
           sectionView = r.setting_value === "true" || r.setting_value === "1";
         }
       }
       const mode = rawMode === "BASIC" ? "BASIC" : "STANDARD";
-      res.json({ success: true, mode, module_section_view: sectionView });
+      res.json({ success: true, mode, module_section_view: sectionView === true });
     } catch (err) {
       next(err);
     }
@@ -3487,14 +3620,23 @@ router.post(
 
       await query(
         `DELETE FROM adm_system_settings 
-         WHERE setting_key = 'SYSTEM_APPLICATION_MODE' AND (company_id = :companyId OR (:companyId IS NULL AND company_id IS NULL))`,
+         WHERE setting_key = 'SYSTEM_APPLICATION_MODE' AND (company_id = :companyId OR company_id IS NULL)`,
         { companyId: companyId ?? null }
       );
+      if (companyId) {
+        await query(
+          `INSERT INTO adm_system_settings (company_id, branch_id, setting_key, setting_value)
+           VALUES (:companyId, NULL, 'SYSTEM_APPLICATION_MODE', :mode)`,
+          {
+            companyId,
+            mode: requestedMode,
+          }
+        );
+      }
       await query(
         `INSERT INTO adm_system_settings (company_id, branch_id, setting_key, setting_value)
-         VALUES (:companyId, NULL, 'SYSTEM_APPLICATION_MODE', :mode)`,
+         VALUES (NULL, NULL, 'SYSTEM_APPLICATION_MODE', :mode)`,
         {
-          companyId: companyId ?? null,
           mode: requestedMode,
         }
       );
@@ -3502,14 +3644,23 @@ router.post(
       if (req.body?.module_section_view !== undefined) {
         await query(
           `DELETE FROM adm_system_settings 
-           WHERE setting_key = 'MODULE_HOME_SECTION_VIEW' AND (company_id = :companyId OR (:companyId IS NULL AND company_id IS NULL))`,
+           WHERE setting_key = 'MODULE_HOME_SECTION_VIEW' AND (company_id = :companyId OR company_id IS NULL)`,
           { companyId: companyId ?? null }
         );
+        if (companyId) {
+          await query(
+            `INSERT INTO adm_system_settings (company_id, branch_id, setting_key, setting_value)
+             VALUES (:companyId, NULL, 'MODULE_HOME_SECTION_VIEW', :sectionView)`,
+            {
+              companyId,
+              sectionView: moduleSectionView ? "true" : "false",
+            }
+          );
+        }
         await query(
           `INSERT INTO adm_system_settings (company_id, branch_id, setting_key, setting_value)
-           VALUES (:companyId, NULL, 'MODULE_HOME_SECTION_VIEW', :sectionView)`,
+           VALUES (NULL, NULL, 'MODULE_HOME_SECTION_VIEW', :sectionView)`,
           {
-            companyId: companyId ?? null,
             sectionView: moduleSectionView ? "true" : "false",
           }
         );

@@ -1891,6 +1891,50 @@ export const deleteAccount = async (req, res, next) => {
  * @param {import('express').Response} res - Express response object.
  * @param {import('express').NextFunction} next - Express next middleware function.
  */
+export const syncAccountBalances = async (connOrPool, companyId, accountIds) => {
+  if (!accountIds || !accountIds.length) return;
+  const uniqueIds = [...new Set(accountIds.map(Number).filter(Boolean))];
+  if (!uniqueIds.length) return;
+
+  const executor = connOrPool.execute ? connOrPool : pool;
+  for (const accountId of uniqueIds) {
+    const [initRows] = await executor.execute(
+      `SELECT COALESCE(SUM((ob.opening_debit - ob.opening_credit) * COALESCE(ob.exchange_rate, 1.000000)), 0) AS init_ob
+       FROM fin_account_opening_balances ob
+       WHERE ob.company_id = ? AND ob.account_id = ?`,
+      [companyId, accountId]
+    );
+    const initialOpeningBalance = Number(initRows?.[0]?.init_ob || 0);
+
+    const [netRows] = await executor.execute(
+      `SELECT COALESCE(SUM(vl.debit - vl.credit), 0) AS voucher_net
+       FROM fin_vouchers v
+       JOIN fin_voucher_lines vl ON vl.voucher_id = v.id
+       WHERE v.company_id = ? AND vl.account_id = ?
+         AND v.status IN ('POSTED', 'APPROVED')`,
+      [companyId, accountId]
+    );
+    const voucherNet = Number(netRows?.[0]?.voucher_net || 0);
+    const currentNet = initialOpeningBalance + voucherNet;
+
+    await executor.execute(
+      `INSERT INTO fin_account_balances
+         (company_id, account_id, balance_amount, balance_type, as_of_date)
+       VALUES (?, ?, ?, ?, CURDATE())
+       ON DUPLICATE KEY UPDATE
+         balance_amount = VALUES(balance_amount),
+         balance_type = VALUES(balance_type),
+         as_of_date = VALUES(as_of_date)`,
+      [
+        companyId,
+        accountId,
+        Math.abs(currentNet),
+        currentNet >= 0 ? "DEBIT" : "CREDIT"
+      ]
+    );
+  }
+};
+
 export const getAccountBalance = async (req, res, next) => {
   try {
     const companyId = req.scope.companyId;
@@ -1898,11 +1942,20 @@ export const getAccountBalance = async (req, res, next) => {
     if (!id) return next(httpError(400, "VALIDATION_ERROR", "Invalid ID"));
 
     const rows = await query(
-      "SELECT id, code, name, opening_balance, opening_balance_date, is_debit_positive FROM fin_accounts WHERE id = :id AND company_id = :companyId LIMIT 1",
+      "SELECT id, code, name, balance_type FROM fin_accounts WHERE id = :id AND company_id = :companyId LIMIT 1",
       { id, companyId },
     );
     const account = rows?.[0];
     if (!account) return next(httpError(404, "NOT_FOUND", "Account not found"));
+
+    // Get opening balance from fin_account_opening_balances
+    const obRows = await query(
+      `SELECT COALESCE(SUM((ob.opening_debit - ob.opening_credit) * COALESCE(ob.exchange_rate, 1.000000)), 0) AS init_ob
+       FROM fin_account_opening_balances ob
+       WHERE ob.company_id = :companyId AND ob.account_id = :id`,
+      { companyId, id },
+    );
+    const openingBalance = Number(obRows?.[0]?.init_ob || 0);
 
     // Calculate current balance from general ledger (voucher lines)
     const ledgerResult = await query(
@@ -1916,13 +1969,20 @@ export const getAccountBalance = async (req, res, next) => {
       { id, companyId },
     );
 
-    const openingBalance = Number(account.opening_balance || 0);
     const ledgerBalance = Number(ledgerResult?.[0]?.ledger_balance || 0);
-    const currentBalance = openingBalance + ledgerBalance;
+    const netDebit = openingBalance + ledgerBalance;
+    const isCreditNormal = String(account.balance_type || "").toUpperCase() === "CREDIT";
+    const currentBalance = isCreditNormal ? -netDebit : netDebit;
+    const indicator = isCreditNormal
+      ? (currentBalance >= 0 ? "Cr" : "Dr")
+      : (currentBalance >= 0 ? "Dr" : "Cr");
 
     res.json({
       ...account,
       balance: currentBalance,
+      net_debit: netDebit,
+      indicator,
+      formatted: `${Math.abs(currentBalance).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${indicator}`,
       opening_balance: openingBalance,
       ledger_movement: ledgerBalance,
     });
@@ -2560,6 +2620,7 @@ export const createVoucher = async (req, res, next) => {
       apply_to_purchase_bills: applyToPurchaseBills,
       apply_to_service_bills: applyToServiceBills,
       apply_to_maintenance_bills: applyToMaintenanceBills,
+      apply_to_transportation_bills: applyToTransportationBills,
       apply_to_sales_invoices: applyToSalesInvoices,
       paymentDetails,
       costCenterId,
@@ -2582,13 +2643,36 @@ export const createVoucher = async (req, res, next) => {
 
     const voucherDateYmd = voucherDate || new Date().toISOString().slice(0, 10);
     let finalExchangeRate = Number(exchangeRate || 1) || 1;
-    const normalizedVoucherTypeCode = String(
+    let normalizedVoucherTypeCode = String(
       voucherTypeCode || "",
     ).toUpperCase();
+    if (!normalizedVoucherTypeCode && finalVoucherTypeId) {
+      const vtRows = await query(
+        `SELECT code FROM fin_voucher_types WHERE id = :id LIMIT 1`,
+        { id: finalVoucherTypeId },
+      );
+      if (vtRows?.[0]?.code) {
+        normalizedVoucherTypeCode = String(vtRows[0].code).toUpperCase();
+      }
+    }
     const isPurchaseVoucherMain =
       normalizedVoucherTypeCode === "PV" ||
       normalizedVoucherTypeCode === "PUV" ||
       normalizedVoucherTypeCode === "PB";
+
+    const isPosContext =
+      Boolean(req.body?.isPos) ||
+      Boolean(req.headers["x-pos-context"]) ||
+      String(req.headers["referer"] || "").includes("/pos/") ||
+      String(req.headers["origin-route"] || "").includes("/pos/");
+
+    let effectiveStatus = status;
+    if (
+      isPosContext &&
+      ["PAYV", "PV", "RV", "CV"].includes(normalizedVoucherTypeCode)
+    ) {
+      effectiveStatus = "APPROVED";
+    }
     const fyRows = await query(
       `SELECT id
          FROM fin_fiscal_years
@@ -2886,11 +2970,12 @@ export const createVoucher = async (req, res, next) => {
       }
     }
 
+    const finalVoucherStatus = effectiveStatus || status || (isPurchaseVoucherMain ? "POSTED" : "DRAFT");
     const result = await txQuery(
       `INSERT INTO fin_vouchers
-         (company_id, branch_id, fiscal_year_id, voucher_type_id, voucher_no, voucher_date, narration, currency_id, exchange_rate, total_debit, total_credit, balanced_amount, status, created_by, project_id, cost_center_id)
+         (company_id, branch_id, fiscal_year_id, voucher_type_id, voucher_no, voucher_date, narration, currency_id, exchange_rate, total_debit, total_credit, balanced_amount, status, created_by, approved_by, project_id, cost_center_id)
        VALUES
-         (:companyId, :branchId, :fiscalYearId, :voucherTypeId, :voucherNo, :voucherDate, :narration, :currencyId, :exchangeRate, :totalDebit, :totalCredit, :balancedAmount, :status, :createdBy, :projectId, :costCenterId)`,
+         (:companyId, :branchId, :fiscalYearId, :voucherTypeId, :voucherNo, :voucherDate, :narration, :currencyId, :exchangeRate, :totalDebit, :totalCredit, :balancedAmount, :status, :createdBy, :approvedBy, :projectId, :costCenterId)`,
       {
         companyId,
         branchId,
@@ -2904,8 +2989,9 @@ export const createVoucher = async (req, res, next) => {
         totalDebit: totalAmount,
         totalCredit: totalAmount,
         balancedAmount: totalAmount,
-        status: status || (isPurchaseVoucherMain ? "POSTED" : "DRAFT"),
+        status: finalVoucherStatus,
         createdBy: Number(req.user?.sub || req.user?.id || 0) || null,
+        approvedBy: (finalVoucherStatus === "APPROVED" || finalVoucherStatus === "POSTED") ? (Number(req.user?.sub || req.user?.id || 0) || null) : null,
         projectId: projectId ? Number(projectId) : null,
         costCenterId: costCenterId ? Number(costCenterId) : null,
       },
@@ -2937,6 +3023,12 @@ export const createVoucher = async (req, res, next) => {
           },
         );
       }
+    }
+
+    // Immediately sync account balances in fin_account_balances
+    const voucherAccountIds = [...new Set(linesToSave.map(l => Number(l.accountId || 0)).filter(id => id > 0))];
+    if (voucherAccountIds.length > 0) {
+      await syncAccountBalances(conn, companyId, voucherAccountIds);
     }
 
     if (
@@ -2991,35 +3083,20 @@ export const createVoucher = async (req, res, next) => {
                     COALESCE(amount_paid, 0) + :alloc
                   ),
                   payment_status = CASE
-                    WHEN LEAST(
+                    WHEN (COALESCE(amount_paid, 0) + :alloc) >= (
                       COALESCE(
                         NULLIF(net_amount, 0),
                         (SELECT COALESCE(SUM(d.line_total), 0) FROM pur_bill_details d WHERE d.bill_id = pur_bills.id),
                         0
-                      ),
-                      COALESCE(amount_paid, 0) + :alloc
-                    ) >= COALESCE(
-                      NULLIF(net_amount, 0),
-                      (SELECT COALESCE(SUM(d.line_total), 0) FROM pur_bill_details d WHERE d.bill_id = pur_bills.id),
-                      0
+                      ) - 0.005
                     ) THEN 'FULLY PAID'
-                    WHEN LEAST(
-                      COALESCE(
-                        NULLIF(net_amount, 0),
-                        (SELECT COALESCE(SUM(d.line_total), 0) FROM pur_bill_details d WHERE d.bill_id = pur_bills.id),
-                        0
-                      ),
-                      COALESCE(amount_paid, 0) + :alloc
-                    ) > 0 THEN 'PARTIAL PAYMENT'
+                    WHEN (COALESCE(amount_paid, 0) + :alloc) > 0.005 THEN 'PARTIAL PAYMENT'
                     ELSE 'UNPAID'
                   END
             WHERE company_id = :companyId
-              AND (:branchId IS NULL OR (:branchIdsStr = '' OR FIND_IN_SET(branch_id, :branchIdsStr)) OR branch_id IS NULL)
               AND id = :billId`,
           {
             companyId,
-            branchId,
-            branchIdsStr,
             billId,
             alloc,
           },
@@ -3035,17 +3112,19 @@ export const createVoucher = async (req, res, next) => {
           `UPDATE pur_service_bills
               SET amount_paid = LEAST(COALESCE(total_amount, 0), COALESCE(amount_paid, 0) + :alloc),
                   payment = CASE
-                    WHEN LEAST(COALESCE(total_amount, 0), COALESCE(amount_paid, 0) + :alloc) >= COALESCE(total_amount, 0) THEN 'PAID'
-                    WHEN LEAST(COALESCE(total_amount, 0), COALESCE(amount_paid, 0) + :alloc) > 0 THEN 'PARTIALLY_PAID'
+                    WHEN (COALESCE(amount_paid, 0) + :alloc) >= (COALESCE(total_amount, 0) - 0.005) THEN 'PAID'
+                    WHEN (COALESCE(amount_paid, 0) + :alloc) > 0.005 THEN 'PARTIALLY_PAID'
                     ELSE COALESCE(payment, 'UNPAID')
+                  END,
+                  payment_status = CASE
+                    WHEN (COALESCE(amount_paid, 0) + :alloc) >= (COALESCE(total_amount, 0) - 0.005) THEN 'PAID'
+                    WHEN (COALESCE(amount_paid, 0) + :alloc) > 0.005 THEN 'PARTIAL PAYMENT'
+                    ELSE 'UNPAID'
                   END
             WHERE company_id = :companyId
-              AND (:branchId IS NULL OR (:branchIdsStr = '' OR FIND_IN_SET(branch_id, :branchIdsStr)) OR branch_id IS NULL)
               AND id = :billId`,
           {
             companyId,
-            branchId,
-            branchIdsStr,
             billId,
             alloc,
           },
@@ -3064,17 +3143,40 @@ export const createVoucher = async (req, res, next) => {
           `UPDATE maint_bills
               SET amount_paid = LEAST(COALESCE(total_amount, 0), COALESCE(amount_paid, 0) + :alloc),
                   payment_status = CASE
-                    WHEN LEAST(COALESCE(total_amount, 0), COALESCE(amount_paid, 0) + :alloc) >= COALESCE(total_amount, 0) THEN 'PAID'
-                    WHEN LEAST(COALESCE(total_amount, 0), COALESCE(amount_paid, 0) + :alloc) > 0 THEN 'PARTIALLY_PAID'
+                    WHEN (COALESCE(amount_paid, 0) + :alloc) >= (COALESCE(total_amount, 0) - 0.005) THEN 'PAID'
+                    WHEN (COALESCE(amount_paid, 0) + :alloc) > 0.005 THEN 'PARTIALLY_PAID'
                     ELSE COALESCE(payment_status, 'UNPAID')
                   END
             WHERE company_id = :companyId
-              AND (:branchId IS NULL OR (:branchIdsStr = '' OR FIND_IN_SET(branch_id, :branchIdsStr)) OR branch_id IS NULL)
               AND id = :billId`,
           {
             companyId,
-            branchId,
-            branchIdsStr,
+            billId,
+            alloc,
+          },
+        );
+      }
+    }
+    if (
+      Array.isArray(applyToTransportationBills) &&
+      applyToTransportationBills.length > 0
+    ) {
+      for (const row of applyToTransportationBills) {
+        const billId = Number(row?.bill_id || 0);
+        const alloc = Number(row?.amount || 0);
+        if (!billId || !(alloc > 0)) continue;
+        await txQuery(
+          `UPDATE trans_transportation_bills
+              SET amount_paid = LEAST(COALESCE(total_amount, 0), COALESCE(amount_paid, 0) + :alloc),
+                  payment_status = CASE
+                    WHEN (COALESCE(amount_paid, 0) + :alloc) >= (COALESCE(total_amount, 0) - 0.005) THEN 'PAID'
+                    WHEN (COALESCE(amount_paid, 0) + :alloc) > 0.005 THEN 'PARTIAL PAYMENT'
+                    ELSE COALESCE(payment_status, 'UNPAID')
+                  END
+            WHERE company_id = :companyId
+              AND id = :billId`,
+          {
+            companyId,
             billId,
             alloc,
           },
@@ -3092,19 +3194,47 @@ export const createVoucher = async (req, res, next) => {
         if (!invoiceId || !(alloc > 0)) continue;
         await txQuery(
           `UPDATE sal_invoices
-              SET balance_amount = GREATEST(0, COALESCE(balance_amount, COALESCE(total_amount, net_amount, 0)) - :alloc),
+              SET amount_paid = LEAST(
+                    COALESCE(net_amount, total_amount, 0),
+                    COALESCE(amount_paid, 0) + :alloc
+                  ),
+                  balance_amount = GREATEST(
+                    0,
+                    COALESCE(balance_amount, COALESCE(net_amount, total_amount, 0)) - :alloc
+                  ),
                   payment_status = CASE
-                    WHEN GREATEST(0, COALESCE(balance_amount, COALESCE(total_amount, net_amount, 0)) - :alloc) <= 0 THEN 'PAID'
-                    WHEN GREATEST(0, COALESCE(balance_amount, COALESCE(total_amount, net_amount, 0)) - :alloc) < COALESCE(total_amount, net_amount, 0) THEN 'PARTIALLY_PAID'
+                    WHEN GREATEST(0, COALESCE(balance_amount, COALESCE(net_amount, total_amount, 0)) - :alloc) <= 0.005
+                         OR (COALESCE(amount_paid, 0) + :alloc) >= (COALESCE(net_amount, total_amount, 0) - 0.005)
+                    THEN 'PAID'
+                    WHEN (COALESCE(amount_paid, 0) + :alloc) > 0.005
+                         AND GREATEST(0, COALESCE(balance_amount, COALESCE(net_amount, total_amount, 0)) - :alloc) > 0.005
+                    THEN 'PARTIALLY_PAID'
                     ELSE 'UNPAID'
                   END
             WHERE company_id = :companyId
-              AND (:branchId IS NULL OR (:branchIdsStr = '' OR FIND_IN_SET(branch_id, :branchIdsStr)) OR branch_id IS NULL)
               AND id = :invoiceId`,
           {
             companyId,
-            branchId,
-            branchIdsStr,
+            invoiceId,
+            alloc,
+          },
+        );
+
+        await txQuery(
+          `UPDATE srv_service_invoices
+              SET balance_amount = GREATEST(
+                    0,
+                    COALESCE(balance_amount, COALESCE(net_amount, total_amount, 0)) - :alloc
+                  ),
+                  payment_status = CASE
+                    WHEN GREATEST(0, COALESCE(balance_amount, COALESCE(net_amount, total_amount, 0)) - :alloc) <= 0.005 THEN 'PAID'
+                    WHEN GREATEST(0, COALESCE(balance_amount, COALESCE(net_amount, total_amount, 0)) - :alloc) < COALESCE(net_amount, total_amount, 0) THEN 'PARTIALLY_PAID'
+                    ELSE 'UNPAID'
+                  END
+            WHERE company_id = :companyId
+              AND id = :invoiceId`,
+          {
+            companyId,
             invoiceId,
             alloc,
           },
@@ -4937,7 +5067,7 @@ export const cashFlowReport = async (req, res, next) => {
           AND (:branchId IS NULL OR (:branchIdsStr = '' OR FIND_IN_SET(v.branch_id, :branchIdsStr)))
           AND (:from IS NULL OR v.voucher_date >= :from)
           AND (:to IS NULL OR v.voucher_date <= :to)
-          AND v.status = 'POSTED'
+          AND v.status IN ('POSTED', 'APPROVED')
        WHERE ba.company_id = :companyId
        GROUP BY ba.id, ba.bank_name, ba.account_number, a.id, a.code, a.name
        ORDER BY ba.bank_name ASC`,
@@ -5001,13 +5131,13 @@ export const balanceSheetReport = async (req, res, next) => {
       `SELECT a.id as account_id, a.code as account_code, a.name as account_name, a.group_id, g.nature,
               SUM(CASE WHEN v.id IS NOT NULL 
                        AND v.company_id = :companyId 
-                       AND v.status = 'POSTED'
+                       AND v.status IN ('POSTED', 'APPROVED')
                        AND (:filterBranchId IS NULL OR v.branch_id = :filterBranchId OR v.branch_id IS NULL)
                        AND DATE(v.voucher_date) <= :asOfDate
                   THEN COALESCE(vl.debit, 0) ELSE 0 END) AS mv_debit,
               SUM(CASE WHEN v.id IS NOT NULL 
                        AND v.company_id = :companyId 
-                       AND v.status = 'POSTED'
+                       AND v.status IN ('POSTED', 'APPROVED')
                        AND (:filterBranchId IS NULL OR v.branch_id = :filterBranchId OR v.branch_id IS NULL)
                        AND DATE(v.voucher_date) <= :asOfDate
                   THEN COALESCE(vl.credit, 0) ELSE 0 END) AS mv_credit
@@ -6308,7 +6438,7 @@ export const debtorsLedgerReport = async (req, res, next) => {
           AND (:from IS NULL OR v.voucher_date >= :from)
           AND (:to IS NULL OR v.voucher_date <= :to)
           AND (:accountId IS NULL OR vl.account_id = :accountId)
-          AND v.status = 'POSTED'
+          AND v.status IN ('POSTED', 'APPROVED')
           AND ag.nature = 'ASSET'
         ORDER BY v.voucher_date ASC, v.id ASC, vl.line_no ASC`,
       { companyId, branchId, branchIdsStr, from, to, accountId },
@@ -6551,7 +6681,8 @@ export const generalLedgerReport = async (req, res, next) => {
       account: account
         ? {
             ...account,
-            current_balance: Math.abs(currentNet),
+            current_balance: currentNet,
+            abs_balance: Math.abs(currentNet),
             current_balance_type: currentNet >= 0 ? "DEBIT" : "CREDIT",
           }
         : null,
@@ -7607,7 +7738,7 @@ export const getDashboardMetrics = async (req, res, next) => {
          FROM fin_voucher_lines vl
          JOIN fin_vouchers v ON v.id = vl.voucher_id AND v.company_id = :companyId
            AND (:branchId IS NULL OR (:branchIdsStr = '' OR FIND_IN_SET(branch_id, :branchIdsStr)) OR branch_id IS NULL)
-           AND v.status = 'POSTED'
+           AND v.status IN ('POSTED', 'APPROVED')
            AND v.voucher_date BETWEEN :from AND :to
          JOIN fin_accounts a ON a.id = vl.account_id AND a.company_id = :companyId
          WHERE a.group_id IN (:groupIds)`,

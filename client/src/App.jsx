@@ -25,6 +25,7 @@ const BranchSelectionPage = React.lazy(() => import("./pages/BranchSelectionPage
 import { useAuth } from "./auth/AuthContext.jsx";
 import { clearGeneralCache } from "./offline/cache.js";
 import { clearPosCache } from "./offline/db.js";
+import ScrollToTop from "./components/common/ScrollToTop.jsx";
 
 const AppShell = React.lazy(() => import("./layout/AppShell.jsx"));
 
@@ -80,6 +81,7 @@ export default function App() {
       basename={basename}
       future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
     >
+      <ScrollToTop />
       <Provider store={store}>
         <ConfigProvider
           theme={{

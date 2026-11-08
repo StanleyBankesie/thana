@@ -345,6 +345,46 @@ export const FEATURES_REGISTRY = {
       { feature_key: "pos:on-hold", type: "feature", label: "On-Hold Sales", path: "/pos/holds" },
       { feature_key: "pos:reconciliation", type: "feature", label: "Sync Reconciliation", path: "/pos/reconciliation" },
       { feature_key: "pos:setup", type: "feature", label: "POS Setup", path: "/pos/setup" },
+
+      // Procurement (Direct Purchases)
+      { feature_key: "pos:customers", type: "feature", label: "Customers", path: "/pos/customers" },
+      { feature_key: "pos:direct-purchase", type: "feature", label: "Direct Purchases", path: "/pos/direct-purchases" },
+      { feature_key: "pos:suppliers", type: "feature", label: "Suppliers", path: "/pos/suppliers" },
+
+      // Store Inventory Operations
+      { feature_key: "pos:items", type: "feature", label: "Items Master", path: "/pos/items" },
+      { feature_key: "pos:item-groups", type: "feature", label: "Item Classification", path: "/pos/item-groups" },
+      { feature_key: "pos:stock-balances", type: "feature", label: "Stock Balances", path: "/pos/stock-balances" },
+      { feature_key: "pos:stock-transfers", type: "feature", label: "Stock Transfers", path: "/pos/stock-transfers" },
+      { feature_key: "pos:transfer-acceptance", type: "feature", label: "Transfer Acceptance", path: "/pos/transfer-acceptance" },
+      { feature_key: "pos:daily-stock-take", type: "feature", label: "Daily Stock Take", path: "/pos/daily-stock-take" },
+      { feature_key: "pos:stock-adjustments", type: "feature", label: "Stock Adjustments", path: "/pos/stock-adjustments" },
+      { feature_key: "pos:stock-reorder", type: "feature", label: "Stock Reorder", path: "/pos/stock-reorder" },
+      { feature_key: "pos:batches", type: "feature", label: "Item Batches", path: "/pos/batches" },
+
+      // Finance & Cash Desk
+      { feature_key: "pos:payment-voucher", type: "feature", label: "Store Expenses (Payment Voucher)", path: "/pos/payment-voucher" },
+      { feature_key: "pos:receipt-voucher", type: "feature", label: "Customer Payments (Receipt Voucher)", path: "/pos/receipt-voucher" },
+      { feature_key: "pos:contra-voucher", type: "feature", label: "Bank Deposit (Contra Voucher)", path: "/pos/contra-voucher" },
+
+      // Reports (Purchase, Finance, Inventory)
+      { feature_key: "pos:purchaseregisterreport", type: "feature", label: "Purchase Register Report", path: "/pos/reports/purchase-register" },
+      { feature_key: "pos:itempurchasehistoryreport", type: "feature", label: "Item Purchase History Report", path: "/pos/reports/item-purchase-history" },
+      { feature_key: "pos:supplieroutstandingreport", type: "feature", label: "Supplier Outstanding Report", path: "/pos/reports/supplier-outstanding" },
+      { feature_key: "pos:purchasereturnsanalysisreport", type: "feature", label: "Purchase Returns Analysis Report", path: "/pos/reports/purchase-returns-analysis" },
+      { feature_key: "pos:customeroutstandingreport", type: "feature", label: "Customer Outstanding Report", path: "/pos/reports/customer-outstanding" },
+      { feature_key: "pos:debtorsledgerreport", type: "feature", label: "Debtors Ledger Report", path: "/pos/reports/debtors-ledger" },
+      { feature_key: "pos:cashflowreport", type: "feature", label: "Cash Flow Report", path: "/pos/reports/cash-flow" },
+      { feature_key: "pos:voucherregisterreport", type: "feature", label: "Voucher Register Report", path: "/pos/reports/voucher-register" },
+      { feature_key: "pos:outstandingreceivablereport", type: "feature", label: "Outstanding Receivables Report", path: "/pos/reports/outstanding-receivables" },
+      { feature_key: "pos:paymentduereport", type: "feature", label: "Payment Due Report", path: "/pos/reports/payment-due" },
+      { feature_key: "pos:stockbalancesreport", type: "feature", label: "Stock Balances Report", path: "/pos/reports/stock-balances" },
+      { feature_key: "pos:fastmovingreport", type: "feature", label: "Fast Moving Report", path: "/pos/reports/fast-moving" },
+      { feature_key: "pos:slowmovingreport", type: "feature", label: "Slow Moving Report", path: "/pos/reports/slow-moving" },
+      { feature_key: "pos:expireditemsreport", type: "feature", label: "Expired Items Report", path: "/pos/reports/expired-items" },
+      { feature_key: "pos:stockadjustmentsreport", type: "feature", label: "Stock Adjustments Report", path: "/pos/reports/stock-adjustments" },
+      { feature_key: "pos:stocktransferreport", type: "feature", label: "Stock Transfer Register Report", path: "/pos/reports/stock-transfer-register" },
+      { feature_key: "pos:inventoryhealthmonitorreport", type: "feature", label: "Inventory Health Monitor", path: "/pos/reports/health-monitor" },
     ],
     dashboards: [
           { feature_key: "pos:pos-today-sales", type: "dashboard", label: "Today Sales", path: "/pos/reports/pos-today-sales" },

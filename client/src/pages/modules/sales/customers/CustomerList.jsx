@@ -48,7 +48,7 @@ export default function CustomerList() {
   const [bulkCascade, setBulkCascade] = useState(false);
   const [bulkCleanupFinance, setBulkCleanupFinance] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
-  const { hasAccess, scope } = useAuth();
+  const { scope } = useAuth();
   const { canPerformAction } = usePermission();
   const [branchOnly, setBranchOnly] = useState(false);
   const [showInactive, setShowInactive] = useState(false);

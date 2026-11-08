@@ -11,6 +11,7 @@ import {
   getAllModuleKeys,
   getModuleFeatures,
 } from "../../../../data/modulesRegistry.js";
+import { getModuleSectionsAndPages } from "../../../../utils/licenseModulePagesHelper.js";
 import { usePermission } from "../../../../auth/PermissionContext.jsx";
 import { useAuth } from "../../../../auth/AuthContext.jsx";
 import { toast } from "react-toastify";
@@ -33,7 +34,9 @@ export default function RoleManagementNew() {
   } = useSort(roles, "name", "asc");
   const navigate = useNavigate();
   const location = useLocation();
+  const { scope, user } = useAuth();
   const { refreshPermissions, licensedModules: allowedModules } = usePermission();
+  const [companyLicensedModules, setCompanyLicensedModules] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -50,30 +53,56 @@ export default function RoleManagementNew() {
     is_active: true,
   });
 
+  const fetchCompanyLicense = async (targetCompanyId) => {
+    const compId =
+      targetCompanyId ||
+      assignRole?.company_id ||
+      scope?.companyId ||
+      user?.companyIds?.[0] ||
+      1;
+    try {
+      const res = await api.get(`/licenses/company/${compId}`);
+      if (res.data && Array.isArray(res.data.modules)) {
+        setCompanyLicensedModules(new Set(res.data.modules));
+      }
+    } catch (err) {}
+  };
+
+  useEffect(() => {
+    fetchCompanyLicense();
+    const handleLicenseUpdated = (e) => {
+      if (e?.detail?.modules && Array.isArray(e.detail.modules)) {
+        setCompanyLicensedModules(new Set(e.detail.modules));
+      } else {
+        fetchCompanyLicense();
+      }
+    };
+    window.addEventListener("license:updated", handleLicenseUpdated);
+    return () => window.removeEventListener("license:updated", handleLicenseUpdated);
+  }, [assignRole?.company_id, scope?.companyId]);
+
   const isModuleAllowed = (moduleKey) => {
-    if (!allowedModules || allowedModules.size === 0) return true;
-    if (allowedModules.has("*")) return true;
+    const effectiveLic = companyLicensedModules || allowedModules;
+    if (!effectiveLic || effectiveLic.size === 0) return true;
+    if (effectiveLic.has("*")) return true;
     if (moduleKey === "administration") return true; // Always allow administration
-    return allowedModules.has(moduleKey);
+    return effectiveLic.has(moduleKey);
   };
 
   // Permission states
   const [selectedModules, setSelectedModules] = useState(new Set());
   const [selectedFeatures, setSelectedFeatures] = useState(new Set());
 
-  function handleModuleSelectAll(moduleKey, checked) {
-    // Ensure module is enabled when selecting all
+  function handleModuleSelectAll(moduleKey, checked, targetKeys = []) {
     if (checked && !selectedModules.has(moduleKey)) {
       handleModuleToggle(moduleKey, true);
     }
 
-    const moduleFeatures = getModuleFeatures(moduleKey);
-
     setSelectedFeatures((prev) => {
       const next = new Set(prev);
-      for (const f of moduleFeatures) {
-        if (checked) next.add(f.feature_key);
-        else next.delete(f.feature_key);
+      for (const k of targetKeys) {
+        if (checked) next.add(k);
+        else next.delete(k);
       }
       return next;
     });
@@ -155,6 +184,7 @@ export default function RoleManagementNew() {
 
   async function openRoleSettings(role) {
     try {
+      fetchCompanyLicense(role.company_id);
       const [modsRes, featsRes] = await Promise.all([
         api.get(`/access/roles/${role.id}/modules`),
         api
@@ -562,15 +592,39 @@ export default function RoleManagementNew() {
                   .map((moduleKey) => {
                   const moduleInfo = MODULES_REGISTRY[moduleKey];
                   const isModuleSelected = selectedModules.has(moduleKey);
-                  const moduleFeatures = getModuleFeatures(moduleKey).filter(f => !exclusiveFeatures.has(f.feature_key));
-                  const allKeys = moduleFeatures.map((f) => f.feature_key);
+
+                  const effectiveLic = companyLicensedModules || allowedModules;
+                  const licensedTokens = Array.from(effectiveLic || []).filter((x) =>
+                    x.startsWith(`page:${moduleKey}:`)
+                  );
+                  const licensedKeys = new Set(
+                    licensedTokens.map((x) =>
+                      x.slice(`page:${moduleKey}:`.length).toLowerCase().trim()
+                    )
+                  );
+
+                  const allSections = getModuleSectionsAndPages(moduleKey);
+                  const activeSections = allSections
+                    .map((sec) => ({
+                      ...sec,
+                      features: sec.features.filter((f) => {
+                        const fk = String(f.key || "").toLowerCase().trim();
+                        if (exclusiveFeatures.has(`${moduleKey}:${f.key}`)) return false;
+                        if (licensedKeys.size > 0 && !licensedKeys.has(fk)) return false;
+                        return true;
+                      }),
+                    }))
+                    .filter((sec) => sec.features.length > 0);
+
+                  const allActiveFeatures = activeSections.flatMap((s) => s.features);
+                  const allKeys = allActiveFeatures.map((f) => `${moduleKey}:${f.key}`);
                   const selectedCount = allKeys.filter((k) =>
-                    selectedFeatures.has(k),
+                    selectedFeatures.has(k)
                   ).length;
                   const isAllSelected =
                     allKeys.length > 0 && selectedCount === allKeys.length;
 
-                  if (!isModuleSelected && moduleFeatures.length === 0) {
+                  if (!isModuleSelected && allActiveFeatures.length === 0) {
                     return null;
                   }
 
@@ -590,10 +644,10 @@ export default function RoleManagementNew() {
                             {moduleInfo?.icon} {moduleInfo?.name}
                           </span>
                         </div>
-                        <div className="flex items-center gap-4 text-sm text-slate-600">
-                          <span>{moduleFeatures.length} features</span>
+                        <div className="flex items-center gap-4 text-sm text-slate-600 dark:text-slate-400">
+                          <span>{allActiveFeatures.length} licensed pages</span>
                           {isModuleSelected && allKeys.length > 0 && (
-                            <label className="flex items-center gap-2">
+                            <label className="flex items-center gap-2 cursor-pointer font-medium text-slate-700 dark:text-slate-300">
                               <input
                                 type="checkbox"
                                 className="checkbox checkbox-sm"
@@ -602,6 +656,7 @@ export default function RoleManagementNew() {
                                   handleModuleSelectAll(
                                     moduleKey,
                                     e.target.checked,
+                                    allKeys
                                   )
                                 }
                               />
@@ -611,31 +666,78 @@ export default function RoleManagementNew() {
                         </div>
                       </div>
 
-                      {isModuleSelected && moduleFeatures.length > 0 && (
-                        <div className="p-4">
-                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                            {moduleFeatures.map((feature) => (
-                              <label
-                                key={feature.feature_key}
-                                className="flex items-center gap-2 p-2 border dark:border-slate-700 rounded hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer"
+                      {isModuleSelected && activeSections.length > 0 && (
+                        <div className="p-4 space-y-4">
+                          {activeSections.map((sec, secIdx) => {
+                            const secKeys = sec.features.map(
+                              (f) => `${moduleKey}:${f.key}`
+                            );
+                            const isSecAllSelected =
+                              secKeys.length > 0 &&
+                              secKeys.every((k) => selectedFeatures.has(k));
+                            const toggleSection = (checked) => {
+                              setSelectedFeatures((prev) => {
+                                const next = new Set(prev);
+                                secKeys.forEach((k) => {
+                                  if (checked) next.add(k);
+                                  else next.delete(k);
+                                });
+                                return next;
+                              });
+                            };
+
+                            return (
+                              <div
+                                key={secIdx}
+                                className="border border-slate-200 dark:border-slate-700 rounded-lg p-3.5 bg-white dark:bg-slate-900 shadow-xs"
                               >
-                                <input
-                                  type="checkbox"
-                                  className="checkbox checkbox-sm"
-                                  checked={selectedFeatures.has(
-                                    feature.feature_key,
-                                  )}
-                                  onChange={(e) =>
-                                    handleFeatureToggle(
-                                      feature.feature_key,
-                                      e.target.checked,
-                                    )
-                                  }
-                                />
-                                <span className="text-sm">{feature.label}</span>
-                              </label>
-                            ))}
-                          </div>
+                                <div className="flex items-center justify-between pb-2 mb-2.5 border-b border-slate-100 dark:border-slate-800">
+                                  <span className="font-semibold text-sm text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                                    <span>{sec.icon}</span>
+                                    <span>{sec.title}</span>
+                                    <span className="text-xs font-normal text-slate-500 ml-1">
+                                      ({sec.features.length} pages)
+                                    </span>
+                                  </span>
+                                  <label className="flex items-center gap-1.5 text-xs font-medium text-slate-600 dark:text-slate-400 cursor-pointer">
+                                    <input
+                                      type="checkbox"
+                                      className="checkbox checkbox-xs"
+                                      checked={isSecAllSelected}
+                                      onChange={(e) => toggleSection(e.target.checked)}
+                                    />
+                                    <span>Select Section</span>
+                                  </label>
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+                                  {sec.features.map((feature) => {
+                                    const featureKey = `${moduleKey}:${feature.key}`;
+                                    return (
+                                      <label
+                                        key={feature.key}
+                                        className="flex items-center gap-2 p-2 border border-slate-100 dark:border-slate-800 rounded hover:bg-slate-50 dark:hover:bg-slate-800/60 cursor-pointer"
+                                      >
+                                        <input
+                                          type="checkbox"
+                                          className="checkbox checkbox-sm"
+                                          checked={selectedFeatures.has(featureKey)}
+                                          onChange={(e) =>
+                                            handleFeatureToggle(
+                                              featureKey,
+                                              e.target.checked
+                                            )
+                                          }
+                                        />
+                                        <span className="text-sm text-slate-700 dark:text-slate-300">
+                                          {feature.label}
+                                        </span>
+                                      </label>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            );
+                          })}
                         </div>
                       )}
                     </div>

@@ -5,7 +5,7 @@
  */
 
 import React, { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { api } from "@/api/client.js";
 import useSort from "@/hooks/useSort.js";
 import SortableHeader from "@/components/SortableHeader.jsx";
@@ -33,6 +33,8 @@ import "jspdf-autotable";
 import { fetchReportHeader, buildExcelHeaderRows } from "@/utils/pdfUtils.js";
 
 export default function ExpiredItemsReportPage() {
+  const location = useLocation();
+  const isPos = location.pathname.startsWith("/pos");
   const [items, setItems] = useState([]);
   const [summary, setSummary] = useState({
     expired_items_count: 0,
@@ -292,10 +294,10 @@ export default function ExpiredItemsReportPage() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-2 border-b border-slate-200 dark:border-slate-800">
         <div>
           <Link
-            to="/inventory/reports"
+            to={isPos ? "/pos/reports" : "/inventory/reports"}
             className="text-xs font-semibold text-brand hover:underline inline-flex items-center gap-1 mb-1 print:hidden"
           >
-            ← Back to Inventory Reports
+            {isPos ? "← Back to POS Reports" : "← Back to Inventory Reports"}
           </Link>
           <h1 className="text-2xl font-black text-slate-900 dark:text-slate-100 flex items-center gap-2.5">
             <ShieldAlert className="w-7 h-7 text-rose-600" />

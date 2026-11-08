@@ -4,7 +4,7 @@
  */
 
 import React, { useEffect, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams, useLocation } from "react-router-dom";
 
 import { api } from "api/client";
 import { toast } from "react-toastify";
@@ -16,6 +16,9 @@ import { toast } from "react-toastify";
  */
 export default function TransferAcceptanceForm() {
   const { id } = useParams();
+  const location = useLocation();
+  const isPos = location.pathname.startsWith("/pos");
+  const baseRoute = isPos ? "/pos/inventory/transfer-acceptance" : "/inventory/transfer-acceptance";
   const navigate = useNavigate();
 
   const [loading, setLoading] = useState(false);
@@ -134,7 +137,7 @@ export default function TransferAcceptanceForm() {
 
       await api.put(`/inventory/transfer-acceptance/${id}`, payload);
       toast.success("Transfer confirmed successfully!");
-      navigate("/inventory/transfer-acceptance");
+      navigate(baseRoute);
     } catch (e) {
       setError(e?.response?.data?.message || "Failed to confirm transfer");
     } finally {
@@ -324,7 +327,7 @@ export default function TransferAcceptanceForm() {
           </div>
 
           <div className="flex justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-700">
-            <Link to="/inventory/transfer-acceptance" className="btn-success">
+            <Link to={baseRoute} className="btn-success">
               Close
             </Link>
             {!isConfirmed ? (

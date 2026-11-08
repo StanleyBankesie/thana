@@ -1311,25 +1311,87 @@
 }
 
 /* ==========================================================================
-   GLOBAL FORM CONTROLS CLEAN SURFACE (APPLE HIG COMPLIANT)
-   Eliminates grey/slate/tinted background fills from all input, select, and
-   textarea controls across all form pages and modals in the entire ERP.
-   Ensures crisp white in light mode and deep slate-900 in dark mode.
+   GLOBAL FORM CONTROLS CLEAN SURFACE & SMOKE SHADOW
+   Applies crisp white background and distinct atmospheric smoke shadow to all
+   form input controls, selects, and textareas across the entire application.
    ========================================================================== */
 input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):not([type="reset"]):not([type="file"]):not([type="range"]):not([type="color"]),
 select,
 textarea,
-.input {
+.input,
+.ant-input,
+.ant-input-affix-wrapper,
+.ant-select-selector,
+.ant-input-number,
+.ant-picker,
+.login-input {
   background-color: #ffffff !important;
+  box-shadow: 0 2px 6px -1px rgba(15, 23, 42, 0.08), 0 1px 4px -1px rgba(15, 23, 42, 0.06) !important;
+  border-color: #e2e8f0 !important;
+  transition: box-shadow 0.2s ease, border-color 0.2s ease !important;
+}
+
+input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):not([type="reset"]):not([type="file"]):not([type="range"]):not([type="color"]):hover,
+select:hover,
+textarea:hover,
+.input:hover,
+.ant-input:hover,
+.ant-input-affix-wrapper:hover,
+.ant-select-selector:hover,
+.ant-input-number:hover,
+.ant-picker:hover {
+  box-shadow: 0 3px 10px -1px rgba(15, 23, 42, 0.12), 0 1px 5px -1px rgba(15, 23, 42, 0.08) !important;
+  border-color: #cbd5e1 !important;
+}
+
+input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):not([type="reset"]):not([type="file"]):not([type="range"]):not([type="color"]):focus,
+select:focus,
+textarea:focus,
+.input:focus,
+.ant-input:focus,
+.ant-input-focused,
+.ant-input-affix-wrapper:focus,
+.ant-input-affix-wrapper-focused,
+.ant-select-focused .ant-select-selector,
+.ant-input-number:focus,
+.ant-input-number-focused,
+.ant-picker-focused,
+.login-input:focus {
+  box-shadow: 0 4px 14px -2px rgba(15, 23, 42, 0.16), 0 0 0 3px rgba(14, 54, 70, 0.12) !important;
+  border-color: #0E3646 !important;
 }
 
 .dark input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):not([type="reset"]):not([type="file"]):not([type="range"]):not([type="color"]),
 .dark select,
 .dark textarea,
-.dark .input {
+.dark .input,
+.dark .ant-input,
+.dark .ant-input-affix-wrapper,
+.dark .ant-select-selector,
+.dark .ant-input-number,
+.dark .ant-picker,
+.dark .login-input {
   background-color: #0f172a !important;
+  box-shadow: 0 2px 6px -1px rgba(0, 0, 0, 0.45), 0 1px 4px -1px rgba(0, 0, 0, 0.3) !important;
+  border-color: #334155 !important;
 }
 
+.dark input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):not([type="reset"]):not([type="file"]):not([type="range"]):not([type="color"]):focus,
+.dark select:focus,
+.dark textarea:focus,
+.dark .input:focus,
+.dark .ant-input:focus,
+.dark .ant-input-focused,
+.dark .ant-input-affix-wrapper:focus,
+.dark .ant-input-affix-wrapper-focused,
+.dark .ant-select-focused .ant-select-selector,
+.dark .ant-input-number:focus,
+.dark .ant-input-number-focused,
+.dark .ant-picker-focused,
+.dark .login-input:focus {
+  box-shadow: 0 4px 14px -2px rgba(0, 0, 0, 0.6), 0 0 0 3px rgba(59, 130, 246, 0.25) !important;
+  border-color: #38bdf8 !important;
+}
 
 /* ==========================================================================
    GLOBAL STANDARDIZED MODAL DESIGN SYSTEM (PROJECT MANAGEMENT STANDARD)

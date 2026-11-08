@@ -215,9 +215,10 @@ router.get(
           LEFT JOIN pur_suppliers s ON b.supplier_id = s.id
           WHERE b.supplier_id = ?
             AND b.company_id = ?
-            AND (b.branch_id = ? OR b.branch_id IS NULL)
-            AND (b.payment_status = 'UNPAID' OR b.payment_status = 'PARTIAL PAYMENT')
-            AND b.status = 'POSTED'
+            AND (? IS NULL OR ? = 0 OR b.branch_id = ? OR b.branch_id IS NULL)
+            AND (b.net_amount - COALESCE(b.amount_paid, 0)) > 0.01
+            AND UPPER(COALESCE(b.payment_status, '')) NOT IN ('FULLY PAID', 'PAID', 'SETTLED', 'CLOSED')
+            AND b.status IN ('POSTED', 'APPROVED')
 
           UNION ALL
 
@@ -232,9 +233,11 @@ router.get(
           LEFT JOIN pur_suppliers s ON sb.supplier_id = s.id
           WHERE sb.supplier_id = ?
             AND sb.company_id = ?
-            AND (sb.branch_id = ? OR sb.branch_id IS NULL)
-            AND (sb.payment_status = 'UNPAID' OR sb.payment_status = 'PARTIAL' OR sb.payment_status = 'PARTIAL PAYMENT')
-            AND (sb.status IN ('PENDING', 'COMPLETED', 'POSTED') OR sb.status IS NULL OR sb.status = '')
+            AND (? IS NULL OR ? = 0 OR sb.branch_id = ? OR sb.branch_id IS NULL)
+            AND (sb.total_amount - COALESCE(sb.amount_paid, 0)) > 0.01
+            AND UPPER(COALESCE(sb.payment_status, '')) NOT IN ('FULLY PAID', 'PAID', 'SETTLED', 'CLOSED')
+            AND UPPER(COALESCE(sb.payment, '')) NOT IN ('FULLY PAID', 'PAID', 'SETTLED', 'CLOSED')
+            AND (sb.status IN ('PENDING', 'COMPLETED', 'POSTED', 'APPROVED') OR sb.status IS NULL OR sb.status = '')
 
           UNION ALL
 
@@ -248,8 +251,9 @@ router.get(
           FROM maint_bills mb
           WHERE mb.supplier_id = ?
             AND mb.company_id = ?
-            AND (mb.branch_id = ? OR mb.branch_id IS NULL)
-            AND (mb.payment_status = 'UNPAID' OR mb.payment_status = 'PARTIAL' OR mb.payment_status = 'PARTIAL PAYMENT')
+            AND (? IS NULL OR ? = 0 OR mb.branch_id = ? OR mb.branch_id IS NULL)
+            AND (mb.total_amount - COALESCE(mb.amount_paid, 0)) > 0.01
+            AND UPPER(COALESCE(mb.payment_status, '')) NOT IN ('FULLY PAID', 'PAID', 'SETTLED', 'CLOSED')
             AND mb.status NOT IN ('CANCELLED', 'DRAFT')
 
           UNION ALL
@@ -267,16 +271,20 @@ router.get(
           LEFT JOIN pur_suppliers s ON tb.supplier_id = s.id
           WHERE tb.supplier_id = ?
             AND tb.company_id = ?
-            AND (tb.branch_id = ? OR tb.branch_id IS NULL)
-            AND (tb.payment_status IS NULL OR tb.payment_status IN ('UNPAID', 'PARTIAL', 'PARTIAL PAYMENT'))
-            AND (tb.status IS NULL OR tb.status IN ('DRAFT', 'POSTED', 'COMPLETED'))
+            AND (? IS NULL OR ? = 0 OR tb.branch_id = ? OR tb.branch_id IS NULL)
+            AND (tb.total_amount - COALESCE(tb.amount_paid, 0)) > 0.01
+            AND UPPER(COALESCE(tb.payment_status, '')) NOT IN ('FULLY PAID', 'PAID', 'SETTLED', 'CLOSED')
+            AND (tb.status IS NULL OR tb.status NOT IN ('CANCELLED'))
         ) combined
+        WHERE combined.balance_amount > 0.01
+          AND UPPER(COALESCE(combined.payment_status, '')) NOT IN ('FULLY PAID', 'PAID', 'SETTLED', 'CLOSED')
         ORDER BY bill_date DESC`;
+      const effectiveBranch = branchId || null;
       const billParams = [
-        supplierId, companyId, branchId,
-        supplierId, companyId, branchId,
-        supplierId, companyId, branchId,
-        supplierId, companyId, branchId
+        supplierId, companyId, effectiveBranch, effectiveBranch, effectiveBranch,
+        supplierId, companyId, effectiveBranch, effectiveBranch, effectiveBranch,
+        supplierId, companyId, effectiveBranch, effectiveBranch, effectiveBranch,
+        supplierId, companyId, effectiveBranch, effectiveBranch, effectiveBranch
       ];
       const billRows = await query(sql, billParams);
 

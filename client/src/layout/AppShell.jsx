@@ -1,4 +1,4 @@
-/**
+﻿/**
  * @fileoverview Main AppShell layout component.
  * Responsible for the overall layout, navigation sidebar, header, global state,
  * notification polling, and service worker push integrations.
@@ -28,6 +28,7 @@ import { usePermission } from "../auth/PermissionContext.jsx";
 import { useTheme } from "../theme/ThemeContext.jsx";
 import { resolveBackgroundForTheme } from "../utils/appBackground.js";
 import ThemeToggle from "../components/ThemeToggle.jsx";
+import { getAssignedSectionsForUser } from "../data/userAssignedSections.js";
 import ListPageOverview from "../components/ListPageOverview.jsx";
 const DashboardPage = React.lazy(
   () => import("../pages/dashboard/DashboardPage.jsx"),
@@ -384,6 +385,7 @@ function scheduleDeferredTask(task, delayMs = 200) {
  */
 export default function AppShell() {
   const { token, user, scope, setScope, logout } = useAuth();
+  const perm = usePermission();
   const {
     isModuleEnabled,
     canViewModule,
@@ -394,7 +396,14 @@ export default function AppShell() {
     basePathFrom,
     canAccessFeatureKey,
     appBackground,
-  } = usePermission();
+  } = perm;
+
+  const isSuperAdminUser = Number(user?.id) === 1 || Number(user?.sub) === 1;
+
+  const assignedSections = useMemo(() => {
+    if (isSuperAdminUser) return [];
+    return getAssignedSectionsForUser(perm, user);
+  }, [isSuperAdminUser, perm, user]);
   const { theme } = useTheme();
   const isDark =
     theme === "dark" ||
@@ -419,6 +428,15 @@ export default function AppShell() {
       return () => clearTimeout(t);
     }
   }, [lastEvent]);
+
+  // Always reset scroll to top when page/module changes
+  useEffect(() => {
+    if (!location.hash) {
+      window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+      if (document.documentElement) document.documentElement.scrollTop = 0;
+      if (document.body) document.body.scrollTop = 0;
+    }
+  }, [location.pathname, location.search]);
 
   useEffect(() => {
     if (sessionStorage.getItem("triggerRenewal") === "true") {
@@ -1384,6 +1402,13 @@ export default function AppShell() {
     const resolveFeatureKey = () => {
       const path = (window.location && window.location.pathname) || "/";
       const parts = path.split("/").filter(Boolean);
+      if (
+        parts[0] === "pos" &&
+        (parts[1] === "inventory" || parts[1] === "store" || parts[1] === "finance") &&
+        parts[2]
+      ) {
+        return `pos:${parts[2]}`;
+      }
       if (parts.length >= 2) return `${parts[0]}:${parts[1]}`;
       return null;
     };
@@ -1393,6 +1418,13 @@ export default function AppShell() {
         return basePathFrom(path);
       } catch {
         const parts = path.split("/").filter(Boolean);
+        if (
+          parts[0] === "pos" &&
+          (parts[1] === "inventory" || parts[1] === "store" || parts[1] === "finance") &&
+          parts.length >= 3
+        ) {
+          return `/${parts.slice(0, 3).join("/")}`;
+        }
         if (parts.length >= 2) return `/${parts[0]}/${parts[1]}`;
         if (parts.length === 1) return `/${parts[0]}`;
         return "/";
@@ -1503,6 +1535,8 @@ export default function AppShell() {
                 el.closest(".form-section") ||
                 el.closest("[data-form]")))
           ) {
+            if (el.hidden) el.hidden = false;
+            if (el.style.display === "none") el.style.display = "";
             continue;
           }
         } catch {}
@@ -1793,7 +1827,7 @@ export default function AppShell() {
       {queueOpen && (
         <div className="px-6 py-3 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950">
           <div className="text-sm">
-            Pending {pending} • Failed {failed} • Completed {completed}
+            Pending {pending} â€¢ Failed {failed} â€¢ Completed {completed}
           </div>
           <div className="mt-3">
             <div className="grid grid-cols-1 gap-2">
@@ -2247,7 +2281,7 @@ export default function AppShell() {
               className={({ isActive }) =>
                 `flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 group border-l-4 ` +
                 (isActive
-                  ? "bg-brand-900 text-white shadow-apple-xs dark:bg-white/15 dark:text-white border-[#F57C00]"
+                  ? "bg-brand-900 text-white shadow-apple-xs dark:bg-white/15 dark:text-white border-[#FBBE23]"
                   : "text-slate-300 dark:text-slate-400 hover:bg-white/10 hover:text-white border-transparent")
               }
             >
@@ -2259,25 +2293,51 @@ export default function AppShell() {
               </span>
               <span>Home</span>
             </NavLink>
-            {modules
-              .filter((m) => {
-                if (m.key === "system-configuration") {
-                  return user?.id === 1 || user?.id === 2;
-                }
-                // Use PermissionContext to check if module should appear in sidebar
-                return canViewModule(m.key);
-              })
-              .map((m) => (
+            {isSuperAdminUser ? (
+              // SUPER ADMIN (USER ID = 1): Show all assigned modules
+              modules
+                .filter((m) => {
+                  if (m.key === "system-configuration") {
+                    return user?.id === 1 || user?.id === 2;
+                  }
+                  // Use PermissionContext to check if module should appear in sidebar
+                  return canViewModule(m.key);
+                })
+                .map((m) => (
+                  <NavLink
+                    key={m.key}
+                    to={m.path}
+                    onClick={() => {
+                      if (window.innerWidth < 768) setSidebarOpen(false);
+                    }}
+                    className={({ isActive }) =>
+                      `flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 group border-l-4 ` +
+                      (isActive
+                        ? "bg-brand-900 text-white shadow-apple-xs dark:bg-white/15 dark:text-white border-[#FBBE23]"
+                        : "text-slate-300 dark:text-slate-400 hover:bg-white/10 hover:text-white border-transparent")
+                    }
+                  >
+                    <span
+                      className="w-5 h-5 flex items-center justify-center shrink-0 [&>svg]:w-[18px] [&>svg]:h-[18px] opacity-80 group-hover:opacity-100 transition-opacity"
+                      aria-hidden="true"
+                    >
+                      {m.icon}
+                    </span>
+                    <span>{m.label}</span>
+                  </NavLink>
+                ))
+            ) : (
+              // ALL OTHER USERS (USER ID !== 1): Show Dashboard + Assigned Sections
+              <>
                 <NavLink
-                  key={m.key}
-                  to={m.path}
+                  to="/dashboard"
                   onClick={() => {
                     if (window.innerWidth < 768) setSidebarOpen(false);
                   }}
                   className={({ isActive }) =>
                     `flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 group border-l-4 ` +
                     (isActive
-                      ? "bg-brand-900 text-white shadow-apple-xs dark:bg-white/15 dark:text-white border-[#F57C00]"
+                      ? "bg-brand-900 text-white shadow-apple-xs dark:bg-white/15 dark:text-white border-[#FBBE23]"
                       : "text-slate-300 dark:text-slate-400 hover:bg-white/10 hover:text-white border-transparent")
                   }
                 >
@@ -2285,11 +2345,54 @@ export default function AppShell() {
                     className="w-5 h-5 flex items-center justify-center shrink-0 [&>svg]:w-[18px] [&>svg]:h-[18px] opacity-80 group-hover:opacity-100 transition-opacity"
                     aria-hidden="true"
                   >
-                    {m.icon}
+                    <AreaChart />
                   </span>
-                  <span>{m.label}</span>
+                  <span>Dashboard</span>
                 </NavLink>
-              ))}
+
+                {assignedSections.map((sec) => {
+                  const searchParams = new URLSearchParams(location.search || "");
+                  const activeSecParam = searchParams.get("section");
+                  const isSecActive =
+                    (location.pathname === sec.modulePath &&
+                      activeSecParam &&
+                      (activeSecParam.toLowerCase() === sec.title.toLowerCase() ||
+                        activeSecParam.toLowerCase().replace(/[^a-z0-9]/g, "") ===
+                          sec.title.toLowerCase().replace(/[^a-z0-9]/g, ""))) ||
+                    (location.pathname === sec.path) ||
+                    (sec.features &&
+                      sec.features.some((f) =>
+                        location.pathname.includes(f)
+                      ));
+
+                  const sectionUrl = `${sec.modulePath}?section=${encodeURIComponent(sec.title)}`;
+
+                  return (
+                    <NavLink
+                      key={`${sec.moduleKey}-${sec.title}`}
+                      to={sectionUrl}
+                      onClick={() => {
+                        if (window.innerWidth < 768) setSidebarOpen(false);
+                      }}
+                      className={() =>
+                        `flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 group border-l-4 ` +
+                        (isSecActive
+                          ? "bg-brand-900 text-white shadow-apple-xs dark:bg-white/15 dark:text-white border-[#FBBE23]"
+                          : "text-slate-300 dark:text-slate-400 hover:bg-white/10 hover:text-white border-transparent")
+                      }
+                    >
+                      <span
+                        className="w-5 h-5 flex items-center justify-center shrink-0 text-base opacity-80 group-hover:opacity-100 transition-opacity"
+                        aria-hidden="true"
+                      >
+                        {sec.icon || "📁"}
+                      </span>
+                      <span className="truncate">{sec.title}</span>
+                    </NavLink>
+                  );
+                })}
+              </>
+            )}
           </nav>
         </aside>
 
@@ -2466,3 +2569,4 @@ export default function AppShell() {
     </div>
   );
 }
+

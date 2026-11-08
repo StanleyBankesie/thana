@@ -10,7 +10,7 @@ import UnitConversionModal from "../../../../components/UnitConversionModal.jsx"
 import { useUoms } from "../../../../hooks/useUoms.js";
 import { usePermission } from "../../../../auth/PermissionContext.jsx";
 import { useExchangeRate } from "../../../../hooks/useExchangeRate";
-import { Trash2 } from "lucide-react";
+import { Trash2, ArrowLeft } from "lucide-react";
 import { toast } from "react-toastify";
 import { filterByPrefix } from "@/utils/searchUtils.js";
 import TaxPricingModal, { TaxModeRadioSelector } from "@/components/common/TaxPricingModal.jsx";
@@ -24,6 +24,8 @@ export default function DirectPurchase() {
   const navigate = useNavigate();
   const location = useLocation();
   const params = useParams();
+  const isPos = location.pathname.startsWith("/pos");
+  const baseRoute = isPos ? "/pos/direct-purchases" : "/purchase/direct-purchase";
   const { canEditDiscount, hasExceptional } = usePermission();
   const canRecordDirectPayment = hasExceptional(
     "PURCHASE.DIRECT_PURCHASE.AUTO_PAYMENT",
@@ -828,7 +830,7 @@ export default function DirectPurchase() {
           ? "Direct Purchase updated successfully"
           : "Direct Purchase created successfully",
       );
-      navigate("/purchase/direct-purchase");
+      navigate(baseRoute);
     } catch (e) {
       setError(String(e?.response?.data?.message || e.message || "Error"));
     } finally {
@@ -846,10 +848,10 @@ export default function DirectPurchase() {
               Complete a full purchase in one step
             </p>
           </div>
-          <button onClick={() => window.history.back()} className="px-3 py-1.5 rounded bg-white text-brand hover:bg-slate-100"
-          >
-            ← Back to List
-          </button>
+          <Link to={baseRoute} className="px-3.5 py-1.5 text-sm font-semibold rounded-lg bg-white text-brand hover:bg-slate-100 inline-flex items-center gap-1.5 transition-colors shadow-sm">
+            <ArrowLeft className="w-4 h-4" />
+            <span>{isPos ? "Return to POS" : "Back to List"}</span>
+          </Link>
         </div>
         <div className="px-6 py-5 space-y-4">
           {error ? <div className="alert alert-error">{error}</div> : null}
@@ -958,7 +960,7 @@ export default function DirectPurchase() {
                 <option value="">Select Approved Requisition</option>
                 {approvedItemRequisitions.map((r) => (
                   <option key={r.id} value={r.id}>
-                    {r.requisition_no} — {r.department || ""} —{" "}
+                    {r.requisition_no} â€” {r.department || ""} â€”{" "}
                     {String(r.requisition_date || "").slice(0, 10)}
                   </option>
                 ))}
@@ -1693,7 +1695,7 @@ export default function DirectPurchase() {
               </button>
               <button
                 className="btn"
-                onClick={() => navigate("/purchase/direct-purchase")}
+                onClick={() => navigate(baseRoute)}
               >
                 Back
               </button>
@@ -1765,3 +1767,4 @@ export default function DirectPurchase() {
     </div>
   );
 }
+

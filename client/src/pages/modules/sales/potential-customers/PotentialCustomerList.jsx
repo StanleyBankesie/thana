@@ -33,7 +33,7 @@ export default function PotentialCustomerList() {
   const [bulkDeleting, setBulkDeleting] = useState(false);
   const [branchOnly, setBranchOnly] = useState(false);
   const [showInactive, setShowInactive] = useState(false);
-  const { hasAccess, scope } = useAuth();
+  const { scope } = useAuth();
   const { canPerformAction } = usePermission();
 
   const fetchCustomers = async () => {

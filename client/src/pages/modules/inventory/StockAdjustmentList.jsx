@@ -30,6 +30,10 @@ import ViewToggle from "@/components/ViewToggle";
 export default function StockAdjustmentList() {
   const [viewMode, setViewMode] = useViewMode();
   const location = useLocation();
+  const isPos = location.pathname.startsWith("/pos");
+  const baseRoute = isPos
+    ? (location.pathname.includes("/inventory/stock-adjustments") ? "/pos/inventory/stock-adjustments" : "/pos/stock-adjustments")
+    : "/inventory/stock-adjustments";
   const [searchTerm, setSearchTerm] = useState("");
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -426,11 +430,11 @@ export default function StockAdjustmentList() {
               </p>
             </div>
             <div className="flex gap-2">
-              <Link to="/inventory?section=Stock%20Operations" className="btn btn-secondary">
-                Return to Menu
+              <Link to={isPos ? "/pos" : "/inventory?section=Stock%20Operations"} className="btn btn-secondary">
+                {isPos ? "← Return to POS" : "Return to Menu"}
               </Link>
               <Link
-                to="/inventory/stock-adjustments/new"
+                to={`${baseRoute}/new`}
                 className="btn-success"
               >
                 + New Adjustment
@@ -516,7 +520,7 @@ export default function StockAdjustmentList() {
                         {/* Slot 1: View */}
                         <div className="min-w-[80px]">
                           <Link
-                            to={`/inventory/stock-adjustments/${adj.id}?mode=view`}
+                            to={`${baseRoute}/${adj.id}?mode=view`}
                             className="w-full inline-flex items-center justify-center px-4 py-1.5 text-sm font-medium text-slate-700 bg-slate-100 border border-slate-200 rounded-lg hover:bg-slate-200 transition-colors h-9"
                           >
                             View
@@ -529,7 +533,7 @@ export default function StockAdjustmentList() {
                             displayStatus,
                           ) ? (
                             <Link
-                              to={`/inventory/stock-adjustments/${adj.id}?mode=edit`}
+                              to={`${baseRoute}/${adj.id}?mode=edit`}
                               className="w-full inline-flex items-center justify-center px-4 py-1.5 text-sm font-medium text-slate-700 bg-slate-100 border border-slate-200 rounded-lg hover:bg-slate-200 transition-colors h-9"
                             >
                               Edit
@@ -544,7 +548,7 @@ export default function StockAdjustmentList() {
                           <ListPrintIconButton
                             onClick={() =>
                               window.open(
-                                `/inventory/stock-adjustments/${adj.id}?mode=view`,
+                                `${baseRoute}/${adj.id}?mode=view`,
                                 "_blank",
                                 "noopener,noreferrer",
                               )
@@ -808,7 +812,7 @@ export default function StockAdjustmentList() {
         </div>
       )}
       <FloatingCreateButton
-        to="/inventory/stock-adjustments/new"
+        to={`${baseRoute}/new`}
         title="New Adjustment"
       />
       <DocumentAttachmentsModal

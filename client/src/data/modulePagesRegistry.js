@@ -170,11 +170,67 @@ export const MODULE_PRIMARY_PAGES = {
       description: "Fast barcode checkout, cash & digital sales",
     },
     {
-      title: "Receipt Reprint",
-      path: "/pos/receipt-reprint",
-      feature_key: "receipt-reprint",
-      icon: "🖨️",
-      description: "Search, preview, and reprint sales slips",
+      title: "Customers",
+      path: "/pos/customers",
+      feature_key: "customers",
+      icon: "👥",
+      description: "Manage customer profiles, pricing and credit limits",
+    },
+    {
+      title: "Suppliers",
+      path: "/pos/suppliers",
+      feature_key: "suppliers",
+      icon: "🏢",
+      description: "Manage store suppliers and vendor contacts",
+    },
+    {
+      title: "Direct Purchases",
+      path: "/pos/direct-purchases",
+      feature_key: "direct-purchase",
+      icon: "⚡",
+      description: "Fast counter and direct procurement",
+    },
+    {
+      title: "Item Master",
+      path: "/pos/items",
+      feature_key: "items",
+      icon: "📦",
+      description: "POS item catalog, pricing and barcodes",
+    },
+    {
+      title: "Item Classification",
+      path: "/pos/item-classification",
+      feature_key: "item-classification",
+      icon: "🏷️",
+      description: "Item categories, groups and classifications",
+    },
+    {
+      title: "Stock Balances",
+      path: "/pos/stock-balances",
+      feature_key: "stock-balances",
+      icon: "📊",
+      description: "Real-time store stock availability",
+    },
+    {
+      title: "Stock Adjustments",
+      path: "/pos/stock-adjustments",
+      feature_key: "stock-adjustments",
+      icon: "⚖️",
+      description: "Record manual inventory quantity adjustments",
+    },
+    {
+      title: "Payment Voucher",
+      path: "/pos/payment-voucher",
+      feature_key: "payment-voucher",
+      icon: "💸",
+      description: "Record counter payments and petty cash disbursements",
+    },
+    {
+      title: "Receipt Voucher",
+      path: "/pos/receipt-voucher",
+      feature_key: "receipt-voucher",
+      icon: "🧾",
+      description: "Record customer receipts and advance payments",
     },
     {
       title: "Day Management",
@@ -187,7 +243,7 @@ export const MODULE_PRIMARY_PAGES = {
       title: "POS Invoices",
       path: "/pos/invoices",
       feature_key: "invoices",
-      icon: "🧾",
+      icon: "📜",
       description: "History of retail sales invoices",
     },
     {
@@ -196,6 +252,20 @@ export const MODULE_PRIMARY_PAGES = {
       feature_key: "cash-collection",
       icon: "💵",
       description: "Till drops, cash float, and safe deposits",
+    },
+    {
+      title: "Profit & Loss Report",
+      path: "/pos/reports/profit-and-loss",
+      feature_key: "profitandlossreport",
+      icon: "📈",
+      description: "Store operational profit and loss statement",
+    },
+    {
+      title: "Receipt Reprint",
+      path: "/pos/receipt-reprint",
+      feature_key: "receipt-reprint",
+      icon: "🖨️",
+      description: "Search, preview, and reprint sales slips",
     },
     {
       title: "POS Returns",
@@ -481,6 +551,13 @@ export const MODULE_PRIMARY_PAGES = {
       description: "Configure feature level permissions",
     },
     {
+      title: "Exceptional Permissions",
+      path: "/administration/access/user-overrides",
+      feature_key: "user-overrides",
+      icon: "🛡️",
+      description: "User-specific permission overrides",
+    },
+    {
       title: "Workflow Configuration",
       path: "/administration/workflows",
       feature_key: "workflows",
@@ -488,11 +565,46 @@ export const MODULE_PRIMARY_PAGES = {
       description: "Document approval chains and rules",
     },
     {
+      title: "Workflow Approvals",
+      path: "/administration/workflows/approvals",
+      feature_key: "workflow-approvals",
+      icon: "✅",
+      description: "Approve and sign pending documents",
+    },
+    {
+      title: "Document Review",
+      path: "/administration/workflows/review",
+      feature_key: "document-review",
+      icon: "📋",
+      description: "Review and verify queued documents",
+    },
+    {
+      title: "System Settings",
+      path: "/administration/settings",
+      feature_key: "settings",
+      icon: "⚙️",
+      description: "System health and company defaults",
+    },
+    {
+      title: "Diagnostics",
+      path: "/administration/diagnostics",
+      feature_key: "diagnostics",
+      icon: "🖥️",
+      description: "System checks, caching and performance",
+    },
+    {
       title: "System Log Book",
       path: "/administration/system-log-book",
       feature_key: "system-log-book",
       icon: "📜",
       description: "System audit log and user actions",
+    },
+    {
+      title: "User Login Activity",
+      path: "/administration/reports/user-login-activity",
+      feature_key: "user-login-activity",
+      icon: "📊",
+      description: "User sign-in and session audit logs",
     },
   ],
 
@@ -576,7 +688,7 @@ export const MODULE_PRIMARY_PAGES = {
 export function getAssignedPagesForModule(
   moduleKey,
   permContext,
-  maxPages = 3,
+  maxPages = null,
 ) {
   const { canAccessPath, canAccessFeatureKey, isSuper } = permContext || {};
   const pages = MODULE_PRIMARY_PAGES[moduleKey] || [];
@@ -596,5 +708,8 @@ export function getAssignedPagesForModule(
     return false;
   });
 
-  return accessible.slice(0, maxPages);
+  if (maxPages && Number.isFinite(maxPages) && maxPages > 0) {
+    return accessible.slice(0, maxPages);
+  }
+  return accessible;
 }

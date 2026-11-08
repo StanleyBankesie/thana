@@ -38,7 +38,9 @@ function emptyLine() {
 export default function ReceiptVoucherForm() {
   const navigate = useNavigate();
   const { id } = useParams();
-  const { search } = useLocation();
+  const location = useLocation();
+  const search = location.search;
+  const isPos = Boolean(location.pathname?.startsWith("/pos"));
   const mode = new URLSearchParams(search).get("mode");
   const readOnly = mode === "view";
   const isEdit = Boolean(id);
@@ -297,24 +299,23 @@ export default function ReceiptVoucherForm() {
             .toUpperCase()
             .replace(/\s+/g, "_");
           const balance = Number(
-            x.balance_amount ?? x.net_amount ?? x.total_amount ?? 0,
+            x.balance_amount ?? (Number(x.net_amount || x.total_amount || 0) - Number(x.amount_paid || 0)),
           );
           return (
-            balance > 0 ||
-            status === "UNPAID" ||
-            status === "PARTIALLY_PAID" ||
-            status === "PARTIAL_PAYMENT"
+            balance > 0.01 &&
+            !["PAID", "FULLY_PAID", "SETTLED", "CLOSED"].includes(status)
           );
         })
         .map((x) => ({
           id: x.id,
           invoice_no: x.invoice_no,
           balance_amount: Number(
-            x.balance_amount ?? x.net_amount ?? x.total_amount ?? 0,
+            x.balance_amount ?? (Number(x.net_amount || x.total_amount || 0) - Number(x.amount_paid || 0)),
           ),
           total_amount: Number(x.total_amount || x.net_amount || 0),
           tax_code_id: x.tax_code_id || null,
           payment_status: x.payment_status || "",
+          source: x.source || "Sales",
         }))
         .sort((a, b) =>
           String(a.invoice_no || "").localeCompare(String(b.invoice_no || "")),
@@ -881,25 +882,16 @@ export default function ReceiptVoucherForm() {
   // Helper function to fetch account balance
   async function fetchAccountBalance(accountId) {
     if (!accountId) return null;
-    const cached = accountBalances[String(accountId)];
-    if (cached !== undefined) return cached;
     try {
-      let balance = null;
-      try {
-        const gl = await api.get("/finance/reports/general-ledger", {
-          params: { accountId: Number(accountId) },
-        });
-        balance =
-          gl.data?.account?.current_balance ??
-          gl.data?.account?.balance ??
-          gl.data?.closing_balance ??
-          null;
-      } catch {}
-      if (balance === null || balance === undefined) {
-        const res = await api.get(`/finance/accounts/${accountId}/balance`);
-        balance = res.data?.balance ?? res.data?.item?.balance ?? null;
-      }
-      setAccountBalances((prev) => ({ ...prev, [String(accountId)]: balance }));
+      const res = await api.get(`/finance/accounts/${accountId}/balance`);
+      const balance = res.data?.balance ?? null;
+      const formatted = res.data?.formatted ?? (balance !== null ? Number(balance).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "");
+      setAccountBalances((prev) => ({
+        ...prev,
+        [String(accountId)]: balance,
+        [`${accountId}_formatted`]: formatted,
+        [`${accountId}_indicator`]: res.data?.indicator || "",
+      }));
       return balance;
     } catch {
       return null;
@@ -1786,6 +1778,8 @@ export default function ReceiptVoucherForm() {
         voucherTypeCode: voucherTypeCode,
         voucherDate,
         isDirectPayment: isPAYV && paymentType === "DIRECT",
+        status: isPos ? "APPROVED" : undefined,
+        isPos: isPos,
         ...(isRV
           ? {
               currencyId: rvVoucherCurrencyId || null,
@@ -1885,7 +1879,7 @@ export default function ReceiptVoucherForm() {
       if (isEdit) {
         const res = await api.put(`/finance/vouchers/${id}`, payload);
         toast.success(res.data?.message || "Updated voucher");
-        navigate("/finance/receipt-voucher", {
+        navigate(isPos ? "/pos/finance/receipt-voucher" : "/finance/receipt-voucher", {
           state: {
             refresh: true,
             highlightId: id ? Number(id) : undefined,
@@ -1903,7 +1897,7 @@ export default function ReceiptVoucherForm() {
 
         toast.success(`Created ${res.data?.voucherNo || "voucher"}`);
         navigate(
-          `/finance/${
+          `${isPos ? "/pos/finance" : "/finance"}/${
             voucherTypeCode === "JV"
               ? "journal-voucher"
               : voucherTypeCode === "PAYV"
@@ -1933,7 +1927,7 @@ export default function ReceiptVoucherForm() {
         return;
       }
       navigate(
-        `/finance/${
+        `${isPos ? "/pos/finance" : "/finance"}/${
           voucherTypeCode === "JV"
             ? "journal-voucher"
             : voucherTypeCode === "PV"
@@ -4051,7 +4045,8 @@ export default function ReceiptVoucherForm() {
                     className="input w-64 bg-white dark:bg-slate-900"
                     value={
                       rvForm.depositAccountId
-                        ? accountBalances[String(rvForm.depositAccountId)] !==
+                        ? accountBalances[`${rvForm.depositAccountId}_formatted`] ||
+                          (accountBalances[String(rvForm.depositAccountId)] !==
                           undefined
                           ? Number(
                               accountBalances[String(rvForm.depositAccountId)],
@@ -4059,7 +4054,7 @@ export default function ReceiptVoucherForm() {
                               minimumFractionDigits: 2,
                               maximumFractionDigits: 2,
                             })
-                          : "Loading..."
+                          : "Loading...")
                         : "-"
                     }
                     disabled
@@ -4119,7 +4114,7 @@ export default function ReceiptVoucherForm() {
                                     const totalAmount = selectedInvoices.reduce((sum, inv) => sum + Number(inv.balance_amount || 0), 0);
                                     let found = false;
                                     const updatedItems = rvForm.items.map((it) => {
-                                      if (String(it.accountId) === String(rvForm.payerAccountId)) {
+                                      if (String(it.accountId) === String(rvForm.payerAccountId) || (!it.accountId && !it.amount)) {
                                         found = true;
                                         return {
                                           ...it,

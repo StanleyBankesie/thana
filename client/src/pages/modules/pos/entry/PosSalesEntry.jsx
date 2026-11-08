@@ -1437,8 +1437,9 @@ export default function PosSalesEntry() {
 
   function handleRegisterItem() {
     setShowItemNotFound(false);
-    if (canAccessPath("/inventory/items/new")) {
-      navigate("/inventory/items/new", { state: { from: "/pos/sales-entry" } });
+    if (canAccessPath("/inventory/items/new") || canAccessPath("/pos/inventory/items/new") || canAccessPath("/pos/items/new")) {
+      const targetPath = canAccessPath("/pos/items/new") ? "/pos/items/new" : (canAccessPath("/pos/inventory/items/new") ? "/pos/inventory/items/new" : "/inventory/items/new");
+      navigate(targetPath, { state: { from: "/pos/sales-entry" } });
     } else {
       setShowNoPermission(true);
     }

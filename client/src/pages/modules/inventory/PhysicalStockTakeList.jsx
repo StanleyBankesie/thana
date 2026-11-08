@@ -4,7 +4,7 @@
  */
 
 import React, { useEffect, useMemo, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import {
   ClipboardCheck,
   Plus,
@@ -45,6 +45,8 @@ const STATUS_CONFIG = {
 
 export default function PhysicalStockTakeList() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const isPos = location.pathname.startsWith("/pos");
   const [viewMode, setViewMode] = useViewMode();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
@@ -268,8 +270,8 @@ export default function PhysicalStockTakeList() {
               </p>
             </div>
             <div className="flex flex-wrap gap-2 items-center">
-              <Link to="/inventory?section=Stock%20Operations" className="btn btn-secondary text-xs">
-                Return to Menu
+              <Link to={isPos ? "/pos" : "/inventory?section=Stock%20Operations"} className="btn btn-secondary text-xs">
+                {isPos ? "← Return to POS" : "Return to Menu"}
               </Link>
               <button onClick={exportExcel} disabled={!filtered.length} className="btn btn-outline btn-sm text-white border-white/30 hover:bg-white/10 flex items-center gap-1.5 text-xs">
                 <Download size={14} /> Excel

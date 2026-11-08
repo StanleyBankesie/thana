@@ -4,7 +4,7 @@
  */
 
 import React, { useEffect, useMemo, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams, useLocation } from "react-router-dom";
 import {
   CalendarCheck,
   Play,
@@ -72,6 +72,9 @@ function toISODate(v) {
 export default function DailyStockTakeForm() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
+  const isPos = location.pathname.startsWith("/pos");
+  const baseRoute = isPos ? "/pos/inventory/daily-stock-take" : "/inventory/daily-stock-take";
   const isNew = id === "new";
 
   const [loading, setLoading] = useState(false);
@@ -294,7 +297,7 @@ export default function DailyStockTakeForm() {
     try {
       const res = await api.post("/inventory/stock-takes", createForm);
       toast.success(`Daily Stock Take ${res.data?.stock_take_no} created successfully`);
-      navigate(`/inventory/daily-stock-take/${res.data?.id}`);
+      navigate(`${baseRoute}/${res.data?.id}`);
     } catch (err) {
       toast.error(err?.response?.data?.message || "Failed to create daily stock take");
     } finally {
@@ -754,7 +757,7 @@ export default function DailyStockTakeForm() {
 
             {/* Top Buttons */}
             <div className="flex flex-wrap gap-2 items-center">
-              <button onClick={() => navigate("/inventory/daily-stock-take")} className="btn btn-secondary text-xs">
+              <button onClick={() => navigate(baseRoute)} className="btn btn-secondary text-xs">
                 Back to List
               </button>
               <button onClick={printCountSheet} className="btn btn-outline btn-sm text-white border-white/30 hover:bg-white/10 flex items-center gap-1.5 text-xs">

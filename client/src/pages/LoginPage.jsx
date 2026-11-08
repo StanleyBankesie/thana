@@ -672,7 +672,7 @@ export default function LoginPage() {
                 </div>
               </div>
 
-              <label className="inline-flex items-center gap-2 text-xs sm:text-sm font-semibold text-slate-800 cursor-pointer pt-0.5">
+              <label className="inline-flex items-center gap-2 text-xs sm:text-sm font-normal text-slate-700 cursor-pointer pt-0.5">
                 <input
                   type="checkbox"
                   className="rounded border-slate-300 text-amber-500 focus:ring-amber-500 w-4 h-4 cursor-pointer"
@@ -697,7 +697,7 @@ export default function LoginPage() {
               <div className="mt-2 text-center">
                 <Link
                   to="/forgot-password"
-                  className="text-xs sm:text-sm text-slate-600 hover:text-slate-950 font-bold underline underline-offset-4 transition-colors"
+                  className="text-xs sm:text-sm text-sky-500 hover:text-sky-600 font-normal hover:underline transition-colors"
                 >
                   Forgot password?
                 </Link>
@@ -814,7 +814,7 @@ export default function LoginPage() {
                           opacity: idx === announcementIndex ? 1 : 0,
                         }}
                       >
-                        <p className="text-slate-900 text-xs sm:text-sm font-semibold leading-snug w-full truncate">
+                        <p className="text-slate-900 text-xs sm:text-sm font-normal leading-snug w-full truncate">
                           {ann}
                         </p>
                       </div>
@@ -829,7 +829,7 @@ export default function LoginPage() {
                     <Gift size={15} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <h4 className="font-semibold text-slate-700 text-xs truncate">
+                    <h4 className="font-normal text-slate-700 text-xs truncate">
                       {bd.full_name}'s Birthday
                     </h4>
                     <p className="text-slate-500 text-[10px]">
@@ -845,7 +845,7 @@ export default function LoginPage() {
                     <Award size={15} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <h4 className="font-semibold text-slate-700 text-xs truncate">
+                    <h4 className="font-normal text-slate-700 text-xs truncate">
                       {an.full_name}'s Work Anniversary
                     </h4>
                     <p className="text-slate-500 text-[10px]">

@@ -38,7 +38,9 @@ function emptyLine() {
 export default function ContraVoucherForm() {
   const navigate = useNavigate();
   const { id } = useParams();
-  const { search } = useLocation();
+  const location = useLocation();
+  const search = location.search;
+  const isPos = Boolean(location.pathname?.startsWith("/pos"));
   const mode = new URLSearchParams(search).get("mode");
   const readOnly = mode === "view";
   const isEdit = Boolean(id);
@@ -865,25 +867,16 @@ export default function ContraVoucherForm() {
   // Helper function to fetch account balance
   async function fetchAccountBalance(accountId) {
     if (!accountId) return null;
-    const cached = accountBalances[String(accountId)];
-    if (cached !== undefined) return cached;
     try {
-      let balance = null;
-      try {
-        const gl = await api.get("/finance/reports/general-ledger", {
-          params: { accountId: Number(accountId) },
-        });
-        balance =
-          gl.data?.account?.current_balance ??
-          gl.data?.account?.balance ??
-          gl.data?.closing_balance ??
-          null;
-      } catch {}
-      if (balance === null || balance === undefined) {
-        const res = await api.get(`/finance/accounts/${accountId}/balance`);
-        balance = res.data?.balance ?? res.data?.item?.balance ?? null;
-      }
-      setAccountBalances((prev) => ({ ...prev, [String(accountId)]: balance }));
+      const res = await api.get(`/finance/accounts/${accountId}/balance`);
+      const balance = res.data?.balance ?? null;
+      const formatted = res.data?.formatted ?? (balance !== null ? Number(balance).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "");
+      setAccountBalances((prev) => ({
+        ...prev,
+        [String(accountId)]: balance,
+        [`${accountId}_formatted`]: formatted,
+        [`${accountId}_indicator`]: res.data?.indicator || "",
+      }));
       return balance;
     } catch {
       return null;
@@ -1738,6 +1731,8 @@ export default function ContraVoucherForm() {
         voucherTypeCode: voucherTypeCode,
         voucherDate,
         isDirectPayment: isPAYV && paymentType === "DIRECT",
+        status: isPos ? "APPROVED" : undefined,
+        isPos: isPos,
         ...(isRV
           ? {
               currencyId: rvVoucherCurrencyId || null,
@@ -1776,67 +1771,42 @@ export default function ContraVoucherForm() {
               },
             }
           : {}),
-        narration:
-          isRV || isPAYV || isCV
+        narration: isCV
+          ? [
+              cvForm.fromAccountId
+                ? `From: ${
+                    accounts.find(
+                      (a) =>
+                        String(a.id) === String(cvForm.fromAccountId),
+                    )?.code
+                  }`
+                : null,
+              cvForm.toAccountId
+                ? `To: ${
+                    accounts.find(
+                      (a) =>
+                        String(a.id) === String(cvForm.toAccountId),
+                    )?.code
+                  }`
+                : null,
+              cvForm.transferMethod
+                ? `Method: ${cvForm.transferMethod}`
+                : null,
+              cvForm.reference ? `Ref: ${cvForm.reference}` : null,
+              narration || voucherNarration || null,
+            ]
+              .filter(Boolean)
+              .join(" | ")
+          : isRV || isPAYV
             ? voucherNarration
-            : isRV
-              ? [
-                  rvForm.receivedFrom
-                    ? `Received from: ${rvForm.receivedFrom}`
-                    : null,
-                  rvForm.paymentMethod
-                    ? `Method: ${rvForm.paymentMethod}`
-                    : null,
-                  rvForm.reference ? `Ref: ${rvForm.reference}` : null,
-                  narration || null,
-                ]
-                  .filter(Boolean)
-                  .join(" | ")
-              : isPAYV
-                ? [
-                    pvForm.payTo ? `Paid to: ${pvForm.payTo}` : null,
-                    pvForm.paymentMethod
-                      ? `Method: ${pvForm.paymentMethod}`
-                      : null,
-                    pvForm.reference ? `Ref: ${pvForm.reference}` : null,
-                    narration || null,
-                  ]
-                    .filter(Boolean)
-                    .join(" | ")
-                : isCV
-                  ? [
-                      cvForm.fromAccountId
-                        ? `From: ${
-                            accounts.find(
-                              (a) =>
-                                String(a.id) === String(cvForm.fromAccountId),
-                            )?.code
-                          }`
-                        : null,
-                      cvForm.toAccountId
-                        ? `To: ${
-                            accounts.find(
-                              (a) =>
-                                String(a.id) === String(cvForm.toAccountId),
-                            )?.code
-                          }`
-                        : null,
-                      cvForm.transferMethod
-                        ? `Method: ${cvForm.transferMethod}`
-                        : null,
-                      cvForm.reference ? `Ref: ${cvForm.reference}` : null,
-                      narration || null,
-                    ]
-                      .filter(Boolean)
-                      .join(" | ")
-                  : narration,
+            : narration,
         lines: cleaned,
       };
 
       if (isEdit) {
         const res = await api.put(`/finance/vouchers/${id}`, payload);
         toast.success(res.data?.message || "Updated voucher");
-        navigate("/finance/contra-voucher", {
+        navigate(isPos ? "/pos/finance/contra-voucher" : "/finance/contra-voucher", {
           state: {
             refresh: true,
             highlightId: id ? Number(id) : undefined,
@@ -1854,7 +1824,7 @@ export default function ContraVoucherForm() {
 
         toast.success(`Created ${res.data?.voucherNo || "voucher"}`);
         navigate(
-          `/finance/${
+          `${isPos ? "/pos/finance" : "/finance"}/${
             voucherTypeCode === "JV"
               ? "journal-voucher"
               : voucherTypeCode === "PAYV"
@@ -3716,7 +3686,8 @@ export default function ContraVoucherForm() {
                           <input
                             className="input w-32 bg-white dark:bg-slate-900"
                             value={
-                              accountBalances[String(cvForm.fromAccountId)] !==
+                              accountBalances[`${cvForm.fromAccountId}_formatted`] ||
+                              (accountBalances[String(cvForm.fromAccountId)] !==
                                 undefined &&
                               accountBalances[String(cvForm.fromAccountId)] !==
                                 null
@@ -3728,7 +3699,7 @@ export default function ContraVoucherForm() {
                                     minimumFractionDigits: 2,
                                     maximumFractionDigits: 2,
                                   })
-                                : ""
+                                : "")
                             }
                             readOnly
                             placeholder="0.00"
@@ -3827,7 +3798,8 @@ export default function ContraVoucherForm() {
                           <input
                             className="input w-32 bg-white dark:bg-slate-900"
                             value={
-                              accountBalances[String(cvForm.toAccountId)] !==
+                              accountBalances[`${cvForm.toAccountId}_formatted`] ||
+                              (accountBalances[String(cvForm.toAccountId)] !==
                                 undefined &&
                               accountBalances[String(cvForm.toAccountId)] !==
                                 null
@@ -3837,7 +3809,7 @@ export default function ContraVoucherForm() {
                                     minimumFractionDigits: 2,
                                     maximumFractionDigits: 2,
                                   })
-                                : ""
+                                : "")
                             }
                             readOnly
                             placeholder="0.00"

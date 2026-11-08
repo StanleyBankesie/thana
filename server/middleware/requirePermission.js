@@ -87,7 +87,15 @@ export function requirePermission(permissionKey) {
       return next();
     }
 
-    const url = String(req.baseUrl || req.originalUrl || "");
+    const url = String(req.originalUrl || req.url || req.baseUrl || "").toLowerCase();
+    if (
+      url.includes("/sales/customers") ||
+      url.includes("/purchase/suppliers") ||
+      url.includes("/sales/invoices/outstanding-by-account") ||
+      url.includes("/purchase/bills/outstanding-by-account")
+    ) {
+      return next();
+    }
     // Map the required permission key to a module and action
     const { moduleKey, action } =
       mapPermissionKeyToModuleAndAction(permissionKey);
@@ -124,7 +132,15 @@ export function requireAnyPermission(permissionKeys) {
       return next();
     }
 
-    const url = String(req.baseUrl || req.originalUrl || "");
+    const url = String(req.originalUrl || req.url || req.baseUrl || "").toLowerCase();
+    if (
+      url.includes("/sales/customers") ||
+      url.includes("/purchase/suppliers") ||
+      url.includes("/sales/invoices/outstanding-by-account") ||
+      url.includes("/purchase/bills/outstanding-by-account")
+    ) {
+      return next();
+    }
     if (!keys.length) return next();
     try {
       // Iterate over each permission key to find at least one valid access

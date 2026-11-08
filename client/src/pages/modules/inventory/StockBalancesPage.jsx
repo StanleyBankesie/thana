@@ -5,7 +5,7 @@
  */
 
 import React, { useState, useEffect, useMemo } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { 
   Package, 
   Warehouse, 
@@ -38,6 +38,8 @@ import useSort from "@/hooks/useSort";
 import SortableHeader from "@/components/SortableHeader";
 
 export default function StockBalancesPage() {
+  const location = useLocation();
+  const isPos = location.pathname.startsWith("/pos");
   const [viewMode, setViewMode] = useViewMode();
   const [items, setItems] = useState([]);
   const [stats, setStats] = useState({
@@ -195,8 +197,8 @@ export default function StockBalancesPage() {
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <Link to="/inventory?section=Stock%20Operations" className="font-sans btn btn-secondary text-xs">
-              Return to Menu
+            <Link to={isPos ? "/pos" : "/inventory?section=Stock%20Operations"} className="font-sans btn btn-secondary text-xs">
+              {isPos ? "← Return to POS" : "Return to Menu"}
             </Link>
             <button
               type="button"
@@ -213,7 +215,7 @@ export default function StockBalancesPage() {
             >
               <RotateCcw size={14} className={loading ? "animate-spin" : ""} /> Refresh
             </button>
-            <Link to="/inventory/stock-transfers/new" className="btn-success flex items-center gap-1.5 text-xs">
+            <Link to={isPos ? "/pos/inventory/stock-transfers/new" : "/inventory/stock-transfers/new"} className="btn-success flex items-center gap-1.5 text-xs">
               <Truck size={15} /> Transfer Stock
             </Link>
           </div>
@@ -384,17 +386,17 @@ export default function StockBalancesPage() {
       <div className="card overflow-hidden border border-slate-200 dark:border-slate-800 shadow-xs">
         <div className="overflow-x-auto">
           <table className={"w-full text-left text-xs " + (viewMode === 'grid' ? 'table-grid-mode' : '')}>
-            <thead className="bg-brand-900 text-white dark:bg-brand-950 font-bold uppercase tracking-wider border-b border-brand-800">
+            <thead className="bg-[#0E3646] text-white border-b border-[#173d50] font-bold uppercase tracking-wider">
               <tr>
-                <SortableHeader label="Item Code & Name" sortKey="item_name" currentKey={sortKey} direction={sortDir} onToggle={toggle} className="px-4 py-3 text-white font-extrabold" />
-                <SortableHeader label="Category / Group" sortKey="group_name" currentKey={sortKey} direction={sortDir} onToggle={toggle} className="px-4 py-3 text-white font-extrabold" />
-                <SortableHeader label="Warehouse / Location" sortKey="warehouse_name" currentKey={sortKey} direction={sortDir} onToggle={toggle} className="px-4 py-3 text-white font-extrabold" />
-                <SortableHeader label="Batch / Expiry" sortKey="batch_no" currentKey={sortKey} direction={sortDir} onToggle={toggle} className="px-4 py-3 text-white font-extrabold" />
-                <SortableHeader label="On-Hand Qty" sortKey="qty" currentKey={sortKey} direction={sortDir} onToggle={toggle} className="px-4 py-3 text-right text-white font-extrabold" />
-                <SortableHeader label="Available Qty" sortKey="available_qty" currentKey={sortKey} direction={sortDir} onToggle={toggle} className="px-4 py-3 text-right text-white font-extrabold" />
-                <SortableHeader label="Valuation" sortKey="total_stock_value" currentKey={sortKey} direction={sortDir} onToggle={toggle} className="px-4 py-3 text-right text-white font-extrabold" />
-                <SortableHeader label="Status" sortKey="health_status" currentKey={sortKey} direction={sortDir} onToggle={toggle} className="px-4 py-3 text-center text-white font-extrabold" />
-                <th className="px-4 py-3 text-right text-white font-extrabold">Actions</th>
+                <SortableHeader label="Item Code & Name" sortKey="item_name" currentKey={sortKey} direction={sortDir} onToggle={toggle} className="px-4 py-3 text-white font-bold" />
+                <SortableHeader label="Category / Group" sortKey="group_name" currentKey={sortKey} direction={sortDir} onToggle={toggle} className="px-4 py-3 text-white font-bold" />
+                <SortableHeader label="Warehouse / Location" sortKey="warehouse_name" currentKey={sortKey} direction={sortDir} onToggle={toggle} className="px-4 py-3 text-white font-bold" />
+                <SortableHeader label="Batch / Expiry" sortKey="batch_no" currentKey={sortKey} direction={sortDir} onToggle={toggle} className="px-4 py-3 text-white font-bold" />
+                <SortableHeader label="On-Hand Qty" sortKey="qty" currentKey={sortKey} direction={sortDir} onToggle={toggle} className="px-4 py-3 text-right text-white font-bold" />
+                <SortableHeader label="Available Qty" sortKey="available_qty" currentKey={sortKey} direction={sortDir} onToggle={toggle} className="px-4 py-3 text-right text-white font-bold" />
+                <SortableHeader label="Valuation" sortKey="total_stock_value" currentKey={sortKey} direction={sortDir} onToggle={toggle} className="px-4 py-3 text-right text-white font-bold" />
+                <SortableHeader label="Status" sortKey="health_status" currentKey={sortKey} direction={sortDir} onToggle={toggle} className="px-4 py-3 text-center text-white font-bold" />
+                <th className="px-4 py-3 text-right font-bold text-white">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-medium">

@@ -31,6 +31,8 @@ export default function DirectPurchaseList() {
   const navigate = useNavigate();
   const location = useLocation();
   const { canAccessPath, canReverseApproval } = usePermission();
+  const isPos = location.pathname.startsWith("/pos");
+  const baseRoute = isPos ? "/pos/direct-purchases" : "/purchase/direct-purchase";
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -78,9 +80,9 @@ export default function DirectPurchaseList() {
     <div className="p-6 space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <button onClick={() => window.history.back()} className="text-sm text-brand hover:text-brand-600 dark:text-brand-400 dark:hover:text-brand-300"
+          <button onClick={() => isPos ? navigate("/pos") : window.history.back()} className="text-sm text-brand hover:text-brand-600 dark:text-brand-400 dark:hover:text-brand-300"
           >
-            ← Back to Purchase
+            {isPos ? "← Back to POS" : "← Back to Purchase"}
           </button>
           <h1 className="text-2xl font-bold mt-2">Direct Purchases</h1>
           <p className="text-sm text-slate-600">
@@ -91,7 +93,7 @@ export default function DirectPurchaseList() {
           <button
             className="btn btn-primary"
             data-rbac-exempt="true"
-            onClick={() => navigate("/purchase/direct-purchase/new")}
+            onClick={() => navigate(`${baseRoute}/new`)}
           >
             Create Direct Purchase
           </button>
@@ -153,7 +155,7 @@ export default function DirectPurchaseList() {
                          {/* Slot 1: View */}
                          <div className="min-w-[70px] shrink-0">
                            <Link
-                             to={`/purchase/direct-purchase/${it.id}?mode=view`}
+                             to={`${baseRoute}/${it.id}?mode=view`}
                              data-rbac-exempt="true"
                              className="w-full inline-flex items-center justify-center px-3 py-1.5 text-xs font-medium text-slate-700 bg-slate-100 border border-slate-200 rounded-lg hover:bg-slate-200 transition-colors h-8"
                            >
@@ -165,7 +167,7 @@ export default function DirectPurchaseList() {
                          <div className="min-w-[70px] shrink-0">
                            {!["POST", "POSTED"].includes(String(it.status).toUpperCase()) ? (
                              <Link
-                               to={`/purchase/direct-purchase/${it.id}?mode=edit`}
+                               to={`${baseRoute}/${it.id}?mode=edit`}
                                data-rbac-exempt="true"
                                className="w-full inline-flex items-center justify-center px-3 py-1.5 text-xs font-medium text-slate-700 bg-slate-100 border border-slate-200 rounded-lg hover:bg-slate-200 transition-colors h-8"
                              >
@@ -215,7 +217,7 @@ export default function DirectPurchaseList() {
                                      onClick={async () => {
                                        if (!window.confirm("Cancel this purchase?")) return;
                                        try {
-                                         await api.post(`/purchase/direct-purchase/${it.id}/cancel`);
+                                         await api.post(`${baseRoute}/${it.id}/cancel`);
                                          toast.success("Purchase cancelled");
                                          setItems(prev => prev.map(x => x.id === it.id ? { ...x, status: 'CANCELLED' } : x));
                                        } catch (e) {
@@ -266,3 +268,5 @@ export default function DirectPurchaseList() {
     </div>
   );
 }
+
+

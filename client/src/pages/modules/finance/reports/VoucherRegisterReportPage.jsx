@@ -5,7 +5,7 @@
 
 import React, { useEffect, useState, useMemo } from "react";
 import { toast } from "react-toastify";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { api } from "api/client";
 import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
@@ -25,6 +25,8 @@ import {
 } from "lucide-react";
 
 export default function VoucherRegisterReportPage() {
+  const location = useLocation();
+  const isPos = location.pathname.startsWith("/pos");
   const [pollingCounter, setPollingCounter] = React.useState(0);
   React.useEffect(() => {
     const __pollId = setInterval(() => setPollingCounter(c => c + 1), 15000);
@@ -88,10 +90,10 @@ export default function VoucherRegisterReportPage() {
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
               <Link
-                to="/finance?section=Reports%20%26%20Analysis"
+                to={isPos ? "/pos/reports" : "/finance?section=Reports%20%26%20Analysis"}
                 className="inline-flex items-center gap-1.5 text-xs text-white/80 hover:text-white transition-colors mb-2"
               >
-                <ArrowLeft size={14} /> Back to Finance
+                <ArrowLeft size={14} /> {isPos ? "Back to POS Reports" : "Back to Finance"}
               </Link>
               <h1 className="text-2xl font-bold flex items-center gap-2">
                 <Receipt className="w-6 h-6" /> Voucher Register

@@ -74,6 +74,27 @@ export default function PosReturnForm() {
   const [products, setProducts] = useState([]);
   const [itemsLoading, setItemsLoading] = useState(false);
   const [itemsError, setItemsError] = useState("");
+  const [posTaxSettings, setPosTaxSettings] = useState(null);
+  const [posTaxLoaded, setPosTaxLoaded] = useState(false);
+
+  useEffect(() => {
+    let mounted = true;
+    api
+      .get("/pos/tax-settings")
+      .then((res) => {
+        if (!mounted) return;
+        setPosTaxSettings(res.data?.item || null);
+        setPosTaxLoaded(true);
+      })
+      .catch(() => {
+        if (!mounted) return;
+        setPosTaxSettings(null);
+        setPosTaxLoaded(true);
+      });
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   useEffect(() => {
     const t = setInterval(() => setNow(new Date()), 1000);
@@ -372,15 +393,26 @@ export default function PosReturnForm() {
     };
   }, [searchDate]);
 
+    const isTaxConfiguredInSetup = useMemo(() => {
+    if (!posTaxSettings) return false;
+    const hasCode = Boolean(posTaxSettings.tax_code_id);
+    const isActive = posTaxSettings.is_active === 1 || posTaxSettings.is_active === true;
+    const rate = Number(posTaxSettings.tax_rate_percent ?? 0);
+    return hasCode && isActive && rate > 0;
+  }, [posTaxSettings]);
+
   const taxRate = useMemo(() => {
+    // When no tax is set in the setup page, do not add tax to item being returned
+    if (!isTaxConfiguredInSetup) return 0;
     const r = Number(currentReceipt?.taxRate ?? 0);
     return r > 0 ? r : 0;
-  }, [currentReceipt?.taxRate]);
+  }, [isTaxConfiguredInSetup, currentReceipt?.taxRate]);
+
   const subtotal = useMemo(
     () => returnItems.reduce((sum, i) => sum + i.price * i.returnQuantity, 0),
     [returnItems],
   );
-  const tax = useMemo(() => subtotal * taxRate, [subtotal, taxRate]);
+  const tax = useMemo(() => (isTaxConfiguredInSetup ? subtotal * taxRate : 0), [isTaxConfiguredInSetup, subtotal, taxRate]);
   const totalRefund = useMemo(() => subtotal + tax, [subtotal, tax]);
 
   async function searchReceipt() {
@@ -613,9 +645,11 @@ export default function PosReturnForm() {
           <div class="row"><span>Items Subtotal</span><span>${subtotal.toFixed(
             2,
           )}</span></div>
-          <div class="row"><span>Tax Refund</span><span>${tax.toFixed(
-            2,
-          )}</span></div>
+          ${
+            isTaxConfiguredInSetup && tax > 0
+              ? `<div class="row"><span>Tax Refund</span><span>${tax.toFixed(2)}</span></div>`
+              : ""
+          }
           <div class="row"><strong>Total Refund</strong><strong>${totalRefund.toFixed(
             2,
           )}</strong></div>
@@ -1003,10 +1037,12 @@ export default function PosReturnForm() {
                   <div>Items Subtotal</div>
                   <div>{`GH₵ ${subtotal.toFixed(2)}`}</div>
                 </div>
-                <div className="flex justify-between">
-                  <div>Tax Refund</div>
-                  <div>{`GH₵ ${tax.toFixed(2)}`}</div>
-                </div>
+                {isTaxConfiguredInSetup && tax > 0 ? (
+                  <div className="flex justify-between">
+                    <div>Tax Refund</div>
+                    <div>{`GH₵ ${tax.toFixed(2)}`}</div>
+                  </div>
+                ) : null}
                 <div className="flex justify-between font-bold pt-2 border-t">
                   <div>Total Refund</div>
                   <div className="text-red-700">{`GH₵ ${totalRefund.toFixed(

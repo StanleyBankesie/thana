@@ -5,7 +5,7 @@
  */
 
 import React, { useEffect, useMemo, useState, useRef } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { toast } from "react-toastify";
 import { api } from "../../../api/client";
 import { filterAndSort } from "@/utils/searchUtils.js";
@@ -50,6 +50,11 @@ function toCharYorN(val, defaultVal = "Y") {
  * @returns {JSX.Element} The item list view.
  */
 export default function ItemsList() {
+  const location = useLocation();
+  const isPos = location.pathname.startsWith("/pos");
+  const itemsBaseRoute = isPos
+    ? (location.pathname.includes("/inventory/items") ? "/pos/inventory/items" : "/pos/items")
+    : "/inventory/items";
   const [viewMode, setViewMode] = useViewMode();
   const { hasExceptional } = usePermission();
   const [items, setItems] = useState([]);
@@ -1785,9 +1790,9 @@ export default function ItemsList() {
               </p>
             </div>
             <div className="flex gap-2.5 flex-wrap w-full md:w-auto justify-start md:justify-end items-center">
-              <Link to="/inventory?section=Stock%20Operations">
+              <Link to={isPos ? "/pos" : "/inventory?section=Stock%20Operations"}>
                 <Button variant="secondary" size="md">
-                  Return to Menu
+                  {isPos ? "← Return to POS" : "Return to Menu"}
                 </Button>
               </Link>
               <input
@@ -1913,9 +1918,21 @@ export default function ItemsList() {
                   </>
                 )}
               </div>
-              <Link to="/inventory/items/new">
-                <Button variant="prominent" size="md" icon={<Plus className="w-4 h-4" />}>
-                  New Item
+              <Link
+                to={`${itemsBaseRoute}/new`}
+                data-rbac-exempt="true"
+                data-action="create"
+                id="header-add-item-btn"
+                className="inline-flex shrink-0"
+              >
+                <Button
+                  variant="prominent"
+                  size="md"
+                  icon={<Plus className="w-4 h-4 stroke-[2.5]" />}
+                  data-rbac-exempt="true"
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold shadow-md hover:shadow-lg transition-all"
+                >
+                  Add New Item
                 </Button>
               </Link>
             </div>
@@ -1995,10 +2012,22 @@ export default function ItemsList() {
             </div>
           </div>
 
-          <div className="flex justify-between items-center mb-2">
-            <div className="text-sm text-slate-600">
-              Showing {Math.min(pageItems.length, filtered.length)} of{" "}
-              {filtered.length} items
+          <div className="flex flex-wrap justify-between items-center gap-3 mb-2">
+            <div className="flex items-center gap-3">
+              <Link
+                to={`${itemsBaseRoute}/new`}
+                data-rbac-exempt="true"
+                data-action="create"
+                className="btn-success inline-flex items-center justify-center gap-1.5 px-3.5 py-1.5 text-xs font-bold rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm shrink-0 active:scale-95"
+                title="Add New Item"
+              >
+                <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
+                <span>Add New Item</span>
+              </Link>
+              <span className="text-sm text-slate-600">
+                Showing {Math.min(pageItems.length, filtered.length)} of{" "}
+                {filtered.length} items
+              </span>
             </div>
             <div>
               <select
@@ -2117,7 +2146,18 @@ export default function ItemsList() {
                       colSpan="14"
                       className="text-center py-8 text-slate-500 dark:text-slate-400"
                     >
-                      No items found
+                      <div className="flex flex-col items-center justify-center gap-2">
+                        <span>No items found</span>
+                        <Link
+                          to={`${itemsBaseRoute}/new`}
+                          data-rbac-exempt="true"
+                          data-action="create"
+                          className="btn-success inline-flex items-center justify-center gap-1.5 px-3.5 py-2 text-xs font-bold rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm mt-1"
+                        >
+                          <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
+                          <span>Add New Item</span>
+                        </Link>
+                      </div>
                     </td>
                   </tr>
                 ) : null}
@@ -2135,13 +2175,13 @@ export default function ItemsList() {
                     <td>
                       <div className="flex items-center gap-2 whitespace-nowrap">
                         <Link
-                          to={`/inventory/items/${it.id}?mode=view`}
+                          to={`${itemsBaseRoute}/${it.id}?mode=view`}
                           className="inline-flex items-center justify-center px-3 py-1 text-xs font-medium text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800/80 hover:bg-slate-200 dark:hover:bg-slate-700/80 rounded-lg transition-all active:scale-95"
                         >
                           View
                         </Link>
                         <Link
-                          to={`/inventory/items/${it.id}?mode=edit`}
+                          to={`${itemsBaseRoute}/${it.id}?mode=edit`}
                           className="inline-flex items-center justify-center px-3 py-1 text-xs font-medium text-brand-700 dark:text-brand-300 bg-brand-50 dark:bg-brand-900/40 hover:bg-brand-100 dark:hover:bg-brand-900/70 rounded-lg transition-all active:scale-95"
                         >
                           Edit
