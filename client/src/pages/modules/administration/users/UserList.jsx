@@ -48,6 +48,7 @@ export default function UserList() {
       else if (Array.isArray(d?.data?.items)) items = d.data.items;
       else if (Array.isArray(d?.data)) items = d.data;
       
+      items = items.filter((u) => Number(u.id) !== 1 && String(u.username || "").toLowerCase() !== "admin" && Number(u.role_id) !== 1);
       setUsers(items);
     } catch (err) {
       setError(err?.response?.data?.message || `API Error: ${err.message} (${err.code})` || "Error fetching users");

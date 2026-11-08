@@ -71,7 +71,7 @@ export default function RoleManagement() {
         api.get("/access/roles"),
         api.get("/access/modules"),
       ]);
-      setRoles(rolesRes?.data?.items || []);
+      setRoles((rolesRes?.data?.items || []).filter((r) => Number(r.id) !== 1 && String(r.code || "").toUpperCase() !== "SUPER_ADMIN" && String(r.name || "").toLowerCase() !== "super admin"));
       setModules(modRes?.data?.modules || []);
     } catch (err) {
       setError(err?.response?.data?.message || "Failed to load");

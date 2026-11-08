@@ -52,6 +52,7 @@ export default function UserPermissionsNew() {
       else if (Array.isArray(d?.items)) items = d.items;
       else if (Array.isArray(d?.data?.items)) items = d.data.items;
       else if (Array.isArray(d?.data)) items = d.data;
+      items = items.filter((u) => Number(u.id) !== 1 && String(u.username || "").toLowerCase() !== "admin" && Number(u.role_id) !== 1);
       setUsers(items);
     } catch (err) {
       setError(err?.response?.data?.message || "Failed to load users");

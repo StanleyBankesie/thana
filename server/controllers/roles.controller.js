@@ -76,7 +76,7 @@ export const listRoles = async (req, res, next) => {
     let queryStr =
       `SELECT id, company_id, ${hasBranchCol ? "branch_id, " : ""}name, code, is_active, created_at FROM adm_roles`;
     const params = {};
-    const whereClauses = [];
+    const whereClauses = ["id != 1 AND code != 'SUPER_ADMIN'"];
     
     // Apply company context filtering if applicable
     if (companyId) {

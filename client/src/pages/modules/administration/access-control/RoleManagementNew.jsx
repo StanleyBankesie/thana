@@ -115,7 +115,7 @@ export default function RoleManagementNew() {
       const [rolesRes] = await Promise.all([
         api.get("/access/roles")
       ]);
-      setRoles(rolesRes?.data?.items || []);
+      setRoles((rolesRes?.data?.items || []).filter((r) => Number(r.id) !== 1 && String(r.code || "").toUpperCase() !== "SUPER_ADMIN" && String(r.name || "").toLowerCase() !== "super admin"));
       
       const exclSet = new Set();
       for (const mk of Object.keys(MODULES_REGISTRY)) {
@@ -183,6 +183,10 @@ export default function RoleManagementNew() {
   }
 
   async function openRoleSettings(role) {
+    if (!role || Number(role.id) === 1 || String(role.code || "").toUpperCase() === "SUPER_ADMIN") {
+      setError("Super Admin role cannot be modified");
+      return;
+    }
     try {
       fetchCompanyLicense(role.company_id);
       const [modsRes, featsRes] = await Promise.all([

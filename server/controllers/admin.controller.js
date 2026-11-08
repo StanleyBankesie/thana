@@ -241,11 +241,11 @@ export const listPages = async (req, res, next) => {
 
 export const getDashboardStats = async (req, res, next) => {
   try {
-    const [roles] = await query("SELECT COUNT(*) as count FROM adm_roles");
+    const [roles] = await query("SELECT COUNT(*) as count FROM adm_roles WHERE id != 1 AND code != 'SUPER_ADMIN'");
     const [pages] = await query("SELECT COUNT(*) as count FROM adm_pages");
-    const [users] = await query("SELECT COUNT(*) as count FROM adm_users");
+    const [users] = await query("SELECT COUNT(*) as count FROM adm_users WHERE id != 1");
     const [assignments] = await query(
-      "SELECT COUNT(*) as count FROM adm_users WHERE role_id IS NOT NULL",
+      "SELECT COUNT(*) as count FROM adm_users WHERE role_id IS NOT NULL AND id != 1 AND role_id != 1",
     );
     const [activeExceptions] = await query(
       "SELECT COUNT(*) as count FROM adm_exceptional_permissions WHERE is_active = 1",

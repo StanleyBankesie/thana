@@ -32,7 +32,7 @@ export const getUsers = async (req, res, next) => {
     await ensureUserColumns();
     const { q, company_id, branch_id, active, limit } = req.query || {};
     const { companyId: scopeCompanyId, branchIdsStr } = req.scope || {};
-    const clauses = [];
+    const clauses = ["u.id != 1"];
     const params = {};
     if (company_id) {
       clauses.push("u.company_id = :company_id");

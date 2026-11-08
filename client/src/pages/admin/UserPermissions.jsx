@@ -36,7 +36,7 @@ export default function UserPermissions() {
   async function loadRoles() {
     try {
       const res = await api.get("/admin/roles");
-      setRoles(res.data || []);
+      setRoles((res.data || []).filter((r) => Number(r.id) !== 1 && String(r.code || "").toUpperCase() !== "SUPER_ADMIN" && String(r.name || "").toLowerCase() !== "super admin"));
     } catch (err) {
       setError("Failed to load roles");
     }

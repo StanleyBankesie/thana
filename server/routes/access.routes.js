@@ -571,7 +571,7 @@ router.get(
   async (req, res, next) => {
     try {
       const items = await query(
-        "SELECT id, company_id, name, code, is_active FROM adm_roles ORDER BY name ASC",
+        "SELECT id, company_id, name, code, is_active FROM adm_roles WHERE id != 1 AND code != 'SUPER_ADMIN' ORDER BY name ASC",
         {},
       );
       res.json({ items });

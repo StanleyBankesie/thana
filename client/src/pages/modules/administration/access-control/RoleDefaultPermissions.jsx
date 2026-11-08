@@ -25,7 +25,7 @@ export default function RoleDefaultPermissions() {
     async function loadInitial() {
       try {
         const [rolesRes] = await Promise.all([api.get("/access/roles")]);
-        setRoles(rolesRes?.data?.items || []);
+        setRoles((rolesRes?.data?.items || []).filter((r) => Number(r.id) !== 1 && String(r.code || "").toUpperCase() !== "SUPER_ADMIN" && String(r.name || "").toLowerCase() !== "super admin"));
       } catch (err) {
         setError(err?.response?.data?.message || "Failed to load");
       }

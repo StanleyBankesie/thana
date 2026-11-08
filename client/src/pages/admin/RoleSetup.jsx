@@ -138,7 +138,7 @@ export default function RoleSetup() {
   async function loadRoles() {
     try {
       const res = await api.get("/admin/roles");
-      setRoles(res.data || []);
+      setRoles((res.data || []).filter((r) => Number(r.id) !== 1 && String(r.code || "").toUpperCase() !== "SUPER_ADMIN" && String(r.name || "").toLowerCase() !== "super admin"));
     } catch (err) {
       setError("Failed to load roles");
     }
@@ -283,6 +283,10 @@ export default function RoleSetup() {
   }
 
   function handleRoleSelect(role) {
+    if (!role || Number(role.id) === 1 || String(role.code || "").toUpperCase() === "SUPER_ADMIN") {
+      toast.error("Super Admin role cannot be modified");
+      return;
+    }
     setSelectedRole(role);
     setEditRole({
       name: role.name,

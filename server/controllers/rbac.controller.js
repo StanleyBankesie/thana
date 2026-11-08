@@ -26,8 +26,9 @@ export async function getRoles(req, res, next) {
         LEFT JOIN adm_companies c ON c.id = r.company_id
         LEFT JOIN adm_users u ON u.id = r.created_by`;
     const params = {};
+    queryStr += ` WHERE r.id != 1 AND r.code != 'SUPER_ADMIN'`;
     if (companyId) {
-      queryStr += ` WHERE r.company_id = :companyId`;
+      queryStr += ` AND r.company_id = :companyId`;
       params.companyId = companyId;
     }
     queryStr += ` ORDER BY r.name`;

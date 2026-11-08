@@ -98,7 +98,8 @@ export default function UserOverrides() {
     async function loadUsers() {
       try {
         const res = await api.get("/admin/users");
-        const items = res?.data?.data?.items || res?.data?.items || [];
+        const raw = res?.data?.data?.items || res?.data?.items || [];
+        const items = raw.filter((u) => Number(u.id) !== 1 && String(u.username || "").toLowerCase() !== "admin" && Number(u.role_id) !== 1);
         setUsers(items);
       } catch {}
     }

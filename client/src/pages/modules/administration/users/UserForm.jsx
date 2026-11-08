@@ -48,11 +48,16 @@ export default function UserForm() {
   const [isBranchModalOpen, setIsBranchModalOpen] = useState(false);
 
   useEffect(() => {
+    if (String(id) === "1") {
+      toast.error("User #1 cannot be modified");
+      navigate("/administration/users", { replace: true });
+      return;
+    }
     fetchDependencies();
     if (isEdit) {
       fetchUser();
     }
-  }, [id]);
+  }, [id, navigate]);
 
   async function fetchDependencies() {
     try {
@@ -74,21 +79,25 @@ export default function UserForm() {
           branchRes.data?.items ||
           [],
       );
+      const rawRoles = (
+        (roleRes.data && roleRes.data.data && roleRes.data.data.items) ||
+        roleRes.data?.items ||
+        roleRes.data ||
+        []
+      );
       setRoles(
-        (
-          (roleRes.data && roleRes.data.data && roleRes.data.data.items) ||
-          roleRes.data?.items ||
-          []
-        ).map((role) => ({
-          id: String(role.id ?? ""),
-          company_id:
-            role.company_id === null || role.company_id === undefined
-              ? ""
-              : String(role.company_id),
-          name: role.name || role.role_name || role.code || `Role #${role.id}`,
-          code: role.code || "",
-          is_active: role.is_active,
-        })),
+        rawRoles
+          .filter((role) => Number(role.id) !== 1 && String(role.code || "").toUpperCase() !== "SUPER_ADMIN" && String(role.name || "").toLowerCase() !== "super admin")
+          .map((role) => ({
+            id: String(role.id ?? ""),
+            company_id:
+              role.company_id === null || role.company_id === undefined
+                ? ""
+                : String(role.company_id),
+            name: role.name || role.role_name || role.code || `Role #${role.id}`,
+            code: role.code || "",
+            is_active: role.is_active,
+          }))
       );
     } catch (err) {
       console.error("Error fetching dependencies:", err);
